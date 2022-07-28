@@ -551,3 +551,143 @@ class BatchDecryptionResult {
         }));
     }
 }
+
+import {createMockStorage} from "../../mocks/Storage";
+import {Clock as MockClock} from "../../mocks/Clock";
+import {poll} from "../../mocks/poll";
+import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
+import {ConsoleLogger} from "../../logging/ConsoleLogger";
+import {HomeServer as MockHomeServer} from "../../mocks/HomeServer.js";
+
+export function tests() {
+    const roomId = "!abc:hs.tld";
+    return {
+        "ensureMessageKeyIsShared tracks room and passes correct history visibility to deviceTracker": async assert => {
+            const storage = await createMockStorage();
+            const megolmMock = {
+                async ensureOutboundSession() { return { }; }
+            };
+            const olmMock = {
+                async encrypt() { return []; }
+            }
+            let isRoomTracked = false;
+            let isDevicesRequested = false;
+            const deviceTracker = {
+                async trackRoom(room, historyVisibility) {
+                    // only assert on first call
+                    if (isRoomTracked) { return; }
+                    assert(!isDevicesRequested);
+                    assert.equal(room.id, roomId);
+                    assert.equal(historyVisibility, "invited");
+                    isRoomTracked = true;
+                },
+                async devicesForTrackedRoom() {
+                    assert(isRoomTracked);
+                    isDevicesRequested = true;
+                    return [];
+                },
+                async devicesForRoomMembers() {
+                    return [];
+                }
+            }
+            const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
+            writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
+                history_visibility: "invited"
+            }});
+            await writeTxn.complete();
+            const roomEncryption = new RoomEncryption({
+                room: {id: roomId},
+                megolmEncryption: megolmMock,
+                olmEncryption: olmMock,
+                storage,
+                deviceTracker,
+                clock: new MockClock()
+            });
+            const homeServer = new MockHomeServer();
+            const promise = roomEncryption.ensureMessageKeyIsShared(homeServer.api, NullLoggerInstance.item);
+            // need to poll because sendToDevice isn't first async step
+            const request = await poll(() => homeServer.requests.sendToDevice?.[0]);
+            request.respond({});
+            await promise;
+            assert(isRoomTracked);
+            assert(isDevicesRequested);
+        },
+        "encrypt tracks room and passes correct history visibility to deviceTracker": async assert => {
+            const storage = await createMockStorage();
+            const megolmMock = {
+                async encrypt() { return { roomKeyMessage: {} }; }
+            };
+            const olmMock = {
+                async encrypt() { return []; }
+            }
+            let isRoomTracked = false;
+            let isDevicesRequested = false;
+            const deviceTracker = {
+                async trackRoom(room, historyVisibility) {
+                    // only assert on first call
+                    if (isRoomTracked) { return; }
+                    assert(!isDevicesRequested);
+                    assert.equal(room.id, roomId);
+                    assert.equal(historyVisibility, "invited");
+                    isRoomTracked = true;
+                },
+                async devicesForTrackedRoom() {
+                    assert(isRoomTracked);
+                    isDevicesRequested = true;
+                    return [];
+                },
+                async devicesForRoomMembers() {
+                    return [];
+                }
+            }
+            const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
+            writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
+                history_visibility: "invited"
+            }});
+            await writeTxn.complete();
+            const roomEncryption = new RoomEncryption({
+                room: {id: roomId},
+                megolmEncryption: megolmMock,
+                olmEncryption: olmMock,
+                storage,
+                deviceTracker
+            });
+            const homeServer = new MockHomeServer();
+            const promise = roomEncryption.encrypt("m.room.message", {body: "hello"}, homeServer.api, NullLoggerInstance.item);
+            // need to poll because sendToDevice isn't first async step
+            const request = await poll(() => homeServer.requests.sendToDevice?.[0]);
+            request.respond({});
+            await promise;
+            assert(isRoomTracked);
+            assert(isDevicesRequested);
+        },
+        "writeSync passes correct history visibility to deviceTracker": async assert => {
+            const storage = await createMockStorage();
+            let isMemberChangesCalled = false;
+            const deviceTracker = {
+                async writeMemberChanges(room, memberChanges, historyVisibility, txn) {
+                    assert.equal(historyVisibility, "invited");
+                    isMemberChangesCalled = true;
+                    return {removed: [], added: []};
+                },
+                async devicesForRoomMembers() {
+                    return [];
+                }
+            }
+            const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
+            writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
+                history_visibility: "invited"
+            }});
+            const memberChanges = new Map([["@alice:hs.tld", {}]]);
+            const roomEncryption = new RoomEncryption({
+                room: {id: roomId},
+                storage,
+                deviceTracker
+            });
+            const roomResponse = {};
+            const txn = await storage.readWriteTxn([storage.storeNames.roomState]);
+            await roomEncryption.writeSync(roomResponse, memberChanges, txn, NullLoggerInstance.item);
+            assert(isMemberChangesCalled);
+        },
+    }
+}
