@@ -102,7 +102,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this.navigation.push("session");
     }
 
-    _initViewModels(): void {
+    private _initViewModels(): void {
         if (this._loginToken) {
             this._hideHomeserver = true;
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
@@ -119,7 +119,7 @@ export class LoginViewModel extends ViewModel<Options> {
         }
     }
 
-    _showPasswordLogin(): void {
+    private _showPasswordLogin(): void {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
@@ -128,19 +128,19 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("passwordLoginViewModel");
     }
 
-    _showSSOLogin(): void {
+    private _showSSOLogin(): void {
         this._startSSOLoginViewModel = this.track(
             new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startSSOLoginViewModel");
     }
 
-    _showError(message: string): void {
+    private _showError(message: string): void {
         this._errorMessage = message;
         this.emitChange("errorMessage");
     }
 
-    _setBusy(status: boolean): void {
+    private _setBusy(status: boolean): void {
         this._isBusy = status;
         this._passwordLoginViewModel?.setBusy(status);
         this._startSSOLoginViewModel?.setBusy(status);
@@ -165,7 +165,7 @@ export class LoginViewModel extends ViewModel<Options> {
         return null;
     }
 
-    _createLoadViewModel(): void {
+    private _createLoadViewModel(): void {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         this._loadViewModel = this.disposeTracked(this._loadViewModel);
         this._loadViewModel = this.track(
@@ -193,7 +193,7 @@ export class LoginViewModel extends ViewModel<Options> {
         );
     }
 
-    _disposeViewModels(): void {
+    private _disposeViewModels(): void {
         this._startSSOLoginViewModel = this.disposeTracked(this._startSSOLoginViewModel);
         this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
         this._completeSSOLoginViewModel = this.disposeTracked(this._completeSSOLoginViewModel);
