@@ -50,6 +50,7 @@ export type Config = {
     /**
      * Configuration for push notifications.
      * See https://spec.matrix.org/latest/client-server-api/#post_matrixclientv3pushersset
+     * and https://github.com/matrix-org/sygnal/blob/main/docs/applications.md#webpush
      * OPTIONAL
      */
     push?: {
