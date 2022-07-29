@@ -137,6 +137,10 @@ export class MemberChange {
         return this.member.membership;
     }
 
+    get wasInvited() {
+        return this.previousMembership === "invite" && this.membership !== "invite";
+    }
+
     get hasLeft() {
         return this.previousMembership === "join" && this.membership !== "join";
     }
