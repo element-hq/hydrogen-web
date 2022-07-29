@@ -56,7 +56,8 @@ async function generateIconSourceMap(icons, manifestLocation) {
     const fs = require("fs").promises;
     for (const icon of Object.values(icons)) {
         const [location] = icon.split("?");
-        const resolvedLocation = path.resolve(__dirname, "../../", manifestLocation, location);
+        // resolve location against manifestLocation
+        const resolvedLocation = path.resolve(manifestLocation, location);
         const iconData = fs.readFile(resolvedLocation);
         promises.push(iconData);
         const fileName = path.basename(resolvedLocation);
