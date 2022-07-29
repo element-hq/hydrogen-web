@@ -25,7 +25,7 @@ export class EmojisDirectory {
 	}
 
 	deleteEmoji(emojiName) {
-		return this._emojisList.delete(emoji.name, emoji);
+		return this._emojisList.delete(emojiName);
 	}
 	
 	setSeparateSymbol(symbol) {
@@ -68,7 +68,7 @@ export class EmojisDirectory {
 	}
 
 	searchEmojis(emojiName) {
-		ret = new Array();
+		let ret = new Array();
 		for (const emoname of this._emojisList.keys()) {
 			if (emoname.includes()) {
 				ret.push(this._emojisList.get(emoname));
