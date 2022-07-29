@@ -521,6 +521,62 @@ a {
 
 .RoomView_error {
     color: var(--error-color);
+    background : #efefef;
+    height : 0px;
+    font-weight : bold;
+    transition : 0.25s all ease-out;
+    padding-right : 20px;
+    padding-left : 20px;
+}
+
+.RoomView_error div{
+    overflow : hidden;
+    height: 100%;
+    width: 100%;
+    position : relative;
+    display : flex;
+    align-items : center;
+}
+
+.RoomView_error:not(:empty) {
+    height : auto;
+    padding-top : 20px;
+    padding-bottom : 20px;
+}
+
+.RoomView_error p {
+    position : relative;
+    display : block;
+    width : 100%;
+    height : auto;
+    margin : 0;
+}
+
+.RoomView_error button {
+    width : 40px;
+    padding-top : 20px;
+    padding-bottom : 20px;
+    background : none;
+    border : none;
+    position : relative;
+    border-radius : 5px;
+    transition: 0.1s all ease-out;
+    cursor: pointer;
+}
+
+.RoomView_error button:hover {
+    background : #cfcfcf;
+}
+
+.RoomView_error button:before {
+    content:"\274c";
+    position : absolute;
+    top : 15px;
+    left: 9px;
+    width : 20px;
+    height : 10px;
+    font-size : 10px;
+    align-self : middle;
 }
 
 .MessageComposer_replyPreview .Timeline_message {
