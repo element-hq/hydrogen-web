@@ -9,9 +9,12 @@ export class EmojisDirectory {
 	}
 	
 	init() {
-		const emojis = default_emojis;
-		for (const emoji of emojis) {
-			this.addEmoji(new Emoji(...emoji));
+		let emojiIndex = 0;
+		for () {
+			for (const emojilist of emojis) {
+				
+				this.addEmoji(new Emoji(...emoji));
+			}
 		}
 		this.setSeparateSymbol(':');
 	}
