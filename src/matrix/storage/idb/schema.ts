@@ -2,7 +2,6 @@ import {IDOMStorage} from "./types";
 import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
-import {addRoomToIdentity} from "../../e2ee/DeviceTracker.js";
 import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
@@ -183,51 +182,12 @@ function createTimelineRelationsStore(db: IDBDatabase) : void {
     db.createObjectStore("timelineRelations", {keyPath: "key"});
 }
 
-//v11 doesn't change the schema, but ensures all userIdentities have all the roomIds they should (see #470)
-async function fixMissingRoomsInUserIdentities(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) {
-    const roomSummaryStore = txn.objectStore("roomSummary");
-    const trackedRoomIds: string[] = [];
-    await iterateCursor<SummaryData>(roomSummaryStore.openCursor(), roomSummary => {
-        if (roomSummary.isTrackingMembers) {
-            trackedRoomIds.push(roomSummary.roomId);
-        }
-        return NOT_DONE;
-    });
-    const outboundGroupSessionsStore = txn.objectStore("outboundGroupSessions");
-    const userIdentitiesStore: IDBObjectStore = txn.objectStore("userIdentities");
-    const roomMemberStore = txn.objectStore("roomMembers");
-    for (const roomId of trackedRoomIds) {
-        let foundMissing = false;
-        const joinedUserIds: string[] = [];
-        const memberRange = IDBKeyRange.bound(roomId, `${roomId}|${MAX_UNICODE}`, true, true);
-        await log.wrap({l: "room", id: roomId}, async log => {
-            await iterateCursor<MemberData>(roomMemberStore.openCursor(memberRange), member => {
-                if (member.membership === "join") {
-                    joinedUserIds.push(member.userId);
-                }
-                return NOT_DONE;
-            });
-            log.set("joinedUserIds", joinedUserIds.length);
-            for (const userId of joinedUserIds) {
-                const identity = await reqAsPromise(userIdentitiesStore.get(userId));
-                const originalRoomCount = identity?.roomIds?.length;
-                const updatedIdentity = addRoomToIdentity(identity, userId, roomId);
-                if (updatedIdentity) {
-                    log.log({l: `fixing up`, id: userId,
-                        roomsBefore: originalRoomCount, roomsAfter: updatedIdentity.roomIds.length});
-                    userIdentitiesStore.put(updatedIdentity);
-                    foundMissing = true;
-                }
-            }
-            log.set("foundMissing", foundMissing);
-            if (foundMissing) {
-                // clear outbound megolm session,
-                // so we'll create a new one on the next message that will be properly shared
-                outboundGroupSessionsStore.delete(roomId);
-            }
-        });
-    }
-}
+//v11 doesn't change the schema,
+// but ensured all userIdentities have all the roomIds they should (see #470)
+
+// 2022-07-20: The fix dated from August 2021, and have removed it now because of a
+// refactoring needed in the device tracker, which made it inconvenient to expose addRoomToIdentity
+function fixMissingRoomsInUserIdentities() {}
 
 // v12 move ssssKey to e2ee:ssssKey so it will get backed up in the next step
 async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {

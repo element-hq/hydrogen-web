@@ -13,10 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import pkg from 'off-color';
+const offColor = pkg.offColor;
 
-const offColor = require("off-color").offColor;
-
-module.exports.derive = function (value, operation, argument, isDark) {
+export function derive(value, operation, argument, isDark) {
     const argumentAsNumber = parseInt(argument);
     if (isDark) {
         // For dark themes, invert the operation

@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 const path = require('path').posix;
+const {optimize} = require('svgo');
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
-    const path = require("path");
     const resolvedLocation = path.resolve(__dirname, "../../", `${location}/theme.css`);
     const data = await fs.readFile(resolvedLocation);
     return data;
@@ -41,6 +41,45 @@ function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
             info.source = new TextEncoder().encode(JSON.stringify(config, undefined, 2));
         }
     }
+}
+
+/**
+ * Returns an object where keys are the svg file names and the values
+ * are the svg code (optimized)
+ * @param {*} icons Object where keys are css variable names and values are locations of the svg
+ * @param {*} manifestLocation Location of manifest used for resolving path 
+ */
+async function generateIconSourceMap(icons, manifestLocation) {
+    const sources = {};
+    const fileNames = [];
+    const promises = [];
+    const fs = require("fs").promises;
+    for (const icon of Object.values(icons)) {
+        const [location] = icon.split("?");
+        // resolve location against manifestLocation
+        const resolvedLocation = path.resolve(manifestLocation, location);
+        const iconData = fs.readFile(resolvedLocation);
+        promises.push(iconData);
+        const fileName = path.basename(resolvedLocation);
+        fileNames.push(fileName);
+    }
+    const results = await Promise.all(promises);
+    for (let i = 0; i < results.length; ++i)  {
+        const svgString = results[i].toString();
+        const result = optimize(svgString, {
+            plugins: [
+                {
+                    name: "preset-default",
+                    params: {
+                        overrides: { convertColors: false, },
+                    },
+                },
+            ],
+        });
+        const optimizedSvgString = result.data;
+        sources[fileNames[i]] = optimizedSvgString;
+    }
+    return sources;
 }
 
 /**
@@ -278,7 +317,7 @@ module.exports = function buildThemes(options) {
             ];
 },
 
-        generateBundle(_, bundle) {
+        async generateBundle(_, bundle) {
             const assetMap = getMappingFromFileNameToAssetInfo(bundle);
             const chunkMap = getMappingFromLocationToChunkArray(bundle);
             const runtimeThemeChunkMap = getMappingFromLocationToRuntimeChunk(bundle);
@@ -299,13 +338,29 @@ module.exports = function buildThemes(options) {
                     const locationRelativeToManifest = path.relative(manifestLocation, locationRelativeToBuildRoot);
                     builtAssets[`${name}-${variant}`] = locationRelativeToManifest;
                 }
+                // Emit the base svg icons as asset
+                const nameToAssetHashedLocation = [];
+                const nameToSource = await generateIconSourceMap(icon, location);
+                for (const [name, source] of Object.entries(nameToSource)) {
+                    const ref = this.emitFile({ type: "asset", name, source });
+                    const assetHashedName = this.getFileName(ref);
+                    nameToAssetHashedLocation[name] = assetHashedName;
+                }
+                // Update icon section in output manifest with paths to the icon in build output 
+                for (const [variable, location] of Object.entries(icon)) {
+                    const [locationWithoutQueryParameters, queryParameters] = location.split("?");
+                    const name = path.basename(locationWithoutQueryParameters);
+                    const locationRelativeToBuildRoot = nameToAssetHashedLocation[name];
+                    const locationRelativeToManifest = path.relative(manifestLocation, locationRelativeToBuildRoot);
+                    icon[variable] = `${locationRelativeToManifest}?${queryParameters}`;
+                }
                 const runtimeThemeChunk = runtimeThemeChunkMap.get(location);
                 const runtimeAssetLocation = path.relative(manifestLocation, assetMap.get(runtimeThemeChunk.fileName).fileName); 
                 manifest.source = {
                     "built-assets": builtAssets,
                     "runtime-asset": runtimeAssetLocation,
                     "derived-variables": derivedVariables,
-                    "icon": icon
+                    "icon": icon,
                 };
                 const name = `theme-${themeKey}.json`;
                 manifestLocations.push(`${manifestLocation}/${name}`);

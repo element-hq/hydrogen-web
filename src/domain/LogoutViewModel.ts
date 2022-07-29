@@ -16,10 +16,11 @@ limitations under the License.
 
 import {Options as BaseOptions, ViewModel} from "./ViewModel";
 import {Client} from "../matrix/Client.js";
+import {SegmentType} from "./navigation/index";
 
 type Options = { sessionId: string; } & BaseOptions;
 
-export class LogoutViewModel extends ViewModel<Options> {
+export class LogoutViewModel extends ViewModel<SegmentType, Options> {
     private _sessionId: string;
     private _busy: boolean;
     private _showConfirm: boolean;
@@ -41,7 +42,7 @@ export class LogoutViewModel extends ViewModel<Options> {
         return this._busy;
     }
 
-    get cancelUrl(): string {
+    get cancelUrl(): string | undefined {
         return this.urlCreator.urlForSegment("session", true);
     }
 
