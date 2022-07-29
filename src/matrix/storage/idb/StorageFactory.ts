@@ -21,6 +21,7 @@ import { exportSession, importSession, Export } from "./export";
 import { schema } from "./schema";
 import { detectWebkitEarlyCloseTxnBug } from "./quirks";
 import { ILogItem } from "../../../logging/types";
+import { LogLevel } from "../../../logging/LogFilter";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: ILogItem) {
@@ -32,7 +33,7 @@ interface ServiceWorkerHandler {
     preventConcurrentSessionAccess: (sessionId: string) => Promise<void>;
 }
 
-async function requestPersistedStorage(): Promise<boolean> {
+async function requestPersistedStorage(log: ILogItem): Promise<boolean> {
     // don't assume browser so we can run in node with fake-idb
     const glob = this;
     if (glob?.navigator?.storage?.persist) {
@@ -42,7 +43,8 @@ async function requestPersistedStorage(): Promise<boolean> {
             await glob.document.requestStorageAccess();
             return true;
         } catch (err) {
-            console.warn("requestStorageAccess threw an error:", err);
+            const item = log.log("requestStorageAccess threw an error:", LogLevel.Warn);
+            item.error = err;
             return false;
         }
     } else {
@@ -65,10 +67,10 @@ export class StorageFactory {
 
     async create(sessionId: string, log: ILogItem): Promise<Storage> {
         await this._serviceWorkerHandler?.preventConcurrentSessionAccess(sessionId);
-        requestPersistedStorage().then(persisted => {
+        requestPersistedStorage(log).then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
             if (!persisted) {
-                console.warn("no persisted storage, database can be evicted by browser");
+                log.log("no persisted storage, database can be evicted by browser:", LogLevel.Warn);
             }
         });
 
