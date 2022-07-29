@@ -32,6 +32,9 @@ export class EmojisDirectory {
 		let betweenSymbols = false;
 		let n = 0;
 		for (const part of text.split(this._symbol)) {
+			console.log(part)
+			console.log(n)
+			console.log(betweenSymbols)
 			n++;
 			if (betweenSymbols && text.split(this._symbol).length !== n) {
 				if (part.includes(" ")) {
@@ -43,10 +46,12 @@ export class EmojisDirectory {
 						ret += emoji.emoji();
 					}
 				}
+			} else {
+				ret += (n == 1 ? "" : ":") + part;
 			};
 			betweenSymbols = !betweenSymbols; // in "I :am:really:happy:", the double points are for am and happy
 		}
-		return 
+		return ret;
 	}
 
 }
