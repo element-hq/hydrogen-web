@@ -54,7 +54,7 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
     }
 
     private _getLastSessionId(): string | undefined {
-        const navPath = this._urlAsNavPath(this._history.getLastUrl() || "");
+        const navPath = this._urlAsNavPath(this._history.getLastSessionUrl() || "");
         const sessionId = navPath.get("session")?.value;
         if (typeof sessionId === "string") {
             return sessionId;
@@ -111,7 +111,7 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
     }
 
     tryRestoreLastUrl(): boolean {
-        const lastNavPath = this._urlAsNavPath(this._history.getLastUrl() || "");
+        const lastNavPath = this._urlAsNavPath(this._history.getLastSessionUrl() || "");
         if (lastNavPath.segments.length !== 0) {
             this._applyNavPathToNavigation(lastNavPath);
             return true;

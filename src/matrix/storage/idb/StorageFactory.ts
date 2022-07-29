@@ -42,6 +42,7 @@ async function requestPersistedStorage(): Promise<boolean> {
             await glob.document.requestStorageAccess();
             return true;
         } catch (err) {
+            console.warn("requestStorageAccess threw an error:", err);
             return false;
         }
     } else {

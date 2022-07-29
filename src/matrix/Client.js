@@ -100,6 +100,8 @@ export class Client {
         });
     }
 
+    // TODO: When converted to typescript this should return the same type
+    // as this._loginOptions is in LoginViewModel.ts (LoginOptions).
     _parseLoginOptions(options, homeserver) {
         /*
         Take server response and return new object which has two props password and sso which
@@ -136,7 +138,7 @@ export class Client {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
         const registration = new Registration(hsApi, {
-            username, 
+            username,
             password,
             initialDeviceDisplayName,
         },
@@ -196,7 +198,7 @@ export class Client {
                     sessionInfo.deviceId = dehydratedDevice.deviceId;
                 }
             }
-            await this._platform.sessionInfoStorage.add(sessionInfo);            
+            await this._platform.sessionInfoStorage.add(sessionInfo);
             // loading the session can only lead to
             // LoadStatus.Error in case of an error,
             // so separate try/catch
@@ -266,7 +268,7 @@ export class Client {
             this._status.set(LoadStatus.SessionSetup);
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
-        
+
         this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
@@ -311,7 +313,7 @@ export class Client {
         this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
             if (s === SyncStatus.Stopped) {
                 // keep waiting if there is a ConnectionError
-                // as the reconnector above will call 
+                // as the reconnector above will call
                 // sync.start again to retry in this case
                 return this._sync.error?.name !== "ConnectionError";
             }

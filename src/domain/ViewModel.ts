@@ -60,11 +60,11 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
         return this._options[name];
     }
 
-    observeNavigation<T extends keyof N>(type: T, onChange: (value: N[T], type: T) => void) {
+    observeNavigation<T extends keyof N>(type: T, onChange: (value: N[T], type: T) => void): void {
       const segmentObservable = this.navigation.observe(type);
       const unsubscribe = segmentObservable.subscribe((value: N[T]) => {
         onChange(value, type);
-      })
+      });
       this.track(unsubscribe);
     }
 
@@ -102,10 +102,10 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
 
     // TODO: this will need to support binding
     // if any of the expr is a function, assume the function is a binding, and return a binding function ourselves
-    // 
+    //
     // translated string should probably always be bindings, unless we're fine with a refresh when changing the language?
     // we probably are, if we're using routing with a url, we could just refresh.
-    i18n(parts: TemplateStringsArray, ...expr: any[]) {
+    i18n(parts: TemplateStringsArray, ...expr: any[]): string {
         // just concat for now
         let result = "";
         for (let i = 0; i < parts.length; ++i) {

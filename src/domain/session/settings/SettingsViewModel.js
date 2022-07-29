@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
+import {submitLogsToRageshakeServer} from "../../../domain/rageshake";
 
 class PushNotificationStatus {
     constructor() {
@@ -51,6 +52,7 @@ export class SettingsViewModel extends ViewModel {
         this.maxSentImageSizeLimit = 4000;
         this.pushNotifications = new PushNotificationStatus();
         this._activeTheme = undefined;
+        this._logsFeedbackMessage = undefined;
     }
 
     get _session() {
@@ -131,16 +133,12 @@ export class SettingsViewModel extends ViewModel {
         return this._formatBytes(this._estimate?.usage);
     }
 
-    get themes() {
-        return this.platform.themeLoader.themes;
+    get themeMapping() {
+        return this.platform.themeLoader.themeMapping;
     }
 
     get activeTheme() {
         return this._activeTheme;
-    }
-
-    setTheme(name) {
-        this.platform.themeLoader.setTheme(name);
     }
 
     _formatBytes(n) {
@@ -154,6 +152,51 @@ export class SettingsViewModel extends ViewModel {
     async exportLogs() {
         const logExport = await this.logger.export();
         this.platform.saveFileAs(logExport.asBlob(), `hydrogen-logs-${this.platform.clock.now()}.json`);
+    }
+
+    get canSendLogsToServer() {
+        return !!this.platform.config.bugReportEndpointUrl;
+    }
+
+    get logsServer() {
+        const {bugReportEndpointUrl} = this.platform.config;
+        try {
+            if (bugReportEndpointUrl) {
+                return new URL(bugReportEndpointUrl).hostname;
+            }
+        } catch (e) {}
+        return "";
+    }
+
+    async sendLogsToServer() {
+        const {bugReportEndpointUrl} = this.platform.config;
+        if (bugReportEndpointUrl) {
+            this._logsFeedbackMessage = this.i18n`Sending logs…`;
+            this.emitChange();
+            try {
+                const logExport = await this.logger.export();
+                await submitLogsToRageshakeServer(
+                    {
+                        app: "hydrogen",
+                        userAgent: this.platform.description,
+                        version: DEFINE_VERSION,
+                        text: `Submit logs from settings for user ${this._session.userId} on device ${this._session.deviceId}`,
+                    },
+                    logExport.asBlob(),
+                    bugReportEndpointUrl,
+                    this.platform.request
+                );
+                this._logsFeedbackMessage = this.i18n`Logs sent succesfully!`;
+                this.emitChange();
+            } catch (err) {
+                this._logsFeedbackMessage = err.message;
+                this.emitChange();
+            }
+        }
+    }
+
+    get logsFeedbackMessage() {
+        return this._logsFeedbackMessage;
     }
 
     async togglePushNotifications() {
@@ -184,6 +227,12 @@ export class SettingsViewModel extends ViewModel {
             this.pushNotifications.serverError = err;
             this.emitChange("pushNotifications.serverError");
         }
+    }
+
+    changeThemeOption(themeName, themeVariant) {
+        this.platform.themeLoader.setTheme(themeName, themeVariant);
+        // emit so that radio-buttons become displayed/hidden
+        this.emitChange("themeOption");
     }
 }
 

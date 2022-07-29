@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-const path = require('path');
+const path = require('path').posix;
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
@@ -43,29 +43,15 @@ function addThemesToConfig(bundle, manifestLocations, defaultThemes) {
     }
 }
 
-function parseBundle(bundle) {
+/**
+ * Returns a mapping from location (of manifest file) to an array containing all the chunks (of css files) generated from that location.
+ * To understand what chunk means in this context, see https://rollupjs.org/guide/en/#generatebundle.
+ * @param {*} bundle Mapping from fileName to AssetInfo | ChunkInfo
+ */
+function getMappingFromLocationToChunkArray(bundle) {
     const chunkMap = new Map();
-    const assetMap = new Map();
-    let runtimeThemeChunk;
     for (const [fileName, info] of Object.entries(bundle)) {
-        if (!fileName.endsWith(".css")) {
-            continue;
-        }
-        if (info.type === "asset") {
-            /**
-             * So this is the css assetInfo that contains the asset hashed file name.
-             * We'll store it in a separate map indexed via fileName (unhashed) to avoid
-             * searching through the bundle array later.
-             */
-            assetMap.set(info.name, info);
-            continue;
-        }
-        if (info.facadeModuleId?.includes("type=runtime")) {
-            /**
-             * We have a separate field in manifest.source just for the runtime theme,
-             * so store this separately.
-             */
-            runtimeThemeChunk = info;
+        if (!fileName.endsWith(".css") || info.type === "asset" || info.facadeModuleId?.includes("type=runtime")) {
             continue;
         }
         const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
@@ -80,7 +66,56 @@ function parseBundle(bundle) {
             array.push(info);
         }
     }
-    return { chunkMap, assetMap, runtimeThemeChunk };
+    return chunkMap;
+}
+
+/**
+ * Returns a mapping from unhashed file name (of css files) to AssetInfo.
+ * To understand what AssetInfo means in this context, see https://rollupjs.org/guide/en/#generatebundle.
+ * @param {*} bundle Mapping from fileName to AssetInfo | ChunkInfo 
+ */
+function getMappingFromFileNameToAssetInfo(bundle) {
+    const assetMap = new Map();
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (!fileName.endsWith(".css")) {
+            continue;
+        }
+        if (info.type === "asset") {
+            /**
+             * So this is the css assetInfo that contains the asset hashed file name.
+             * We'll store it in a separate map indexed via fileName (unhashed) to avoid
+             * searching through the bundle array later.
+             */
+            assetMap.set(info.name, info);
+        }
+    }
+    return assetMap;
+}
+
+/**
+ * Returns a mapping from location (of manifest file) to ChunkInfo of the runtime css asset
+ * To understand what ChunkInfo means in this context, see https://rollupjs.org/guide/en/#generatebundle.
+ * @param {*} bundle Mapping from fileName to AssetInfo | ChunkInfo
+ */
+function getMappingFromLocationToRuntimeChunk(bundle) {
+    let runtimeThemeChunkMap = new Map();
+    for (const [fileName, info] of Object.entries(bundle)) {
+        if (!fileName.endsWith(".css") || info.type === "asset") {
+            continue;
+        }
+        const location = info.facadeModuleId?.match(/(.+)\/.+\.css/)?.[1];
+        if (!location) {
+            throw new Error("Cannot find location of css chunk!");
+        }
+        if (info.facadeModuleId?.includes("type=runtime")) {
+            /**
+             * We have a separate field in manifest.source just for the runtime theme,
+             * so store this separately.
+             */
+            runtimeThemeChunkMap.set(location, info);
+        }
+    }
+    return runtimeThemeChunkMap;
 }
 
 module.exports = function buildThemes(options) {
@@ -88,6 +123,7 @@ module.exports = function buildThemes(options) {
     let isDevelopment = false;
     const virtualModuleId = '@theme/'
     const resolvedVirtualModuleId = '\0' + virtualModuleId;
+    const themeToManifestLocation = new Map();
 
     return {
         name: "build-themes",
@@ -100,37 +136,34 @@ module.exports = function buildThemes(options) {
         },
 
         async buildStart() {
-            if (isDevelopment) { return; }
             const { themeConfig } = options;
-            for (const [name, location] of Object.entries(themeConfig.themes)) {
+            for (const location of themeConfig.themes) {
                 manifest = require(`${location}/manifest.json`);
+                const themeCollectionId = manifest.id;
+                themeToManifestLocation.set(themeCollectionId, location);
                 variants = manifest.values.variants;
                 for (const [variant, details] of Object.entries(variants)) {
-                    const fileName = `theme-${name}-${variant}.css`;
-                    if (name === themeConfig.default && details.default) {
+                    const fileName = `theme-${themeCollectionId}-${variant}.css`;
+                    if (themeCollectionId === themeConfig.default && details.default) {
                         // This is the default theme, stash  the file name for later
                         if (details.dark) {
                             defaultDark = fileName;
-                            defaultThemes["dark"] = `${name}-${variant}`;
+                            defaultThemes["dark"] = `${themeCollectionId}-${variant}`;
                         }
                         else {
                             defaultLight = fileName;
-                            defaultThemes["light"] = `${name}-${variant}`;
+                            defaultThemes["light"] = `${themeCollectionId}-${variant}`;
                         }
                     }
                     // emit the css as built theme bundle
-                    this.emitFile({
-                        type: "chunk",
-                        id: `${location}/theme.css?variant=${variant}${details.dark? "&dark=true": ""}`,
-                        fileName,
-                    });
+                    if (!isDevelopment) {
+                        this.emitFile({ type: "chunk", id: `${location}/theme.css?variant=${variant}${details.dark ? "&dark=true" : ""}`, fileName, });
+                    }
                 }
                 // emit the css as runtime theme bundle
-                this.emitFile({
-                    type: "chunk",
-                    id: `${location}/theme.css?type=runtime`,
-                    fileName: `theme-${name}-runtime.css`,
-                });
+                if (!isDevelopment) {
+                    this.emitFile({ type: "chunk", id: `${location}/theme.css?type=runtime`, fileName: `theme-${themeCollectionId}-runtime.css`, });
+                }
             }
         },
 
@@ -152,7 +185,7 @@ module.exports = function buildThemes(options) {
                     if (theme === "default") {
                         theme = options.themeConfig.default;
                     }
-                    const location = options.themeConfig.themes[theme];
+                    const location = themeToManifestLocation.get(theme);
                     const manifest = require(`${location}/manifest.json`);
                     const variants = manifest.values.variants;
                     if (!variant || variant === "default") {
@@ -246,30 +279,36 @@ module.exports = function buildThemes(options) {
 },
 
         generateBundle(_, bundle) {
-            const { assetMap, chunkMap, runtimeThemeChunk } = parseBundle(bundle);
+            const assetMap = getMappingFromFileNameToAssetInfo(bundle);
+            const chunkMap = getMappingFromLocationToChunkArray(bundle);
+            const runtimeThemeChunkMap = getMappingFromLocationToRuntimeChunk(bundle);
             const manifestLocations = [];
+            // Location of the directory containing manifest relative to the root of the build output
+            const manifestLocation = "assets";
             for (const [location, chunkArray] of chunkMap) {
                 const manifest = require(`${location}/manifest.json`);
                 const compiledVariables = options.compiledVariables.get(location);
                 const derivedVariables = compiledVariables["derived-variables"];
                 const icon = compiledVariables["icon"];
                 const builtAssets = {};
-                /**
-                 * Generate a mapping from theme name to asset hashed location of said theme in build output.
-                 * This can be used to enumerate themes during runtime.
-                 */
+                let themeKey;
                 for (const chunk of chunkArray) {
                     const [, name, variant] = chunk.fileName.match(/theme-(.+)-(.+)\.css/);
-                    builtAssets[`${name}-${variant}`] = assetMap.get(chunk.fileName).fileName;
+                    themeKey = name;
+                    const locationRelativeToBuildRoot = assetMap.get(chunk.fileName).fileName;
+                    const locationRelativeToManifest = path.relative(manifestLocation, locationRelativeToBuildRoot);
+                    builtAssets[`${name}-${variant}`] = locationRelativeToManifest;
                 }
+                const runtimeThemeChunk = runtimeThemeChunkMap.get(location);
+                const runtimeAssetLocation = path.relative(manifestLocation, assetMap.get(runtimeThemeChunk.fileName).fileName); 
                 manifest.source = {
                     "built-assets": builtAssets,
-                    "runtime-asset": assetMap.get(runtimeThemeChunk.fileName).fileName,
+                    "runtime-asset": runtimeAssetLocation,
                     "derived-variables": derivedVariables,
                     "icon": icon
                 };
-                const name = `theme-${manifest.name}.json`;
-                manifestLocations.push(`assets/${name}`);
+                const name = `theme-${themeKey}.json`;
+                manifestLocations.push(`${manifestLocation}/${name}`);
                 this.emitFile({
                     type: "asset",
                     name,

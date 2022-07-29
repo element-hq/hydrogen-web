@@ -187,9 +187,13 @@ export class Platform {
                     this._serviceWorkerHandler,
                     this._config.push
                 );
-                const manifests = this.config["themeManifests"];
-                await this._themeLoader?.init(manifests);
-                this._themeLoader?.setTheme(await this._themeLoader.getActiveTheme(), log);
+                if (this._themeLoader) {
+                    const manifests = this.config["themeManifests"];
+                    await this._themeLoader?.init(manifests, log);
+                    const { themeName, themeVariant } = await this._themeLoader.getActiveTheme();
+                    log.log({ l: "Active theme", name: themeName, variant: themeVariant });
+                    this._themeLoader.setTheme(themeName, themeVariant, log);
+                }
             });
         } catch (err) {
             this._container.innerText = err.message;
@@ -334,11 +338,15 @@ export class Platform {
         document.querySelectorAll(".theme").forEach(e => e.remove());
         // add new theme
         const styleTag = document.createElement("link");
-        styleTag.href = `./${newPath}`;
+        styleTag.href = newPath;
         styleTag.rel = "stylesheet";
         styleTag.type = "text/css";
         styleTag.className = "theme";
         head.appendChild(styleTag);
+    }
+
+    get description() {
+        return navigator.userAgent ?? "<unknown>";
     }
 
     dispose() {
