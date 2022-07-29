@@ -242,7 +242,7 @@ export class OidcApi {
             redirectUri,
             state: randomString(8),
             nonce: randomString(8),
-            codeVerifier: randomString(32),
+            codeVerifier: randomString(64), // https://tools.ietf.org/html/rfc7636#section-4.1 length needs to be 43-128 characters
         };
     }
 
