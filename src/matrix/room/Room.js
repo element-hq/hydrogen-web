@@ -139,11 +139,11 @@ export class Room extends BaseRoom {
         }
         log.set("newEntries", newEntries.length);
         log.set("updatedEntries", updatedEntries.length);
-        let shouldFlushKeyShares = false;
+        let encryptionChanges;
         // pass member changes to device tracker
-        if (roomEncryption && this.isTrackingMembers && memberChanges?.size) {
-            shouldFlushKeyShares = await roomEncryption.writeMemberChanges(memberChanges, txn, log);
-            log.set("shouldFlushKeyShares", shouldFlushKeyShares);
+        if (roomEncryption) {
+            encryptionChanges = await roomEncryption.writeSync(roomResponse, memberChanges, txn, log);
+            log.set("shouldFlushKeyShares", encryptionChanges.shouldFlush);
         }
         const allEntries = newEntries.concat(updatedEntries);
         // also apply (decrypted) timeline entries to the summary changes
@@ -188,7 +188,7 @@ export class Room extends BaseRoom {
             memberChanges,
             heroChanges,
             powerLevelsEvent,
-            shouldFlushKeyShares,
+            encryptionChanges,
         };
     }
 
@@ -201,11 +201,14 @@ export class Room extends BaseRoom {
         const {
             summaryChanges, newEntries, updatedEntries, newLiveKey,
             removedPendingEvents, memberChanges, powerLevelsEvent,
-            heroChanges, roomEncryption
+            heroChanges, roomEncryption, encryptionChanges
         } = changes;
         log.set("id", this.id);
         this._syncWriter.afterSync(newLiveKey);
         this._setEncryption(roomEncryption);
+        if (this._roomEncryption) {
+            this._roomEncryption.afterSync(encryptionChanges);
+        }
         if (memberChanges.size) {
             if (this._changedMembersDuringSync) {
                 for (const [userId, memberChange] of memberChanges.entries()) {
@@ -288,8 +291,8 @@ export class Room extends BaseRoom {
         }
     }
 
-    needsAfterSyncCompleted({shouldFlushKeyShares}) {
-        return shouldFlushKeyShares;
+    needsAfterSyncCompleted({encryptionChanges}) {
+        return encryptionChanges?.shouldFlush;
     }
 
     /**
