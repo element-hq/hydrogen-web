@@ -148,7 +148,6 @@ export class DeviceTracker {
         const removed = [];
         if (room.isTrackingMembers && room.isEncrypted) {
             await log.wrap("rewriting userIdentities", async log => {
-                // don't use room.loadMemberList here because we want to use the syncTxn to load the members
                 const memberList = await room.loadMemberList(syncTxn, log);
                 try {
                     const members = Array.from(memberList.members.values());
