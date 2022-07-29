@@ -61,7 +61,7 @@ export class EmojisDirectory {
 			} else {
 				ret += (n !== 1 && !lastWasEmoji ? this._symbol : "") + part;// if the last was an emoji, the double points shouldn't been added, they're part of the emoji.
 				lastWasEmoji = false;
-			};
+			}
 		}
 		console.log(text, ret);
 		return ret;
@@ -70,7 +70,7 @@ export class EmojisDirectory {
 	searchEmojis(emojiName) {
 		let ret = new Array();
 		for (const emoname of this._emojisList.keys()) {
-			if (emoname.includes()) {
+			if (emoname.includes(emojiName)) {
 				ret.push(this._emojisList.get(emoname));
 			}
 		}
