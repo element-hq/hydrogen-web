@@ -124,7 +124,6 @@ export class LoginViewModel extends ViewModel<Options> {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
-<<<<<<< HEAD:src/domain/login/LoginViewModel.js
                 attemptLogin: loginMethod => this.attemptLogin(loginMethod),
                 setHomeserver: homeserver => this.setHomeserver(homeserver)
             })
@@ -132,36 +131,24 @@ export class LoginViewModel extends ViewModel<Options> {
         this.emitChange("passwordLoginViewModel");
     }
     
-    _hidePasswordLogin() {
+    private _hidePasswordLogin(): void {
         this._passwordLoginViewModel = null;
         this.emitChange("passwordLoginViewModel");
     }
     
-    _showSSOLogin() {
-=======
-                attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod)
-        })));
-        this.emitChange("passwordLoginViewModel");
-    }
-
     private _showSSOLogin(): void {
->>>>>>> master:src/domain/login/LoginViewModel.ts
         this._startSSOLoginViewModel = this.track(
             new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startSSOLoginViewModel");
     }
 
-<<<<<<< HEAD:src/domain/login/LoginViewModel.js
-    _hideSSOLogin() {
+    private _hideSSOLogin(): void {
         this._startSSOLoginViewModel = null;
         this.emitChange("startSSOLoginViewModel");
     }
 
-    _showError(message) {
-=======
     private _showError(message: string): void {
->>>>>>> master:src/domain/login/LoginViewModel.ts
         this._errorMessage = message;
         this.emitChange("errorMessage");
     }
@@ -187,12 +174,7 @@ export class LoginViewModel extends ViewModel<Options> {
         this._hidePasswordLogin()
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
-<<<<<<< HEAD:src/domain/login/LoginViewModel.js
-        this._createLoadViewModel();
-=======
-        this._disposeViewModels();
         void this._createLoadViewModel();
->>>>>>> master:src/domain/login/LoginViewModel.ts
         return null;
     }
 
@@ -224,16 +206,8 @@ export class LoginViewModel extends ViewModel<Options> {
         );
     }
 
-<<<<<<< HEAD:src/domain/login/LoginViewModel.js
-    updateLoginOptions() {
+    updateLoginOptions(): void {
         this._passwordLoginViewModel?.setLoginOptions(this._loginOptions);
-=======
-    private _disposeViewModels(): void {
-        this._startSSOLoginViewModel = this.disposeTracked(this._startSSOLoginViewModel);
-        this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
-        this._completeSSOLoginViewModel = this.disposeTracked(this._completeSSOLoginViewModel);
-        this.emitChange("disposeViewModels");
->>>>>>> master:src/domain/login/LoginViewModel.ts
     }
 
     async setHomeserver(newHomeserver: string): Promise<void> {
@@ -259,11 +233,7 @@ export class LoginViewModel extends ViewModel<Options> {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
-<<<<<<< HEAD:src/domain/login/LoginViewModel.js
-        await this.queryHomeserver();
-=======
         void this.queryHomeserver();
->>>>>>> master:src/domain/login/LoginViewModel.ts
     }
 
     async queryHomeserver(): Promise<void> {
@@ -292,13 +262,9 @@ export class LoginViewModel extends ViewModel<Options> {
             if (e.name === "AbortError") {
                 return; //aborted, bail out
             } else {
-<<<<<<< HEAD:src/domain/login/LoginViewModel.js
-                this._loginOptions = null;
+                this._loginOptions = undefined;
                 this._hideSSOLogin();
                 this._hidePasswordLogin();
-=======
-                this._loginOptions = undefined;
->>>>>>> master:src/domain/login/LoginViewModel.ts
             }
         } finally {
             this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
