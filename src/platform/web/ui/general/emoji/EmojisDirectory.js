@@ -63,6 +63,7 @@ export class EmojisDirectory {
 				lastWasEmoji = false;
 			};
 		}
+		console.log(text, ret);
 		return ret;
 	}
 
