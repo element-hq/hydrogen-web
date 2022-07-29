@@ -197,10 +197,6 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-    function parseEmojis(message) {
-        
-    }
-    
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
             try {

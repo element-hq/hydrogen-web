@@ -39,6 +39,7 @@ import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
 import {ThemeLoader} from "./ThemeLoader";
+import {EmojisDirectory} from "./ui/general/emoji/EmojisDirectory";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -166,6 +167,7 @@ export class Platform {
         this._olmPromise = undefined;
         this._workerPromise = undefined;
         this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
+        this._emod = new EmojisDirectory()
     }
 
     async init() {
