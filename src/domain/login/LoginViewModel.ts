@@ -15,73 +15,116 @@ limitations under the License.
 */
 
 import {Client} from "../../matrix/Client.js";
-import {ViewModel} from "../ViewModel";
+import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
+import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
 
-export class LoginViewModel extends ViewModel {
-    constructor(options) {
+type Options = {
+    defaultHomeserver: string;
+    ready: ReadyFn;
+    loginToken?: string;
+} & BaseOptions;
+
+export class LoginViewModel extends ViewModel<Options> {
+    private _ready: ReadyFn;
+    private _loginToken?: string;
+    private _client: Client;
+    private _loginOptions?: LoginOptions;
+    private _passwordLoginViewModel?: PasswordLoginViewModel;
+    private _startSSOLoginViewModel?: StartSSOLoginViewModel;
+    private _completeSSOLoginViewModel?: CompleteSSOLoginViewModel;
+    private _loadViewModel?: SessionLoadViewModel;
+    private _loadViewModelSubscription?: () => void;
+    private _homeserver: string;
+    private _queriedHomeserver?: string;
+    private _abortHomeserverQueryTimeout?: () => void;
+    private _abortQueryOperation?: () => void;
+
+    private _hideHomeserver: boolean = false;
+    private _isBusy: boolean = false;
+    private _errorMessage: string = "";
+
+    constructor(options: Readonly<Options>) {
         super(options);
         const {ready, defaultHomeserver, loginToken} = options;
         this._ready = ready;
         this._loginToken = loginToken;
         this._client = new Client(this.platform);
-        this._loginOptions = null;
-        this._passwordLoginViewModel = null;
-        this._startSSOLoginViewModel = null;
-        this._completeSSOLoginViewModel = null;
-        this._loadViewModel = null;
-        this._loadViewModelSubscription = null;
         this._homeserver = defaultHomeserver;
-        this._queriedHomeserver = null;
-        this._errorMessage = "";
-        this._hideHomeserver = false;
-        this._isBusy = false;
-        this._abortHomeserverQueryTimeout = null;
-        this._abortQueryOperation = null;
         this._initViewModels();
     }
 
-    get passwordLoginViewModel() { return this._passwordLoginViewModel; }
-    get startSSOLoginViewModel() { return this._startSSOLoginViewModel; }
-    get completeSSOLoginViewModel(){ return this._completeSSOLoginViewModel; }
-    get homeserver() { return this._homeserver; }
-    get resolvedHomeserver() { return this._loginOptions?.homeserver; }
-    get errorMessage() { return this._errorMessage; }
-    get showHomeserver() { return !this._hideHomeserver; }
-    get loadViewModel() {return this._loadViewModel; }
-    get isBusy() { return this._isBusy; }
-    get isFetchingLoginOptions() { return !!this._abortQueryOperation; }
+    get passwordLoginViewModel(): PasswordLoginViewModel {
+        return this._passwordLoginViewModel;
+    }
 
-    goBack() {
+    get startSSOLoginViewModel(): StartSSOLoginViewModel {
+        return this._startSSOLoginViewModel;
+    }
+
+    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel {
+        return this._completeSSOLoginViewModel;
+    }
+
+    get homeserver(): string {
+        return this._homeserver;
+    }
+
+    get resolvedHomeserver(): string | undefined {
+        return this._loginOptions?.homeserver;
+    }
+
+    get errorMessage(): string {
+        return this._errorMessage;
+    }
+
+    get showHomeserver(): boolean {
+        return !this._hideHomeserver;
+    }
+
+    get loadViewModel(): SessionLoadViewModel {
+        return this._loadViewModel;
+    }
+
+    get isBusy(): boolean {
+        return this._isBusy;
+    }
+
+    get isFetchingLoginOptions(): boolean {
+        return !!this._abortQueryOperation;
+    }
+
+    goBack(): void {
         this.navigation.push("session");
     }
 
-    async _initViewModels() {
+    private _initViewModels(): void {
         if (this._loginToken) {
             this._hideHomeserver = true;
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
                 this.childOptions(
                     {
                         client: this._client,
-                        attemptLogin: loginMethod => this.attemptLogin(loginMethod),
+                        attemptLogin: (loginMethod: TokenLoginMethod) => this.attemptLogin(loginMethod),
                         loginToken: this._loginToken
                     })
                 ));
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
-            await this.queryHomeserver();
+            void this.queryHomeserver();
         }
     }
 
-    _showPasswordLogin() {
+    private _showPasswordLogin(): void {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
+<<<<<<< HEAD:src/domain/login/LoginViewModel.js
                 attemptLogin: loginMethod => this.attemptLogin(loginMethod),
                 setHomeserver: homeserver => this.setHomeserver(homeserver)
             })
@@ -95,34 +138,46 @@ export class LoginViewModel extends ViewModel {
     }
     
     _showSSOLogin() {
+=======
+                attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod)
+        })));
+        this.emitChange("passwordLoginViewModel");
+    }
+
+    private _showSSOLogin(): void {
+>>>>>>> master:src/domain/login/LoginViewModel.ts
         this._startSSOLoginViewModel = this.track(
             new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
         this.emitChange("startSSOLoginViewModel");
     }
 
+<<<<<<< HEAD:src/domain/login/LoginViewModel.js
     _hideSSOLogin() {
         this._startSSOLoginViewModel = null;
         this.emitChange("startSSOLoginViewModel");
     }
 
     _showError(message) {
+=======
+    private _showError(message: string): void {
+>>>>>>> master:src/domain/login/LoginViewModel.ts
         this._errorMessage = message;
         this.emitChange("errorMessage");
     }
 
-    _setBusy(status) {
+    private _setBusy(status: boolean): void {
         this._isBusy = status;
         this._passwordLoginViewModel?.setEnabled(!status);
         this._startSSOLoginViewModel?.setBusy(status);
         this.emitChange("isBusy");
     }
 
-    async attemptLogin(loginMethod) {
+    async attemptLogin(loginMethod: ILoginMethod): Promise<null> {
         this._setBusy(true);
-        this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
+        void this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
         const loadStatus = this._client.loadStatus;
-        const handle = loadStatus.waitFor(status => status !== LoadStatus.Login);
+        const handle = loadStatus.waitFor((status: LoadStatus) => status !== LoadStatus.Login);
         await handle.promise;
         this._setBusy(false);
         const status = loadStatus.get();
@@ -132,11 +187,16 @@ export class LoginViewModel extends ViewModel {
         this._hidePasswordLogin()
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
+<<<<<<< HEAD:src/domain/login/LoginViewModel.js
         this._createLoadViewModel();
+=======
+        this._disposeViewModels();
+        void this._createLoadViewModel();
+>>>>>>> master:src/domain/login/LoginViewModel.ts
         return null;
     }
 
-    _createLoadViewModel() {
+    private _createLoadViewModel(): void {
         this._loadViewModelSubscription = this.disposeTracked(this._loadViewModelSubscription);
         this._loadViewModel = this.disposeTracked(this._loadViewModel);
         this._loadViewModel = this.track(
@@ -152,7 +212,7 @@ export class LoginViewModel extends ViewModel {
                 })
             )
         );
-        this._loadViewModel.start();
+        void this._loadViewModel.start();
         this.emitChange("loadViewModel");
         this._loadViewModelSubscription = this.track(
             this._loadViewModel.disposableOn("change", () => {
@@ -164,19 +224,27 @@ export class LoginViewModel extends ViewModel {
         );
     }
 
+<<<<<<< HEAD:src/domain/login/LoginViewModel.js
     updateLoginOptions() {
         this._passwordLoginViewModel?.setLoginOptions(this._loginOptions);
+=======
+    private _disposeViewModels(): void {
+        this._startSSOLoginViewModel = this.disposeTracked(this._startSSOLoginViewModel);
+        this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
+        this._completeSSOLoginViewModel = this.disposeTracked(this._completeSSOLoginViewModel);
+        this.emitChange("disposeViewModels");
+>>>>>>> master:src/domain/login/LoginViewModel.ts
     }
 
-    async setHomeserver(newHomeserver) {
+    async setHomeserver(newHomeserver: string): Promise<void> {
         this._homeserver = newHomeserver;
         this._passwordLoginViewModel?.setEnabled(false);
         // clear everything set by queryHomeserver
-        this._loginOptions = null;
-        this._queriedHomeserver = null;
+        this._loginOptions = undefined;
+        this._queriedHomeserver = undefined;
         this._showError("");
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
-        this.emitChange(); // multiple fields changing
+        this.emitChange("loginViewModels"); // multiple fields changing
         // also clear the timeout if it is still running
         this.disposeTracked(this._abortHomeserverQueryTimeout);
         const timeout = this.clock.createTimeout(1000);
@@ -191,10 +259,14 @@ export class LoginViewModel extends ViewModel {
             }
         }
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
+<<<<<<< HEAD:src/domain/login/LoginViewModel.js
         await this.queryHomeserver();
+=======
+        void this.queryHomeserver();
+>>>>>>> master:src/domain/login/LoginViewModel.ts
     }
-    
-    async queryHomeserver() {
+
+    async queryHomeserver(): Promise<void> {
         // don't repeat a query we've just done
         if (this._homeserver === this._queriedHomeserver || this._homeserver === "") {
             return;
@@ -220,9 +292,13 @@ export class LoginViewModel extends ViewModel {
             if (e.name === "AbortError") {
                 return; //aborted, bail out
             } else {
+<<<<<<< HEAD:src/domain/login/LoginViewModel.js
                 this._loginOptions = null;
                 this._hideSSOLogin();
                 this._hidePasswordLogin();
+=======
+                this._loginOptions = undefined;
+>>>>>>> master:src/domain/login/LoginViewModel.ts
             }
         } finally {
             this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
@@ -246,12 +322,22 @@ export class LoginViewModel extends ViewModel {
         this._passwordLoginViewModel?.setEnabled(false);
     }
 
-    dispose() {
+    dispose(): void {
         super.dispose();
         if (this._client) {
             // if we move away before we're done with initial sync
             // delete the session
-            this._client.deleteSession();
+            void this._client.deleteSession();
         }
     }
 }
+
+type ReadyFn = (client: Client) => void;
+
+// TODO: move to Client.js when its converted to typescript.
+type LoginOptions = {
+    homeserver: string;
+    password?: (username: string, password: string) => PasswordLoginMethod;
+    sso?: SSOLoginHelper;
+    token?: (loginToken: string) => TokenLoginMethod;
+};

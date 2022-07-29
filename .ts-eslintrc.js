@@ -19,6 +19,7 @@ module.exports = {
     ],
     rules: {
         "@typescript-eslint/no-floating-promises": 2,
-        "@typescript-eslint/no-misused-promises": 2
+        "@typescript-eslint/no-misused-promises": 2,
+        "semi": ["error", "always"]
     }
 };

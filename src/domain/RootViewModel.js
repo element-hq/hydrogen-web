@@ -17,7 +17,7 @@ limitations under the License.
 import {Client} from "../matrix/Client.js";
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
-import {LoginViewModel} from "./login/LoginViewModel.js";
+import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel";
@@ -118,7 +118,7 @@ export class RootViewModel extends ViewModel {
                     // but we also want the change of screen to go through the navigation
                     // so we store the session container in a temporary variable that will be
                     // consumed by _applyNavigation, triggered by the navigation change
-                    // 
+                    //
                     // Also, we should not call _setSection before the navigation is in the correct state,
                     // as url creation (e.g. in RoomTileViewModel)
                     // won't be using the correct navigation base path.

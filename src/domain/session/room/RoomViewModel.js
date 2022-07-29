@@ -23,6 +23,7 @@ import {imageToInfo} from "../common.js";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
+import {RoomStatus} from "../../../matrix/room/common";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
@@ -197,18 +198,89 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
+    async _processCommandJoin(roomName) {
+        try {
+            const roomId = await this._options.client.session.joinRoom(roomName);
+            const roomStatusObserver = await this._options.client.session.observeRoomStatus(roomId);
+            await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
+            this.navigation.push("room", roomId);
+        } catch (err) {
+            let exc;
+            if ((err.statusCode ?? err.status) === 400) {
+                exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
+            } else if ((err.statusCode ?? err.status) === 404 || (err.statusCode ?? err.status) === 502 || err.message == "Internal Server Error") {
+                exc = new Error(`/join : room '${roomName}' not found`);
+            } else if ((err.statusCode ?? err.status) === 403) {
+                exc = new Error(`/join : you're not invited to join '${roomName}'`);
+            } else {
+                exc = err;
+            }
+            this._sendError = exc;
+            this._timelineError = null;
+            this.emitChange("error");
+        }
+    } 
+
+    async _processCommand (message) {
+        let msgtype;
+        const [commandName, ...args] = message.substring(1).split(" ");
+        switch (commandName) {
+            case "me":
+                message = args.join(" ");
+                msgtype = "m.emote";
+                break;
+            case "join":
+                if (args.length === 1) {
+                    const roomName = args[0];
+                    await this._processCommandJoin(roomName);
+                } else {
+                    this._sendError = new Error("join syntax: /join <room-id>");
+                    this._timelineError = null;
+                    this.emitChange("error");
+                }
+                break;
+            case "shrug":
+                message = "¯\\_(ツ)_/¯ " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            case "tableflip":
+                message = "(╯°□°）╯︵ ┻━┻ " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            case "unflip":
+                message = "┬──┬ ノ( ゜-゜ノ) " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            case "lenny":
+                message = "( ͡° ͜ʖ ͡°) " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            default:
+                this._sendError = new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`);
+                this._timelineError = null;
+                this.emitChange("error");
+                message = undefined;
+       }
+       return {type: msgtype, message: message};
+   }
+    
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
+            let messinfo = {type : "m.text", message : message};
+            if (message.startsWith("//")) {
+                messinfo.message = message.substring(1).trim();
+            } else if (message.startsWith("/")) {
+                messinfo = await this._processCommand(message);
+            }
             try {
-                let msgtype = "m.text";
-                if (message.startsWith("/me ")) {
-                    message = message.substr(4).trim();
-                    msgtype = "m.emote";
-                }
-                if (replyingTo) {
-                    await replyingTo.reply(msgtype, message);
-                } else {
-                    await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                const msgtype = messinfo.type;
+                const message = messinfo.message;
+                if (msgtype && message) {
+                    if (replyingTo) {
+                        await replyingTo.reply(msgtype, message);
+                    } else {
+                        await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                    }
                 }
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
@@ -352,6 +424,11 @@ export class RoomViewModel extends ViewModel {
         if (!this._room.isArchived) {
             this._composerVM.setReplyingTo(entry);
         }
+    }
+    
+    dismissError(evt) {
+        this._sendError = null;
+        this.emitChange("error");
     }
 }
 
