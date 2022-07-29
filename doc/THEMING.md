@@ -174,7 +174,7 @@ This allows users to theme Hydrogen without the need for rebuilding. Derived the
 ## Creating a derived theme:
 Here's how you create a new derived theme:
 1. You create a new theme manifest file (eg: theme-awesome.json) and mention which build time theme you're basing your new theme on using the `extends` field. The base css file of the mentioned theme is used for your new theme.
-2. You configue the theme manifest as usual by populating the `variants` field with your desired colors.
+2. You configure the theme manifest as usual by populating the `variants` field with your desired colors.
 3. You add your new theme manifest to the list of themes in `config.json`.
 
 Reload Hydrogen twice and the new theme should show up in the theme chooser.
