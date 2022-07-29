@@ -1,10 +1,19 @@
 import {Emoji} from "./Emoji";
+import {default_emojis} from "./emojis";
 
 export class EmojisDirectory {
 	constructor() {
 		this._emojisList = new Map();
 		this._symbol = null;
 		this._emojiclass = Emoji;
+	}
+	
+	init() {
+		const emojis = default_emojis;
+		for (const emoji of emojis) {
+			this.addEmoji(new Emoji(...emoji));
+		}
+		this.setSeparateSymbol(':');
 	}
 	
 	addEmoji(emoji) {

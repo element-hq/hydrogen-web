@@ -277,7 +277,7 @@ export class RoomViewModel extends ViewModel {
                 const message = messinfo.message;
                 if (msgtype && message) {
                     if (replyingTo) {
-                        await replyingTo.reply(msgtype, message);
+                        await replyingTo.reply(msgtype, this.platform.emojisDirectory.parseEmojis(message));
                     } else {
                         await this._room.sendEvent("m.room.message", {msgtype, body: message});
                     }

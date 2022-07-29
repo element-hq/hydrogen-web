@@ -169,7 +169,7 @@ export class Platform {
         this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
         this._emod = new EmojisDirectory();
     }
-
+    
     async init() {
         try {
             await this.logger.run("Platform init", async (log) => {
@@ -196,6 +196,7 @@ export class Platform {
                     log.log({ l: "Active theme", name: themeName, variant: themeVariant });
                     this._themeLoader.setTheme(themeName, themeVariant, log);
                 }
+                this._emod.init();
             });
         } catch (err) {
             this._container.innerText = err.message;
@@ -216,6 +217,10 @@ export class Platform {
         } else {
             this.logger = new IDBLogger({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
         }
+    }
+    
+    get emojisDirectory() {
+        return this._emod;
     }
 
     get updateService() {
