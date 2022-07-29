@@ -31,6 +31,7 @@ export class EmojisDirectory {
 		let ret = "";
 		let betweenSymbols = false;
 		let n = 0;
+		console.log("n", n)
 		for (const part of text.split(this._symbol)) {
 			console.log(part)
 			console.log(n)
@@ -38,7 +39,7 @@ export class EmojisDirectory {
 			n++;
 			if (betweenSymbols && text.split(this._symbol).length !== n) {
 				if (part.includes(" ")) {
-					ret += ":" + part;
+					ret += this._symbol + part;
 					continue; // in "I am :really happy:happy:", we don't replace "really happy"
 				} 
 				for (const emoji in this._emojisList) {
@@ -47,7 +48,7 @@ export class EmojisDirectory {
 					}
 				}
 			} else {
-				ret += (n == 1 ? "" : ":") + part;
+				ret += (n == 1 ? "" : this._symbol) + part;
 			};
 			betweenSymbols = !betweenSymbols; // in "I :am:really:happy:", the double points are for am and happy
 		}

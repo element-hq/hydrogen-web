@@ -167,7 +167,7 @@ export class Platform {
         this._olmPromise = undefined;
         this._workerPromise = undefined;
         this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
-        this._emod = new EmojisDirectory()
+        this._emod = new EmojisDirectory();
     }
 
     async init() {
