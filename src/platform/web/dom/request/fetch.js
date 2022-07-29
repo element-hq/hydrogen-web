@@ -115,6 +115,9 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
                 } else if (format === "buffer") {
                     body = await response.arrayBuffer();
                 }
+                else if (format === "text") {
+                    body = await response.text();
+                }
             } catch (err) {
                 // some error pages return html instead of json, ignore error
                 if (!(err.name === "SyntaxError" && status >= 400)) {

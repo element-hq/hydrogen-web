@@ -81,7 +81,8 @@ module.exports = (opts = {}) => {
             const urlVariables = new Map();
             const counter = createCounter();
             root.walkDecls(decl => findAndReplaceUrl(decl, urlVariables, counter));
-            if (urlVariables.size) {
+            const cssFileLocation = root.source.input.from;
+            if (urlVariables.size && !cssFileLocation.includes("type=runtime")) {
                 addResolvedVariablesToRootSelector(root, { Rule, Declaration }, urlVariables);
             }
             if (opts.compiledVariables){

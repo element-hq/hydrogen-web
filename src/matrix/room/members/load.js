@@ -17,10 +17,12 @@ limitations under the License.
 
 import {RoomMember} from "./RoomMember.js";
 
-async function loadMembers({roomId, storage}) {
-    const txn = await storage.readTxn([
-        storage.storeNames.roomMembers,
-    ]);
+async function loadMembers({roomId, storage, txn}) {
+    if (!txn) {
+        txn = await storage.readTxn([
+            storage.storeNames.roomMembers,
+        ]);
+    }
     const memberDatas = await txn.roomMembers.getAll(roomId);
     return memberDatas.map(d => new RoomMember(d));
 }

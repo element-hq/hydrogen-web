@@ -21,6 +21,8 @@ import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
+import {SegmentType} from "../navigation/index";
+
 import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
 
 type Options = {
@@ -29,7 +31,7 @@ type Options = {
     loginToken?: string;
 } & BaseOptions;
 
-export class LoginViewModel extends ViewModel<Options> {
+export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _ready: ReadyFn;
     private _loginToken?: string;
     private _client: Client;

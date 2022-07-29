@@ -38,7 +38,7 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
-import {ThemeLoader} from "./ThemeLoader";
+import {ThemeLoader} from "./theming/ThemeLoader";
 import {EmojisDirectory} from "./ui/general/emoji/EmojisDirectory";
 
 function addScript(src) {

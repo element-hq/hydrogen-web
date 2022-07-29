@@ -27,17 +27,19 @@ import type {Platform} from "../platform/web/Platform";
 import type {Clock} from "../platform/web/dom/Clock";
 import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
-import type {URLRouter} from "./navigation/URLRouter";
+import type {SegmentType} from "./navigation/index";
+import type {IURLRouter} from "./navigation/URLRouter";
 
-export type Options = {
-    platform: Platform
-    logger: ILogger
-    urlCreator: URLRouter
-    navigation: Navigation
-    emitChange?: (params: any) => void
+export type Options<T extends object = SegmentType> = {
+    platform: Platform;
+    logger: ILogger;
+    urlCreator: IURLRouter<T>;
+    navigation: Navigation<T>;
+    emitChange?: (params: any) => void;
 }
 
-export class ViewModel<O extends Options = Options> extends EventEmitter<{change: never}> {
+
+export class ViewModel<N extends object = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
     private disposables?: Disposables;
     private _isDisposed = false;
     private _options: Readonly<O>;
@@ -47,7 +49,7 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         this._options = options;
     }
 
-    childOptions<T extends Object>(explicitOptions: T): T & Options {
+    childOptions<T extends Object>(explicitOptions: T): T & Options<N> {
         return Object.assign({}, this._options, explicitOptions);
     }
 
@@ -58,9 +60,9 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return this._options[name];
     }
 
-    observeNavigation(type: string, onChange: (value: string | true | undefined, type: string) => void): void {
+    observeNavigation<T extends keyof N>(type: T, onChange: (value: N[T], type: T) => void): void {
       const segmentObservable = this.navigation.observe(type);
-      const unsubscribe = segmentObservable.subscribe((value: string | true | undefined) => {
+      const unsubscribe = segmentObservable.subscribe((value: N[T]) => {
         onChange(value, type);
       });
       this.track(unsubscribe);
@@ -135,11 +137,12 @@ export class ViewModel<O extends Options = Options> extends EventEmitter<{change
         return this.platform.logger;
     }
 
-    get urlCreator(): URLRouter {
+    get urlCreator(): IURLRouter<N> {
         return this._options.urlCreator;
     }
 
-    get navigation(): Navigation {
-        return this._options.navigation;
+    get navigation(): Navigation<N> {
+        // typescript needs a little help here
+        return this._options.navigation as unknown as Navigation<N>;
     }
 }
