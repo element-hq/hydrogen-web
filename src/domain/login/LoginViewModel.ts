@@ -124,8 +124,8 @@ export class LoginViewModel extends ViewModel<Options> {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
-                attemptLogin: loginMethod => this.attemptLogin(loginMethod),
-                setHomeserver: homeserver => this.setHomeserver(homeserver)
+                attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod),
+                setHomeserver: (homeserver: string) => this.setHomeserver(homeserver)
             })
         ));
         this.emitChange("passwordLoginViewModel");
@@ -206,7 +206,7 @@ export class LoginViewModel extends ViewModel<Options> {
         );
     }
 
-    updateLoginOptions(): void {
+    private _updateLoginOptions(): void {
         this._passwordLoginViewModel?.setLoginOptions(this._loginOptions);
     }
 
@@ -270,7 +270,7 @@ export class LoginViewModel extends ViewModel<Options> {
             this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
             this.emitChange("isFetchingLoginOptions");
         }
-        this.updateLoginOptions();
+        this._updateLoginOptions();
         if (this._loginOptions) {
             if (this._loginOptions.sso && !this._startSSOLoginViewModel) { this._showSSOLogin(); }
             if (!this._loginOptions.sso && this._startSSOLoginViewModel) { this._hideSSOLogin(); }
