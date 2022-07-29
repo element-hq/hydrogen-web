@@ -244,15 +244,15 @@ export class RoomViewModel extends ViewModel {
                 msgtype = "m.text";
                 break;
             case "tableflip":
-                message="(╯°□°）╯︵ ┻━┻ " + args.join(" ");
+                message = "(╯°□°）╯︵ ┻━┻ " + args.join(" ");
                 msgtype = "m.text";
                 break;
             case "unflip":
-                message="┬──┬ ノ( ゜-゜ノ) " + args.join(" ");
+                message = "┬──┬ ノ( ゜-゜ノ) " + args.join(" ");
                 msgtype = "m.text";
                 break;
             case "lenny":
-                message="( ͡° ͜ʖ ͡°) " + args.join(" ");
+                message = "( ͡° ͜ʖ ͡°) " + args.join(" ");
                 msgtype = "m.text";
                 break;
             default:
