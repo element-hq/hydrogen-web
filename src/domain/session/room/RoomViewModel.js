@@ -426,7 +426,7 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-    dismissError(evt) {
+    dismissError() {
         this._sendError = null;
         this.emitChange("error");
     }
