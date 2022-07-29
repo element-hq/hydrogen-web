@@ -46,7 +46,13 @@ export class RoomView extends TemplateView {
                 })
             ]),
             t.div({className: "RoomView_body"}, [
-                t.div({className: "RoomView_error"}, vm => vm.error),
+                t.div({className: "RoomView_error"}, [
+                    t.if(vm => vm.error, t => t.div( 
+                        [
+                            t.p({}, vm => vm.error),
+                            t.button({ className: "RoomView_error_closerButton", onClick: evt => vm.dismissError(evt) })
+                        ])
+                )]),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
                         new TimelineView(timelineViewModel, this._viewClassForTile) :
@@ -64,7 +70,7 @@ export class RoomView extends TemplateView {
             ])
         ]);
     }
-
+    
     _toggleOptionsMenu(evt) {
         if (this._optionsPopup && this._optionsPopup.isOpen) {
             this._optionsPopup.close();
