@@ -12,7 +12,7 @@ export class EmojisDirectory {
 	}
 
 	getEmoji(emojiName) {
-		return this._emojisList.get(emoji.name);
+		return this._emojisList.get(emojiName);
 	}
 
 	deleteEmoji(emojiName) {
@@ -29,28 +29,40 @@ export class EmojisDirectory {
 
 	parseEmojis(text) {
 		let ret = "";
-		let betweenSymbols = false;
 		let n = 0;
-		console.log("n", n)
+		let lastWasEmoji = true; // no double points available
 		for (const part of text.split(this._symbol)) {
-			console.log(part)
-			console.log(n)
-			console.log(betweenSymbols)
 			n++;
-			if (betweenSymbols && text.split(this._symbol).length !== n) {
+			if (!lastWasEmoji) { // because the double points belongs to emojis. If the last one was an emoji, the actual part is not an emoji.
 				if (part.includes(" ")) {
 					ret += this._symbol + part;
-					continue; // in "I am :really happy:happy:", we don't replace "really happy"
+					lastWasEmoji = false;
+					continue; // in "I am :really happy:happy:", we don't replace "really happy". We always consider that the next one can be an emoji.
 				} 
-				for (const emoji in this._emojisList) {
-					if (emoji.name == part) {
-						ret += emoji.emoji();
+				for (const emoji of this._emojisList.keys()) {
+					if (emoji == part) {
+						ret += this._emojisList.get(part).emoji;
+						lastWasEmoji = true;
 					}
 				}
+				if (!lastWasEmoji) { // no emoji found, consider as it was two single double points.
+					ret += (n !== 1 && !lastWasEmoji ? this._symbol : "") + part;
+					lastWasEmoji = false;
+				}
 			} else {
-				ret += (n == 1 ? "" : this._symbol) + part;
+				ret += (n !== 1 && !lastWasEmoji ? this._symbol : "") + part;// if the last was an emoji, the double points shouldn't been added, they're part of the emoji.
+				lastWasEmoji = false;
 			};
-			betweenSymbols = !betweenSymbols; // in "I :am:really:happy:", the double points are for am and happy
+		}
+		return ret;
+	}
+
+	searchEmojis(emojiName) {
+		ret = new Array();
+		for (const emoname of this._emojisList.keys()) {
+			if (emoname.includes()) {
+				ret.push(this._emojisList.get(emoname));
+			}
 		}
 		return ret;
 	}
