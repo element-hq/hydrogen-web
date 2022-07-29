@@ -177,7 +177,7 @@ Here's how you create a new derived theme:
 2. You configure the theme manifest as usual by populating the `variants` field with your desired colors.
 3. You add your new theme manifest to the list of themes in `config.json`.
 
-Reload Hydrogen twice and the new theme should show up in the theme chooser.
+Refresh Hydrogen twice (once to refresh cache, and once to load) and the new theme should show up in the theme chooser.
 
 ## How does it work?
 
