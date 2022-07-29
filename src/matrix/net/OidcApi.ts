@@ -53,6 +53,22 @@ function assert(condition: any, message: string): asserts condition {
     }
 };
 
+type IssuerUri = string;
+interface ClientConfig {
+    client_id: string;
+    client_secret?: string;
+}
+
+// These are statically configured OIDC client IDs for particular issuers:
+const clientIds: Record<IssuerUri, ClientConfig> = {
+    "https://dev-6525741.okta.com/": {
+        client_id: "0oa5x44w64wpNsxi45d7",
+    },
+    "https://keycloak-oidc.lab.element.dev/realms/master/": {
+        client_id: "hydrogen-oidc-playground"
+    },
+};
+
 export class OidcApi {
     _issuer: string;
     _requestFn: RequestFunction;
@@ -104,6 +120,13 @@ export class OidcApi {
     registration(): Promise<any> {
         if (!this._registrationPromise) {
             this._registrationPromise = (async () => {
+                // use static client if available
+                const authority = `${this.issuer}${this.issuer.endsWith('/') ? '' : '/'}`;
+
+                if (clientIds[authority]) {
+                    return clientIds[authority];
+                }
+
                 const headers = new Map();
                 headers.set("Accept", "application/json");
                 headers.set("Content-Type", "application/json");
