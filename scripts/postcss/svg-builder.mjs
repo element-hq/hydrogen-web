@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const fs = require("fs");
-const path = require("path");
-const xxhash = require('xxhashjs');
+import {readFileSync, mkdirSync, writeFileSync} from "fs";
+import {resolve} from "path";
+import {h32} from "xxhashjs";
+import {getColoredSvgString} from "../../src/platform/web/theming/shared/svg-colorizer.mjs";
 
 function createHash(content) {
-    const hasher = new xxhash.h32(0);
+    const hasher = new h32(0);
     hasher.update(content);
     return hasher.digest();
 }
@@ -30,18 +31,14 @@ function createHash(content) {
  * @param {string} primaryColor Primary color for the new svg
  * @param {string} secondaryColor Secondary color for the new svg
  */
-module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondaryColor) {
-    const svgCode = fs.readFileSync(svgLocation, { encoding: "utf8"});
-    let coloredSVGCode = svgCode.replaceAll("#ff00ff", primaryColor);
-    coloredSVGCode = coloredSVGCode.replaceAll("#00ffff", secondaryColor);
-    if (svgCode === coloredSVGCode) {
-        throw new Error("svg-colorizer made no color replacements! The input svg should only contain colors #ff00ff (primary, case-sensitive) and #00ffff (secondary, case-sensitive).");
-    }
+export function buildColorizedSVG(svgLocation, primaryColor, secondaryColor) {
+    const svgCode = readFileSync(svgLocation, { encoding: "utf8"});
+    const coloredSVGCode = getColoredSvgString(svgCode, primaryColor, secondaryColor);
     const fileName = svgLocation.match(/.+[/\\](.+\.svg)/)[1];
     const outputName = `${fileName.substring(0, fileName.length - 4)}-${createHash(coloredSVGCode)}.svg`;
-    const outputPath = path.resolve(__dirname, "../../.tmp");
+    const outputPath = resolve(__dirname, "../../.tmp");
     try {
-       fs.mkdirSync(outputPath);
+       mkdirSync(outputPath);
     }
     catch (e) {
         if (e.code !== "EEXIST") {
@@ -49,6 +46,6 @@ module.exports.buildColorizedSVG = function (svgLocation, primaryColor, secondar
         }
     }
     const outputFile = `${outputPath}/${outputName}`;
-    fs.writeFileSync(outputFile, coloredSVGCode);
+    writeFileSync(outputFile, coloredSVGCode);
     return outputFile;
 }
