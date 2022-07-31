@@ -22,6 +22,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
         super(options);
         this._isBusy = true;
         this._issuer = options.loginOptions.oidc.issuer;
+        this._accountManagementUrl = options.loginOptions.oidc.account;
         this._homeserver = options.loginOptions.homeserver;
         this._api = new OidcApi({
             issuer: this._issuer,
@@ -70,6 +71,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
             this.platform.settingsStorage.setString(`oidc_${p.state}_homeserver`, this._homeserver),
             this.platform.settingsStorage.setString(`oidc_${p.state}_issuer`, this._issuer),
             this.platform.settingsStorage.setString(`oidc_${p.state}_client_id`, clientId),
+            this.platform.settingsStorage.setString(`oidc_${p.state}_account_management_url`, this._accountManagementUrl),
         ]);
 
         const link = await this._api.authorizationEndpoint(p);

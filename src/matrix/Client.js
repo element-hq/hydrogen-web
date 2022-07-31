@@ -129,7 +129,7 @@ export class Client {
 
     queryLogin(initialHomeserver) {
         return new AbortableOperation(async setAbortable => {
-            const { homeserver, issuer } = await lookupHomeserver(initialHomeserver, (url, options) => {
+            const { homeserver, issuer, account } = await lookupHomeserver(initialHomeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
             if (issuer) {
@@ -144,7 +144,7 @@ export class Client {
 
                     return {
                         homeserver,
-                        oidc: { issuer },
+                        oidc: { issuer, account },
                     };
                 } catch (e) {
                     console.log(e);
@@ -211,6 +211,7 @@ export class Client {
                 if (loginData.oidc_issuer) {
                     sessionInfo.oidcIssuer = loginData.oidc_issuer;
                     sessionInfo.oidcClientId = loginData.oidc_client_id;
+                    sessionInfo.accountManagementUrl = loginData.oidc_account_management_url;
                 }
 
                 log.set("id", sessionId);
