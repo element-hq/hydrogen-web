@@ -24,6 +24,7 @@ interface ISessionInfo {
     accessTokenExpiresAt?: number;
     refreshToken?: string;
     oidcIssuer?: string;
+    accountManagementUrl?: string;
     lastUsed: number;
 }
 
