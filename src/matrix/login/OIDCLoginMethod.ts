@@ -25,6 +25,7 @@ export class OIDCLoginMethod implements ILoginMethod {
     private readonly _nonce: string;
     private readonly _redirectUri: string;
     private readonly _oidcApi: OidcApi;
+    private readonly _accountManagementUrl?: string;
     public readonly homeserver: string;
 
     constructor({
@@ -34,6 +35,7 @@ export class OIDCLoginMethod implements ILoginMethod {
         homeserver,
         redirectUri,
         oidcApi,
+        accountManagementUrl,
     }: {
         nonce: string,
         code: string,
@@ -41,6 +43,7 @@ export class OIDCLoginMethod implements ILoginMethod {
         homeserver: string,
         redirectUri: string,
         oidcApi: OidcApi,
+        accountManagementUrl?: string,
     }) {
         this._oidcApi = oidcApi;
         this._code = code;
@@ -48,6 +51,7 @@ export class OIDCLoginMethod implements ILoginMethod {
         this._nonce = nonce;
         this._redirectUri = redirectUri;
         this.homeserver = homeserver;
+        this._accountManagementUrl = accountManagementUrl;
     }
 
     async login(hsApi: HomeServerApi, _deviceName: string, log: ILogItem): Promise<Record<string, any>> {
@@ -68,6 +72,6 @@ export class OIDCLoginMethod implements ILoginMethod {
         const oidc_issuer = this._oidcApi.issuer;
         const oidc_client_id = await this._oidcApi.clientId();
 
-        return { oidc_issuer, oidc_client_id, access_token, refresh_token, expires_in, user_id, device_id };
+        return { oidc_issuer, oidc_client_id, access_token, refresh_token, expires_in, user_id, device_id, oidc_account_management_url: this._accountManagementUrl };
     }
 }
