@@ -98,8 +98,9 @@ export class DerivedVariables {
     }
 }
 
-import pkg from "off-color";
-const {offColor} = pkg;
+import * as pkg from "off-color";
+// @ts-ignore 
+const offColor = pkg.offColor ?? pkg.default.offColor;
 
 export function tests() {
     return {

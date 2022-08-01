@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import pkg from 'off-color';
-const offColor = pkg.offColor;
+import * as pkg from 'off-color';
+const offColor = pkg.offColor ?? pkg.default.offColor;
 
 export function derive(value, operation, argument, isDark) {
     const argumentAsNumber = parseInt(argument);
