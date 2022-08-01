@@ -32,6 +32,9 @@ export interface IURLRouter<T> {
     urlForPath(path: Path<T>): string;
     openRoomActionUrl(roomId: string): string;
     createSSOCallbackURL(): string;
+    createOIDCRedirectURL(): string;
+    absoluteAppUrl(): string;
+    absoluteUrlForAsset(asset: string): string;
     normalizeUrl(): void;
 }
 

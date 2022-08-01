@@ -34,8 +34,16 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
-    "oidc-callback": (string | null)[];
-    "oidc-error": (string | null)[];
+    "oidc": { 
+        state: string, 
+    } & 
+        ({
+            code: string,
+        } | { 
+            error: string,
+            errorDescription: string | null,
+            errorUri: string | null ,
+        });
 };
 
 export function createNavigation(): Navigation<SegmentType> {
@@ -134,18 +142,21 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
     // Special case for OIDC callback
     if (urlPath.includes("state")) {
         const params = new URLSearchParams(urlPath);
-        if (params.has("state")) {
+        const state = params.get("state");
+        const code = params.get("code");
+        const error = params.get("error");
+        if (state) {
             // This is a proper OIDC callback
-            if (params.has("code")) {
+            if (code) {
                 segments.push(new Segment("oidc", {
-                    state: params.get("state"),
-                    code: params.get("code"),
+                    state,
+                    code,
                 }));
                 return segments;
-            } else if (params.has("error")) {
+            } else if (error) {
                 segments.push(new Segment("oidc", {
-                    state: params.get("state"),
-                    error: params.get("error"),
+                    state,
+                    error,
                     errorDescription: params.get("error_description"),
                     errorUri: params.get("error_uri"),
                 }));
@@ -537,19 +548,22 @@ export function tests() {
             assert.equal(newPath?.segments[1].value, "b");
         },
         "Parse OIDC callback": assert => {
-            const segments = parseUrlPath("state=tc9CnLU7&code=cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("state=tc9CnLU7&code=cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
             assert.deepEqual(segments[0].value, {state: "tc9CnLU7", code: "cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx"});
         },
         "Parse OIDC error": assert => {
-            const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
             assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorUri: null, errorDescription: null});
         },
         "Parse OIDC error with description": assert => {
-            const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request&error_description=Unsupported%20response_type%20value");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request&error_description=Unsupported%20response_type%20value", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
             assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorDescription: "Unsupported response_type value", errorUri: null});
