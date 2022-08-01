@@ -99,7 +99,7 @@ export class DerivedVariables {
 }
 
 import * as pkg from "off-color";
-const {offColor} = pkg;
+const offColor = pkg.offColor ?? pkg.default.offColor;
 
 export function tests() {
     return {
