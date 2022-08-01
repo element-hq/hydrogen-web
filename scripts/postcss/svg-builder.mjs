@@ -36,7 +36,7 @@ export function buildColorizedSVG(svgLocation, primaryColor, secondaryColor) {
     const coloredSVGCode = getColoredSvgString(svgCode, primaryColor, secondaryColor);
     const fileName = svgLocation.match(/.+[/\\](.+\.svg)/)[1];
     const outputName = `${fileName.substring(0, fileName.length - 4)}-${createHash(coloredSVGCode)}.svg`;
-    const outputPath = resolve(__dirname, "../../.tmp");
+    const outputPath = resolve(__dirname, "./.tmp");
     try {
        mkdirSync(outputPath);
     }
