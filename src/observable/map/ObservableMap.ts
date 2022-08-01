@@ -15,14 +15,14 @@ limitations under the License.
 */
 
 import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapDefaults} from "./BaseObservableMapDefaults";
+import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
 
 
 export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     private readonly _values: Map<K, V>;
 
     constructor(initialValues?: (readonly [K, V])[]) {
-        super(new BaseObservableMapDefaults<K, V>());
+        super(new BaseObservableMapTransformers<K, V>());
         this._values = new Map(initialValues);
     }
 

@@ -19,7 +19,7 @@ import {JoinedMap} from "../map/JoinedMap";
 import {MappedMap} from "../map/MappedMap";
 import {FilteredMap} from "../map/FilteredMap";
 import {SortedMapList} from "../list/SortedMapList.js";
-import type {BaseObservableMapDefaults, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapDefaults";
+import type {BaseObservableMapTransformers, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapTransformers";
 
 
 export interface IMapObserver<K, V> {
@@ -30,9 +30,9 @@ export interface IMapObserver<K, V> {
 }
 
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
-    private _defaults: BaseObservableMapDefaults<K, V>;
+    private _defaults: BaseObservableMapTransformers<K, V>;
 
-    constructor(defaults: BaseObservableMapDefaults<K, V>) {
+    constructor(defaults: BaseObservableMapTransformers<K, V>) {
         super();
         this._defaults = defaults;
     }

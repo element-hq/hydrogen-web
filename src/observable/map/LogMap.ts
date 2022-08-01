@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapDefaults} from "./BaseObservableMapDefaults";
+import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
 import {SubscriptionHandle} from "../BaseObservable";
 import {ILogItem, LabelOrValues} from "../../logging/types";
 import {LogLevel} from "../../logging/LogFilter";
@@ -27,7 +27,7 @@ export class LogMap<K, V> extends BaseObservableMap<K, V> {
     private _log: ILogItem;
 
     constructor(source: BaseObservableMap<K, V>, log: ILogItem) {
-        super(new BaseObservableMapDefaults<K, V>());
+        super(new BaseObservableMapTransformers<K, V>());
         this._source = source;
         this._log = log;
     }

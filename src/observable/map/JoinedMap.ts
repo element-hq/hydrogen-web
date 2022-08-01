@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapDefaults} from "./BaseObservableMapDefaults";
+import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
 import {SubscriptionHandle} from "../BaseObservable";
 
 
@@ -24,7 +24,7 @@ export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
     private _subscriptions?: SourceSubscriptionHandler<K, V>[];
 
     constructor(sources: BaseObservableMap<K, V>[]) {
-        super(new BaseObservableMapDefaults<K, V>());
+        super(new BaseObservableMapTransformers<K, V>());
         this._sources = sources;
     }
 

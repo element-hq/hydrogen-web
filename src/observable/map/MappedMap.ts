@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapDefaults, Mapper, Updater} from "./BaseObservableMapDefaults";
+import {BaseObservableMapTransformers, Mapper, Updater} from "./BaseObservableMapTransformers";
 import {SubscriptionHandle} from "../BaseObservable";
 
 
@@ -36,7 +36,7 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         mapper: Mapper<V>,
         updater?: Updater<V>
     ) {
-        super(new BaseObservableMapDefaults<K, V>());
+        super(new BaseObservableMapTransformers<K, V>());
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;

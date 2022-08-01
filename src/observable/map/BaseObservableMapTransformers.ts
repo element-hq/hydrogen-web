@@ -20,11 +20,26 @@ import {JoinedMap} from "./JoinedMap";
 import {SortedMapList} from "../list/SortedMapList.js";
 
 
-// This class provides implementations of functions that are part of BaseObservableMap.
-// It is kept as its own class in its own file in order to avoid a circular
-// dependency between the classes that extend BaseObservableMap which are
-// instantiated here (i.e. `new JoinedMap()`).
-export class BaseObservableMapDefaults<K, V> {
+// This class provides implementations of functions that transform one BaseObservableMap
+// to another type of Map. It's methods are effectively default implementations of the
+// methods by the same name on BaseObservableMap.
+//
+// It is kept as its own class in its own file in order to avoid circular dependencies
+// which would occur if these method implementations were defined on BaseObservableMap
+// itself. For example, if we attmpted to do the following on BaseObservableMap:
+//
+// class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
+//   join(...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V> {
+//      return new JoinedMap(this.concat(otherMaps));
+//   }
+// }
+//
+// we would end up with a circular dependency between BaseObservableMap and JoinedMap,
+// since BaseObservableMap would need to import JoinedMap for the
+// `return new JoinedMap(this.concat(otherMaps))`, and
+// JoinedMap would need to import BaseObservableMap to do
+// `JoinedMap<K, V> extends BaseObservableMap<K, V>`.
+export class BaseObservableMapTransformers<K, V> {
     join(_this: BaseObservableMap<K, V>, ...otherMaps: Array<BaseObservableMap<K, V>>): JoinedMap<K, V> {
        return new JoinedMap([_this].concat(otherMaps));
     }
