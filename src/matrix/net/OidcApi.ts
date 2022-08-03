@@ -233,7 +233,7 @@ export class OidcApi {
 
     generateDeviceScope(): String {
         const deviceId = randomString(10);
-        return `urn:matrix:device:${deviceId}`;
+        return `urn:matrix:org.matrix.msc2967.client:device:${deviceId}`;
     }
 
     generateParams({ scope, redirectUri }: { scope: string, redirectUri: string }): AuthorizationParams {
