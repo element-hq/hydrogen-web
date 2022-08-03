@@ -14,16 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMediaView} from "./BaseMediaView.js";
+import {TemplateView} from "../../general/TemplateView";
 
-export class ImageView extends BaseMediaView {
-    renderMedia(t, vm) {
-        const img = t.img({
-            src: vm => vm.thumbnailUrl,
-            alt: vm => vm.label,
-            title: vm => vm.label,
-            style: `max-width: ${vm.width}px; max-height: ${vm.height}px;`
-        });
-        return vm.isPending || !vm.lightboxUrl ? img : t.a({href: vm.lightboxUrl}, img);
+export class DisabledComposerView extends TemplateView {
+    render(t) {
+        return t.div({className: "DisabledComposerView"}, t.h3(vm => vm.description));
     }
 }

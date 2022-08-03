@@ -36,7 +36,7 @@ export default mergeOptions(commonOptions, {
     plugins: [
         themeBuilder({
             themeConfig: {
-                themes: { element: "./src/platform/web/ui/css/themes/element" },
+                themes: ["./src/platform/web/ui/css/themes/element"],
                 default: "element",
             },
             compiledVariables,

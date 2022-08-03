@@ -1,6 +1,6 @@
 {
   "name": "hydrogen-web",
-  "version": "0.2.33",
+  "version": "0.3.0",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "directories": {
     "doc": "doc"
@@ -50,8 +50,9 @@
     "postcss-flexbugs-fixes": "^5.0.2",
     "postcss-value-parser": "^4.2.0",
     "regenerator-runtime": "^0.13.7",
+    "svgo": "^2.8.0",
     "text-encoding": "^0.7.0",
-    "typescript": "^4.3.5",
+    "typescript": "^4.7.0",
     "vite": "^2.9.8",
     "xxhashjs": "^0.2.2"
   },

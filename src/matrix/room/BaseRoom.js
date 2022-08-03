@@ -243,7 +243,7 @@ export class BaseRoom extends EventEmitter {
 
 
     /** @public */
-    async loadMemberList(log = null) {
+    async loadMemberList(txn = undefined, log = null) {
         if (this._memberList) {
             // TODO: also await fetchOrLoadMembers promise here
             this._memberList.retain();
@@ -254,6 +254,9 @@ export class BaseRoom extends EventEmitter {
                 roomId: this._roomId,
                 hsApi: this._hsApi,
                 storage: this._storage,
+                // pass in a transaction if we know we won't need to fetch (which would abort the transaction)
+                // and we want to make this operation part of the larger transaction
+                txn,
                 syncToken: this._getSyncToken(),
                 // to handle race between /members and /sync
                 setChangedMembersMap: map => this._changedMembersDuringSync = map,

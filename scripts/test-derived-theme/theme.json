@@ -1,0 +1,51 @@
+{
+	"name": "Customer",
+    "extends": "element",
+    "id": "customer",
+	"values": {
+        "variants": {
+            "dark": {
+                "dark": true,
+                "default": true,
+                "name": "Dark",
+                "variables": {
+                    "background-color-primary": "#21262b",
+                    "background-color-secondary": "#2D3239",
+                    "text-color": "#fff",
+                    "accent-color": "#F03F5B",
+                    "error-color": "#FF4B55",
+                    "fixed-white": "#fff",
+                    "room-badge": "#61708b",
+                    "link-color": "#238cf5"
+                }
+            },
+            "light": {
+                "default": true,
+                "name": "Dark",
+                "variables": {
+                    "background-color-primary": "#21262b",
+                    "background-color-secondary": "#2D3239",
+                    "text-color": "#fff",
+                    "accent-color": "#F03F5B",
+                    "error-color": "#FF4B55",
+                    "fixed-white": "#fff",
+                    "room-badge": "#61708b",
+                    "link-color": "#238cf5"
+                }
+            },
+            "red": {
+                "name": "Gruvbox",
+                "variables": {
+                    "background-color-primary": "#282828",
+                    "background-color-secondary": "#3c3836",
+                    "text-color": "#fbf1c7",
+                    "accent-color": "#8ec07c",
+                    "error-color": "#fb4934",
+                    "fixed-white": "#fff",
+                    "room-badge": "#cc241d",
+                    "link-color": "#fe8019"
+                }
+            }
+        }
+    }
+}

@@ -11,8 +11,8 @@ COPY . .
 RUN yarn build
 
 # Remove the default config, replace it with a symlink to somewhere that will be updated at runtime
-RUN rm -f target/assets/config.json \
-    && ln -sf /tmp/config.json target/assets/config.json
+RUN rm -f target/config.json \
+    && ln -sf /tmp/config.json target/config.json
 
 FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:1.21-alpine
 

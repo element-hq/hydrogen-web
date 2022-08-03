@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import type {RequestFunction} from "../../platform/types/types";
-import type {URLRouter} from "../../domain/navigation/URLRouter.js";
+import type {IURLRouter} from "../../domain/navigation/URLRouter.js";
+import type {SegmentType} from "../../domain/navigation";
 
 const WELL_KNOWN = ".well-known/openid-configuration";
 
@@ -69,12 +70,12 @@ const clientIds: Record<IssuerUri, ClientConfig> = {
     },
 };
 
-export class OidcApi {
+export class OidcApi<N extends object = SegmentType> {
     _issuer: string;
     _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
-    _urlCreator: URLRouter;
+    _urlCreator: IURLRouter<N>;
     _metadataPromise: Promise<any>;
     _registrationPromise: Promise<any>;
 

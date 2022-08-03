@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";
+export type NormalVariant = {
+    id: string;
+    cssLocation: string;
+    variables?: any;
+};
 
-export class RoomArchivedView extends TemplateView {
-    render(t) {
-        return t.div({className: "RoomArchivedView"}, t.h3(vm => vm.description));
-    }
+export type Variant = NormalVariant & {
+    variantName: string;
+};
+
+export type DefaultVariant = {
+    dark: Variant;
+    light: Variant;
+    default: Variant;
 }
+
+export type ThemeInformation = NormalVariant | DefaultVariant; 
+
+export enum ColorSchemePreference {
+    Dark,
+    Light
+};

@@ -30,7 +30,6 @@ export function addCacheBuster(urlStr, random = Math.random) {
 export function mapAsFormData(map) {
     const formData = new FormData();
     for (const [name, value] of map) {
-        let filename;
         // Special case {name: string, blob: BlobHandle} to set a filename.
         // This is the format returned by platform.openFile
         if (value.blob?.nativeBlob && value.name) {
