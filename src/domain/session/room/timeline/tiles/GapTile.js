@@ -16,6 +16,8 @@ limitations under the License.
 
 import {SimpleTile} from "./SimpleTile.js";
 import {UpdateAction} from "../UpdateAction.js";
+import {ConnectionError} from "../../../../../matrix/error.js";
+import {ConnectionStatus} from "../../../../../matrix/net/Reconnector";
 
 export class GapTile extends SimpleTile {
     constructor(entry, options) {
@@ -29,6 +31,7 @@ export class GapTile extends SimpleTile {
     async fill() {
         if (!this._loading && !this._entry.edgeReached) {
             this._loading = true;
+            this._error = null;
             this.emitChange("isLoading");
             try {
                 await this._room.fillGap(this._entry, 10);
@@ -55,7 +58,15 @@ export class GapTile extends SimpleTile {
         let canFillMore;
         this._siblingChanged = false;
         do {
-            canFillMore = await this.fill();
+            try {
+                canFillMore = await this.fill();
+            }
+            catch (e) {
+                if (e instanceof ConnectionError) {
+                    await this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
+                    canFillMore = true;
+                }
+            }
             depth = depth + 1;
         } while (depth < 10 && !this._siblingChanged && canFillMore && !this.isDisposed);
     }
