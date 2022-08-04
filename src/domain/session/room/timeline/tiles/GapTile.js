@@ -111,8 +111,11 @@ export class GapTile extends SimpleTile {
 
     get error() {
         if (this._error) {
+            if (this._error instanceof ConnectionError) {
+                return { message: "Waiting for reconnection", showSpinner: true };
+            }
             const dir = this._entry.prev_batch ? "previous" : "next";
-            return `Could not load ${dir} messages: ${this._error.message}`;
+            return { message: `Could not load ${dir} messages: ${this._error.message}`, showSpinner: false };
         }
         return null;
     }

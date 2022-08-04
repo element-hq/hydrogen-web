@@ -422,3 +422,12 @@ only loads when the top comes into view*/
 .GapView.isAtTop {
     padding: 52px 20px 12px 20px;
 }
+
+.GapView__container {
+    display: flex;
+    align-items: center;
+}
+
+.GapView__container .spinner {
+    margin-right: 10px;
+}
