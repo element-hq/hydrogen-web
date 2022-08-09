@@ -105,4 +105,17 @@ export class SessionStore {
         }
         this._sessionStore.delete(key);
     }
+
+    delete(): void {
+        const keys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = this._localStorage.key(i);
+            if (key?.startsWith(this._localStorageKeyPrefix)) {
+                keys.push(key);
+            }
+        }
+        for (const key of keys) {
+            this._localStorage.removeItem(key);
+        }
+    }
 }

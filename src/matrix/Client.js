@@ -451,6 +451,12 @@ export class Client {
 
     async deleteSession(log) {
         if (this._sessionId) {
+            await log.wrap("sessionStore", async () => {
+                const storage = this._storage ?? await this._platform.storageFactory.create(this._sessionId, log);
+                const txn = await storage.readWriteTxn([storage.storeNames.session]);
+                txn.session.delete();
+                storage.close();
+            });
             // need to dispose first, so the storage is closed,
             // and also first sync finishing won't call Session.start anymore,
             // which assumes that the storage works.
