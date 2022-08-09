@@ -36,39 +36,6 @@ export abstract class BaseObservableValue<T> extends BaseObservable<(value: T) =
             return new WaitForHandle(this, predicate);
         }
     }
-
-    map<C>(mapper: (value: T) => C): BaseObservableValue<C> {
-        return new MappedObservableValue<T, C>(this, mapper);
-    }
-}
-
-
-export class MappedObservableValue<P, C> extends BaseObservableValue<C> {
-    private sourceSubscription?: SubscriptionHandle;
-
-    constructor(
-        private readonly source: BaseObservableValue<P>,
-        private readonly mapper: (value: P) => C
-    ) {
-        super();
-    }
-
-    onUnsubscribeLast() {
-        super.onUnsubscribeLast();
-        this.sourceSubscription = this.sourceSubscription!();
-    }
-
-    onSubscribeFirst() {
-        super.onSubscribeFirst();
-        this.sourceSubscription = this.source.subscribe(() => {
-            this.emit(this.get());
-        });
-    }
-
-    get(): C {
-        const sourceValue = this.source.get();
-        return this.mapper(sourceValue);
-    }
 }
 
 interface IWaitHandle<T> {

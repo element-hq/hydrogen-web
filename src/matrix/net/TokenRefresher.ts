@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue, ObservableValue} from "../../observable/ObservableValue";
+import {ObservableValue} from "../../observable/value/ObservableValue";
+import { BaseObservableValue } from "../../observable/value/BaseObservableValue";
+import { MappedObservableValue } from "../../observable/value/MappedObservableValue";
 import type {Clock, Timeout} from "../../platform/web/dom/Clock";
 import {OidcApi} from "./OidcApi";
 
@@ -54,7 +56,7 @@ export class TokenRefresher {
             accessTokenExpiresAt,
             refreshToken,
         });
-        this._accessToken = this._token.map(t => t.accessToken);
+        this._accessToken = new MappedObservableValue(this._token, (t) => t.accessToken);
 
         this._anticipation = anticipation;
         this._oidcApi = oidcApi;

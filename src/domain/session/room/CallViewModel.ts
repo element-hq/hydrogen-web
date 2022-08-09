@@ -16,6 +16,7 @@ limitations under the License.
 
 import {AvatarSource} from "../../AvatarSource";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
+import { SegmentType } from "../../navigation";
 import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {EventObservableValue} from "../../../observable/value/EventObservableValue";
@@ -34,13 +35,13 @@ type Options = BaseOptions & {
     room: Room,
 };
 
-export class CallViewModel extends ViewModel<Options> {
+export class CallViewModel extends ViewModel<SegmentType, Options> {
     public readonly memberViewModels: BaseObservableList<IStreamViewModel>;
 
     constructor(options: Options) {
         super(options);
         const ownMemberViewModelMap = new ObservableValueMap("self", new EventObservableValue(this.call, "change"))
-            .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, emitChange})), () => {});
+            .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, room: options.room, emitChange})), () => {});
         this.memberViewModels = this.call.members
             .filterValues(member => member.isConnected)
             .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("room").mediaRepository})))
@@ -119,7 +120,7 @@ export class CallViewModel extends ViewModel<Options> {
     }
 }
 
-class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel {
+class OwnMemberViewModel extends ViewModel<SegmentType, Options> implements IStreamViewModel {
     private memberObservable: undefined | BaseObservableValue<RoomMember>;
     
     constructor(options: Options) {
@@ -190,7 +191,7 @@ type MemberOptions = BaseOptions & {
     mediaRepository: MediaRepository
 };
 
-export class CallMemberViewModel extends ViewModel<MemberOptions> implements IStreamViewModel {
+export class CallMemberViewModel extends ViewModel<SegmentType, MemberOptions> implements IStreamViewModel {
     get stream(): Stream | undefined {
         return this.member.remoteMedia?.userMedia;
     }
