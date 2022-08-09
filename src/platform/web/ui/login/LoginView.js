@@ -57,6 +57,7 @@ export class LoginView extends TemplateView {
             t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
             t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
             t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
+            t.mapView(vm => vm.startOIDCLoginViewModel, vm => vm ? new StartOIDCLoginView(vm) : null),
             t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
             // use t.mapView rather than t.if to create a new view when the view model changes too
             t.p(hydrogenGithubLink(t))
@@ -73,6 +74,19 @@ class StartSSOLoginView extends TemplateView {
                 onClick: () => vm.startSSOLogin(),
                 disabled: vm => vm.isBusy
             }, vm.i18n`Log in with SSO`)
+        );
+    }
+}
+
+class StartOIDCLoginView extends TemplateView {
+    render(t, vm) {
+        return t.div({ className: "StartOIDCLoginView" },
+            t.a({
+                className: "StartOIDCLoginView_button button-action primary",
+                type: "button",
+                onClick: () => vm.startOIDCLogin(),
+                disabled: vm => vm.isBusy
+            }, vm.i18n`Continue`)
         );
     }
 }

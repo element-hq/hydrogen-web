@@ -20,6 +20,8 @@ import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/value/ObservableValue";
 import {HomeServerApi} from "./net/HomeServerApi";
+import {OidcApi} from "./net/OidcApi";
+import {TokenRefresher} from "./net/TokenRefresher";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
 import {MediaRepository} from "./net/MediaRepository";
@@ -100,6 +102,8 @@ export class Client {
         });
     }
 
+    // TODO: When converted to typescript this should return the same type
+    // as this._loginOptions is in LoginViewModel.ts (LoginOptions).
     _parseLoginOptions(options, homeserver) {
         /*
         Take server response and return new object which has two props password and sso which
@@ -121,11 +125,29 @@ export class Client {
         return result;
     }
 
-    queryLogin(homeserver) {
+    queryLogin(initialHomeserver) {
         return new AbortableOperation(async setAbortable => {
-            homeserver = await lookupHomeserver(homeserver, (url, options) => {
+            const { homeserver, issuer, account } = await lookupHomeserver(initialHomeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
+            if (issuer) {
+                try {
+                    const oidcApi = new OidcApi({
+                        issuer,
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                        crypto: this._platform.crypto,
+                    });
+                    await oidcApi.validate();
+
+                    return {
+                        homeserver,
+                        oidc: { issuer, account },
+                    };
+                } catch (e) {
+                    console.log(e);
+                }
+            }
             const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
             return this._parseLoginOptions(response, homeserver);
@@ -136,7 +158,7 @@ export class Client {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
         const registration = new Registration(hsApi, {
-            username, 
+            username,
             password,
             initialDeviceDisplayName,
         },
@@ -170,6 +192,21 @@ export class Client {
                     accessToken: loginData.access_token,
                     lastUsed: clock.now()
                 };
+
+                if (loginData.refresh_token) {
+                    sessionInfo.refreshToken = loginData.refresh_token;
+                }
+
+                if (loginData.expires_in) {
+                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in * 1000;
+                }
+
+                if (loginData.oidc_issuer) {
+                    sessionInfo.oidcIssuer = loginData.oidc_issuer;
+                    sessionInfo.oidcClientId = loginData.oidc_client_id;
+                    sessionInfo.accountManagementUrl = loginData.oidc_account_management_url;
+                }
+
                 log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
@@ -196,7 +233,7 @@ export class Client {
                     sessionInfo.deviceId = dehydratedDevice.deviceId;
                 }
             }
-            await this._platform.sessionInfoStorage.add(sessionInfo);            
+            await this._platform.sessionInfoStorage.add(sessionInfo);
             // loading the session can only lead to
             // LoadStatus.Error in case of an error,
             // so separate try/catch
@@ -223,9 +260,41 @@ export class Client {
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
             createMeasure: clock.createMeasure
         });
+
+        let accessToken;
+
+        if (sessionInfo.oidcIssuer) {
+            const oidcApi = new OidcApi({
+                issuer: sessionInfo.oidcIssuer,
+                clientId: sessionInfo.oidcClientId,
+                request: this._platform.request,
+                encoding: this._platform.encoding,
+                crypto: this._platform.crypto,
+            });
+
+            this._tokenRefresher = new TokenRefresher({
+                oidcApi,
+                clock: this._platform.clock,
+                accessToken: sessionInfo.accessToken,
+                accessTokenExpiresAt: sessionInfo.accessTokenExpiresAt,
+                refreshToken: sessionInfo.refreshToken,
+                anticipation: 30 * 1000,
+            });
+
+            this._tokenRefresher.token.subscribe(t => {
+                this._platform.sessionInfoStorage.updateToken(sessionInfo.id, t.accessToken, t.accessTokenExpiresAt, t.refreshToken);
+            });
+
+            await this._tokenRefresher.start();
+
+            accessToken = this._tokenRefresher.accessToken;
+        } else {
+            accessToken = new ObservableValue(sessionInfo.accessToken);
+        }
+
         const hsApi = new HomeServerApi({
             homeserver: sessionInfo.homeServer,
-            accessToken: sessionInfo.accessToken,
+            accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
         });
@@ -266,7 +335,7 @@ export class Client {
             this._status.set(LoadStatus.SessionSetup);
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
-        
+
         this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
@@ -311,7 +380,7 @@ export class Client {
         this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
             if (s === SyncStatus.Stopped) {
                 // keep waiting if there is a ConnectionError
-                // as the reconnector above will call 
+                // as the reconnector above will call
                 // sync.start again to retry in this case
                 return this._sync.error?.name !== "ConnectionError";
             }
@@ -414,6 +483,17 @@ export class Client {
                     request: this._platform.request
                 });
                 await hsApi.logout({log}).response();
+                const oidcApi = new OidcApi({
+                    issuer: sessionInfo.oidcIssuer,
+                    clientId: sessionInfo.oidcClientId,
+                    request: this._platform.request,
+                    encoding: this._platform.encoding,
+                    crypto: this._platform.crypto,
+                });
+                await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
+                if (sessionInfo.refreshToken) {
+                    await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                }
             } catch (err) {}
             await this.deleteSession(log);
         });
@@ -432,6 +512,10 @@ export class Client {
         if (this._sync) {
             this._sync.stop();
             this._sync = null;
+        }
+        if (this._tokenRefresher) {
+            this._tokenRefresher.stop();
+            this._tokenRefresher = null;
         }
         if (this._session) {
             this._session.dispose();

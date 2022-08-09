@@ -31,7 +31,7 @@ export type {Room} from "./matrix/room/Room";
 export type {StateEvent} from "./matrix/storage/types";
 
 // export main view & view models
-export {createNavigation, createRouter} from "./domain/navigation/index.js";
+export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";

@@ -53,6 +53,7 @@ export class SettingsViewModel extends ViewModel {
         this.pushNotifications = new PushNotificationStatus();
         this._activeTheme = undefined;
         this._logsFeedbackMessage = undefined;
+        this._accountManagementUrl = null;
     }
 
     get _session() {
@@ -82,7 +83,14 @@ export class SettingsViewModel extends ViewModel {
         if (!import.meta.env.DEV) {
             this._activeTheme = await this.platform.themeLoader.getActiveTheme();
         }
+        const {accountManagementUrl} = await this.platform.sessionInfoStorage.get(this._client._sessionId);
+        this._accountManagementUrl = accountManagementUrl;
         this.emitChange("");
+    }
+
+
+    get accountManagementUrl() {
+        return this._accountManagementUrl;
     }
 
     get closeUrl() {

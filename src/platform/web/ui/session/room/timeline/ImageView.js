@@ -24,6 +24,6 @@ export class ImageView extends BaseMediaView {
             title: vm => vm.label,
             style: `max-width: ${vm.width}px; max-height: ${vm.height}px;`
         });
-        return vm.isPending ? img : t.a({href: vm.lightboxUrl}, img);
+        return vm.isPending || !vm.lightboxUrl ? img : t.a({href: vm.lightboxUrl}, img);
     }
 }

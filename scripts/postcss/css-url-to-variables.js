@@ -61,7 +61,13 @@ function addResolvedVariablesToRootSelector(root, { Rule, Declaration }, urlVari
 function populateMapWithIcons(map, cssFileLocation, urlVariables) {
     const location = cssFileLocation.match(/(.+)\/.+\.css/)?.[1];
     const sharedObject = map.get(location);
-    sharedObject["icon"] = Object.fromEntries(urlVariables);
+    const output = {"icon": Object.fromEntries(urlVariables)};
+    if (sharedObject) {
+        Object.assign(sharedObject, output);
+    }
+    else {
+        map.set(location, output);
+    }
 }
 
 function *createCounter() {
@@ -81,7 +87,8 @@ module.exports = (opts = {}) => {
             const urlVariables = new Map();
             const counter = createCounter();
             root.walkDecls(decl => findAndReplaceUrl(decl, urlVariables, counter));
-            if (urlVariables.size) {
+            const cssFileLocation = root.source.input.from;
+            if (urlVariables.size && !cssFileLocation.includes("type=runtime")) {
                 addResolvedVariablesToRootSelector(root, { Rule, Declaration }, urlVariables);
             }
             if (opts.compiledVariables){

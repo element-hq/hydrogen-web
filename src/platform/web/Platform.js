@@ -41,7 +41,7 @@ import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
 import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
-import {ThemeLoader} from "./ThemeLoader";
+import {ThemeLoader} from "./theming/ThemeLoader";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -345,7 +345,7 @@ export class Platform {
         document.querySelectorAll(".theme").forEach(e => e.remove());
         // add new theme
         const styleTag = document.createElement("link");
-        styleTag.href = `./${newPath}`;
+        styleTag.href = newPath;
         styleTag.rel = "stylesheet";
         styleTag.type = "text/css";
         styleTag.className = "theme";
