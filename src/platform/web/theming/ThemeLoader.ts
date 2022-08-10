@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {ILogItem} from "../../../logging/types";
-import type {Platform} from "../Platform.js";
 import {RuntimeThemeParser} from "./parsers/RuntimeThemeParser";
-import type {Variant, ThemeInformation} from "./parsers/types";
 import {ColorSchemePreference} from "./parsers/types";
 import {BuiltThemeParser} from "./parsers/BuiltThemeParser";
+import type {Variant, ThemeInformation} from "./parsers/types";
+import type {ThemeManifest} from "../../types/theme";
+import type {ILogItem} from "../../../logging/types";
+import type {Platform} from "../Platform.js";
 
 export class ThemeLoader {
     private _platform: Platform;
@@ -32,21 +33,31 @@ export class ThemeLoader {
 
     async init(manifestLocations: string[], log?: ILogItem): Promise<void> {
         await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
-            const results = await Promise.all(
+            let noManifestsAvailable = true;
+            const failedManifestLoads: string[] = [];
+            const results = await Promise.allSettled(
                 manifestLocations.map(location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
             const runtimeThemeParser = new RuntimeThemeParser(this._platform, this.preferredColorScheme);
             const builtThemeParser = new BuiltThemeParser(this.preferredColorScheme);
             const runtimeThemePromises: Promise<void>[] = [];
             for (let i = 0; i < results.length; ++i) {
-                const { body } = results[i];
+                const result = results[i];
+                if (result.status === "rejected") {
+                    console.error(`Failed to load manifest at ${manifestLocations[i]}, reason: ${result.reason}`);
+                    log.log({ l: "Manifest fetch failed", location: manifestLocations[i], reason: result.reason });
+                    failedManifestLoads.push(manifestLocations[i])
+                    continue;
+                }
+                noManifestsAvailable = false;
+                const { body } = result.value;
                 try {
                     if (body.extends) {
-                        const indexOfBaseManifest = results.findIndex(manifest => manifest.body.id === body.extends);
+                        const indexOfBaseManifest = results.findIndex(result => "value" in result && result.value.body.id === body.extends);
                         if (indexOfBaseManifest === -1) {
                             throw new Error(`Base manifest for derived theme at ${manifestLocations[i]} not found!`);
                         }
-                        const {body: baseManifest} = results[indexOfBaseManifest];
+                        const { body: baseManifest } = (results[indexOfBaseManifest] as PromiseFulfilledResult<{ body: ThemeManifest }>).value;
                         const baseManifestLocation = manifestLocations[indexOfBaseManifest];
                         const promise = runtimeThemeParser.parse(body, baseManifest, baseManifestLocation, log);
                         runtimeThemePromises.push(promise);
@@ -58,6 +69,10 @@ export class ThemeLoader {
                 catch(e) {
                     console.error(e);
                 }
+            }
+            if (noManifestsAvailable) {
+                // We need at least one working theme manifest!
+                throw new Error(`All configured theme manifests failed to load, the following were tried: ${failedManifestLoads.join(", ")}`);
             }
             await Promise.all(runtimeThemePromises);
             this._themeMapping = { ...builtThemeParser.themeMapping, ...runtimeThemeParser.themeMapping };
