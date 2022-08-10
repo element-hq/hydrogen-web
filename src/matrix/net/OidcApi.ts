@@ -62,11 +62,8 @@ interface ClientConfig {
 
 // These are statically configured OIDC client IDs for particular issuers:
 const clientIds: Record<IssuerUri, ClientConfig> = {
-    "https://dev-6525741.okta.com/": {
-        client_id: "0oa5x44w64wpNsxi45d7",
-    },
-    "https://keycloak-oidc.lab.element.dev/realms/master/": {
-        client_id: "hydrogen-oidc-playground"
+    "https://id.thirdroom.io/realms/thirdroom/": {
+        client_id: "thirdroom"
     },
 };
 
