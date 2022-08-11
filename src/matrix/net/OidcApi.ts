@@ -68,6 +68,9 @@ const clientIds: Record<IssuerUri, ClientConfig> = {
     "https://keycloak-oidc.lab.element.dev/realms/master/": {
         client_id: "hydrogen-oidc-playground"
     },
+    "https://id.thirdroom.io/realms/thirdroom/": {
+        client_id: "hydrogen-oidc-playground"
+    },
 };
 
 export class OidcApi<N extends object = SegmentType> {
