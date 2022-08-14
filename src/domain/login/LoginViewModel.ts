@@ -18,7 +18,7 @@ import {Client} from "../../matrix/Client.js";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
-import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
+import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 import {SegmentType} from "../navigation/index";
@@ -68,7 +68,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         return this._startSSOLoginViewModel;
     }
 
-    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel {
+    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel | undefined {
         return this._completeSSOLoginViewModel;
     }
 
