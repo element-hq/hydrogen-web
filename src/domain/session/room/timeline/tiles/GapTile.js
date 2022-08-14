@@ -39,6 +39,17 @@ export class GapTile extends SimpleTile {
                 console.error(`room.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
                 this.emitChange("error");
+                if (err instanceof ConnectionError) {
+                    /*
+                    We need to wait for reconnection here rather than in
+                    notifyVisible() because when we return/throw here
+                    this._loading is set to false and other queued invocations of
+                    this method will succeed and attempt further room.fillGap() calls - 
+                    resulting in multiple error entries in logs and elsewhere!
+                    */
+                    await this._waitForReconnection();
+                    return true;
+                }
                 // rethrow so caller of this method
                 // knows not to keep calling this for now
                 throw err;
@@ -63,8 +74,8 @@ export class GapTile extends SimpleTile {
             }
             catch (e) {
                 if (e instanceof ConnectionError) {
-                    await this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
-                    canFillMore = true;
+                    // Don't increase depth because this gap fill was a noop
+                    continue;
                 }
             }
             depth = depth + 1;
@@ -99,6 +110,10 @@ export class GapTile extends SimpleTile {
         } else {
             return UpdateAction.Nothing();
         }
+    }
+
+    async _waitForReconnection() {
+        this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
     }
 
     get shape() {
