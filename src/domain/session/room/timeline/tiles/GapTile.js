@@ -77,6 +77,9 @@ export class GapTile extends SimpleTile {
                     // Don't increase depth because this gap fill was a noop
                     continue;
                 }
+                else {
+                    canFillMore = false;
+                }
             }
             depth = depth + 1;
         } while (depth < 10 && !this._siblingChanged && canFillMore && !this.isDisposed);
@@ -113,7 +116,7 @@ export class GapTile extends SimpleTile {
     }
 
     async _waitForReconnection() {
-        this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
+        await this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
     }
 
     get shape() {
