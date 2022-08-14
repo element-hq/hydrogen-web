@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Client} from "../../matrix/Client.js";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
+import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
@@ -60,7 +60,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._initViewModels();
     }
 
-    get passwordLoginViewModel(): PasswordLoginViewModel {
+    get passwordLoginViewModel(): PasswordLoginViewModel | undefined {
         return this._passwordLoginViewModel;
     }
 
@@ -285,7 +285,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 type ReadyFn = (client: Client) => void;
 
 // TODO: move to Client.js when its converted to typescript.
-type LoginOptions = {
+export type LoginOptions = {
     homeserver: string;
     password?: (username: string, password: string) => PasswordLoginMethod;
     sso?: SSOLoginHelper;
