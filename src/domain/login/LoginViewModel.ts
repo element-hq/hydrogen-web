@@ -17,7 +17,7 @@ limitations under the License.
 import {Client} from "../../matrix/Client.js";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
-import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
+import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
@@ -64,7 +64,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         return this._passwordLoginViewModel;
     }
 
-    get startSSOLoginViewModel(): StartSSOLoginViewModel {
+    get startSSOLoginViewModel(): StartSSOLoginViewModel | undefined {
         return this._startSSOLoginViewModel;
     }
 

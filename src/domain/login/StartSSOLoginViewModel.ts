@@ -14,25 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../ViewModel";
+import type {SSOLoginHelper} from "../../matrix/login";
+import {Options as BaseOptions, ViewModel} from "../ViewModel";
+import type {LoginOptions} from "./LoginViewModel";
+
+
+type Options = {
+    loginOptions: LoginOptions | undefined;
+} & BaseOptions;
 
 export class StartSSOLoginViewModel extends ViewModel{
-    constructor(options) {
+    private _sso?: SSOLoginHelper;
+    private _isBusy = false;
+
+    constructor(options: Options) {
         super(options);
-        this._sso = options.loginOptions.sso;
+        this._sso = options.loginOptions!.sso;
         this._isBusy = false;
     }
-   
-    get isBusy() { return this._isBusy; }
-    
-    setBusy(status) {
+
+    get isBusy(): boolean { return this._isBusy; }
+
+    setBusy(status: boolean): void {
         this._isBusy = status;
         this.emitChange("isBusy");
     }
 
-    async startSSOLogin() {
-        await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._sso.homeserver);
-        const link = this._sso.createSSORedirectURL(this.urlCreator.createSSOCallbackURL());
+    async startSSOLogin(): Promise<void> {
+        await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._sso!.homeserver);
+        const link = this._sso!.createSSORedirectURL(this.urlCreator.createSSOCallbackURL());
         this.platform.openUrl(link);
     }
 }
