@@ -88,8 +88,8 @@ export class ThemeLoader {
         });
     }
 
-    setTheme(themeName: string, themeVariant?: "light" | "dark" | "default", log?: ILogItem) {
-        this._platform.logger.wrapOrRun(log, { l: "change theme", name: themeName, variant: themeVariant }, () => {
+    async setTheme(themeName: string, themeVariant?: "light" | "dark" | "default", log?: ILogItem) {
+        await this._platform.logger.wrapOrRun(log, { l: "change theme", name: themeName, variant: themeVariant }, async (l) => {
             let cssLocation: string, variables: Record<string, string>;
             let themeDetails = this._themeMapping[themeName];
             if ("id" in themeDetails) {
@@ -103,7 +103,7 @@ export class ThemeLoader {
                 cssLocation = themeDetails[themeVariant].cssLocation;
                 variables = themeDetails[themeVariant].variables;
             }
-            this._platform.replaceStylesheet(cssLocation);
+            await this._platform.replaceStylesheet(cssLocation, l);
             if (variables) {
                 log?.log({l: "Derived Theme", variables});
                 this._injectCSSVariables(variables);

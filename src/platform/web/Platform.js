@@ -192,7 +192,7 @@ export class Platform {
                     await this._themeLoader?.init(manifests, log);
                     const { themeName, themeVariant } = await this._themeLoader.getActiveTheme();
                     log.log({ l: "Active theme", name: themeName, variant: themeVariant });
-                    this._themeLoader.setTheme(themeName, themeVariant, log);
+                    await this._themeLoader.setTheme(themeName, themeVariant, log);
                 }
             });
         } catch (err) {
@@ -332,17 +332,31 @@ export class Platform {
         return this._themeLoader;
     }
 
-    replaceStylesheet(newPath) {
-        const head = document.querySelector("head");
-        // remove default theme 
-        document.querySelectorAll(".theme").forEach(e => e.remove());
-        // add new theme
-        const styleTag = document.createElement("link");
-        styleTag.href = newPath;
-        styleTag.rel = "stylesheet";
-        styleTag.type = "text/css";
-        styleTag.className = "theme";
-        head.appendChild(styleTag);
+    async replaceStylesheet(newPath, log) {
+        await this.logger.wrapOrRun(log, { l: "replaceStylesheet", location: newPath, }, async (l) => {
+            let resolve;
+            const promise = new Promise(r => resolve = r);
+            const head = document.querySelector("head");
+            // remove default theme 
+            document.querySelectorAll(".theme").forEach(e => e.remove());
+            // add new theme
+            const styleTag = document.createElement("link");
+            styleTag.href = newPath;
+            styleTag.rel = "stylesheet";
+            styleTag.type = "text/css";
+            styleTag.className = "theme";
+            styleTag.onerror = () => {
+                const error = new Error(`Failed to load stylesheet at ${newPath}`);
+                l.catch(error);
+                resolve();
+                throw error
+            };
+            styleTag.onload = () => {
+                resolve();
+            };
+            head.appendChild(styleTag);
+            await promise;
+        });
     }
 
     get description() {
