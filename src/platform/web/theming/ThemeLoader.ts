@@ -21,6 +21,7 @@ import type {Variant, ThemeInformation} from "./parsers/types";
 import type {ThemeManifest} from "../../types/theme";
 import type {ILogItem} from "../../../logging/types";
 import type {Platform} from "../Platform.js";
+import {LogLevel} from "../../../logging/LogFilter";
 
 export class ThemeLoader {
     private _platform: Platform;
@@ -46,7 +47,7 @@ export class ThemeLoader {
                 const result = results[i];
                 if (result.status === "rejected") {
                     console.error(`Failed to load manifest at ${manifestLocations[i]}, reason: ${result.reason}`);
-                    log.log({ l: "Manifest fetch failed", location: manifestLocations[i], reason: result.reason });
+                    log.log({ l: "Manifest fetch failed", location: manifestLocations[i], reason: result.reason }, LogLevel.Error);
                     failedManifestLoads.push(manifestLocations[i])
                     continue;
                 }
