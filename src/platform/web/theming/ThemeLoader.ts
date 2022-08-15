@@ -35,6 +35,7 @@ export class ThemeLoader {
         await this._platform.logger.wrapOrRun(log, "ThemeLoader.init", async (log) => {
             let noManifestsAvailable = true;
             const failedManifestLoads: string[] = [];
+            const parseErrors: string[] = [];
             const results = await Promise.allSettled(
                 manifestLocations.map(location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
@@ -68,15 +69,19 @@ export class ThemeLoader {
                 }
                 catch(e) {
                     console.error(e);
+                    parseErrors.push(e.message);
                 }
             }
+            await Promise.all(runtimeThemePromises);
+            this._themeMapping = { ...builtThemeParser.themeMapping, ...runtimeThemeParser.themeMapping };
             if (noManifestsAvailable) {
                 // We need at least one working theme manifest!
                 throw new Error(`All configured theme manifests failed to load, the following were tried: ${failedManifestLoads.join(", ")}`);
             }
-            await Promise.all(runtimeThemePromises);
-            this._themeMapping = { ...builtThemeParser.themeMapping, ...runtimeThemeParser.themeMapping };
-            Object.assign(this._themeMapping, builtThemeParser.themeMapping, runtimeThemeParser.themeMapping);
+            else if (Object.keys(this._themeMapping).length === 0 && parseErrors.length) {
+                // Something is wrong..., themeMapping is empty!
+                throw new Error(`Failed to parse theme manifests, the following errors were encountered: ${parseErrors.join(", ")}`);
+            }
             this._addDefaultThemeToMapping(log);
             log.log({ l: "Preferred colorscheme", scheme: this.preferredColorScheme === ColorSchemePreference.Dark ? "dark" : "light" });
             log.log({ l: "Result", themeMapping: this._themeMapping });
