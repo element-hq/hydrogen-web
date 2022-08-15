@@ -38,6 +38,7 @@ export class GapTile extends SimpleTile {
             } catch (err) {
                 console.error(`room.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
+                this._loading = false;
                 this.emitChange("error");
                 if (err instanceof ConnectionError) {
                     /*
