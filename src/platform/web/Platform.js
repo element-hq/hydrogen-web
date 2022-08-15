@@ -333,8 +333,8 @@ export class Platform {
     }
 
     async replaceStylesheet(newPath, log) {
-        await this.logger.wrapOrRun(log, { l: "replaceStylesheet", location: newPath, }, async (l) => {
-            let resolve;
+        const error = await this.logger.wrapOrRun(log, { l: "replaceStylesheet", location: newPath, }, async (l) => {
+            let resolve, error;
             const promise = new Promise(r => resolve = r);
             const head = document.querySelector("head");
             // remove default theme 
@@ -346,17 +346,20 @@ export class Platform {
             styleTag.type = "text/css";
             styleTag.className = "theme";
             styleTag.onerror = () => {
-                const error = new Error(`Failed to load stylesheet at ${newPath}`);
+                error = new Error(`Failed to load stylesheet from ${newPath}`);
                 l.catch(error);
                 resolve();
-                throw error
             };
             styleTag.onload = () => {
                 resolve();
             };
             head.appendChild(styleTag);
             await promise;
+            return error;
         });
+        if (error) {
+            throw error;
+        }
     }
 
     get description() {
