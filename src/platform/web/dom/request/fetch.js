@@ -119,10 +119,11 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
                     body = await response.text();
                 }
             } catch (err) {
-                if (err.name === "SyntaxError" && status >= 400) {
-                    throw new ConnectionError(`${method} ${url}: Failed to fetch JSON file!`);
+                // some error pages return html instead of json, ignore error
+                // detect these ignored errors from the response status 
+                if (!(err.name === "SyntaxError" && status >= 400)) {
+                    throw err;
                 }
-                throw err;
             }
             return {status, body};
         }, err => {

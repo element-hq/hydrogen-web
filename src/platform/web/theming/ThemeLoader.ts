@@ -37,7 +37,7 @@ export class ThemeLoader {
             let noManifestsAvailable = true;
             const failedManifestLoads: string[] = [];
             const parseErrors: string[] = [];
-            const results = await Promise.allSettled(
+            const results = await Promise.all(
                 manifestLocations.map(location => this._platform.request(location, { method: "GET", format: "json", cache: true, }).response())
             );
             const runtimeThemeParser = new RuntimeThemeParser(this._platform, this.preferredColorScheme);
@@ -45,14 +45,14 @@ export class ThemeLoader {
             const runtimeThemePromises: Promise<void>[] = [];
             for (let i = 0; i < results.length; ++i) {
                 const result = results[i];
-                if (result.status === "rejected") {
-                    console.error(`Failed to load manifest at ${manifestLocations[i]}, reason: ${result.reason}`);
-                    log.log({ l: "Manifest fetch failed", location: manifestLocations[i], reason: result.reason }, LogLevel.Error);
+                const { status, body } = result;
+                if (!(status >= 200 && status <= 299)) {
+                    console.error(`Failed to load manifest at ${manifestLocations[i]}, status: ${status}`);
+                    log.log({ l: "Manifest fetch failed", location: manifestLocations[i], status }, LogLevel.Error);
                     failedManifestLoads.push(manifestLocations[i])
                     continue;
                 }
                 noManifestsAvailable = false;
-                const { body } = result.value;
                 try {
                     if (body.extends) {
                         const indexOfBaseManifest = results.findIndex(result => "value" in result && result.value.body.id === body.extends);
