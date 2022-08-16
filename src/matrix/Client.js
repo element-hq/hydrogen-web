@@ -130,6 +130,7 @@ export class Client {
             const { homeserver, issuer, account } = await lookupHomeserver(initialHomeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
+            let oidc = undefined;
             if (issuer) {
                 try {
                     const oidcApi = new OidcApi({
@@ -139,18 +140,16 @@ export class Client {
                         crypto: this._platform.crypto,
                     });
                     await oidcApi.validate();
-
-                    return {
-                        homeserver,
-                        oidc: { issuer, account },
-                    };
+                    oidc = { issuer, account }
                 } catch (e) {
                     console.log(e);
                 }
             }
             const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
-            return this._parseLoginOptions(response, homeserver);
+            const result = this._parseLoginOptions(response, homeserver);
+            result.oidc = oidc;
+            return result;
         });
     }
 
