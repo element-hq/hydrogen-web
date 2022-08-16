@@ -113,7 +113,8 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                         client: this._client,
                         attemptLogin: (loginMethod: TokenLoginMethod) => this.attemptLogin(loginMethod),
                         loginToken: this._loginToken
-                    })));
+                    })
+                ));
             this.emitChange("completeSSOLoginViewModel");
         }
         else {
@@ -125,15 +126,27 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._passwordLoginViewModel = this.track(new PasswordLoginViewModel(
             this.childOptions({
                 loginOptions: this._loginOptions,
-                attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod)
-        })));
+                attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod),
+                setHomeserver: (homeserver: string) => this.setHomeserver(homeserver)
+            })
+        ));
         this.emitChange("passwordLoginViewModel");
     }
-
+    
+    private _hidePasswordLogin(): void {
+        this._passwordLoginViewModel = null;
+        this.emitChange("passwordLoginViewModel");
+    }
+    
     private _showSSOLogin(): void {
         this._startSSOLoginViewModel = this.track(
             new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
         );
+        this.emitChange("startSSOLoginViewModel");
+    }
+
+    private _hideSSOLogin(): void {
+        this._startSSOLoginViewModel = null;
         this.emitChange("startSSOLoginViewModel");
     }
 
@@ -144,7 +157,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 
     private _setBusy(status: boolean): void {
         this._isBusy = status;
-        this._passwordLoginViewModel?.setBusy(status);
+        this._passwordLoginViewModel?.setEnabled(!status);
         this._startSSOLoginViewModel?.setBusy(status);
         this.emitChange("isBusy");
     }
@@ -160,9 +173,9 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         if (status === LoadStatus.LoginFailed) {
             return this._client.loginFailure;
         }
+        this._hidePasswordLogin()
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
-        this._disposeViewModels();
         void this._createLoadViewModel();
         return null;
     }
@@ -195,20 +208,17 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         );
     }
 
-    private _disposeViewModels(): void {
-        this._startSSOLoginViewModel = this.disposeTracked(this._startSSOLoginViewModel);
-        this._passwordLoginViewModel = this.disposeTracked(this._passwordLoginViewModel);
-        this._completeSSOLoginViewModel = this.disposeTracked(this._completeSSOLoginViewModel);
-        this.emitChange("disposeViewModels");
+    private _updateLoginOptions(): void {
+        this._passwordLoginViewModel?.setLoginOptions(this._loginOptions);
     }
 
     async setHomeserver(newHomeserver: string): Promise<void> {
         this._homeserver = newHomeserver;
+        this._passwordLoginViewModel?.setEnabled(false);
         // clear everything set by queryHomeserver
         this._loginOptions = undefined;
         this._queriedHomeserver = undefined;
         this._showError("");
-        this._disposeViewModels();
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
         this.emitChange("loginViewModels"); // multiple fields changing
         // also clear the timeout if it is still running
@@ -255,21 +265,29 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                 return; //aborted, bail out
             } else {
                 this._loginOptions = undefined;
+                this._hideSSOLogin();
+                this._hidePasswordLogin();
             }
         } finally {
             this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
             this.emitChange("isFetchingLoginOptions");
         }
+        this._updateLoginOptions();
         if (this._loginOptions) {
-            if (this._loginOptions.sso) { this._showSSOLogin(); }
-            if (this._loginOptions.password) { this._showPasswordLogin(); }
+            if (this._loginOptions.sso && !this._startSSOLoginViewModel) { this._showSSOLogin(); }
+            if (!this._loginOptions.sso && this._startSSOLoginViewModel) { this._hideSSOLogin(); }
+            if (this._loginOptions.password && !this._passwordLoginViewModel) { this._showPasswordLogin(); }
+            if (!this._loginOptions.password && this._passwordLoginViewModel) { this._hidePasswordLogin(); }
             if (!this._loginOptions.sso && !this._loginOptions.password) {
                 this._showError("This homeserver supports neither SSO nor password based login flows");
             }
         }
         else {
             this._showError(`Could not query login methods supported by ${this.homeserver}`);
+            this._hideSSOLogin();
+            this._hidePasswordLogin();
         }
+        this._passwordLoginViewModel?.setEnabled(false);
     }
 
     dispose(): void {
