@@ -26,21 +26,22 @@ export class GapTile extends SimpleTile {
         this._error = null;
         this._isAtTop = true;
         this._siblingChanged = false;
+        this._showSpinner = false;
     }
 
     async fill() {
         if (!this._loading && !this._entry.edgeReached) {
             this._loading = true;
             this._error = null;
+            this._showSpinner = true;
             this.emitChange("isLoading");
             try {
                 await this._room.fillGap(this._entry, 10);
             } catch (err) {
                 console.error(`room.fillGap(): ${err.message}:\n${err.stack}`);
                 this._error = err;
-                this._loading = false;
-                this.emitChange("error");
                 if (err instanceof ConnectionError) {
+                    this.emitChange("error");
                     /*
                     We need to wait for reconnection here rather than in
                     notifyVisible() because when we return/throw here
@@ -49,13 +50,13 @@ export class GapTile extends SimpleTile {
                     resulting in multiple error entries in logs and elsewhere!
                     */
                     await this._waitForReconnection();
-                    return true;
                 }
                 // rethrow so caller of this method
                 // knows not to keep calling this for now
                 throw err;
             } finally {
                 this._loading = false;
+                this._showSpinner = false;
                 this.emitChange("isLoading");
             }
                 return true;
@@ -128,13 +129,17 @@ export class GapTile extends SimpleTile {
         return this._loading;
     }
 
+    get showSpinner() {
+        return this._showSpinner;
+    }
+
     get error() {
         if (this._error) {
             if (this._error instanceof ConnectionError) {
-                return { message: "Waiting for reconnection", showSpinner: true };
+                return "Waiting for reconnection";
             }
             const dir = this._entry.prev_batch ? "previous" : "next";
-            return { message: `Could not load ${dir} messages: ${this._error.message}`, showSpinner: false };
+            return `Could not load ${dir} messages: ${this._error.message}`;
         }
         return null;
     }

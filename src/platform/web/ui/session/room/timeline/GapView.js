@@ -30,24 +30,18 @@ export class GapView extends TemplateView {
             isAtTop: vm => vm.isAtTop,
         };
         return t.li({ className }, [
-            t.map(vm => vm.isLoading,
-                (isLoading, t, vm) => {
-                    let elements;
-                    const error = vm.error;
-                    if (error) {
-                        elements = [t.strong(() => error.message)]; 
-                        if (error.showSpinner) {
-                            elements.unshift(spinner(t));
-                        }
-                    }
-                    else if (isLoading) {
-                        elements = [spinner(t), t.span(vm.i18n`Loading more messages …`)];
-                    }
-                    else {
-                        elements = t.span(vm.i18n`Not loading!`);
-                    }
-                    return t.div({ className: "GapView__container" }, elements);
-                })
+            t.if(vm => vm.showSpinner, (t) => spinner(t)),
+            t.span(vm => {
+                if (vm.error) {
+                    return vm.error;
+                }
+                else if (vm.isLoading) {
+                    return "Loading";
+                }
+                else {
+                    return "Not Loading";
+                }
+            })
         ]);
     }
 
