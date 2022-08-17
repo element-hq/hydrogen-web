@@ -23,6 +23,8 @@ export {Client, LoadStatus, LoginFailure} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
 export {AttachmentUpload} from "./matrix/room/AttachmentUpload";
 export {CallIntent} from "./matrix/calls/callEventTypes";
+export {OidcApi} from "./matrix/net/OidcApi";
+export {OIDCLoginMethod} from "./matrix/login/OIDCLoginMethod";
 // export everything needed to observe state events on all rooms using session.observeRoomState
 export type {RoomStateHandler} from "./matrix/room/state/types";
 export type {MemberChange} from "./matrix/room/members/RoomMember";
@@ -31,7 +33,7 @@ export type {Room} from "./matrix/room/Room";
 export type {StateEvent} from "./matrix/storage/types";
 
 // export main view & view models
-export {createNavigation, createRouter} from "./domain/navigation/index.js";
+export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";

@@ -37,8 +37,8 @@ type CreateRoomPayload = {
     invite?: string[];
     room_alias_name?: string;
     creation_content?: {"m.federate"?: boolean, type?: string};
-    initial_state: {type: string; state_key: string; content: Record<string, any>}[]
-    power_level_content_override?: any;
+    initial_state: { type: string; state_key: string; content: Record<string, any> }[];
+    power_level_content_override?: Record<string, any>;
 }
 
 type ImageInfo = {
@@ -64,7 +64,7 @@ type Options = {
     invites?: string[];
     avatar?: Avatar;
     alias?: string;
-    powerLevelContentOverride?: any;
+    powerLevelContentOverride?: Record<string, any>;
     initialState?: any[];
 }
 

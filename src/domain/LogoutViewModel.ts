@@ -14,18 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Options, ViewModel} from "./ViewModel";
+import {Options as BaseOptions, ViewModel} from "./ViewModel";
 import {Client} from "../matrix/Client.js";
+import {SegmentType} from "./navigation/index";
 
-type LogoutOptions = { sessionId: string; } & Options;
+type Options = { sessionId: string; } & BaseOptions;
 
-export class LogoutViewModel extends ViewModel<LogoutOptions> {
+export class LogoutViewModel extends ViewModel<SegmentType, Options> {
     private _sessionId: string;
     private _busy: boolean;
     private _showConfirm: boolean;
     private _error?: Error;
 
-    constructor(options: LogoutOptions) {
+    constructor(options: Options) {
         super(options);
         this._sessionId = options.sessionId;
         this._busy = false;
@@ -41,7 +42,7 @@ export class LogoutViewModel extends ViewModel<LogoutOptions> {
         return this._busy;
     }
 
-    get cancelUrl(): string {
+    get cancelUrl(): string | undefined {
         return this.urlCreator.urlForSegment("session", true);
     }
 

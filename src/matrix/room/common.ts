@@ -14,11 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {Room} from "./Room";
-import type {StateEvent, TimelineEvent} from "../storage/types";
-import type {Transaction} from "../storage/idb/Transaction";
-import type {ILogItem} from "../../logging/types";
-import type {MemberChange} from "./members/RoomMember";
+import type {StateEvent} from "../storage/types";
 
 export function getPrevContentFromStateEvent(event) {
     // where to look for prev_content is a bit of a mess,
