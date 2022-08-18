@@ -5,5 +5,13 @@
     "applicationServerKey": "BC-gpSdVHEXhvHSHS0AzzWrQoukv2BE7KzpoPO_FfPacqOo3l1pdqz7rSgmB04pZCWaHPz7XRe6fjLaC-WPDopM"
   },
   "defaultHomeServer": "matrix.org",
-  "bugReportEndpointUrl": "https://element.io/bugreports/submit"
+  "bugReportEndpointUrl": "https://element.io/bugreports/submit",
+  "oidc": {
+    "clientConfigs": {
+      "https://id.thirdroom.io/realms/thirdroom/": {
+        "client_id": "thirdroom",
+        "uris": ["http://localhost:3000", "https://thirdroom.io"]
+      }
+    }
+  }
 }

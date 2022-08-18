@@ -58,17 +58,12 @@ type IssuerUri = string;
 interface ClientConfig {
     client_id: string;
     client_secret?: string;
+    uris: string[],
 }
-
-// These are statically configured OIDC client IDs for particular issuers:
-const clientIds: Record<IssuerUri, ClientConfig> = {
-    "https://id.thirdroom.io/realms/thirdroom/": {
-        client_id: "thirdroom"
-    },
-};
 
 export class OidcApi<N extends object = SegmentType> {
     _issuer: string;
+    _clientConfigs: Record<IssuerUri, ClientConfig>;
     _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
@@ -76,8 +71,9 @@ export class OidcApi<N extends object = SegmentType> {
     _metadataPromise: Promise<any>;
     _registrationPromise: Promise<any>;
 
-    constructor({ issuer, request, encoding, crypto, urlCreator, clientId }) {
+    constructor({ issuer, request, encoding, crypto, urlCreator, clientId, clientConfigs }) {
         this._issuer = issuer;
+        this._clientConfigs = clientConfigs;
         this._requestFn = request;
         this._encoding = encoding;
         this._crypto = crypto;
@@ -121,8 +117,8 @@ export class OidcApi<N extends object = SegmentType> {
                 // use static client if available
                 const authority = `${this.issuer}${this.issuer.endsWith('/') ? '' : '/'}`;
 
-                if (clientIds[authority]) {
-                    return clientIds[authority];
+                if (this._clientConfigs[authority] && this._clientConfigs[authority].uris.includes(this._urlCreator.absoluteAppUrl())) {
+                    return this._clientConfigs[authority];
                 }
 
                 const headers = new Map();
