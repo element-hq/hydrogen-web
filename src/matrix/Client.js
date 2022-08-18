@@ -306,6 +306,9 @@ export class Client {
             userId: sessionInfo.userId,
             homeserver: sessionInfo.homeServer,
         };
+        if (sessionInfo.accountManagementUrl) {
+            filteredSessionInfo.accountManagementUrl = sessionInfo.accountManagementUrl;
+        }
         const olm = await this._olmPromise;
         let olmWorker = null;
         if (this._workerPromise) {
