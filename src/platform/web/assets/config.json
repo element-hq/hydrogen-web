@@ -10,7 +10,7 @@
     "clientConfigs": {
       "https://id.thirdroom.io/realms/thirdroom/": {
         "client_id": "thirdroom",
-        "uris": ["http:localhost:3000", "https://thirdroom.io"]
+        "uris": ["http://localhost:3000", "https://thirdroom.io"]
       }
     }
   }
