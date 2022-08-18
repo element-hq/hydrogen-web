@@ -135,6 +135,7 @@ export class Client {
                 try {
                     const oidcApi = new OidcApi({
                         issuer,
+                        clientConfigs: this._platform.config.oidc.clientConfigs,
                         request: this._platform.request,
                         encoding: this._platform.encoding,
                         crypto: this._platform.crypto,
@@ -265,6 +266,7 @@ export class Client {
         if (sessionInfo.oidcIssuer) {
             const oidcApi = new OidcApi({
                 issuer: sessionInfo.oidcIssuer,
+                clientConfigs: this._platform.config.oidc.clientConfigs,
                 clientId: sessionInfo.oidcClientId,
                 request: this._platform.request,
                 encoding: this._platform.encoding,
@@ -487,6 +489,7 @@ export class Client {
                 await hsApi.logout({log}).response();
                 const oidcApi = new OidcApi({
                     issuer: sessionInfo.oidcIssuer,
+                    clientConfigs: this._platform.config.oidc.clientConfigs,
                     clientId: sessionInfo.oidcClientId,
                     request: this._platform.request,
                     encoding: this._platform.encoding,

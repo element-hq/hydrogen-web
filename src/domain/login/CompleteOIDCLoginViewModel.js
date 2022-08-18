@@ -63,6 +63,7 @@ export class CompleteOIDCLoginViewModel extends ViewModel {
 
         const oidcApi = new OidcApi({
             issuer,
+            clientConfigs: this.platform.config.oidc.clientConfigs,
             clientId,
             request: this._request,
             encoding: this._encoding,
