@@ -143,6 +143,18 @@ export class GapTile extends SimpleTile {
         }
         return null;
     }
+
+    get currentAction() {
+        if (this.error) {
+            return this.error;
+        }
+        else if (this.isLoading) {
+            return "Loading";
+        }
+        else {
+            return "Not Loading";
+        }
+    }
 }
 
 import {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry.js";

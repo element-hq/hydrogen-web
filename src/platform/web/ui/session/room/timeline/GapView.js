@@ -31,17 +31,7 @@ export class GapView extends TemplateView {
         };
         return t.li({ className }, [
             t.if(vm => vm.showSpinner, (t) => spinner(t)),
-            t.span(vm => {
-                if (vm.error) {
-                    return vm.error;
-                }
-                else if (vm.isLoading) {
-                    return "Loading";
-                }
-                else {
-                    return "Not Loading";
-                }
-            })
+            t.span(vm => vm.currentAction)
         ]);
     }
 
