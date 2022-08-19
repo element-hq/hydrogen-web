@@ -76,6 +76,7 @@ export class GapTile extends SimpleTile {
             }
             catch (e) {
                 if (e instanceof ConnectionError) {
+                    canFillMore = true;
                     // Don't increase depth because this gap fill was a noop
                     continue;
                 }
