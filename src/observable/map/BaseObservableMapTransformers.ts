@@ -44,7 +44,7 @@ export class BaseObservableMapTransformers<K, V> {
        return new JoinedMap([_this].concat(otherMaps));
     }
 
-    mapValues(_this: BaseObservableMap<K, V>, mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
+    mapValues<MappedV>(_this: BaseObservableMap<K, V>, mapper: Mapper<V, MappedV>, updater?: Updater<V, MappedV>): MappedMap<K, V, MappedV> {
         return new MappedMap(_this, mapper, updater);
     }
 
@@ -57,12 +57,12 @@ export class BaseObservableMapTransformers<K, V> {
     }
 }
 
-export type Mapper<V> = (
+export type Mapper<V, MappedV> = (
     value: V,
     emitSpontaneousUpdate: any,
-) => V;
+) => MappedV;
 
-export type Updater<V> = (params: any, mappedValue?: V, value?: V) => void;
+export type Updater<V, MappedV> = (params: any, mappedValue?: MappedV, value?: V) => void;
 
 export type Comparator<V> = (a: V, b: V) => number;
 

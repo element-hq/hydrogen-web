@@ -23,24 +23,24 @@ import {SubscriptionHandle} from "../BaseObservable";
 so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
-export class MappedMap<K, V> extends BaseObservableMap<K, V> {
+export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
     private _source: BaseObservableMap<K, V>;
-    private _mapper: Mapper<V>;
-    private _updater?: Updater<V>;
-    private _mappedValues: Map<K, V>;
+    private _mapper: Mapper<V, MappedV>;
+    private _updater?: Updater<V, MappedV>;
+    private _mappedValues: Map<K, MappedV>;
     private _subscription?: SubscriptionHandle;
 
 
     constructor(
         source: BaseObservableMap<K, V>,
-        mapper: Mapper<V>,
-        updater?: Updater<V>
+        mapper: Mapper<V, MappedV>,
+        updater?: Updater<V, MappedV>
     ) {
-        super(new BaseObservableMapTransformers<K, V>());
+        super(new BaseObservableMapTransformers<K, MappedV>());
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;
-        this._mappedValues = new Map<K, V>();
+        this._mappedValues = new Map<K, MappedV>();
     }
 
     _emitSpontaneousUpdate(key: K, params: any): void {
@@ -107,7 +107,7 @@ export class MappedMap<K, V> extends BaseObservableMap<K, V> {
         return this._mappedValues.size;
     }
 
-    get(key: K): V | undefined {
+    get(key: K): MappedV | undefined {
         return this._mappedValues.get(key);
     }
 }

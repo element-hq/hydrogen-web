@@ -66,7 +66,7 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
         return this._defaults.join(this, ...otherMaps);
     }
 
-    mapValues(mapper: Mapper<V>, updater?: Updater<V>): MappedMap<K, V> {
+    mapValues<MappedV>(mapper: Mapper<V, MappedV>, updater?: Updater<V, MappedV>): MappedMap<K, V, MappedV> {
         return this._defaults.mapValues(this, mapper, updater);
     }
 
