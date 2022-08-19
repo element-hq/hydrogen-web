@@ -24,6 +24,23 @@ export interface SessionEntry {
     value: any;
 }
 
+function getLocalStorageKeyPrefix(databaseName: string): string {
+    return `${databaseName}.session.`;
+}
+
+export function clearKeysFromLocalStorage(localStorage: IDOMStorage, databaseName: string): void {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(getLocalStorageKeyPrefix(databaseName))) {
+            keys.push(key);
+        }
+    }
+    for (const key of keys) {
+        localStorage.removeItem(key);
+    }
+}
+
 export class SessionStore {
     private _sessionStore: Store<SessionEntry>
     private _localStorage: IDOMStorage;
@@ -34,7 +51,7 @@ export class SessionStore {
     }
 
     private get _localStorageKeyPrefix(): string {
-        return `${this._sessionStore.databaseName}.session.`;
+        return getLocalStorageKeyPrefix(this._sessionStore.databaseName);
     }
 
     async get(key: string): Promise<any> {
@@ -104,18 +121,5 @@ export class SessionStore {
             this._localStorage.removeItem(this._localStorageKeyPrefix + key);
         }
         this._sessionStore.delete(key);
-    }
-
-    delete(): void {
-        const keys: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = this._localStorage.key(i);
-            if (key?.startsWith(this._localStorageKeyPrefix)) {
-                keys.push(key);
-            }
-        }
-        for (const key of keys) {
-            this._localStorage.removeItem(key);
-        }
     }
 }
