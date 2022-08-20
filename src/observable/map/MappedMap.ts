@@ -14,14 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapTransformers, Mapper, Updater} from "./BaseObservableMapTransformers";
+import {BaseObservableMap, Mapper, Updater} from "./index";
 import {SubscriptionHandle} from "../BaseObservable";
 
 
 /*
 so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
+*/
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
 */
 export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
     private _source: BaseObservableMap<K, V>;
@@ -36,7 +40,7 @@ export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
         mapper: Mapper<V, MappedV>,
         updater?: Updater<V, MappedV>
     ) {
-        super(new BaseObservableMapTransformers<K, MappedV>());
+        super();
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;

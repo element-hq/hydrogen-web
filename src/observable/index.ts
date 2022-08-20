@@ -16,7 +16,7 @@ limitations under the License.
 
 
 // re-export "root" (of chain) collection
-export { ObservableMap } from "./map/ObservableMap";
+export { ObservableMap, ApplyMap, FilteredMap, JoinedMap, LogMap, MappedMap } from "./map";
 export { ObservableArray } from "./list/ObservableArray";
 export { SortedArray } from "./list/SortedArray";
 export { MappedList } from "./list/MappedList";

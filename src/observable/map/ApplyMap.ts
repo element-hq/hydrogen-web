@@ -14,11 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
+import {BaseObservableMap} from "./index";
 import {SubscriptionHandle} from "../BaseObservable";
-import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
 
 
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
+*/
 export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
     private _source: BaseObservableMap<K, V>;
     private _subscription?: SubscriptionHandle;
@@ -26,7 +30,7 @@ export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
 
 
     constructor(source: BaseObservableMap<K, V>, apply?: Apply<K, V>) {
-        super(new BaseObservableMapTransformers<K, V>());
+        super();
         this._source = source;
         this._apply = apply;
     }

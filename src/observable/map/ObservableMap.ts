@@ -14,15 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
+import {BaseObservableMap} from "./index";
 
 
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
+*/
 export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     private readonly _values: Map<K, V>;
 
     constructor(initialValues?: (readonly [K, V])[]) {
-        super(new BaseObservableMapTransformers<K, V>());
+        super();
         this._values = new Map(initialValues);
     }
 

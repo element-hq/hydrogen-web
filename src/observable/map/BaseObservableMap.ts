@@ -15,11 +15,10 @@ limitations under the License.
 */
 
 import {BaseObservable} from "../BaseObservable";
-import {JoinedMap} from "../map/JoinedMap";
-import {MappedMap} from "../map/MappedMap";
-import {FilteredMap} from "../map/FilteredMap";
+import {JoinedMap} from "./index";
+import {MappedMap} from "./index";
+import {FilteredMap} from "./index";
 import {SortedMapList} from "../list/SortedMapList.js";
-import type {BaseObservableMapTransformers, Mapper, Updater, Comparator, Filter} from "./BaseObservableMapTransformers";
 
 
 export interface IMapObserver<K, V> {
@@ -29,12 +28,15 @@ export interface IMapObserver<K, V> {
     onRemove(key: K, value: V): void
 }
 
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
+*/
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
-    private _defaults: BaseObservableMapTransformers<K, V>;
 
-    constructor(defaults: BaseObservableMapTransformers<K, V>) {
+    constructor() {
         super();
-        this._defaults = defaults;
     }
 
     emitReset(): void {
@@ -63,23 +65,33 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
     }
 
     join(...otherMaps: Array<typeof this>): JoinedMap<K, V> {
-        return this._defaults.join(this, ...otherMaps);
-    }
+        return new JoinedMap([this].concat(otherMaps));
+     }
 
-    mapValues<MappedV>(mapper: Mapper<V, MappedV>, updater?: Updater<V, MappedV>): MappedMap<K, V, MappedV> {
-        return this._defaults.mapValues(this, mapper, updater);
-    }
+     mapValues<MappedV>(mapper: Mapper<V, MappedV>, updater?: Updater<V, MappedV>): MappedMap<K, V, MappedV> {
+         return new MappedMap(this, mapper, updater);
+     }
 
-    sortValues(comparator: Comparator<V>): SortedMapList {
-        return this._defaults.sortValues(this, comparator);
-    }
+     sortValues(comparator: Comparator<V>): SortedMapList {
+         return new SortedMapList(this, comparator);
+     }
 
-    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-        return this._defaults.filterValues(this, filter);
-    }
-
+     filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
+         return new FilteredMap(this, filter);
+     }
 
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;
     abstract get(key: K): V | undefined;
 }
+
+export type Mapper<V, MappedV> = (
+    value: V,
+    emitSpontaneousUpdate: any,
+) => MappedV;
+
+export type Updater<V, MappedV> = (params: any, mappedValue?: MappedV, value?: V) => void;
+
+export type Comparator<V> = (a: V, b: V) => number;
+
+export type Filter<K, V> = (v: V, k: K) => boolean;

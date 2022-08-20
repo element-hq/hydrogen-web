@@ -14,20 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
+import {BaseObservableMap} from "./index";
 import {SubscriptionHandle} from "../BaseObservable";
 import {ILogItem, LabelOrValues} from "../../logging/types";
 import {LogLevel} from "../../logging/LogFilter";
 
 
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
+*/
 export class LogMap<K, V> extends BaseObservableMap<K, V> {
     private _source: BaseObservableMap<K, V>;
     private _subscription?: SubscriptionHandle;
     private _log: ILogItem;
 
     constructor(source: BaseObservableMap<K, V>, log: ILogItem) {
-        super(new BaseObservableMapTransformers<K, V>());
+        super();
         this._source = source;
         this._log = log;
     }

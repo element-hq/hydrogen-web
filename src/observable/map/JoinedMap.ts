@@ -14,17 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
-import {BaseObservableMapTransformers} from "./BaseObservableMapTransformers";
+import {BaseObservableMap} from ".";
 import {SubscriptionHandle} from "../BaseObservable";
 
 
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
+*/
 export class JoinedMap<K, V> extends BaseObservableMap<K, V> {
     protected _sources: BaseObservableMap<K, V>[];
     private _subscriptions?: SourceSubscriptionHandler<K, V>[];
 
     constructor(sources: BaseObservableMap<K, V>[]) {
-        super(new BaseObservableMapTransformers<K, V>());
+        super();
         this._sources = sources;
     }
 
