@@ -28,7 +28,6 @@ export class ApplyMap<K, V> extends BaseObservableMap<K, V> {
     private _subscription?: SubscriptionHandle;
     private _apply?: Apply<K, V>;
 
-
     constructor(source: BaseObservableMap<K, V>, apply?: Apply<K, V>) {
         super();
         this._source = source;

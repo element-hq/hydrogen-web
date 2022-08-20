@@ -22,7 +22,7 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
     private _eventQueue: AsyncEvent<F>[] | null = null;
     private _flushing: boolean = false;
 
-    async onSubscribeFirst(): Promise<void> {
+    onSubscribeFirst(): void {
         this._sourceUnsubscribe = this._sourceList.subscribe(this);
         this._eventQueue = [];
         this._mappedValues = [];
@@ -31,7 +31,7 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
             this._eventQueue.push(new AddEvent(idx, item));
             idx += 1;
         }
-        await this._flush();
+        void this._flush();
     }
 
     async _flush(): Promise<void> {
@@ -49,38 +49,38 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
         }
     }
 
-    async onReset(): Promise<void> {
+    onReset(): void {
         if (this._eventQueue) {
             this._eventQueue.push(new ResetEvent());
-            await this._flush();
+            void this._flush();
         }
     }
 
-    async onAdd(index: number, value: F): Promise<void> {
+    onAdd(index: number, value: F): void {
         if (this._eventQueue) {
             this._eventQueue.push(new AddEvent(index, value));
-            await this._flush();
+            void this._flush();
         }
     }
 
-    async onUpdate(index: number, value: F, params: any): Promise<void> {
+    onUpdate(index: number, value: F, params: any): void {
         if (this._eventQueue) {
             this._eventQueue.push(new UpdateEvent(index, value, params));
-            await this._flush();
+            void this._flush();
         }
     }
 
-    async onRemove(index: number): Promise<void> {
+    onRemove(index: number): void {
         if (this._eventQueue) {
             this._eventQueue.push(new RemoveEvent(index));
-            await this._flush();
+            void this._flush();
         }
     }
 
-    async onMove(fromIdx: number, toIdx: number): Promise<void> {
+    onMove(fromIdx: number, toIdx: number): void {
         if (this._eventQueue) {
             this._eventQueue.push(new MoveEvent(fromIdx, toIdx));
-            await this._flush();
+            void this._flush();
         }
     }
 
