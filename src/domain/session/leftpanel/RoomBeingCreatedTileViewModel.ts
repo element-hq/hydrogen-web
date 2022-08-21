@@ -19,7 +19,7 @@ import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
 import {comparePrimitive} from "./common";
 import {Options as ViewModelOptions} from "../../ViewModel";
 import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated.js";
-import type {Navigation} from "../../navigation/Navigation";
+import {Navigation} from "../../navigation/Navigation";
 import type {Platform} from "../../../platform/web/Platform";
 import type {ILogger} from "../../../logging/types";
 
@@ -67,28 +67,25 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
     }
 }
 
+
+import {TestURLRouter} from './common';
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
         "test compare with names": (assert): void => {
-            const urlCreator = {
-                openRoomActionUrl(): string {
-                    return "";
-                },
-            };
             const vm1 = new RoomBeingCreatedTileViewModel({
                 roomBeingCreated: { name: "A", id: "1" } as RoomBeingCreated,
-                urlCreator,
+                urlCreator: TestURLRouter,
                 platform: {} as Platform,
                 logger: {} as ILogger,
-                navigation: {} as Navigation,
+                navigation: new Navigation(() => true),
             });
             const vm2 = new RoomBeingCreatedTileViewModel({
                 roomBeingCreated: { name: "B", id: "2" } as RoomBeingCreated,
-                urlCreator,
+                urlCreator: TestURLRouter,
                 platform: {} as Platform,
                 logger: {} as ILogger,
-                navigation: {} as Navigation,
+                navigation: new Navigation(() => true),
             });
             assert(vm1.compare(vm2) < 0);
             assert(vm2.compare(vm1) > 0);

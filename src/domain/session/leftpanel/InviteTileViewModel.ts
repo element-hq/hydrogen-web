@@ -58,24 +58,25 @@ export class InviteTileViewModel extends BaseTileViewModel {
     }
 }
 
+import {Navigation} from "../../navigation/Navigation";
+import {TestURLRouter} from './common'
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
         "test compare with timestamp": (assert): void => {
-            const urlCreator = {openRoomActionUrl(): string { return "";}};
             const vm1 = new InviteTileViewModel({
                 invite: { timestamp: 500, id: "1" },
-                urlCreator,
+                urlCreator: TestURLRouter,
                 platform: undefined,
                 logger: nullLogger,
-                navigation: undefined,
+                navigation: new Navigation(() => true),
             });
             const vm2 = new InviteTileViewModel({
                 invite: { timestamp: 250, id: "2" },
-                urlCreator,
+                urlCreator: TestURLRouter,
                 platform: undefined,
                 logger: nullLogger,
-                navigation: undefined,
+                navigation: new Navigation(() => true),
             });
             assert(vm1.compare(vm2) < 0);
             assert(vm2.compare(vm1) > 0);

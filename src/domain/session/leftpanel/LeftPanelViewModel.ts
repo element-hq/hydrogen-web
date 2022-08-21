@@ -28,10 +28,12 @@ import {Room} from "../../../matrix/room/Room.js";
 import {Invite} from "../../../matrix/room/Invite.js";
 import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated";
 import {Session} from "../../../matrix/Session.js";
+import {SegmentType} from "../../navigation";
+import type {Path} from "../../navigation/Navigation";
 
-type Options = { session: Session } & ViewModelOptions;
+type LOptions = { session: Session } & ViewModelOptions;
 
-export class LeftPanelViewModel extends ViewModel<Options> {
+export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions> {
     private _currentTileVM?: BaseTileViewModel;
     private _tileViewModelsMap: MappedMap<string, RoomBeingCreated | Invite | Room, BaseTileViewModel>;
     private _tileViewModelsFilterMap: ApplyMap<string, BaseTileViewModel>;
@@ -41,7 +43,7 @@ export class LeftPanelViewModel extends ViewModel<Options> {
     private _createRoomUrl?: string = this.urlCreator.urlForSegment("create-room");
     gridEnabled: boolean;
 
-    constructor(options: Options) {
+    constructor(options: LOptions) {
         super(options);
         const {session} = options;
         this._tileViewModelsMap = this._mapTileViewModels(session.roomsBeingCreated, session.invites, session.rooms);
@@ -89,19 +91,19 @@ export class LeftPanelViewModel extends ViewModel<Options> {
         this._currentTileVM = vm;
     }
 
-    get closeUrl(): string {
+    get closeUrl(): string | undefined {
         return this._closeUrl;
     }
 
-    get settingsUrl(): string {
+    get settingsUrl(): string | undefined {
         return this._settingsUrl;
     }
 
-    get createRoomUrl(): string { return this._createRoomUrl; }
+    get createRoomUrl(): string | undefined { return this._createRoomUrl; }
 
     _setupNavigation(): void {
         const roomObservable = this.navigation.observe("room");
-        this.track(roomObservable.subscribe(roomId => this._open(roomId)));
+        this.track(roomObservable.subscribe(roomId => this._open(roomId as string)));
 
         const gridObservable = this.navigation.observe("rooms");
         this.gridEnabled = !!gridObservable.get();
@@ -131,17 +133,17 @@ export class LeftPanelViewModel extends ViewModel<Options> {
         let path = this.navigation.path.until("session");
         if (this.gridEnabled) {
             if (room) {
-                path = path.with(room);
+                path = path.with(room) as Path<SegmentType>;
                 path = addPanelIfNeeded(this.navigation, path);
             }
         } else {
             if (room) {
-                path = path.with(this.navigation.segment("rooms", [room.value]));
-                path = path.with(room);
+                path = path.with(this.navigation.segment("rooms", [room.value])) as Path<SegmentType>;
+                path = path.with(room) as Path<SegmentType>;
                 path = addPanelIfNeeded(this.navigation, path);
             } else {
-                path = path.with(this.navigation.segment("rooms", []));
-                path = path.with(this.navigation.segment("empty-grid-tile", 0));
+                path = path.with(this.navigation.segment("rooms", [])) as Path<SegmentType>;
+                path = path.with(this.navigation.segment("empty-grid-tile", 0)) as Path<SegmentType>;
             }
         }
         this.navigation.applyPath(path);

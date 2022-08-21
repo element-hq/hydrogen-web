@@ -21,3 +21,17 @@ export function comparePrimitive(a: any, b: any): -1 | 0 | 1 {
         return a < b ? -1 : 1;
     }
 }
+
+export const TestURLRouter = {
+    attach(): void { return; },
+    dispose(): void { return; },
+    pushUrl(): void { return; },
+    tryRestoreLastUrl(): boolean { return true; },
+    urlForSegments(): string | undefined { return ""; },
+    urlForSegment(): string | undefined { return ""; },
+    urlUntilSegment(): string { return ""; },
+    urlForPath(): string { return ""; },
+    openRoomActionUrl(): string { return ""; },
+    createSSOCallbackURL(): string { return ""; },
+    normalizeUrl(): void { return; },
+}
