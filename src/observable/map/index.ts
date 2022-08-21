@@ -7,7 +7,8 @@
 //
 // See https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de
 // for more on why this discipline is necessary.
-export {BaseObservableMap, Mapper, Updater, Comparator, Filter} from './BaseObservableMap';
+export {BaseObservableMap} from './BaseObservableMap';
+export type {Mapper, Updater, Comparator, Filter} from './BaseObservableMap';
 export {ApplyMap} from './ApplyMap';
 export {FilteredMap} from './FilteredMap';
 export {JoinedMap} from './JoinedMap';
