@@ -2,7 +2,9 @@ name: Container Image
 
 on:
   push:
-    branches: [ master ]
+    branches: 
+      - master
+      - sandhose/oidc-login
     tags: [ 'v*' ]
   pull_request:
     branches: [ master ]
