@@ -307,7 +307,7 @@ export class OidcApi<N extends object = SegmentType> {
     async revokeToken({
         token,
         type,
-    }: { token: string, type: "refresh" | "access" }): Promise<void> {
+    }: { token: string, type: "refresh_token" | "access_token" }): Promise<void> {
         const revocationEndpoint = await this.revocationEndpoint();
         if (!revocationEndpoint) {
             return;

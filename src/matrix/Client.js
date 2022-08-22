@@ -490,9 +490,9 @@ export class Client {
                         encoding: this._platform.encoding,
                         crypto: this._platform.crypto,
                     });
-                    await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
+                    await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access_token" });
                     if (sessionInfo.refreshToken) {
-                        await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                        await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh_token" });
                     }
                 } else {
                     const hsApi = new HomeServerApi({
