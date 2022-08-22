@@ -490,7 +490,14 @@ export class Client {
                         encoding: this._platform.encoding,
                         crypto: this._platform.crypto,
                     });
-                    await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access_token" });
+
+                    // if access token revocation fails then we still want to try and revoke the refresh token
+                    try {
+                        await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access_token" });
+                    } catch (err) {
+                        console.error(err);
+                    }
+        
                     if (sessionInfo.refreshToken) {
                         await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh_token" });
                     }
