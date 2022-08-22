@@ -307,14 +307,14 @@ export class OidcApi<N extends object = SegmentType> {
     async revokeToken({
         token,
         type,
-    }: { token: string, type: "refresh" | "access" }): Promise<void> {
+    }: { token: string, type: "refresh_token" | "access_token" }): Promise<void> {
         const revocationEndpoint = await this.revocationEndpoint();
         if (!revocationEndpoint) {
             return;
         }
 
         const params = new URLSearchParams();
-        params.append("token_type", type);
+        params.append("token_type_hint", type);
         params.append("token", token);
         params.append("client_id", await this.clientId());
         const body = params.toString();
@@ -325,7 +325,6 @@ export class OidcApi<N extends object = SegmentType> {
         const req = this._requestFn(revocationEndpoint, {
             method: "POST",
             headers,
-            format: "json",
             body,
         });
 
