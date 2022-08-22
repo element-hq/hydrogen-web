@@ -325,7 +325,6 @@ export class OidcApi<N extends object = SegmentType> {
         const req = this._requestFn(revocationEndpoint, {
             method: "POST",
             headers,
-            format: "json",
             body,
         });
 
