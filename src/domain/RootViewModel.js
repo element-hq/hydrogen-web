@@ -19,6 +19,7 @@ import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
+import {ForcedLogoutViewModel} from "./ForcedLogoutViewModel";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel";
 
@@ -30,6 +31,7 @@ export class RootViewModel extends ViewModel {
         this._sessionLoadViewModel = null;
         this._loginViewModel = null;
         this._logoutViewModel = null;
+        this._forcedLogoutViewModel = null;
         this._sessionViewModel = null;
         this._pendingClient = null;
     }
@@ -38,12 +40,14 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("forced-logout").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
         const isLogin = this.navigation.path.get("login");
         const logoutSessionId = this.navigation.path.get("logout")?.value;
+        const forcedLogoutSessionId = this.navigation.path.get("forced-logout")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
         if (isLogin) {
@@ -53,6 +57,10 @@ export class RootViewModel extends ViewModel {
         } else if (logoutSessionId) {
             if (this.activeSection !== "logout") {
                 this._showLogout(logoutSessionId);
+            }
+        } else if (forcedLogoutSessionId) {
+            if (this.activeSection !== "forced-logout") {
+                this._showForcedLogout(forcedLogoutSessionId);
             }
         } else if (sessionId === true) {
             if (this.activeSection !== "picker") {
@@ -136,6 +144,12 @@ export class RootViewModel extends ViewModel {
         });
     }
 
+    _showForcedLogout(sessionId) {
+        this._setSection(() => {
+            this._forcedLogoutViewModel = new ForcedLogoutViewModel(this.childOptions({sessionId}));
+        });
+    }
+
     _showSession(client) {
         this._setSection(() => {
             this._sessionViewModel = new SessionViewModel(this.childOptions({client}));
@@ -164,6 +178,8 @@ export class RootViewModel extends ViewModel {
             return "login";
         } else if (this._logoutViewModel) {
             return "logout";
+        } else if (this._forcedLogoutViewModel) {
+            return "forced-logout";
         } else if (this._sessionPickerViewModel) {
             return "picker";
         } else if (this._sessionLoadViewModel) {
@@ -180,6 +196,7 @@ export class RootViewModel extends ViewModel {
         this._sessionLoadViewModel = this.disposeTracked(this._sessionLoadViewModel);
         this._loginViewModel = this.disposeTracked(this._loginViewModel);
         this._logoutViewModel = this.disposeTracked(this._logoutViewModel);
+        this._forcedLogoutViewModel = this.disposeTracked(this._forcedLogoutViewModel);
         this._sessionViewModel = this.disposeTracked(this._sessionViewModel);
         // now set it again
         setter();
@@ -187,6 +204,7 @@ export class RootViewModel extends ViewModel {
         this._sessionLoadViewModel && this.track(this._sessionLoadViewModel);
         this._loginViewModel && this.track(this._loginViewModel);
         this._logoutViewModel && this.track(this._logoutViewModel);
+        this._forcedLogoutViewModel && this.track(this._forcedLogoutViewModel);
         this._sessionViewModel && this.track(this._sessionViewModel);
         this.emitChange("activeSection");
     }
@@ -195,6 +213,7 @@ export class RootViewModel extends ViewModel {
     get sessionViewModel() { return this._sessionViewModel; }
     get loginViewModel() { return this._loginViewModel; }
     get logoutViewModel() { return this._logoutViewModel; }
+    get forcedLogoutViewModel() { return this._forcedLogoutViewModel; }
     get sessionPickerViewModel() { return this._sessionPickerViewModel; }
     get sessionLoadViewModel() { return this._sessionLoadViewModel; }
 }
