@@ -481,25 +481,30 @@ export class Client {
                 throw new Error(`Could not find session for id ${this._sessionId}`);
             }
             try {
-                const hsApi = new HomeServerApi({
-                    homeserver: sessionInfo.homeServer,
-                    accessToken: sessionInfo.accessToken,
-                    request: this._platform.request
-                });
-                await hsApi.logout({log}).response();
-                const oidcApi = new OidcApi({
-                    issuer: sessionInfo.oidcIssuer,
-                    clientConfigs: this._platform.config.oidc.clientConfigs,
-                    clientId: sessionInfo.oidcClientId,
-                    request: this._platform.request,
-                    encoding: this._platform.encoding,
-                    crypto: this._platform.crypto,
-                });
-                await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
-                if (sessionInfo.refreshToken) {
-                    await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                if (sessionInfo.oidcIssuer) {
+                    const oidcApi = new OidcApi({
+                        issuer: sessionInfo.oidcIssuer,
+                        clientConfigs: this._platform.config.oidc.clientConfigs,
+                        clientId: sessionInfo.oidcClientId,
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                        crypto: this._platform.crypto,
+                    });
+                    await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
+                    if (sessionInfo.refreshToken) {
+                        await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                    }
+                } else {
+                    const hsApi = new HomeServerApi({
+                        homeserver: sessionInfo.homeServer,
+                        accessToken: sessionInfo.accessToken,
+                        request: this._platform.request
+                    });
+                    await hsApi.logout({log}).response();
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.error(err)
+            }
             await this.deleteSession(log);
         });
     }
