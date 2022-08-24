@@ -99,7 +99,7 @@ export class SessionViewModel extends ViewModel {
         this._client.sync.status.subscribe(status => {
             if (status === SyncStatus.Stopped) {
                 const error = this._client.sync.error;
-                if (error.errcode === "M_UNKNOWN_TOKEN") {
+                if (error?.errcode === "M_UNKNOWN_TOKEN") {
                     // Access token is no longer valid, so force the user to log out
                     const segments = [
                         this.navigation.segment("logout", this.id),
