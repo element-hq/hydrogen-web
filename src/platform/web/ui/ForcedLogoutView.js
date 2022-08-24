@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView, InlineTemplateView} from "./general/TemplateView";
+import {spinner} from "./common.js";
 
 export class ForcedLogoutView extends TemplateView {
     render(t, vm) {
@@ -31,13 +32,13 @@ export class ForcedLogoutView extends TemplateView {
             ]);
         });
         const progressView = new InlineTemplateView(vm, t => {
-            return t.p({className: "status"}, [ t.span(vm => vm.error) ]);
+            return t.p({className: "status"}, [spinner(t, {hidden: vm => !vm.showSpinner}), t.span(vm => vm.status)]);
         });
 
         return t.div({className: "LogoutScreen"}, [
             t.div({className: "content"}, 
-                t.mapView(vm => vm.error, error => {
-                    return error? progressView: proceedView;
+                t.mapView(vm => vm.showStatus, showStatus => {
+                    return showStatus? progressView: proceedView;
                 })
             ),
         ]);
