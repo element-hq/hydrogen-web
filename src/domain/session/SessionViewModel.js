@@ -101,7 +101,12 @@ export class SessionViewModel extends ViewModel {
                 const error = this._client.sync.error;
                 if (error.errcode === "M_UNKNOWN_TOKEN") {
                     // Access token is no longer valid, so force the user to log out
-                    this.navigation.push("forced-logout", this.id);
+                    const segments = [
+                        this.navigation.segment("logout", this.id),
+                        this.navigation.segment("forced", true),
+                    ];
+                    const path = this.navigation.pathFrom(segments);
+                    this.navigation.applyPath(path);
                 }
             }
         });

@@ -40,27 +40,27 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
-        this.track(this.navigation.observe("forced-logout").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
         const isLogin = this.navigation.path.get("login");
         const logoutSessionId = this.navigation.path.get("logout")?.value;
-        const forcedLogoutSessionId = this.navigation.path.get("forced-logout")?.value;
+        const isForcedLogout = this.navigation.path.get("forced")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
             }
+        } else if (logoutSessionId && isForcedLogout) {
+            if (this.activeSection !== "forced-logout") {
+                this._showForcedLogout(logoutSessionId);
+            }
         } else if (logoutSessionId) {
             if (this.activeSection !== "logout") {
                 this._showLogout(logoutSessionId);
-            }
-        } else if (forcedLogoutSessionId) {
-            if (this.activeSection !== "forced-logout") {
-                this._showForcedLogout(forcedLogoutSessionId);
             }
         } else if (sessionId === true) {
             if (this.activeSection !== "picker") {
