@@ -96,7 +96,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     _setupForcedLogoutOnAccessTokenInvalidation() {
-        this._client.sync.status.subscribe(status => {
+        this.track(this._client.sync.status.subscribe(status => {
             if (status === SyncStatus.Stopped) {
                 const error = this._client.sync.error;
                 if (error?.errcode === "M_UNKNOWN_TOKEN") {
@@ -109,7 +109,7 @@ export class SessionViewModel extends ViewModel {
                     this.navigation.applyPath(path);
                 }
             }
-        });
+        }));
     }
 
     get id() {
