@@ -120,6 +120,7 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
                 }
             } catch (err) {
                 // some error pages return html instead of json, ignore error
+                // detect these ignored errors from the response status 
                 if (!(err.name === "SyntaxError" && status >= 400)) {
                     throw err;
                 }
