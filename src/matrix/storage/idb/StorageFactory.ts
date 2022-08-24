@@ -16,11 +16,12 @@ limitations under the License.
 
 import {IDOMStorage} from "./types";
 import {Storage} from "./Storage";
-import { openDatabase, reqAsPromise } from "./utils";
-import { exportSession, importSession, Export } from "./export";
-import { schema } from "./schema";
-import { detectWebkitEarlyCloseTxnBug } from "./quirks";
-import { ILogItem } from "../../../logging/types";
+import {openDatabase, reqAsPromise} from "./utils";
+import {exportSession, importSession, Export} from "./export";
+import {schema} from "./schema";
+import {detectWebkitEarlyCloseTxnBug} from "./quirks";
+import {ILogItem} from "../../../logging/types";
+import {clearKeysFromLocalStorage} from "./stores/SessionStore";
 
 const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: ILogItem) {
@@ -79,6 +80,7 @@ export class StorageFactory {
 
     delete(sessionId: string): Promise<IDBDatabase> {
         const databaseName = sessionName(sessionId);
+        clearKeysFromLocalStorage(this._localStorage, databaseName);
         const req = this._idbFactory.deleteDatabase(databaseName);
         return reqAsPromise(req);
     }
