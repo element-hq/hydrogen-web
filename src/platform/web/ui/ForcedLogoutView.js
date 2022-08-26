@@ -14,31 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView, InlineTemplateView} from "./general/TemplateView";
+import {TemplateView} from "./general/TemplateView";
 import {spinner} from "./common.js";
 
 export class ForcedLogoutView extends TemplateView {
-    render(t, vm) {
-        const proceedView = new InlineTemplateView(vm, t => {
-            return t.div([
-                t.p("Your access token is no longer valid! You can reauthenticate in the next screen."),
-                t.div({ className: "button-row" }, [
-                    t.button({
-                        className: "button-action primary",
-                        type: "submit",
-                        onClick: () => vm.proceed(),
-                    }, vm.i18n`Proceed`)
-                ]),
-            ]);
-        });
-        const progressView = new InlineTemplateView(vm, t => {
-            return t.p({className: "status"}, [spinner(t, {hidden: vm => !vm.showSpinner}), t.span(vm => vm.status)]);
-        });
-
-        return t.div({className: "LogoutScreen"}, [
-            t.div({className: "content"}, 
-                t.mapView(vm => vm.showStatus, showStatus => {
-                    return showStatus? progressView: proceedView;
+    render(t) {
+        return t.div({ className: "LogoutScreen" }, [
+            t.div({ className: "content" },
+                t.map(vm => vm.showStatus, (showStatus, t, vm) => {
+                    if (showStatus) {
+                        return t.p({ className: "status" }, [
+                            spinner(t, { hidden: vm => !vm.showSpinner }),
+                            t.span(vm => vm.status)
+                        ]);
+                    }
+                    else {
+                        return t.div([
+                            t.p("Your access token is no longer valid! You can reauthenticate in the next screen."),
+                            t.div({ className: "button-row" }, [
+                                t.button({
+                                    className: "button-action primary",
+                                    type: "submit",
+                                    onClick: () => vm.proceed(),
+                                }, vm.i18n`Proceed`)
+                            ]),
+                        ]);
+                    }
                 })
             ),
         ]);
