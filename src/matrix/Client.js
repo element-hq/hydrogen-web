@@ -421,6 +421,14 @@ export class Client {
         });
     }
 
+    startForcedLogout(sessionId) {
+        return this._platform.logger.run("forced-logout", async log => {
+            this._sessionId = sessionId;
+            log.set("id", this._sessionId);
+            await this.deleteSession(log);
+        });
+    }
+
     dispose() {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();

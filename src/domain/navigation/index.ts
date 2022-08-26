@@ -23,6 +23,7 @@ export type SegmentType = {
     "session": string | boolean;
     "sso": string;
     "logout": true;
+    "forced": true;
     "room": string;
     "rooms": string[];
     "settings": true;
@@ -48,7 +49,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
     switch (parent?.type) {
         case undefined:
             // allowed root segments
-            return type === "login"  || type === "session" || type === "sso" || type === "logout";
+            return type === "login" || type === "session" || type === "sso" || type === "logout";
         case "session":
             return type === "room" || type === "rooms" || type === "settings" || type === "create-room";
         case "rooms":
@@ -58,6 +59,8 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
             return type === "details"|| type === "members" || type === "member";
+        case "logout":
+            return type === "forced";
         default:
             return false;
     }
