@@ -72,8 +72,7 @@ export class LogMap<K, V> extends BaseObservableMap<K, V> {
         this.emitReset();
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    [Symbol.iterator]() {
+    [Symbol.iterator](): Iterator<[K, V]> {
         return this._source[Symbol.iterator]();
     }
 

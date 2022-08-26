@@ -142,8 +142,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         this.emitReset();
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    [Symbol.iterator]() {
+    [Symbol.iterator](): FilterIterator<K, V> {
         return new FilterIterator<K, V>(this._source, this._included);
     }
 
@@ -157,7 +156,7 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
         return count;
     }
 
-    get(key): V | undefined{
+    get(key: K): V | undefined {
         const value = this._source.get(key);
         if (value && this._filter(value, key)) {
             return value;
@@ -173,8 +172,7 @@ class FilterIterator<K, V> {
         this._sourceIterator = map[Symbol.iterator]();
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    next() {
+    next(): IteratorResult<[K, V]> {
         // eslint-disable-next-line no-constant-condition
         while (true) {
             const sourceResult = this._sourceIterator.next();

@@ -64,7 +64,9 @@ export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
     onRemove(key: K/*, _value*/): void {
         const mappedValue = this._mappedValues.get(key);
         if (this._mappedValues.delete(key)) {
-            if (mappedValue) this.emitRemove(key, mappedValue);
+            if (mappedValue) {
+                this.emitRemove(key, mappedValue);
+            }
         }
     }
 
@@ -93,7 +95,9 @@ export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
 
     onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
-        if (this._subscription) this._subscription = this._subscription();
+        if (this._subscription) {
+            this._subscription = this._subscription();
+        }
         this._mappedValues.clear();
     }
 
@@ -102,8 +106,7 @@ export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
         this.emitReset();
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    [Symbol.iterator]() {
+    [Symbol.iterator](): IterableIterator<[K, MappedV]> {
         return this._mappedValues.entries();
     }
 
