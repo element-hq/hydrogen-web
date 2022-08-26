@@ -59,7 +59,7 @@ export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
         await this._logoutPromise;
         // At this point, the logout is completed for sure.
         if (!this._error) {
-            this.navigation.push("session", true);
+            this.navigation.push("login", true);
         }
     }
 
