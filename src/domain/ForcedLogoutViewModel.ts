@@ -30,6 +30,7 @@ export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
     constructor(options: Options) {
         super(options);
         this._sessionId = options.sessionId;
+        // Start the logout process immediately without any user interaction
         this._logoutPromise = this.forceLogout();
     }
 
@@ -40,6 +41,7 @@ export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
         }
         catch (err) {
             this._error = err;
+            // Show the error in the UI 
             this._showSpinner = false;
             this._showStatus = true;
             this.emitChange("error");
@@ -47,10 +49,15 @@ export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
     }
 
     async proceed(): Promise<void> {
+        /**
+         * The logout should already be completed because we started it from the ctor.
+         * In case the logout is still proceeding, we will show a message with a spinner. 
+         */
         this._showSpinner = true;
         this._showStatus = true;
         this.emitChange("showStatus");
         await this._logoutPromise;
+        // At this point, the logout is completed for sure.
         if (!this._error) {
             this.navigation.push("session", true);
         }
