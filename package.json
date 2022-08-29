@@ -18,7 +18,8 @@
     "start": "vite --port 3000",
     "build": "vite build && ./scripts/cleanup.sh",
     "build:sdk": "./scripts/sdk/build.sh",
-    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch"
+    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch",
+    "test:app": "vite --port 3000 & yarn run cypress open"
   },
   "repository": {
     "type": "git",
