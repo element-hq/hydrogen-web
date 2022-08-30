@@ -73,7 +73,7 @@ export class RoomView extends TemplateView {
                             case "disabled":
                                 return new DisabledComposerView(vm.composerViewModel);
                             case "none":
-                                text(''),
+                                text('');
                         }
                     }),
             ])
