@@ -40,18 +40,27 @@ class RoomHeaderView extends TemplateView {
         })
     ])
     }
-  }
+}
 
 export class RoomView extends TemplateView {
-    constructor(vm, viewClassForTile) {
+    constructor(vm, viewClassForTile, slots) {
         super(vm);
         this._viewClassForTile = viewClassForTile;
         this._optionsPopup = null;
+        this._slots = slots || {};
     }
 
     render(t, vm) {
+        let headerView;
+        if (this._slots.RoomHeaderView) {
+            headerView = new this._slots.RoomHeaderView(vm)
+        } else {
+            headerView = new RoomHeaderView(vm)
+        }
+
+
         return t.main({className: "RoomView middle"}, [
-            //t.view(new RoomHeaderView(vm)),
+            t.view(headerView),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, [
                     t.if(vm => vm.error, t => t.div( 

@@ -34,6 +34,7 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
+    "change-dates": true;
 };
 
 export function createNavigation(): Navigation<SegmentType> {
@@ -58,7 +59,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
         case "room":
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
-            return type === "details"|| type === "members" || type === "member";
+            return type === "details"|| type === "members" || type === "member" || type === "change-dates";
         case "logout":
             return type === "forced";
         default:
@@ -173,7 +174,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             if (sessionSegment) {
                 segments.push(sessionSegment);
             }
-        } else if (type === "details" || type === "members") {
+        } else if (type === "details" || type === "members" || type === "change-dates") {
             pushRightPanelSegment(segments, type);
         } else if (type === "member") {
             const userId = iterator.next().value;
