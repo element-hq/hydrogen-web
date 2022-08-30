@@ -25,6 +25,23 @@ import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
 import {AvatarView} from "../../AvatarView.js";
 
+class RoomHeaderView extends TemplateView {
+    render(t, vm) {
+      return t.div({className: "RoomHeader middle-header"}, [
+        t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
+        t.view(new AvatarView(vm, 32)),
+        t.div({className: "room-description"}, [
+            t.h2(vm => vm.name),
+        ]),
+        t.button({
+            className: "button-utility room-options",
+            "aria-label":vm.i18n`Room options`,
+            onClick: evt => this._toggleOptionsMenu(evt)
+        })
+    ])
+    }
+  }
+
 export class RoomView extends TemplateView {
     constructor(vm, viewClassForTile) {
         super(vm);
@@ -40,18 +57,7 @@ export class RoomView extends TemplateView {
             bottomView = new RoomArchivedView(vm.composerViewModel);
         }
         return t.main({className: "RoomView middle"}, [
-            t.div({className: "RoomHeader middle-header"}, [
-                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
-                t.view(new AvatarView(vm, 32)),
-                t.div({className: "room-description"}, [
-                    t.h2(vm => vm.name),
-                ]),
-                t.button({
-                    className: "button-utility room-options",
-                    "aria-label":vm.i18n`Room options`,
-                    onClick: evt => this._toggleOptionsMenu(evt)
-                })
-            ]),
+            //t.view(new RoomHeaderView(vm)),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, vm => vm.error),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
