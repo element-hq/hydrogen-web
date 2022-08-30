@@ -25,7 +25,6 @@ async function readCSSSource(location) {
     const fs = require("fs").promises;
     const path = require("path");
     const resolvedLocation = path.resolve(__dirname, "../../", `${location}/theme.css`);
-    console.log('resolvedLocation', resolvedLocation);
     const data = await fs.readFile(resolvedLocation);
     return data;
 }
