@@ -24,7 +24,6 @@ const {optimize} = require('svgo');
 
 async function readCSSSource(location) {
     const fs = require("fs").promises;
-    const path = require("path");
     const resolvedLocation = path.resolve(__dirname, "../../", `${location}/theme.css`);
     const data = await fs.readFile(resolvedLocation);
     return data;
