@@ -85,8 +85,7 @@ export class SessionViewModel extends ViewModel {
 
         setupLightboxNavigation(this, 'lightboxViewModel', (eventId) => {
             return {
-                // TODO: room is not defined
-                room,
+                room: this._roomFromNavigation(),
                 eventId,
             };
         });

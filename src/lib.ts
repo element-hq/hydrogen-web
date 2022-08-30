@@ -77,6 +77,7 @@ export {Navigation} from "./domain/navigation/Navigation.js";
 export {History} from "./platform/web/dom/History.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
+export {text, tag} from "./platform/web/ui/general/html";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";

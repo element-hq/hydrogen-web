@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { text } from "../../general/html";
 import {TemplateView} from "../../general/TemplateView";
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
@@ -81,8 +80,6 @@ export class RoomView extends TemplateView {
                                 return new MessageComposer(vm.composerViewModel, this._viewClassForTile);
                             case "disabled":
                                 return new DisabledComposerView(vm.composerViewModel);
-                            case "none":
-                                text('');
                         }
                     }),
             ])
