@@ -20,44 +20,46 @@ import {SegmentType} from "./navigation/index";
 
 type Options = { sessionId: string; } & BaseOptions;
 
-export class LogoutViewModel extends ViewModel<SegmentType, Options> {
+export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
     private _sessionId: string;
-    private _busy: boolean;
-    private _showConfirm: boolean;
     private _error?: Error;
+    private _logoutPromise: Promise<void>;
+    private _showStatus: boolean = false;
+    private _showSpinner: boolean = false;
 
     constructor(options: Options) {
         super(options);
         this._sessionId = options.sessionId;
-        this._busy = false;
-        this._showConfirm = true;
-        this._error = undefined;
+        // Start the logout process immediately without any user interaction
+        this._logoutPromise = this.forceLogout();
     }
 
-    get showConfirm(): boolean {
-        return this._showConfirm;
-    }
-
-    get busy(): boolean {
-        return this._busy;
-    }
-
-    get cancelUrl(): string | undefined {
-        return this.urlCreator.urlForSegment("session", true);
-    }
-
-    async logout(): Promise<void> {
-        this._busy = true;
-        this._showConfirm = false;
-        this.emitChange("busy");
+    async forceLogout(): Promise<void> {
         try {
             const client = new Client(this.platform);
-            await client.startLogout(this._sessionId);
-            this.navigation.push("session", true);
-        } catch (err) {
+            await client.startForcedLogout(this._sessionId);
+        }
+        catch (err) {
             this._error = err;
-            this._busy = false;
-            this.emitChange("busy");
+            // Show the error in the UI 
+            this._showSpinner = false;
+            this._showStatus = true;
+            this.emitChange("error");
+        }
+    }
+
+    async proceed(): Promise<void> {
+        /**
+         * The logout should already be completed because we started it from the ctor.
+         * In case the logout is still proceeding, we will show a message with a spinner. 
+         */
+        this._showSpinner = true;
+        this._showStatus = true;
+        this.emitChange("showStatus");
+        await this._logoutPromise;
+        // At this point, the logout is completed for sure.
+        if (!this._error) {
+            this.navigation.push("login", true);
         }
     }
 
@@ -67,5 +69,13 @@ export class LogoutViewModel extends ViewModel<SegmentType, Options> {
         } else {
             return this.i18n`Logging out… Please don't close the app.`;
         }
+    }
+
+    get showStatus(): boolean {
+        return this._showStatus;
+    }
+
+    get showSpinner(): boolean {
+        return this._showSpinner;
     }
 }

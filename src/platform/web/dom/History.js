@@ -17,6 +17,12 @@ limitations under the License.
 import {BaseObservableValue} from "../../../observable/ObservableValue";
 
 export class History extends BaseObservableValue {
+    
+    constructor() {
+        super();
+        this._lastSessionHash = undefined;
+    }
+    
     handleEvent(event) {
         if (event.type === "hashchange") {
             this.emit(this.get());
@@ -65,6 +71,7 @@ export class History extends BaseObservableValue {
     }
 
     onSubscribeFirst() {
+        this._lastSessionHash = window.localStorage?.getItem("hydrogen_last_url_hash");
         window.addEventListener('hashchange', this);
     }
 
@@ -76,7 +83,7 @@ export class History extends BaseObservableValue {
         window.localStorage?.setItem("hydrogen_last_url_hash", hash);
     }
 
-    getLastUrl() {
-        return window.localStorage?.getItem("hydrogen_last_url_hash");
+    getLastSessionUrl() {
+        return this._lastSessionHash;
     }
 }

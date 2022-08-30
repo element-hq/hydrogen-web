@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2021 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,16 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMediaView} from "./BaseMediaView.js";
-
-export class ImageView extends BaseMediaView {
-    renderMedia(t, vm) {
-        const img = t.img({
-            src: vm => vm.thumbnailUrl,
-            alt: vm => vm.label,
-            title: vm => vm.label,
-            style: `max-width: ${vm.width}px; max-height: ${vm.height}px;`
-        });
-        return vm.isPending || !vm.lightboxUrl ? img : t.a({href: vm.lightboxUrl}, img);
+export function getColoredSvgString(svgString, primaryColor, secondaryColor) {
+    let coloredSVGCode = svgString.replaceAll("#ff00ff", primaryColor);
+    coloredSVGCode = coloredSVGCode.replaceAll("#00ffff", secondaryColor);
+    if (svgString === coloredSVGCode) {
+        throw new Error("svg-colorizer made no color replacements! The input svg should only contain colors #ff00ff (primary, case-sensitive) and #00ffff (secondary, case-sensitive).");
     }
+    return coloredSVGCode;
 }

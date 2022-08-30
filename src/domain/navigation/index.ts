@@ -14,23 +14,42 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Navigation, Segment} from "./Navigation.js";
-import {URLRouter} from "./URLRouter.js";
+import {Navigation, Segment} from "./Navigation";
+import {URLRouter} from "./URLRouter";
+import type {Path, OptionalValue} from "./Navigation";
 
-export function createNavigation() {
+export type SegmentType = {
+    "login": true;
+    "session": string | boolean;
+    "sso": string;
+    "logout": true;
+    "forced": true;
+    "room": string;
+    "rooms": string[];
+    "settings": true;
+    "create-room": true;
+    "empty-grid-tile": number;
+    "lightbox": string;
+    "right-panel": true;
+    "details": true;
+    "members": true;
+    "member": string;
+};
+
+export function createNavigation(): Navigation<SegmentType> {
     return new Navigation(allowsChild);
 }
 
-export function createRouter({history, navigation}) {
-    return new URLRouter({history, navigation, stringifyPath, parseUrlPath});
+export function createRouter({history, navigation}: {history: History, navigation: Navigation<SegmentType>}): URLRouter<SegmentType> {
+    return new URLRouter(history, navigation, parseUrlPath, stringifyPath);
 }
 
-function allowsChild(parent, child) {
+function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<SegmentType>): boolean {
     const {type} = child;
     switch (parent?.type) {
         case undefined:
             // allowed root segments
-            return type === "login"  || type === "session" || type === "sso" || type === "logout";
+            return type === "login" || type === "session" || type === "sso" || type === "logout";
         case "session":
             return type === "room" || type === "rooms" || type === "settings" || type === "create-room";
         case "rooms":
@@ -40,13 +59,16 @@ function allowsChild(parent, child) {
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
             return type === "details"|| type === "members" || type === "member";
+        case "logout":
+            return type === "forced";
         default:
             return false;
     }
 }
 
-export function removeRoomFromPath(path, roomId) {
-    const rooms = path.get("rooms");
+export function removeRoomFromPath(path: Path<SegmentType>, roomId: string): Path<SegmentType> | undefined {
+    let newPath: Path<SegmentType> | undefined = path;
+    const rooms = newPath.get("rooms");
     let roomIdGridIndex = -1;
     // first delete from rooms segment
     if (rooms) {
@@ -54,22 +76,22 @@ export function removeRoomFromPath(path, roomId) {
         if (roomIdGridIndex !== -1) {
             const idsWithoutRoom = rooms.value.slice();
             idsWithoutRoom[roomIdGridIndex] = "";
-            path = path.replace(new Segment("rooms", idsWithoutRoom));
+            newPath = newPath.replace(new Segment("rooms", idsWithoutRoom));
         }
     }
-    const room = path.get("room");
+    const room = newPath!.get("room");
     // then from room (which occurs with or without rooms)
     if (room && room.value === roomId) {
         if (roomIdGridIndex !== -1) {
-            path = path.with(new Segment("empty-grid-tile", roomIdGridIndex));
+            newPath = newPath!.with(new Segment("empty-grid-tile", roomIdGridIndex));
         } else {
-            path = path.until("session");
+            newPath = newPath!.until("session");
         }
     }
-    return path;
+    return newPath;
 }
 
-function roomsSegmentWithRoom(rooms, roomId, path) {
+function roomsSegmentWithRoom(rooms: Segment<SegmentType, "rooms">, roomId: string, path: Path<SegmentType>): Segment<SegmentType, "rooms"> {
     if(!rooms.value.includes(roomId)) {
         const emptyGridTile = path.get("empty-grid-tile");
         const oldRoom = path.get("room");
@@ -87,28 +109,28 @@ function roomsSegmentWithRoom(rooms, roomId, path) {
     }
 }
 
-function pushRightPanelSegment(array, segment, value = true) {
+function pushRightPanelSegment<T extends keyof SegmentType>(array: Segment<SegmentType>[], segment: T, ...value: OptionalValue<SegmentType[T]>): void {
     array.push(new Segment("right-panel"));
-    array.push(new Segment(segment, value));
+    array.push(new Segment(segment, ...value));
 }
 
-export function addPanelIfNeeded(navigation, path) {
+export function addPanelIfNeeded<T extends SegmentType>(navigation: Navigation<T>, path: Path<T>): Path<T> {
     const segments = navigation.path.segments;
     const i = segments.findIndex(segment => segment.type === "right-panel");
     let _path = path;
     if (i !== -1) {
         _path = path.until("room");
-        _path = _path.with(segments[i]);
-        _path = _path.with(segments[i + 1]);
+        _path = _path.with(segments[i])!;
+        _path = _path.with(segments[i + 1])!;
     }
     return _path;
 }
 
-export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
-    // substr(1) to take of initial /
-    const parts = urlPath.substr(1).split("/");
+export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>, defaultSessionId?: string): Segment<SegmentType>[] {
+    // substring(1) to take of initial /
+    const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
-    const segments = [];
+    const segments: Segment<SegmentType>[] = [];
     let next; 
     while (!(next = iterator.next()).done) {
         const type = next.value;
@@ -170,9 +192,9 @@ export function parseUrlPath(urlPath, currentNavPath, defaultSessionId) {
     return segments;
 }
 
-export function stringifyPath(path) {
+export function stringifyPath(path: Path<SegmentType>): string {
     let urlPath = "";
-    let prevSegment;
+    let prevSegment: Segment<SegmentType> | undefined;
     for (const segment of path.segments) {
         switch (segment.type) {
             case "rooms":
@@ -205,9 +227,15 @@ export function stringifyPath(path) {
 }
 
 export function tests() {
+    function createEmptyPath() {
+        const nav: Navigation<SegmentType> = new Navigation(allowsChild);
+        const path = nav.pathFrom([]);
+        return path;
+    }
+
     return {
         "stringify grid url with focused empty tile": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -217,7 +245,7 @@ export function tests() {
             assert.equal(urlPath, "/session/1/rooms/a,b,c/3");
         },
         "stringify grid url with focused room": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -227,7 +255,7 @@ export function tests() {
             assert.equal(urlPath, "/session/1/rooms/a,b,c/1");
         },
         "stringify url with right-panel and details segment": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -239,13 +267,15 @@ export function tests() {
             assert.equal(urlPath, "/session/1/rooms/a,b,c/1/details");
         },
         "Parse loginToken query parameter into SSO segment": assert => {
-            const segments = parseUrlPath("?loginToken=a1232aSD123");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("?loginToken=a1232aSD123", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "sso");
             assert.equal(segments[0].value, "a1232aSD123");
         },
         "parse grid url path with focused empty tile": assert => {
-            const segments = parseUrlPath("/session/1/rooms/a,b,c/3");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("/session/1/rooms/a,b,c/3", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -255,7 +285,8 @@ export function tests() {
             assert.equal(segments[2].value, 3);
         },
         "parse grid url path with focused room": assert => {
-            const segments = parseUrlPath("/session/1/rooms/a,b,c/1");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("/session/1/rooms/a,b,c/1", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -265,7 +296,8 @@ export function tests() {
             assert.equal(segments[2].value, "b");
         },
         "parse empty grid url": assert => {
-            const segments = parseUrlPath("/session/1/rooms/");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("/session/1/rooms/", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -275,7 +307,8 @@ export function tests() {
             assert.equal(segments[2].value, 0);
         },
         "parse empty grid url with focus": assert => {
-            const segments = parseUrlPath("/session/1/rooms//1");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("/session/1/rooms//1", path);
             assert.equal(segments.length, 3);
             assert.equal(segments[0].type, "session");
             assert.equal(segments[0].value, "1");
@@ -285,7 +318,7 @@ export function tests() {
             assert.equal(segments[2].value, 1);
         },
         "parse open-room action replacing the current focused room": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -301,7 +334,7 @@ export function tests() {
             assert.equal(segments[2].value, "d");
         },
         "parse open-room action changing focus to an existing room": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -317,7 +350,7 @@ export function tests() {
             assert.equal(segments[2].value, "a");
         },
         "parse open-room action changing focus to an existing room with details open": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -339,7 +372,7 @@ export function tests() {
             assert.equal(segments[4].value, true);
         },
         "open-room action should only copy over previous segments if there are no parts after open-room": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -361,7 +394,7 @@ export function tests() {
             assert.equal(segments[4].value, "foo");
         },
         "parse open-room action setting a room in an empty tile": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
@@ -377,82 +410,83 @@ export function tests() {
             assert.equal(segments[2].value, "d");
         },
         "parse session url path without id": assert => {
-            const segments = parseUrlPath("/session");
+            const path = createEmptyPath();
+            const segments = parseUrlPath("/session", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "session");
             assert.strictEqual(segments[0].value, true);
         },
         "remove active room from grid path turns it into empty tile": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
                 new Segment("room", "b")
             ]);
             const newPath = removeRoomFromPath(path, "b");
-            assert.equal(newPath.segments.length, 3);
-            assert.equal(newPath.segments[0].type, "session");
-            assert.equal(newPath.segments[0].value, 1);
-            assert.equal(newPath.segments[1].type, "rooms");
-            assert.deepEqual(newPath.segments[1].value, ["a", "", "c"]);
-            assert.equal(newPath.segments[2].type, "empty-grid-tile");
-            assert.equal(newPath.segments[2].value, 1);
+            assert.equal(newPath?.segments.length, 3);
+            assert.equal(newPath?.segments[0].type, "session");
+            assert.equal(newPath?.segments[0].value, 1);
+            assert.equal(newPath?.segments[1].type, "rooms");
+            assert.deepEqual(newPath?.segments[1].value, ["a", "", "c"]);
+            assert.equal(newPath?.segments[2].type, "empty-grid-tile");
+            assert.equal(newPath?.segments[2].value, 1);
         },
         "remove inactive room from grid path": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", "c"]),
                 new Segment("room", "b")
             ]);
             const newPath = removeRoomFromPath(path, "a");
-            assert.equal(newPath.segments.length, 3);
-            assert.equal(newPath.segments[0].type, "session");
-            assert.equal(newPath.segments[0].value, 1);
-            assert.equal(newPath.segments[1].type, "rooms");
-            assert.deepEqual(newPath.segments[1].value, ["", "b", "c"]);
-            assert.equal(newPath.segments[2].type, "room");
-            assert.equal(newPath.segments[2].value, "b");
+            assert.equal(newPath?.segments.length, 3);
+            assert.equal(newPath?.segments[0].type, "session");
+            assert.equal(newPath?.segments[0].value, 1);
+            assert.equal(newPath?.segments[1].type, "rooms");
+            assert.deepEqual(newPath?.segments[1].value, ["", "b", "c"]);
+            assert.equal(newPath?.segments[2].type, "room");
+            assert.equal(newPath?.segments[2].value, "b");
         },
         "remove inactive room from grid path with empty tile": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("rooms", ["a", "b", ""]),
                 new Segment("empty-grid-tile", 3)
             ]);
             const newPath = removeRoomFromPath(path, "b");
-            assert.equal(newPath.segments.length, 3);
-            assert.equal(newPath.segments[0].type, "session");
-            assert.equal(newPath.segments[0].value, 1);
-            assert.equal(newPath.segments[1].type, "rooms");
-            assert.deepEqual(newPath.segments[1].value, ["a", "", ""]);
-            assert.equal(newPath.segments[2].type, "empty-grid-tile");
-            assert.equal(newPath.segments[2].value, 3);
+            assert.equal(newPath?.segments.length, 3);
+            assert.equal(newPath?.segments[0].type, "session");
+            assert.equal(newPath?.segments[0].value, 1);
+            assert.equal(newPath?.segments[1].type, "rooms");
+            assert.deepEqual(newPath?.segments[1].value, ["a", "", ""]);
+            assert.equal(newPath?.segments[2].type, "empty-grid-tile");
+            assert.equal(newPath?.segments[2].value, 3);
         },
         "remove active room": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("room", "b")
             ]);
             const newPath = removeRoomFromPath(path, "b");
-            assert.equal(newPath.segments.length, 1);
-            assert.equal(newPath.segments[0].type, "session");
-            assert.equal(newPath.segments[0].value, 1);
+            assert.equal(newPath?.segments.length, 1);
+            assert.equal(newPath?.segments[0].type, "session");
+            assert.equal(newPath?.segments[0].value, 1);
         },
         "remove inactive room doesn't do anything": assert => {
-            const nav = new Navigation(allowsChild);
+            const nav: Navigation<SegmentType> = new Navigation(allowsChild);
             const path = nav.pathFrom([
                 new Segment("session", 1),
                 new Segment("room", "b")
             ]);
             const newPath = removeRoomFromPath(path, "a");
-            assert.equal(newPath.segments.length, 2);
-            assert.equal(newPath.segments[0].type, "session");
-            assert.equal(newPath.segments[0].value, 1);
-            assert.equal(newPath.segments[1].type, "room");
-            assert.equal(newPath.segments[1].value, "b");
+            assert.equal(newPath?.segments.length, 2);
+            assert.equal(newPath?.segments[0].type, "session");
+            assert.equal(newPath?.segments[0].value, 1);
+            assert.equal(newPath?.segments[1].type, "room");
+            assert.equal(newPath?.segments[1].value, "b");
         },
         
     }
