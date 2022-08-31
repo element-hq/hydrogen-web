@@ -666,7 +666,7 @@ export function tests() {
                 relatedEventId: reactionEntry.id
             }}));
             await poll(() => timeline.entries.length >= 3);
-            assert.equal(messageEntry.pendingAnnotations.get("👋").count, -1);
+            assert.equal(messageEntry.pendingAnnotations.get("👋").count, 0);
         },
         "local reaction gets applied after remote echo is added to timeline": async assert => {
             const messageEntry = new EventEntry({event: withTextBody("hi bob!", withSender(alice, createEvent("m.room.message", "!abc"))),
