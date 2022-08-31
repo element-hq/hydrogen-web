@@ -75,11 +75,11 @@ export class PowerLevels {
     }
 
     _getEventTypeLevel(eventType) {
-        const level = this._plEvent?.content.events?.[eventType];
+        const level = this._plEvent?.content?.events?.[eventType];
         if (typeof level === "number") {
             return level;
         } else {
-            const level = this._plEvent?.content.events_default;
+            const level = this._plEvent?.content?.events_default;
             if (typeof level === "number") {
                 return level;
             } else {
