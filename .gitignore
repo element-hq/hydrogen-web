@@ -11,3 +11,4 @@ lib
 .eslintcache
 .tmp
 cypress/videos
+cypress/synapselogs
