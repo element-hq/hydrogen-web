@@ -23,8 +23,8 @@ import * as fse from "fs-extra";
 
 import PluginEvents = Cypress.PluginEvents;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
-import { getFreePort } from "../utils/port";
-import { dockerExec, dockerLogs, dockerRun, dockerStop } from "../docker";
+import { dockerCreateNetwork, dockerExec, dockerLogs, dockerRun, dockerStop } from "../docker";
+
 
 // A cypress plugins to add command to start & stop synapses in
 // docker with preset templates.
@@ -35,6 +35,7 @@ interface SynapseConfig {
     // Synapse must be configured with its public_baseurl so we have to allocate a port & url at this stage
     baseUrl: string;
     port: number;
+    host: string;
 }
 
 export interface SynapseInstance extends SynapseConfig {
@@ -42,6 +43,7 @@ export interface SynapseInstance extends SynapseConfig {
 }
 
 const synapses = new Map<string, SynapseInstance>();
+let env;
 
 function randB64Bytes(numBytes: number): string {
     return crypto.randomBytes(numBytes).toString("base64").replace(/=*$/, "");
@@ -64,8 +66,9 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
     const macaroonSecret = randB64Bytes(16);
     const formSecret = randB64Bytes(16);
 
-    const port = await getFreePort();
-    const baseUrl = `http://localhost:${port}`;
+    const host = env["SYNAPSE_IP_ADDRESS"];
+    const port = parseInt(env["SYNAPSE_PORT"], 10);
+    const baseUrl = `http://${host}:${port}`;
 
     // now copy homeserver.yaml, applying substitutions
     console.log(`Gen ${path.join(templateDir, "homeserver.yaml")}`);
@@ -74,6 +77,8 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
     hsYaml = hsYaml.replace(/{{MACAROON_SECRET_KEY}}/g, macaroonSecret);
     hsYaml = hsYaml.replace(/{{FORM_SECRET}}/g, formSecret);
     hsYaml = hsYaml.replace(/{{PUBLIC_BASEURL}}/g, baseUrl);
+    const dexUrl = `http://${env["DEX_IP_ADDRESS"]}:${env["DEX_PORT"]}/dex`;
+    hsYaml = hsYaml.replace(/{{OIDC_ISSUER}}/g, dexUrl);
     await fse.writeFile(path.join(tempDir, "homeserver.yaml"), hsYaml);
 
     // now generate a signing key (we could use synapse's config generation for
@@ -85,6 +90,7 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
 
     return {
         port,
+        host,
         baseUrl,
         configDir: tempDir,
         registrationSecret,
@@ -96,17 +102,24 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
 // directory
 async function synapseStart(template: string): Promise<SynapseInstance> {
     const synCfg = await cfgDirFromTemplate(template);
-
     console.log(`Starting synapse with config dir ${synCfg.configDir}...`);
-
+    await dockerCreateNetwork({ networkName: "hydrogen" });
     const synapseId = await dockerRun({
         image: "matrixdotorg/synapse:develop",
         containerName: `react-sdk-cypress-synapse-${crypto.randomBytes(4).toString("hex")}`,
-        params: [
+        dockerParams: [
             "--rm",
             "-v", `${synCfg.configDir}:/data`,
+            `--ip=${synCfg.host}`,
+            /**
+             * When using -p flag with --ip, the docker internal port must be used to access from the host
+             */
             "-p", `${synCfg.port}:8008/tcp`,
+            "--network=hydrogen",
         ],
+        applicationParams: [
+            "run"
+        ]
     });
 
     console.log(`Started synapse with id ${synapseId} on port ${synCfg.port}.`);
@@ -162,6 +175,9 @@ async function synapseStop(id: string): Promise<void> {
  * @type {Cypress.PluginConfig}
  */
 export function synapseDocker(on: PluginEvents, config: PluginConfigOptions) {
+    env = config.env;
+
+    
     on("task", {
         synapseStart,
         synapseStop,
