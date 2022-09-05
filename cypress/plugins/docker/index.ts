@@ -78,6 +78,31 @@ export function dockerExec(args: {
     });
 }
 
+/**
+ * Create a docker network; does not fail if network already exists
+ */
+export function dockerCreateNetwork(args: {
+    networkName: string;
+}): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        childProcess.execFile("docker", [
+            "network", 
+            "create",
+            args.networkName
+        ], { encoding: 'utf8' }, (err, stdout, stderr) => {
+            if(err) {
+                if (stderr.includes(`network with name ${args.networkName} already exists`)) {
+                    // Don't consider this as error
+                    resolve();
+                }
+                reject(err);
+                return;
+            }
+            resolve();
+       }) 
+    });
+}
+
 export async function dockerLogs(args: {
     containerId: string;
     stdoutFile?: string;
@@ -142,5 +167,6 @@ export function docker(on: PluginEvents, config: PluginConfigOptions) {
         dockerLogs,
         dockerStop,
         dockerRm,
+        dockerCreateNetwork
     });
 }
