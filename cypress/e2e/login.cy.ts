@@ -46,7 +46,7 @@ describe("Login", () => {
         cy.get(".SessionView");
     });
 
-    it.only("Login using SSO", () => {
+    it("Login using SSO", () => {
         /**
          *  Add the homeserver to the localStorage manually; clicking on the start sso button would normally do this but we can't
          *  use two different origins in a single cypress test!    
