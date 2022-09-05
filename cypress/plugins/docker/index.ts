@@ -28,10 +28,12 @@ import PluginConfigOptions = Cypress.PluginConfigOptions;
 export function dockerRun(args: {
     image: string;
     containerName: string;
-    params?: string[];
+    dockerParams?: string[];
+    applicationParams?: string[];
 }): Promise<string> {
     const userInfo = os.userInfo();
-    const params = args.params ?? [];
+    const params = args.dockerParams ?? [];
+    const appParams = args.applicationParams ?? [];
 
     if (userInfo.uid >= 0) {
         // On *nix we run the docker container as our uid:gid otherwise cleaning it up its media_store can be difficult
@@ -45,10 +47,12 @@ export function dockerRun(args: {
             "-d",
             ...params,
             args.image,
-            "run",
-        ], (err, stdout) => {
-            console.log("error", err, "stdout", stdout);
-            if (err) reject(err);
+            ... appParams
+        ], (err, stdout, stderr) => {
+            console.log("error", err, "stdout", stdout, "stderr", stderr);
+            if (err) {
+                reject(err);
+            }
             resolve(stdout.trim());
         });
     });
