@@ -107,7 +107,9 @@ export function dockerStop(args: {
             "stop",
             args.containerId,
         ], err => {
-            if (err) reject(err);
+            if (err) {
+                reject(err);
+            }
             resolve();
         });
     });
@@ -121,7 +123,9 @@ export function dockerRm(args: {
             "rm",
             args.containerId,
         ], err => {
-            if (err) reject(err);
+            if (err) {
+                reject(err);
+            }
             resolve();
         });
     });
