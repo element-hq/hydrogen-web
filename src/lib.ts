@@ -80,9 +80,11 @@ export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
 export {text, tag} from "./platform/web/ui/general/html";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
+export {ListView} from "./platform/web/ui/general/ListView";
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
+export {avatarInitials, getIdentifierColorNumber} from "./domain/avatar"
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
