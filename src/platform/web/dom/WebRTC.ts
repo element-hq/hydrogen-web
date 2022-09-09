@@ -31,9 +31,6 @@ export class DOMWebRTC implements WebRTC {
         }) as PeerConnection;
         return new Proxy(peerConn, {
             get(target, prop, receiver) {
-                if (prop === "close") {
-                    console.trace("calling peerConnection.close");
-                }
                 const value = target[prop];
                 if (typeof value === "function") {
                     return value.bind(target);
