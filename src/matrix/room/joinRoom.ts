@@ -24,8 +24,8 @@ import {RoomStatus} from "./common";
 export async function joinRoom(roomId: string, session: Session) {
     try {
         const internalRoomId = await session.joinRoom(roomId);
-        const roomStatusObserver = await session.observeRoomStatus(internalRoomId);
-        await roomStatusObserver.waitFor((status: RoomStatus) => status === RoomStatus.Joined);
+        const roomStatusObservable = await session.observeRoomStatus(internalRoomId);
+        await roomStatusObservable.waitFor((status: RoomStatus) => status === RoomStatus.Joined);
         return internalRoomId;
     }
     catch (e) {
