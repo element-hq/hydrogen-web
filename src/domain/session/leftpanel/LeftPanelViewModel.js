@@ -77,6 +77,10 @@ export class LeftPanelViewModel extends ViewModel {
         this.navigation.push("create-room");
     }
 
+    showJoinRoomView() {
+        this.navigation.push("join-room");
+    }
+    
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");
         this.track(roomObservable.subscribe(roomId => this._open(roomId)));
