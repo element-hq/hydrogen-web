@@ -33,7 +33,7 @@ export class JoinRoomViewModel extends ViewModel<SegmentType, Options> {
         this._session = options.session;
     }
 
-    async join(roomId: string) {
+    async join(roomId: string): Promise<void> {
         this._error = undefined;
         this._joinInProgress = true;
         this.emitChange("joinInProgress");
