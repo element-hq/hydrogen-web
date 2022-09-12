@@ -21,7 +21,7 @@ import {RoomStatus} from "./common";
  * @param roomId The id of the room to join
  * @param session A session instance
  */
-export async function joinRoom(roomId: string, session: Session) {
+export async function joinRoom(roomId: string, session: Session): Promise<string> {
     try {
         const internalRoomId = await session.joinRoom(roomId);
         const roomStatusObservable = await session.observeRoomStatus(internalRoomId);
