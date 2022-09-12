@@ -116,8 +116,8 @@ export class LeftPanelView extends TemplateView {
         } else {
             const vm = this.value;
             const options = [];
-            options.push(Menu.option(vm.i18n`Create Room`, () => { vm.showCreateRoomView(); }))
-            options.push(Menu.option(vm.i18n`Join Room`, () => {}))
+            options.push(Menu.option(vm.i18n`Create Room`, () => vm.showCreateRoomView()));
+            options.push(Menu.option(vm.i18n`Join Room`, () => vm.showJoinRoomView()));
             this._createMenuPopup = new Popup(new Menu(options));
             this._createMenuPopup.trackInTemplateView(this);
             this._createMenuPopup.showRelativeTo(evt.target, 10);
