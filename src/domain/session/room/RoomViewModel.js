@@ -23,7 +23,7 @@ import {imageToInfo} from "../common.js";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
-import {RoomStatus} from "../../../matrix/room/common";
+import {joinRoom} from "../../../matrix/room/joinRoom";
 
 export class RoomViewModel extends ViewModel {
     constructor(options) {
@@ -200,22 +200,11 @@ export class RoomViewModel extends ViewModel {
     
     async _processCommandJoin(roomName) {
         try {
-            const roomId = await this._options.client.session.joinRoom(roomName);
-            const roomStatusObserver = await this._options.client.session.observeRoomStatus(roomId);
-            await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
+            const session = this._options.client.session;
+            const roomId = await joinRoom(roomName, session);
             this.navigation.push("room", roomId);
         } catch (err) {
-            let exc;
-            if ((err.statusCode ?? err.status) === 400) {
-                exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
-            } else if ((err.statusCode ?? err.status) === 404 || (err.statusCode ?? err.status) === 502 || err.message == "Internal Server Error") {
-                exc = new Error(`/join : room '${roomName}' not found`);
-            } else if ((err.statusCode ?? err.status) === 403) {
-                exc = new Error(`/join : you're not invited to join '${roomName}'`);
-            } else {
-                exc = err;
-            }
-            this._sendError = exc;
+            this._sendError = err;
             this._timelineError = null;
             this.emitChange("error");
         }
