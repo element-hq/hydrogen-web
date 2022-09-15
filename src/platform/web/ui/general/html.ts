@@ -106,7 +106,7 @@ export const TAG_NAMES = {
         "article", "aside", "del", "blockquote",
         "table", "thead", "tbody", "tr", "th", "td", "hr",
         "pre", "code", "button", "time", "input", "textarea", "select", "option", "label", "form",
-        "progress", "output", "video"],
+        "progress", "output", "video", "style"],
     [SVG_NS]: ["svg", "g", "path", "circle", "ellipse", "rect", "use"]
 } as const;
 
