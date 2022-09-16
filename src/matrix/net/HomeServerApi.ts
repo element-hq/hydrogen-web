@@ -360,6 +360,15 @@ export class HomeServerApi {
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }
+
+    accountData(ownUserId: string, type: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(
+            `/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`,
+            undefined,
+            undefined,
+            options,
+        );
+    }
     
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);

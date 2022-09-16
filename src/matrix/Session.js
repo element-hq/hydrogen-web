@@ -963,6 +963,42 @@ export class Session {
         return this._roomStateHandler.subscribe(roomStateHandler);
     }
 
+    async setAccountData(type, content) {
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.accountData]);
+
+        if (txn) {
+            txn.accountData.set({ type, content });
+            await txn.complete();
+        }
+
+        await this.hsApi.setAccountData(this.userId, type, content).response();
+    }
+
+    async getAccountData(type) {
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.accountData]);
+
+        const entry = await txn.accountData.get(type);
+
+        if (entry) {
+            await txn.complete();
+            return entry.content;
+        } else {
+            try {
+                const content = await this.hsApi.accountData(this.userId, type).response();
+
+                if (content) {
+                    txn.accountData.set({ type, content });
+                    await txn.complete();
+                }
+
+                return content;
+            } catch (error) {
+                txn.abort();
+                return undefined;
+            }
+        }
+    }
+
     /**
     Creates an empty (summary isn't loaded) the archived room if it isn't
     loaded already, assuming sync will either remove it (when rejoining) or
