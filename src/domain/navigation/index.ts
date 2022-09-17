@@ -35,6 +35,7 @@ export type SegmentType = {
     "members": true;
     "member": string;
     "change-dates": true;
+    "developer-options": true;
 };
 
 export function createNavigation(): Navigation<SegmentType> {
@@ -57,7 +58,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
             // downside of the approach: both of these will control which tile is selected
             return type === "room" || type === "empty-grid-tile";
         case "room":
-            return type === "lightbox" || type === "right-panel";
+            return type === "lightbox" || type === "right-panel" || type === "developer-options";
         case "right-panel":
             return type === "details"|| type === "members" || type === "member" || type === "change-dates";
         case "logout":
