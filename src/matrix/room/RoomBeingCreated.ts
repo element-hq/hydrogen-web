@@ -50,9 +50,8 @@ type ImageInfo = {
 
 type Avatar = {
     info: ImageInfo;
-    blob: IBlobHandle;
     name: string;
-}
+} & ({ blob: IBlobHandle } | { url: string });
 
 type Options = {
     type?: RoomType;
@@ -126,12 +125,18 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             let avatarEventContent;
             if (this.options.avatar) {
                 const {avatar} = this.options;
-                const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
-                await attachment.upload(hsApi, () => {}, log);
+
                 avatarEventContent = {
                     info: avatar.info
                 };
-                attachment.applyToContent("url", avatarEventContent);
+
+                if ("blob" in avatar) {
+                    const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
+                    await attachment.upload(hsApi, () => {}, log);
+                    attachment.applyToContent("url", avatarEventContent);
+                } else {
+                    avatarEventContent.url = avatar.url;
+                }
             }
             const createOptions: CreateRoomPayload = {
                 is_direct: this.options.visibility === RoomVisibility.DirectMessage,
@@ -214,7 +219,15 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
 
     get avatarColorId(): string { return this.options.invites?.[0] ?? this._roomId ?? this.id; }
     get avatarUrl(): string | undefined { return this.profiles?.[0]?.avatarUrl; }
-    get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
+    get avatarBlobUrl(): string | undefined {
+        const avatar = this.options.avatar;
+
+        if (!avatar || !("blob" in avatar)) {
+            return undefined;
+        }
+
+        return avatar.blob.url;
+    }
     get roomId(): string | undefined { return this._roomId; }
     get name() { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
@@ -232,7 +245,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
 
     /** @internal */
     dispose() {
-        if (this.options.avatar) {
+        if (this.options.avatar && "blob" in this.options.avatar) {
             this.options.avatar.blob.dispose();
         }
     }
