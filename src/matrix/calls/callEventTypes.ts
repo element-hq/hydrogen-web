@@ -34,6 +34,7 @@ export interface CallMembership {
 
 export interface CallMemberContent {
     ["m.calls"]: CallMembership[];
+    ["m.expires_ts"]?: number
 }
 
 export enum SDPStreamMetadataPurpose {

@@ -54,6 +54,7 @@ export class CallHandler implements RoomStateHandler {
     private roomMemberToCallIds: Map<string, Set<string>> = new Map();
     private groupCallOptions: GroupCallOptions;
     private sessionId = makeId("s");
+    private memberStateExpirationTimers: Map<string, number> = new Map();
 
     constructor(private readonly options: Options) {
         this.groupCallOptions = Object.assign({}, this.options, {
@@ -217,6 +218,29 @@ export class CallHandler implements RoomStateHandler {
         const userId = event.state_key;
         const roomMemberKey = getRoomMemberKey(roomId, userId)
         const calls = event.content["m.calls"] ?? [];
+
+        const now = Date.now();
+        const expiresAt = typeof event.content["m.expires_ts"] === "number" ? event.content["m.expires_ts"] : -Infinity;
+
+        console.log(`expiresAt ${expiresAt} now ${now}`,  event.content);
+
+        if (expiresAt <= now) {
+            console.log(`Initial ${roomId} ${member.userId} expired`);
+            return;
+        }
+
+        clearTimeout(this.memberStateExpirationTimers.get(member.userId));
+
+        this.memberStateExpirationTimers.set(member.userId, setTimeout(() => {
+            console.log(`Timeout ${roomId} ${userId} expired`)
+            for (const callId of calls.map(call => call["m.call_id"])) {
+                const groupCall = this._calls.get(callId);
+                groupCall?.removeMembership(userId, log);
+            }
+
+            this.roomMemberToCallIds.delete(roomMemberKey);
+        }, event.content["m.expires_ts"] - Date.now()));
+
         const eventTimestamp = event.origin_server_ts;
         for (const call of calls) {
             const callId = call["m.call_id"];
@@ -240,6 +264,13 @@ export class CallHandler implements RoomStateHandler {
             this.roomMemberToCallIds.delete(roomMemberKey);
         } else {
             this.roomMemberToCallIds.set(roomMemberKey, newCallIdsMemberOf);
+        }
+    }
+
+    dispose() {
+        for (const [userId] of this.memberStateExpirationTimers) {
+            clearTimeout(this.memberStateExpirationTimers.get(userId));
+            this.memberStateExpirationTimers.delete(userId);
         }
     }
 }

@@ -33,6 +33,8 @@ import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem, ILogger} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
 
+const CALL_MEMBER_STATE_TIMEOUT = 1000 * 60 * 60; // 1 hour
+
 export enum GroupCallState {
     Fledgling = "fledgling",
     Creating = "creating",
@@ -83,6 +85,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     private _deviceIndex?: number;
     private _eventTimestamp?: number;
+    private resendMemberStateTimer?: number;
 
     constructor(
         public readonly id: string,
@@ -161,9 +164,11 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this._state = GroupCallState.Joining;
             this.emitChange();
             await log.wrap("update member state", async log => {
-                const memberContent = await this._createJoinPayload();
+                const memberContent = await this._createMemberStateEventPayload();
+                this._eventTimestamp = Date.now();
                 log.set("payload", memberContent);
                 // send m.call.member state event
+                console.log("sending", memberContent);
                 const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
                 await request.response();
                 this.emitChange();
@@ -173,6 +178,24 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 this.connectToMember(member, joinedData, log);
             }
         });
+
+        clearTimeout(this.resendMemberStateTimer);
+
+        this.resendMemberStateTimer = setTimeout(this.resendMemberStateEvent, CALL_MEMBER_STATE_TIMEOUT * 3 / 4);
+    }
+
+    async resendMemberStateEvent() {
+        await this.options.logger.run("resend member state event", async log => {
+            const memberContent = await this._createMemberStateEventPayload();
+            this._eventTimestamp = Date.now();
+            log.set("payload", memberContent);
+            // send m.call.member state event
+            const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
+            await request.response();
+            this.emitChange();
+        });
+
+        this.resendMemberStateTimer = setTimeout(this.resendMemberStateEvent, CALL_MEMBER_STATE_TIMEOUT * 3 / 4);
     }
 
     async setMedia(localMedia: LocalMedia): Promise<void> {
@@ -425,6 +448,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             }
             this._state = GroupCallState.Created;
         }
+        clearTimeout(this.resendMemberStateTimer);
         this.joinedData?.dispose();
         this.joinedData = undefined;
         this.emitChange();
@@ -476,13 +500,17 @@ export class GroupCall extends EventEmitter<{change: never}> {
         }
     }
 
-    private async _createJoinPayload() {
+    private async _createMemberStateEventPayload() {
         const {storage} = this.options;
         const txn = await storage.readTxn([storage.storeNames.roomState]);
         const stateEvent = await txn.roomState.get(this.roomId, EventType.GroupCallMember, this.options.ownUserId);
+        const expiresAt = Date.now() + CALL_MEMBER_STATE_TIMEOUT;
         const stateContent = stateEvent?.event?.content ?? {
-            ["m.calls"]: []
+            ["m.calls"]: [],
         };
+
+        stateContent["m.expires_ts"] = expiresAt;
+
         const callsInfo = stateContent["m.calls"];
         let callInfo = callsInfo.find(c => c["m.call_id"] === this.id);
         if (!callInfo) {
@@ -500,7 +528,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         });
 
         this._deviceIndex = callInfo["m.devices"].length;
-        this._eventTimestamp = Date.now();
+
+        console.log(`sent member state event expiresAt ${expiresAt}`);
 
         return stateContent;
     }

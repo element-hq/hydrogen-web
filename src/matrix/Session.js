@@ -503,6 +503,7 @@ export class Session {
             room.dispose();
         }
         this._rooms = undefined;
+        this.callHandler.dispose();
     }
 
     /**
