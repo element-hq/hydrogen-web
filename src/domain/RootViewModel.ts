@@ -21,30 +21,32 @@ import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
 import {ForcedLogoutViewModel} from "./ForcedLogoutViewModel";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
-import {ViewModel} from "./ViewModel";
+import {ViewModel, Options} from "./ViewModel";
+import { SegmentType } from "./navigation/index.js";
 
 export class RootViewModel extends ViewModel {
-    constructor(options) {
+    private _error?: any;
+    private _sessionPickerViewModel?: SessionPickerViewModel;
+    private _sessionLoadViewModel?: SessionLoadViewModel;
+    private _loginViewModel?: LoginViewModel;
+    private _logoutViewModel?: LogoutViewModel;
+    private _forcedLogoutViewModel?: ForcedLogoutViewModel;
+    private _sessionViewModel?: SessionViewModel;
+    private _pendingClient?: Client;
+
+    constructor(options: Readonly<Options<SegmentType>>) {
         super(options);
-        this._error = null;
-        this._sessionPickerViewModel = null;
-        this._sessionLoadViewModel = null;
-        this._loginViewModel = null;
-        this._logoutViewModel = null;
-        this._forcedLogoutViewModel = null;
-        this._sessionViewModel = null;
-        this._pendingClient = null;
     }
 
-    async load() {
-        this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
-        this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
-        this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
-        this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
-        this._applyNavigation(true);
+    async load(): Promise<void> {
+        this.track(this.navigation.observe("login").subscribe(() => void this._applyNavigation(false)));
+        this.track(this.navigation.observe("session").subscribe(() => void this._applyNavigation(false)));
+        this.track(this.navigation.observe("sso").subscribe(() => void this._applyNavigation(false)));
+        this.track(this.navigation.observe("logout").subscribe(() => void this._applyNavigation(false)));
+        void this._applyNavigation(true);
     }
 
-    async _applyNavigation(shouldRestoreLastUrl) {
+    async _applyNavigation(shouldRestoreLastUrl: boolean): Promise<void> {
         const isLogin = this.navigation.path.get("login");
         const logoutSessionId = this.navigation.path.get("logout")?.value;
         const isForcedLogout = this.navigation.path.get("forced")?.value;
@@ -64,7 +66,7 @@ export class RootViewModel extends ViewModel {
             }
         } else if (sessionId === true) {
             if (this.activeSection !== "picker") {
-                this._showPicker();
+                void this._showPicker();
             }
         } else if (sessionId) {
             if (!this._sessionViewModel || this._sessionViewModel.id !== sessionId) {
@@ -106,9 +108,9 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    async _showPicker() {
+    async _showPicker(): Promise<void> {
         this._setSection(() => {
-            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions());
+            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions({}));
         });
         try {
             await this._sessionPickerViewModel.load();
@@ -117,11 +119,11 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(loginToken) {
+    _showLogin(loginToken?: string): void {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
-                ready: client => {
+                ready: (client: Client) => {
                     // we don't want to load the session container again,
                     // but we also want the change of screen to go through the navigation
                     // so we store the session container in a temporary variable that will be
@@ -138,34 +140,34 @@ export class RootViewModel extends ViewModel {
         });
     }
 
-    _showLogout(sessionId) {
+    _showLogout(sessionId: string): void {
         this._setSection(() => {
             this._logoutViewModel = new LogoutViewModel(this.childOptions({sessionId}));
         });
     }
 
-    _showForcedLogout(sessionId) {
+    _showForcedLogout(sessionId: string): void {
         this._setSection(() => {
             this._forcedLogoutViewModel = new ForcedLogoutViewModel(this.childOptions({sessionId}));
         });
     }
 
-    _showSession(client) {
+    _showSession(client: Client): void {
         this._setSection(() => {
             this._sessionViewModel = new SessionViewModel(this.childOptions({client}));
             this._sessionViewModel.start();
         });
     }
 
-    _showSessionLoader(sessionId) {
+    _showSessionLoader(sessionId: string): void {
         const client = new Client(this.platform);
-        client.startWithExistingSession(sessionId);
+        void client.startWithExistingSession(sessionId);
         this._setSection(() => {
             this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({
                 client,
                 ready: client => this._showSession(client)
             }));
-            this._sessionLoadViewModel.start();
+            void this._sessionLoadViewModel.start();
         });
     }
 
@@ -189,7 +191,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _setSection(setter) {
+    _setSection(setter: VoidFunction): void {
         // clear all members the activeSection depends on
         this._error = null;
         this._sessionPickerViewModel = this.disposeTracked(this._sessionPickerViewModel);

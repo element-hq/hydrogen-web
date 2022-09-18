@@ -19,11 +19,11 @@ export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index";
-export {RootViewModel} from "./domain/RootViewModel.js";
+export {RootViewModel} from "./domain/RootViewModel";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
-export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
+export {RoomViewModel} from "./domain/session/room/RoomViewModel";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
