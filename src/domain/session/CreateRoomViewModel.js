@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../ViewModel";
-import {imageToInfo} from "./common.js";
+import {imageToInfo} from "./common";
 import {RoomType} from "../../matrix/room/common";
 
 export class CreateRoomViewModel extends ViewModel {

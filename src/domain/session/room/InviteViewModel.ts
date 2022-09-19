@@ -15,56 +15,73 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IGridItemViewModel} from './IGridItemViewModel';
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
+import type {Options as ViewModelOptions} from "../../ViewModel";
+import type {Invite} from "../../../matrix/room/Invite";
+import type {MediaRepository} from "../../../matrix/net/MediaRepository";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember";
+import type {Platform} from "../../../platform/web/Platform";
 
-export class InviteViewModel extends ViewModel {
-    constructor(options) {
+
+type Options = ViewModelOptions & {
+    invite: Invite,
+    mediaRepository: MediaRepository
+}
+
+export class InviteViewModel extends ViewModel implements IGridItemViewModel {
+    private _invite: Invite;
+    private _mediaRepository: MediaRepository;
+    private _closeUrl: string;
+    private _roomDescription: string;
+    private _inviter?: RoomMemberViewModel;
+    private _error?: Error;
+
+    constructor(options: Options) {
         super(options);
         const {invite, mediaRepository} = options;
         this._invite = invite;
         this._mediaRepository = mediaRepository;
         this._onInviteChange = this._onInviteChange.bind(this);
-        this._error = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
         this._invite.on("change", this._onInviteChange);
-        this._inviter = null;
         if (this._invite.inviter) {
             this._inviter = new RoomMemberViewModel(this._invite.inviter, mediaRepository, this.platform);
         }
         this._roomDescription = this._createRoomDescription();
     }
 
-    get kind() { return "invite"; }
-    get closeUrl() { return this._closeUrl; }
-    get name() { return this._invite.name; }
-    get id() { return this._invite.id; }
-    get isEncrypted() { return this._invite.isEncrypted; }
-    get isDirectMessage() { return this._invite.isDirectMessage; }
-    get inviter() { return this._inviter; }
-    get busy() { return this._invite.accepting || this._invite.rejecting; }
+    get kind(): string { return "invite"; }
+    get closeUrl(): string { return this._closeUrl; }
+    get name(): string { return this._invite.name; }
+    get id(): string { return this._invite.id; }
+    get isEncrypted(): boolean { return this._invite.isEncrypted; }
+    get isDirectMessage(): boolean { return this._invite.isDirectMessage; }
+    get inviter(): RoomMemberViewModel | undefined { return this._inviter; }
+    get busy(): string { return this._invite.accepting || this._invite.rejecting; }
 
-    get error() {
+    get error(): string {
         if (this._error) {
             return `Something went wrong: ${this._error.message}`;
         }
         return "";
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this._invite.avatarColorId)
+    get avatarColorNumber(): number {
+        return getIdentifierColorNumber(this._invite.avatarColorId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size: number): string | null {
         return getAvatarHttpUrl(this._invite.avatarUrl, size, this.platform, this._mediaRepository);
     }
 
-    _createRoomDescription() {
-        const parts = [];
+    _createRoomDescription(): string {
+        const parts: string[] = [];
         if (this._invite.isPublic) {
             parts.push("Public room");
         } else {
@@ -74,20 +91,20 @@ export class InviteViewModel extends ViewModel {
         if (this._invite.canonicalAlias) {
             parts.push(this._invite.canonicalAlias);
         }
-        return parts.join(" • ")
+        return parts.join(" • ");
     }
 
-    get roomDescription() {
+    get roomDescription(): string {
         return this._roomDescription;
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.name;
     }
 
-    focus() {}
+    focus(): void {}
 
-    async accept() {
+    async accept(): Promise<void> {
         try {
             await this._invite.accept();
         } catch (err) {
@@ -96,7 +113,7 @@ export class InviteViewModel extends ViewModel {
         }
     }
 
-    async reject() {
+    async reject(): Promise<void> {
         try {
             await this._invite.reject();
         } catch (err) {
@@ -105,44 +122,48 @@ export class InviteViewModel extends ViewModel {
         }
     }
 
-    _onInviteChange() {
-        this.emitChange();
+    _onInviteChange(): void {
+        this.emitChange("invite");
     }
 
-    dispose() {
+    dispose(): void {
         super.dispose();
         this._invite.off("change", this._onInviteChange);
     }
 }
 
 class RoomMemberViewModel {
+    private _member: RoomMember;
+    private _mediaRepository: MediaRepository;
+    private _platform: Platform;
+
     constructor(member, mediaRepository, platform) {
         this._member = member;
         this._mediaRepository = mediaRepository;
         this._platform = platform;
     }
 
-    get id() {
+    get id(): string {
         return this._member.userId;
     }
 
-    get name() {
+    get name(): string {
         return this._member.name;
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
+    get avatarColorNumber():number {
         return getIdentifierColorNumber(this._member.userId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size): string | null {
         return getAvatarHttpUrl(this._member.avatarUrl, size, this._platform, this._mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.name;
     }
 }

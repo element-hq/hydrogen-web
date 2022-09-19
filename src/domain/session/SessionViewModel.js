@@ -16,15 +16,15 @@ limitations under the License.
 */
 
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel";
-import {RoomViewModel} from "./room/RoomViewModel.js";
-import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
-import {InviteViewModel} from "./room/InviteViewModel.js";
-import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel.js";
+import {RoomViewModel} from "./room/RoomViewModel";
+import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel";
+import {InviteViewModel} from "./room/InviteViewModel";
+import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
-import {CreateRoomViewModel} from "./CreateRoomViewModel.js";
+import {CreateRoomViewModel} from "./CreateRoomViewModel";
 import {JoinRoomViewModel} from "./JoinRoomViewModel";
 import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";

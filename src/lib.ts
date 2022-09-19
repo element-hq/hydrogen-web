@@ -23,7 +23,7 @@ export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
-export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
+export {RoomViewModel} from "./domain/session/room/RoomViewModel";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
