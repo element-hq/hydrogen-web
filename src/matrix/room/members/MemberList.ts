@@ -16,23 +16,26 @@ limitations under the License.
 
 import {ObservableMap} from "../../../observable";
 import {RetainedValue} from "../../../utils/RetainedValue";
+import type {MemberChange, RoomMember} from "./RoomMember";
 
 export class MemberList extends RetainedValue {
-    constructor({members, closeCallback}) {
+    private _members: ObservableMap<string, RoomMember>;
+
+    constructor({members, closeCallback}: {members: RoomMember[], closeCallback: VoidFunction}) {
         super(closeCallback);
-        this._members = new ObservableMap();
+        this._members = new ObservableMap<string, RoomMember>();
         for (const member of members) {
             this._members.add(member.userId, member);
         }
     }
 
-    afterSync(memberChanges) {
+    afterSync(memberChanges: Map<string, MemberChange>): void {
         for (const [userId, memberChange] of memberChanges.entries()) {
             this._members.set(userId, memberChange.member);
         }
     }
 
-    get members() {
+    get members(): ObservableMap<string, RoomMember> {
         return this._members;
     }
 }

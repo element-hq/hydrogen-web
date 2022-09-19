@@ -16,8 +16,15 @@ limitations under the License.
 */
 
 import {RoomMember} from "./RoomMember";
+import type {ILogger, ILogItem} from "../../../logging/types";
+import type {Transaction} from "../../storage/idb/Transaction";
+import type {RoomSummary} from "../RoomSummary";
+import type {HomeServerApi} from "../../net/HomeServerApi";
+import type {StateEvent} from "../../storage/types";
+import type {SummaryData} from "../RoomSummary";
 
-async function loadMembers({roomId, storage, txn}) {
+
+async function loadMembers({roomId, storage, txn}: LoadMembersOptions): Promise<RoomMember[]> {
     if (!txn) {
         txn = await storage.readTxn([
             storage.storeNames.roomMembers,
@@ -27,10 +34,20 @@ async function loadMembers({roomId, storage, txn}) {
     return memberDatas.map(d => new RoomMember(d));
 }
 
-async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChangedMembersMap}, log) {
+async function fetchMembers(
+    {
+        summary,
+        syncToken,
+        roomId,
+        hsApi,
+        storage,
+        setChangedMembersMap,
+    }: FetchMembersOptions,
+    log: ILogItem
+): Promise<(RoomMember | undefined)[]> {
     // if any members are changed by sync while we're fetching members,
     // they will end up here, so we check not to override them
-    const changedMembersDuringSync = new Map();
+    const changedMembersDuringSync = new Map<string, RoomMember>();
     setChangedMembersMap(changedMembersDuringSync);
 
     const memberResponse = await hsApi.members(roomId, {at: syncToken}, {log}).response();
@@ -40,13 +57,13 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
         storage.storeNames.roomMembers,
     ]);
 
-    let summaryChanges;
-    let members;
+    let summaryChanges: SummaryData;
+    let members: (RoomMember | undefined)[] = [];
 
     try {
         summaryChanges = summary.writeHasFetchedMembers(true, txn);
         const {roomMembers} = txn;
-        const memberEvents = memberResponse.chunk;
+        const memberEvents: StateEvent[] = memberResponse.chunk;
         if (!Array.isArray(memberEvents)) {
             throw new Error("malformed");
         }
@@ -83,7 +100,7 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
     return members;
 }
 
-export async function fetchOrLoadMembers(options, logger) {
+export async function fetchOrLoadMembers(options: FetchOrLoadMembersOptions, logger: ILogger): Promise<(RoomMember | undefined)[]> {
     const {summary} = options;
     if (!summary.data.hasFetchedMembers) {
         // we only want to log if we fetch members, so start or continue the optional log operation here
@@ -93,7 +110,10 @@ export async function fetchOrLoadMembers(options, logger) {
     }
 }
 
-export async function fetchOrLoadMember(options, logger) {
+export async function fetchOrLoadMember(
+    options: FetchOrLoadMemberOptions,
+    logger: ILogger
+): Promise<RoomMember | undefined> {
     const member = await loadMember(options);
     const {summary} = options;
     if (!summary.data.hasFetchedMembers && !member) {
@@ -103,20 +123,20 @@ export async function fetchOrLoadMember(options, logger) {
     return member;
 }
 
-async function loadMember({roomId, userId, storage}) {
+async function loadMember({roomId, userId, storage}: LoadMemberOptions): Promise<RoomMember | undefined> {
     const txn = await storage.readTxn([storage.storeNames.roomMembers,]);
     const member = await txn.roomMembers.get(roomId, userId);
-    return member? new RoomMember(member) : null;
+    return member? new RoomMember(member) : undefined;
 }
 
-async function fetchMember({roomId, userId, hsApi, storage}, log) {
+async function fetchMember({roomId, userId, hsApi, storage}: FetchMemberOptions, log: ILogItem): Promise<(RoomMember | undefined)> {
     let memberData;
     try {
         memberData = await hsApi.state(roomId, "m.room.member", userId, { log }).response();
     }
     catch (error) {
         if (error.name === "HomeServerError" && error.errcode === "M_NOT_FOUND") {
-            return null;
+            return undefined;
         }
         throw error;
     }
@@ -138,3 +158,41 @@ async function fetchMember({roomId, userId, hsApi, storage}, log) {
     await txn.complete();
     return member;
 }
+
+type FetchMembersOptions = {
+    hsApi: HomeServerApi;
+    log: ILogItem;
+    setChangedMembersMap: (map: Map<string, RoomMember> | null) => void;
+    summary: RoomSummary;
+    syncToken: string;
+    roomId: string;
+    storage: Storage;
+}
+
+type LoadMembersOptions = {
+    roomId: string;
+    storage: Storage;
+    txn: Transaction;
+}
+
+type FetchOrLoadMembersOptions = FetchMembersOptions & LoadMembersOptions;
+
+type FetchMemberOptions = {
+    hsApi: HomeServerApi;
+    roomId: string;
+    userId: string;
+    storage: Storage;
+}
+
+type LoadMemberOptions = {
+    roomId: string;
+    userId: string;
+    storage: Storage;
+}
+
+type FetchOrLoadMemberOptions = {
+    summary: RoomSummary;
+    log: ILogItem;
+} & FetchMemberOptions &
+    LoadMemberOptions;
+

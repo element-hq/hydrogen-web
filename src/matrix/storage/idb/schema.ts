@@ -3,14 +3,12 @@ import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember";
 import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common";
-import {SummaryData} from "../../room/RoomSummary";
-import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
-import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
+import {RoomMemberStore} from "./stores/RoomMemberStore";
+import {InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
-import {MAX_UNICODE} from "./stores/common";
 import {ILogItem} from "../../../logging/types";
 
 

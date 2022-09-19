@@ -17,23 +17,15 @@ limitations under the License.
 
 import {MAX_UNICODE} from "./common";
 import {Store} from "../Store";
+import { MemberData } from "../../../room/members/RoomMember";
 
-function encodeKey(roomId: string, userId: string) {
+function encodeKey(roomId: string, userId: string): string {
     return `${roomId}|${userId}`;
 }
 
 function decodeKey(key: string): { roomId: string, userId: string } {
     const [roomId, userId] = key.split("|");
     return {roomId, userId};
-}
-
-// TODO: Move to RoomMember when that's TypeScript.
-export interface MemberData {
-    roomId: string;
-    userId: string;
-    avatarUrl: string;
-    displayName: string;
-    membership: "join" | "leave" | "invite" | "ban";
 }
 
 type MemberStorageEntry = MemberData & { key: string }
@@ -51,7 +43,7 @@ export class RoomMemberStore {
     }
 
     set(member: MemberData): void {
-        // Object.assign would be more typesafe, but small objects 
+        // Object.assign would be more typesafe, but small objects
         (member as MemberStorageEntry).key = encodeKey(member.roomId, member.userId);
         this._roomMembersStore.put(member as MemberStorageEntry);
     }

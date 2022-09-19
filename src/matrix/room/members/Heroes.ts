@@ -15,8 +15,17 @@ limitations under the License.
 */
 
 import {RoomMember} from "./RoomMember";
+import type {SummaryData} from "../RoomSummary";
+import type {Transaction} from "../../storage/idb/Transaction";
+import type {MemberChange} from "./RoomMember";
+import type {ILogItem} from "../../../logging/types";
+import { Profile, UserIdProfile } from "../../profile";
 
-export function calculateRoomName(sortedMembers, summaryData, log) {
+export function calculateRoomName(
+    sortedMembers: RoomMember[] | Profile[] | UserIdProfile[],
+    summaryData: { joinCount: number; inviteCount: number },
+    log: ILogItem
+): string | undefined {
     const countWithoutMe = summaryData.joinCount + summaryData.inviteCount - 1;
     if (sortedMembers.length >= countWithoutMe) {
         if (sortedMembers.length > 1) {
@@ -24,11 +33,11 @@ export function calculateRoomName(sortedMembers, summaryData, log) {
             const firstMembers = sortedMembers.slice(0, sortedMembers.length - 1);
             return firstMembers.map(m => m.name).join(", ") + " and " + lastMember.name;
         } else {
-            const otherMember = sortedMembers[0];
+            const otherMember: RoomMember | Profile | UserIdProfile= sortedMembers[0];
             if (otherMember) {
                 return otherMember.name;
             } else {
-                log.log({l: "could get get other member name", length: sortedMembers.length, otherMember: !!otherMember, otherMemberMembership: otherMember?.membership});
+                log.log({l: "could get get other member name", length: sortedMembers.length, otherMember: !!otherMember});
                 return "Unknown DM Name";
             }
         }
@@ -36,25 +45,29 @@ export function calculateRoomName(sortedMembers, summaryData, log) {
         return sortedMembers.map(m => m.name).join(", ") + ` and ${countWithoutMe} others`;
     } else {
         // Empty Room
-        return null;
+        return undefined;
     }
 }
 
 export class Heroes {
-    constructor(roomId) {
+    private _roomId: string;
+    private _roomName?: string;
+    private _members = new Map<string, RoomMember>();
+
+    constructor(roomId: string) {
         this._roomId = roomId;
-        this._members = new Map();
     }
 
-    /**
-     * @param  {string[]} newHeroes      array of user ids
-     * @param  {Map<string, MemberChange>} memberChanges map of changed memberships
-     * @param  {Transaction} txn
-     * @return {Promise}
-     */
-    async calculateChanges(newHeroes, memberChanges, txn) {
-        const updatedHeroMembers = new Map();
-        const removedUserIds = [];
+    async calculateChanges(
+        newHeroes: string[],
+        memberChanges: Map<string, MemberChange>,
+        txn: Transaction
+    ): Promise<{
+        updatedHeroMembers: IterableIterator<RoomMember>;
+        removedUserIds: string[];
+    }> {
+        const updatedHeroMembers = new Map<string, RoomMember>();
+        const removedUserIds: Array<string> = [];
         // remove non-present members
         for (const existingUserId of this._members.keys()) {
             if (newHeroes.indexOf(existingUserId) === -1) {
@@ -80,28 +93,39 @@ export class Heroes {
         return {updatedHeroMembers: updatedHeroMembers.values(), removedUserIds};
     }
 
-    applyChanges({updatedHeroMembers, removedUserIds}, summaryData, log) {
+    applyChanges(
+        {
+            updatedHeroMembers,
+            removedUserIds,
+        }: {
+            updatedHeroMembers: IterableIterator<RoomMember>;
+            removedUserIds: string[];
+        },
+        summaryData: SummaryData,
+        log: ILogItem
+    ): void {
         for (const userId of removedUserIds) {
             this._members.delete(userId);
         }
         for (const member of updatedHeroMembers) {
             this._members.set(member.userId, member);
         }
-        const sortedMembers = Array.from(this._members.values()).sort((a, b) => a.name.localeCompare(b.name));
+        const sortedMembers = Array.from(this._members.values()).sort((a, b) =>
+            a.name.localeCompare(b.name)
+        );
         this._roomName = calculateRoomName(sortedMembers, summaryData, log);
     }
 
-    get roomName() {
+    get roomName(): string | undefined{
         return this._roomName;
     }
 
-    get roomAvatarUrl() {
+    get roomAvatarUrl(): string | undefined {
         if (this._members.size === 1) {
             for (const member of this._members.values()) {
                 return member.avatarUrl;
             }
         }
-        return null;
     }
 
     /**
@@ -109,13 +133,11 @@ export class Heroes {
      * the same as the other user's color. Thus, if the room
      * only has one hero, we use their ID, instead
      * of the room's, to get the avatar color.
-     *
-     * @returns {?string} the ID of the single hero.
      */
-    get roomAvatarColorId() {
+    get roomAvatarColorId(): string | null {
         if (this._members.size === 1) {
             for (const member of this._members.keys()) {
-                return member
+                return member;
             }
         }
         return null;
