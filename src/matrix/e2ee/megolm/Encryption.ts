@@ -206,7 +206,7 @@ export class Encryption {
         const ciphertext = session.encrypt(plaintext);
 
         const encryptedContent = {
-            algorithm: MEGOLM_ALGORITHM,
+            algorithm: MEGOLM_ALGORITHM as typeof MEGOLM_ALGORITHM,
             sender_key: this._account.identityKeys.curve25519,
             ciphertext,
             session_id: session.session_id(),
@@ -258,7 +258,7 @@ type WithheldMessage = {
 };
 
 export type EncryptedContent = {
-    algorithm: MEGOLM_ALGORITHM;
+    algorithm: typeof MEGOLM_ALGORITHM;
     sender_key: string;
     ciphertext: string;
     session_id: string;
