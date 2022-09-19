@@ -51,7 +51,7 @@ export function getIdentifierColorNumber(id: string): number {
     return (hashCode(id) % 8) + 1;
 }
 
-export function getAvatarHttpUrl(avatarUrl: string, cssSize: number, platform: Platform, mediaRepository: MediaRepository): string | null {
+export function getAvatarHttpUrl(avatarUrl: string | undefined, cssSize: number, platform: Platform, mediaRepository: MediaRepository): string | null {
     if (avatarUrl) {
         const imageSize = cssSize * platform.devicePixelRatio;
         return mediaRepository.mxcUrlThumbnail(avatarUrl, imageSize, imageSize, "crop");
