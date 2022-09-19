@@ -48,7 +48,7 @@ export class MemberWriter {
         }
     }
 
-    async lookupMember(userId: string, txn: Transaction): Promise<RoomMember> {
+    async lookupMember(userId: string, txn: Transaction): Promise<RoomMember | undefined> {
         let member = this._cache.get(userId);
         if (!member) {
             const memberData = await txn.roomMembers.get(this._roomId, userId);
@@ -121,7 +121,7 @@ export class MemberSync {
         return members;
     }
 
-    async lookupMemberAtEvent(userId: string, event: StateEvent, txn: Transaction): Promise<RoomMember> {
+    async lookupMemberAtEvent(userId: string, event: StateEvent, txn: Transaction): Promise<RoomMember | undefined> {
         let member;
         if (this._timelineEvents) {
             member = this._findPrecedingMemberEventInTimeline(userId, event);
@@ -236,7 +236,7 @@ export function tests() {
     }
 
     function member(...args): RoomMember {
-        return RoomMember.fromMemberEvent(roomId, createMemberEvent.apply(null, args));
+        return RoomMember.fromMemberEvent(roomId, createMemberEvent.apply(null, args))!;
     }
 
     const roomId = "abc";
@@ -251,18 +251,18 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasJoined);
+            assert(change!.hasJoined);
             assert.equal(txn.members.get(alice).membership, "join");
         },
         "accept invite": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);
-            const txn = createStorage([member("invite", alice)]);
+            const txn = createStorage([member("invite", alice)!]);
             const memberSync = writer.prepareMemberSync([], [createMemberEvent("join", alice, "", "")], false);
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert.equal(change.previousMembership, "invite");
-            assert(change.hasJoined);
+            assert.equal(change!.previousMembership, "invite");
+            assert(change!.hasJoined);
             assert.equal(txn.members.get(alice).membership, "join");
         },
         "change display name": async (assert): Promise<void> => {
@@ -272,8 +272,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(!change.hasJoined);
-            assert.equal(change.member.displayName, "Alies");
+            assert(!change!.hasJoined);
+            assert.equal(change!.member.displayName, "Alies");
             assert.equal(txn.members.get(alice).displayName, "Alies");
         },
         "set avatar": async (assert): Promise<void> => {
@@ -283,8 +283,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(!change.hasJoined);
-            assert.equal(change.member.avatarUrl, avatar);
+            assert(!change!.hasJoined);
+            assert.equal(change!.member.avatarUrl, avatar);
             assert.equal(txn.members.get(alice).avatarUrl, avatar);
         },
         "ignore redundant member event in timeline": async (assert): Promise<void> => {
@@ -308,8 +308,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasLeft);
-            assert(!change.hasJoined);
+            assert(change!.hasLeft);
+            assert(!change!.hasJoined);
         },
         "ban": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);
@@ -318,8 +318,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasLeft);
-            assert(!change.hasJoined);
+            assert(change!.hasLeft);
+            assert(!change!.hasJoined);
         },
         "reject invite": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);
@@ -328,8 +328,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(!change.hasLeft);
-            assert(!change.hasJoined);
+            assert(!change!.hasLeft);
+            assert(!change!.hasJoined);
         },
         "lazy loaded member we already know about doens't return change": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);
@@ -345,8 +345,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(!change.hasJoined);
-            assert.equal(change.member.displayName, "Alies");
+            assert(!change!.hasJoined);
+            assert.equal(change!.member.displayName, "Alies");
         },
         "unknown lazy loaded member returns change, but not considered a join": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);
@@ -355,9 +355,9 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(!change.hasJoined);
-            assert(!change.hasLeft);
-            assert.equal(change.member.membership, "join");
+            assert(!change!.hasJoined);
+            assert(!change!.hasLeft);
+            assert.equal(change!.member.membership, "join");
             assert.equal(txn.members.get(alice).displayName, "Alice");
         },
         "new join through both timeline and state": async (assert): Promise<void> => {
@@ -368,8 +368,8 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasJoined);
-            assert(!change.hasLeft);
+            assert(change!.hasJoined);
+            assert(!change!.hasLeft);
         },
         "change display name in timeline with lazy loaded member in state": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);
@@ -381,9 +381,9 @@ export function tests() {
             const changes = await memberSync.write(txn);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasJoined);
-            assert(!change.hasLeft);
-            assert.equal(change.member.displayName, "Alies");
+            assert(change!.hasJoined);
+            assert(!change!.hasLeft);
+            assert.equal(change!.member.displayName, "Alies");
         },
         "lookupMemberAtEvent returns closest member in the past": async (assert): Promise<void> => {
             const event1 = createMemberEvent("join", alice, "Alice", "");
@@ -398,16 +398,16 @@ export function tests() {
             let member = await memberSync.lookupMemberAtEvent(event1.sender, event1, txn);
             assert.equal(member, undefined);
             member = await memberSync.lookupMemberAtEvent(event2.sender, event2, txn);
-            assert.equal(member.displayName, "Alice");
+            assert.equal(member!.displayName, "Alice");
             member = await memberSync.lookupMemberAtEvent(event3.sender, event3, txn);
-            assert.equal(member.displayName, "Alies");
+            assert.equal(member!.displayName, "Alies");
 
             assert.equal(txn.members.size, 0);
             const changes = await memberSync.write(txn);
             assert.equal(txn.members.size, 1);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasJoined);
+            assert(change!.hasJoined);
         },
         "lookupMemberAtEvent falls back on state event": async (assert): Promise<void> => {
             const event1 = createMemberEvent("join", alice, "Alice", "");
@@ -418,14 +418,14 @@ export function tests() {
             const txn = createStorage();
             const memberSync = await writer.prepareMemberSync([event1], [event2], false);
             const member = await memberSync.lookupMemberAtEvent(event2.sender, event2, txn);
-            assert.equal(member.displayName, "Alice");
+            assert.equal(member!.displayName, "Alice");
 
             assert.equal(txn.members.size, 0);
             const changes = await memberSync.write(txn);
             assert.equal(txn.members.size, 1);
             assert.equal(changes.size, 1);
             const change = changes.get(alice);
-            assert(change.hasJoined);
+            assert(change!.hasJoined);
         },
         "write works without event arrays": async (assert): Promise<void> => {
             const writer = new MemberWriter(roomId);

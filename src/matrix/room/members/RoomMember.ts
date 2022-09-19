@@ -130,9 +130,9 @@ export class RoomMember {
 
 export class MemberChange {
     member: RoomMember;
-    previousMembership: string;
+    previousMembership?: string;
 
-    constructor(member: RoomMember, previousMembership: string) {
+    constructor(member: RoomMember, previousMembership: string | undefined) {
         this.member = member;
         this.previousMembership = previousMembership;
     }
