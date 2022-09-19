@@ -55,67 +55,67 @@ export function tests() {
     return {
         "power_level(member1) > power_level(member2) returns value <= 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": 50});
-            const member1 = {userId: "@alice:hs.tld", name: "alice"};
-            const member2 = {userId: "@bob:hs.tld", name: "bob"};
+            const member1 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
+            const member2 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) <= 0, true);
         },
 
         "power_level(member1) < power_level(member2) returns value > 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": 50});
-            const member1 = {userId: "@bob:hs.tld", name: "bob"};
-            const member2 = {userId: "@alice:hs.tld", name: "alice"};
+            const member1 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
+            const member2 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) > 0, true);
         },
 
         "alphabetic compare on name": (assert): void => {
             const fn = createComparatorWithPowerLevel();
-            const member1 = {userId: "@bob:hs.tld", name: "bob"};
-            const member2 = {userId: "@alice:hs.tld", name: "alice"};
+            const member1 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
+            const member2 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) > 0, true);
             assert.strictEqual(fn(member2, member1) <= 0, true);
         },
 
         "alphabetic compare with case (alice comes before Bob)": (assert): void => {
             const fn = createComparatorWithPowerLevel();
-            const member1 = {userId: "@bob:hs.tld", name: "Bob"};
-            const member2 = {userId: "@alice:hs.tld", name: "alice"};
+            const member1 = {userId: "@bob:hs.tld", name: "Bob"} as unknown as RoomMember;
+            const member2 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) > 0, true);
             assert.strictEqual(fn(member2, member1) <= 0, true);
         },
 
         "equal powerlevel and same names returns 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@bobby:hs.tld": 50, "@bob:hs.tld": 50});
-            const member1 = {userId: "@bob:hs.tld", name: "bob"};
-            const member2 = {userId: "@bobby:hs.tld", name: "bob"};
+            const member1 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
+            const member2 = {userId: "@bobby:hs.tld", name: "bob"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2), 0);
             assert.strictEqual(fn(member2, member1), 0);
         },
 
         "(both_negative_powerlevel) power_level(member1) < power_level(member2) returns value > 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": -100, "@bob:hs.tld": -50});
-            const member1 = {userId: "@alice:hs.tld", name: "alice"};
-            const member2 = {userId: "@bob:hs.tld", name: "bob"};
+            const member1 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
+            const member2 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) > 0, true);
         },
 
         "(both_negative_powerlevel) power_level(member1) > power_level(member2) returns value <= 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": -50, "@bob:hs.tld": -100});
-            const member1 = {userId: "@alice:hs.tld", name: "alice"};
-            const member2 = {userId: "@bob:hs.tld", name: "bob"};
+            const member1 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
+            const member2 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) <= 0, true);
         },
 
         "(one_negative_powerlevel) power_level(member1) > power_level(member2) returns value <= 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": 50, "@bob:hs.tld": -100});
-            const member1 = {userId: "@alice:hs.tld", name: "alice"};
-            const member2 = {userId: "@bob:hs.tld", name: "bob"};
+            const member1 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
+            const member2 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) <= 0, true);
         },
 
         "(one_negative_powerlevel) power_level(member1) < power_level(member2) returns value > 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": -100, "@bob:hs.tld": 50});
-            const member1 = {userId: "@alice:hs.tld", name: "alice"};
-            const member2 = {userId: "@bob:hs.tld", name: "bob"};
+            const member1 = {userId: "@alice:hs.tld", name: "alice"} as unknown as RoomMember;
+            const member2 = {userId: "@bob:hs.tld", name: "bob"} as unknown as RoomMember;
             assert.strictEqual(fn(member1, member2) > 0, true);
         },
     };
