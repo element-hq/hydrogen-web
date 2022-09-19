@@ -22,7 +22,7 @@ import type {Storage} from "../storage/idb/Storage";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {KeyDescriptionData} from "./common";
 import type {Platform} from "../../platform/web/Platform";
-import type * as OlmNamespace from "@matrix-org/olm"
+import type * as OlmNamespace from "@matrix-org/olm";
 
 type Olm = typeof OlmNamespace;
 

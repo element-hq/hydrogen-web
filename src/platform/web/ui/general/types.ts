@@ -17,7 +17,7 @@ limitations under the License.
 export interface IMountArgs {
     // if true, the parent will call update() rather than the view updating itself by binding to a data source.
     parentProvidesUpdates?: boolean
-};
+}
 
 // Comment nodes can be used as temporary placeholders for Elements, like TemplateView does.
 export type ViewNode = Element | Comment;

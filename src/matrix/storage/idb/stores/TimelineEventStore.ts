@@ -380,5 +380,5 @@ export function tests() {
             assert.equal(eventKey2.fragmentId, 109);
             assert.equal(eventKey2.eventIndex, 0x80000002);
         }
-    }
+    };
 }

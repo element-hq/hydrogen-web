@@ -27,7 +27,7 @@ export class Direction {
     }
 
     reverse(): Direction {
-        return this.isForward ? Direction.Backward : Direction.Forward
+        return this.isForward ? Direction.Backward : Direction.Forward;
     }
 
     static get Forward(): Direction {

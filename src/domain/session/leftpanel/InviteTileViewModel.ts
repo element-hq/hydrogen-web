@@ -59,7 +59,7 @@ export class InviteTileViewModel extends BaseTileViewModel {
 }
 
 import {Navigation} from "../../navigation/Navigation";
-import {TestURLRouter} from './common'
+import {TestURLRouter} from './common';
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {

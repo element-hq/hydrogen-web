@@ -92,5 +92,5 @@ export function tests() {
             assert.strictEqual(deserialized.fuzz[1], 1);
             assert.strictEqual(deserialized.fuzz[2], 2);
         }
-    }
+    };
 }

@@ -21,8 +21,8 @@ import { AbortError } from "../../../utils/error";
 
 let needsSyncPromise = false;
 
-export const DONE = { done: true }
-export const NOT_DONE = { done: false }
+export const DONE = { done: true };
+export const NOT_DONE = { done: false };
 
 /* should be called on legacy platforms to see
    if transactions close before draining the microtask queue (IE11 on Windows 7).

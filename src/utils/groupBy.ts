@@ -54,5 +54,5 @@ export function tests() {
             assert.equal(counts.foo, 2);
             assert.equal(counts.bar, 1);
         }
-    }
+    };
 }

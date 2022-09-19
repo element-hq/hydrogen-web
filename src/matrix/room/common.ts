@@ -120,5 +120,5 @@ export function tests() {
                 assert.fail("no events expected");
             });
         }
-    }
+    };
 }

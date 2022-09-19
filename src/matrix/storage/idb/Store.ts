@@ -58,7 +58,7 @@ export class QueryTargetWrapper<T> {
                 return this.openCursor(range, direction);
             }
             LOG_REQUESTS && logRequest("openKeyCursor", [range, direction], this._qt);
-            return this._qt.openKeyCursor(range, direction)
+            return this._qt.openKeyCursor(range, direction);
         } catch(err) {
             throw new IDBRequestAttemptError("openKeyCursor", this._qt, err, [range, direction]);
         }
@@ -67,7 +67,7 @@ export class QueryTargetWrapper<T> {
     openCursor(range?: IDBQuery, direction?: IDBCursorDirection | undefined): IDBRequest<IDBCursorWithValue | null> {
         try {
             LOG_REQUESTS && logRequest("openCursor", [], this._qt);
-            return this._qt.openCursor(range, direction)
+            return this._qt.openCursor(range, direction);
         } catch(err) {
             throw new IDBRequestAttemptError("openCursor", this._qt, err, [range, direction]);
         }
@@ -103,7 +103,7 @@ export class QueryTargetWrapper<T> {
     getKey(key: IDBValidKey | IDBKeyRange): IDBRequest<IDBValidKey | undefined> {
         try {
             LOG_REQUESTS && logRequest("getKey", [key], this._qt);
-            return this._qt.getKey(key)
+            return this._qt.getKey(key);
         } catch(err) {
             throw new IDBRequestAttemptError("getKey", this._qt, err, [key]);
         }

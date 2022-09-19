@@ -60,5 +60,5 @@ export function disableTargetCallback(callback: (evt: Event) => Promise<void>): 
         (evt.target as HTMLElement)?.setAttribute("disabled", "disabled");
         await callback(evt);
         (evt.target as HTMLElement)?.removeAttribute("disabled");
-    }
+    };
 }

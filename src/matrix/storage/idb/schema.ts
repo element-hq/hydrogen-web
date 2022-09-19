@@ -226,7 +226,7 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
                         cursor.delete();
                     }
                     return NOT_DONE;
-                })
+                });
                 break;
             }
             default: {

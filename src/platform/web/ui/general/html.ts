@@ -115,6 +115,6 @@ for (const [ns, tags] of Object.entries(TAG_NAMES)) {
     for (const tagName of tags) {
         tag[tagName] = function(attributes, children) {
             return elNS(ns, tagName, attributes, children);
-        }
+        };
     }
 }

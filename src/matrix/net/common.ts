@@ -48,13 +48,13 @@ export function encodeBody(body: BlobHandle | object): EncodedBody {
         return {
             mimeType: "multipart/form-data",
             body: body
-        }
+        };
     } else if (typeof body === "object") {
         const json = JSON.stringify(body);
         return {
             mimeType: "application/json",
             body: json
-        }
+        };
     } else {
         throw new Error("Unknown body type: " + body);
     }

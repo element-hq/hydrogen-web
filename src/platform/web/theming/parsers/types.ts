@@ -35,4 +35,4 @@ export type ThemeInformation = NormalVariant | DefaultVariant;
 export enum ColorSchemePreference {
     Dark,
     Light
-};
+}

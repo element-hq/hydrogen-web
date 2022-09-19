@@ -206,7 +206,7 @@ export class QueryTarget<T> {
                 return {
                     done: false,
                     jumpTo: sortedKeys[index],
-                }
+                };
             }
         });
     }
@@ -377,5 +377,5 @@ export async function tests() {
             assert.equal(found[0], "2db1a709-d8f1-4c40-a835-f312badd277a");
         },
         
-    }
+    };
 }

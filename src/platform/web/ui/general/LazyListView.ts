@@ -192,7 +192,7 @@ export class LazyListView<T, V extends IView> extends ListView<T, V> {
         }
         if (result.newRange) {
             this.renderRange = result.newRange;
-            this.adjustPadding(this.renderRange)
+            this.adjustPadding(this.renderRange);
         }
         if (result.type === ResultType.Add || result.type === ResultType.RemoveAndAdd) {
             this.addChild(this.renderRange!.toLocalIndex(result.addIdx), result.value);

@@ -35,7 +35,7 @@ export class EventEmitter<T> {
         this.on(name, callback);
         return () => {
             this.off(name, callback);
-        }
+        };
     }
 
     on<K extends keyof T>(name: K, callback: Handler<T[K]>): void {

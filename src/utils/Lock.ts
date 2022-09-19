@@ -102,5 +102,5 @@ export function tests() {
             await lock.released();
             assert(true);
         }
-    }
+    };
 }

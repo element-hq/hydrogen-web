@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {ConnectionError} from "../matrix/error";
-import type {Timeout} from "../platform/web/dom/Clock"
+import type {Timeout} from "../platform/web/dom/Clock";
 import type {IAbortable} from "./AbortableOperation";
 
 type TimeoutCreator = (ms: number) => Timeout;
@@ -85,6 +85,6 @@ export function tests() {
             assert(!request.aborted);
             assert.rejects(promise, AbortError);
         }
-    }
+    };
 
 }

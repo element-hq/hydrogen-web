@@ -69,4 +69,4 @@ export const KeyLimits = {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0xFFFFFFFF;
     }
-}
+};

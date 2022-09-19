@@ -25,7 +25,7 @@ export enum ConnectionStatus {
     "Waiting",
     "Reconnecting",
     "Online"
-};
+}
 
 type Ctor = {
     retryDelay: ExponentialRetryDelay;
@@ -138,7 +138,7 @@ export class Reconnector {
 
 import {Clock as MockClock} from "../../mocks/Clock";
 import {ExponentialRetryDelay as _ExponentialRetryDelay} from "./ExponentialRetryDelay";
-import {ConnectionError} from "../error"
+import {ConnectionError} from "../error";
 
 export function tests() {
     function createHsApiMock(remainingFailures) {
@@ -155,7 +155,7 @@ export function tests() {
                     }
                 };
             }
-        }
+        };
     }
 
     return {
@@ -199,5 +199,5 @@ export function tests() {
             assert.equal(connectionStatus.get(), ConnectionStatus.Online);
             assert.strictEqual(reconnector.lastVersionsResponse, 42);
         },
-    }
+    };
 }

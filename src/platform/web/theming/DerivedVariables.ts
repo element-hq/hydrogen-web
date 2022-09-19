@@ -127,5 +127,5 @@ export function tests() {
                 "my-awesome-alias--darker-5": resultColor,
             });
         },
-    }
+    };
 }

@@ -31,7 +31,7 @@ export interface ISerializedItem {
     };
     f?: boolean;
     c?: Array<ISerializedItem>;
-};
+}
 
 export interface ILogItem {
     logLevel: LogLevel;

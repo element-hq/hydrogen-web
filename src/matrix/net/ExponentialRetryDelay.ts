@@ -129,6 +129,6 @@ export function tests() {
             clock.elapse(300000);
             await promise;
         },
-    }
+    };
 
 }

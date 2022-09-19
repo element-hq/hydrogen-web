@@ -34,4 +34,4 @@ export const TestURLRouter = {
     openRoomActionUrl(): string { return ""; },
     createSSOCallbackURL(): string { return ""; },
     normalizeUrl(): void { return; },
-}
+};

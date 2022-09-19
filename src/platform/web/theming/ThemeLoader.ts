@@ -49,7 +49,7 @@ export class ThemeLoader {
                 if (!(status >= 200 && status <= 299)) {
                     console.error(`Failed to load manifest at ${manifestLocations[i]}, status: ${status}`);
                     log.log({ l: "Manifest fetch failed", location: manifestLocations[i], status }, LogLevel.Error);
-                    failedManifestLoads.push(manifestLocations[i])
+                    failedManifestLoads.push(manifestLocations[i]);
                     continue;
                 }
                 noManifestsAvailable = false;

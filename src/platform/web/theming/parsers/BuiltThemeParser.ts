@@ -70,7 +70,7 @@ export class BuiltThemeParser {
                     */
                     const defaultVariant = dark ? defaultDarkVariant : defaultLightVariant;
                     defaultVariant.variantName = variantName;
-                    defaultVariant.id = themeId
+                    defaultVariant.id = themeId;
                     defaultVariant.cssLocation = cssLocation;
                     continue;
                 }

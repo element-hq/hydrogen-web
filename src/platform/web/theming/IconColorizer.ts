@@ -50,7 +50,7 @@ export class IconColorizer {
             const urlObject = new URL(`https://${url}`);
             const pathWithoutQueryParams = urlObject.hostname;
             const relativePath = new URL(pathWithoutQueryParams, new URL(this._manifestLocation, window.location.origin));
-            const responsePromise = this._platform.request(relativePath, { method: "GET", format: "text", cache: true, }).response()
+            const responsePromise = this._platform.request(relativePath, { method: "GET", format: "text", cache: true, }).response();
             promises.push(responsePromise);
             const searchParams = urlObject.searchParams;
             parsedStructure[variable] = {

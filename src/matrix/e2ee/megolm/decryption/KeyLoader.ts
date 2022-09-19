@@ -424,5 +424,5 @@ export function tests() {
             await loader.useKey(key3, async session => {});
             assert.strictEqual(loader.getCachedKey(roomId, aliceSenderKey, sessionId1), key1);
         },
-    }
+    };
 }

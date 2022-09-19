@@ -173,7 +173,7 @@ export class Encryption {
             sender: this.ownUserId,
             content,
             type
-        }
+        };
     }
 
     async _createNewSessions(devicesWithoutSession: DeviceIdentity[], hsApi: HomeServerApi, timestamp: number, log: ILogItem): Promise<EncryptionTarget[]> {

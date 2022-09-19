@@ -27,7 +27,7 @@ const sessionName = (sessionId: string) => `hydrogen_session_${sessionId}`;
 const openDatabaseWithSessionId = function(sessionId: string, idbFactory: IDBFactory, localStorage: IDOMStorage, log: ILogItem) {
     const create = (db, txn, oldVersion, version) => createStores(db, txn, oldVersion, version, localStorage, log);
     return openDatabase(sessionName(sessionId), create, schema.length, idbFactory);
-}
+};
 
 interface ServiceWorkerHandler {
     preventConcurrentSessionAccess: (sessionId: string) => Promise<void>;

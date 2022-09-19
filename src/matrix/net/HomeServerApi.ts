@@ -321,5 +321,5 @@ export function tests() {
             const result = await hsApi._get("foo").response();
             assert.strictEqual(result, 42);
         }
-    }
+    };
 }
