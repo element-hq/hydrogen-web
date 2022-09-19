@@ -173,7 +173,7 @@ class ReactionViewModel {
 
 // matrix classes uses in the integration test below
 import {User} from "../../../../matrix/User.js";
-import {SendQueue} from "../../../../matrix/room/sending/SendQueue.js";
+import {SendQueue} from "../../../../matrix/room/sending/SendQueue";
 import {Timeline} from "../../../../matrix/room/timeline/Timeline.js";
 import {EventEntry} from "../../../../matrix/room/timeline/entries/EventEntry.js";
 import {RelationWriter} from "../../../../matrix/room/timeline/persistence/RelationWriter.js";

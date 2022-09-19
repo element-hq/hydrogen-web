@@ -487,7 +487,7 @@ import {createEvent, withTextBody, withContent, withSender, withRedacts, withRep
 import {NullLogItem} from "../../../logging/NullLogger";
 import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
-import {PendingEvent} from "../sending/PendingEvent.js";
+import {PendingEvent} from "../sending/PendingEvent";
 import {createAnnotation} from "./relations.js";
 import {redactEvent} from "./common.js";
 

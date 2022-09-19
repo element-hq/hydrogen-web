@@ -257,7 +257,7 @@ type WithheldMessage = {
     session_id: string;
 };
 
-type EncryptedContent = {
+export type EncryptedContent = {
     algorithm: MEGOLM_ALGORITHM;
     sender_key: string;
     ciphertext: string;

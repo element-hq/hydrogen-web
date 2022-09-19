@@ -16,7 +16,7 @@ limitations under the License.
 
 import {UpdateAction} from "../UpdateAction.js";
 import {ViewModel} from "../../../../ViewModel";
-import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
+import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent";
 
 export class SimpleTile extends ViewModel {
     constructor(entry, options) {
@@ -129,7 +129,7 @@ export class SimpleTile extends ViewModel {
 
     // let item know it has a new sibling
     updateNextSibling(/*next*/) {
-    
+
     }
 
     notifyVisible() {}

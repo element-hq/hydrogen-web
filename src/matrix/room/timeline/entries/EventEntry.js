@@ -160,7 +160,7 @@ export class EventEntry extends BaseEventEntry {
 import {withTextBody, withContent, createEvent} from "../../../../mocks/event.js";
 import {Clock as MockClock} from "../../../../mocks/Clock.js";
 import {PendingEventEntry} from "./PendingEventEntry.js";
-import {PendingEvent} from "../../sending/PendingEvent.js";
+import {PendingEvent} from "../../sending/PendingEvent";
 import {createAnnotation} from "../relations.js";
 
 export function tests() {
