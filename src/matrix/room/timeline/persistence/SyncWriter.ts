@@ -16,14 +16,22 @@ limitations under the License.
 */
 
 import {EventKey} from "../EventKey";
-import {EventEntry} from "../entries/EventEntry.js";
-import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
-import {createEventEntry} from "./common.js";
-import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {EventEntry} from "../entries/EventEntry";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry";
+import {createEventEntry} from "./common";
+import {MemberChange, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
+import type {FragmentIdComparer} from "../FragmentIdComparer";
+import type {MemberSync, MemberWriter} from "./MemberWriter";
+import type {RelationWriter} from "./RelationWriter";
+import type {ILogItem} from "../../../../logging/types";
+import type {Transaction} from "../../../storage/idb/Transaction";
+import type {Fragment} from "../../../storage/idb/stores/TimelineFragmentStore";
+import type {BaseEntry} from "../entries/BaseEntry";
+import type {StateEvent,TimelineEvent} from "../../../storage/types";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
-function deduplicateEvents(events) {
+function deduplicateEvents(events: TimelineEvent[]): TimelineEvent[] {
     const eventIds = new Set();
     return events.filter(e => {
         if (eventIds.has(e.event_id)) {
@@ -35,16 +43,23 @@ function deduplicateEvents(events) {
     });
 }
 
+type Options = {roomId: string, fragmentIdComparer: FragmentIdComparer, memberWriter: MemberWriter, relationWriter: RelationWriter};
+
 export class SyncWriter {
-    constructor({roomId, fragmentIdComparer, memberWriter, relationWriter}) {
+    private _roomId: string;
+    private _fragmentIdComparer: FragmentIdComparer;
+    private _memberWriter: MemberWriter;
+    private _relationWriter: RelationWriter;
+    private _lastLiveKey?: EventKey;
+
+    constructor({roomId, fragmentIdComparer, memberWriter, relationWriter}: Options) {
         this._roomId = roomId;
         this._memberWriter = memberWriter;
         this._relationWriter = relationWriter;
         this._fragmentIdComparer = fragmentIdComparer;
-        this._lastLiveKey = null;
     }
 
-    async load(txn, log) {
+    async load(txn: Transaction, log: ILogItem): Promise<void> {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (liveFragment) {
             const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, liveFragment.id, 1);
@@ -61,7 +76,7 @@ export class SyncWriter {
         }
     }
 
-    async _createLiveFragment(txn, previousToken) {
+    async _createLiveFragment(txn: Transaction, previousToken: string | null): Promise<Fragment> {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (!liveFragment) {
             if (!previousToken) {
@@ -83,7 +98,12 @@ export class SyncWriter {
         }
     }
 
-    async _replaceLiveFragment(oldFragmentId, newFragmentId, previousToken, txn) {
+    async _replaceLiveFragment(
+        oldFragmentId: number,
+        newFragmentId: number,
+        previousToken: string | null,
+        txn: Transaction
+    ): Promise<{ oldFragment: Fragment; newFragment: Fragment }> {
         const oldFragment = await txn.timelineFragments.get(this._roomId, oldFragmentId);
         if (!oldFragment) {
             throw new Error(`old live fragment doesn't exist: ${oldFragmentId}`);
@@ -111,10 +131,16 @@ export class SyncWriter {
      * @param  {Transaction} txn        used to read and write from the fragment store
      * @return {EventKey} the new event key to start writing events at
      */
-    async _ensureLiveFragment(currentKey, entries, timeline, txn, log) {
+     async _ensureLiveFragment(
+        currentKey: EventKey,
+        entries: Array<BaseEntry>,
+        timeline: { prev_batch: any; limited: any },
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<EventKey> {
         if (!currentKey) {
             // means we haven't synced this room yet (just joined or did initial sync)
-            
+
             // as this is probably a limited sync, prev_batch should be there
             // (but don't fail if it isn't, we won't be able to back-paginate though)
             let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
@@ -133,7 +159,7 @@ export class SyncWriter {
         return currentKey;
     }
 
-    async _writeStateEvents(stateEvents, txn, log) {
+    async _writeStateEvents(stateEvents: StateEvent[], txn: Transaction, log: ILogItem): Promise<void> {
         let nonMemberStateEvents = 0;
         for (const event of stateEvents) {
             // member events are written prior by MemberWriter
@@ -145,12 +171,19 @@ export class SyncWriter {
         log.set("stateEvents", nonMemberStateEvents);
     }
 
-    async _writeTimeline(timelineEvents, timeline, memberSync, currentKey, txn, log) {
-        const entries = [];
-        const updatedEntries = [];
+    async _writeTimeline(
+        timelineEvents: StateEvent[],
+        timeline: { prev_batch: any; limited: any },
+        memberSync: MemberSync,
+        currentKey: EventKey | undefined,
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<{ currentKey: EventKey | undefined; entries: EventEntry[]; updatedEntries: EventEntry[]; }> {
+        const entries: EventEntry[] = [];
+        const updatedEntries: EventEntry[] = [];
         if (timelineEvents?.length) {
             // only create a fragment when we will really write an event
-            currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
+            currentKey = await this._ensureLiveFragment(currentKey!, entries, timeline, txn, log);
             log.set("timelineEvents", timelineEvents.length);
             let timelineStateEventCount = 0;
             for(const event of timelineEvents) {
@@ -186,7 +219,11 @@ export class SyncWriter {
         return {currentKey, entries, updatedEntries};
     }
 
-    async _handleRejoinOverlap(timeline, txn, log) {
+    async _handleRejoinOverlap(
+        timeline: { limited?: any; events?: any },
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<{ limited?: any; events?: any }> {
         if (this._lastLiveKey) {
             const {fragmentId} = this._lastLiveKey;
             const [lastEvent] = await txn.timelineEvents.lastEvents(this._roomId, fragmentId, 1);
@@ -214,13 +251,13 @@ export class SyncWriter {
      * @type {SyncWriterResult}
      * @property {Array<BaseEntry>} entries new timeline entries written
      * @property {EventKey} newLiveKey the advanced key to write events at
-     * 
+     *
      * @param  {Object}  roomResponse [description]
      * @param  {boolean}  isRejoin whether the room was rejoined in the sync being processed
-     * @param  {Transaction}  txn     
+     * @param  {Transaction}  txn
      * @return {SyncWriterResult}
      */
-    async writeSync(roomResponse, isRejoin, hasFetchedMembers, txn, log) {
+    async writeSync(roomResponse: any, isRejoin: boolean, hasFetchedMembers: boolean, txn: Transaction, log: ILogItem): Promise<SyncWriterResult> {
         let {timeline} = roomResponse;
         // we have rejoined the room after having synced it before,
         // check for overlap with the last synced event
@@ -247,22 +284,30 @@ export class SyncWriter {
         return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }
 
-    afterSync(newLiveKey) {
+    afterSync(newLiveKey: EventKey): void {
         this._lastLiveKey = newLiveKey;
     }
 
-    get lastMessageKey() {
+    get lastMessageKey(): EventKey | undefined {
         return this._lastLiveKey;
     }
 }
 
+export type SyncWriterResult = {
+    entries: EventEntry[];
+    updatedEntries: EventEntry[];
+    newLiveKey: EventKey | undefined;
+    memberChanges: Map<string, MemberChange | undefined>;
+};
+
 import {createMockStorage} from "../../../../mocks/Storage";
 import {createEvent, withTextBody} from "../../../../mocks/event.js";
 import {Instance as nullLogger} from "../../../../logging/NullLogger";
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     const roomId = "!abc:hs.tld";
     return {
-        "calling timelineEvents.tryInsert with the same event id a second time fails": async assert => {
+        "calling timelineEvents.tryInsert with the same event id a second time fails": async (assert): Promise<void> => {
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
             const event = withTextBody("hello!", createEvent("m.room.message", "$abc", "@alice:hs.tld"));
@@ -273,7 +318,7 @@ export function tests() {
             // fake-indexeddb still aborts the transaction when preventDefault is called by tryInsert, so don't await as it will abort
             // await txn.complete();
         },
-        "calling timelineEvents.tryInsert with the same event key a second time fails": async assert => {
+        "calling timelineEvents.tryInsert with the same event key a second time fails": async (assert): Promise<void>=> {
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents]);
             const event1 = withTextBody("hello!", createEvent("m.room.message", "$abc", "@alice:hs.tld"));
@@ -285,5 +330,5 @@ export function tests() {
             // fake-indexeddb still aborts the transaction when preventDefault is called by tryInsert, so don't await as it will abort
             // await txn.complete();
         },
-    }
+    };
 }

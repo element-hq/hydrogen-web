@@ -15,25 +15,46 @@ limitations under the License.
 */
 
 import {EventKey} from "../EventKey";
-import {EventEntry} from "../entries/EventEntry.js";
-import {createEventEntry, directionalAppend} from "./common.js";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {EventEntry} from "../entries/EventEntry";
+import {createEventEntry, directionalAppend} from "./common";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
+import type {Storage} from "../../../storage/idb/Storage";
+
+type Options = {
+    roomId: string;
+    storage: Storage;
+    fragmentIdComparer: FragmentIdComparer;
+    relationWriter: RelationWriter;
+};
 
 export class GapWriter {
-    constructor({roomId, storage, fragmentIdComparer, relationWriter}) {
+    private _roomId: string;
+    private _storage: Storage;
+    private _fragmentIdComparer: FragmentIdComparer;
+    private _relationWriter: RelationWriter;
+
+    constructor({roomId, storage, fragmentIdComparer, relationWriter}: Options) {
         this._roomId = roomId;
         this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
         this._relationWriter = relationWriter;
     }
 
-    async _findOverlappingEvents(fragmentEntry, events, txn, log) {
+    async _findOverlappingEvents(
+        fragmentEntry: FragmentBoundaryEntry,
+        events: any[],
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<{
+        nonOverlappingEvents: any[];
+        neighbourFragmentEntry: FragmentBoundaryEntry;
+    }> {
         const eventIds = events.map(e => e.event_id);
         const existingEventKeyMap = await txn.timelineEvents.getEventKeysForIds(this._roomId, eventIds);
         log.set("existingEvents", existingEventKeyMap.size);
         const nonOverlappingEvents = events.filter(e => !existingEventKeyMap.has(e.event_id));
         log.set("nonOverlappingEvents", nonOverlappingEvents.length);
-        let neighbourFragmentEntry;
+        let neighbourFragmentEntry: FragmentBoundaryEntry;
         if (fragmentEntry.hasLinkedFragment) {
             log.set("linkedFragmentId", fragmentEntry.linkedFragmentId);
             for (const eventKey of existingEventKeyMap.values()) {
@@ -48,7 +69,7 @@ export class GapWriter {
         return {nonOverlappingEvents, neighbourFragmentEntry};
     }
 
-    async _findFragmentEdgeEventKey(fragmentEntry, txn) {
+    async _findFragmentEdgeEventKey(fragmentEntry: FragmentBoundaryEntry, txn: Transaction): Promise<EventKey> {
         const {fragmentId, direction} = fragmentEntry;
         const event = await this._findFragmentEdgeEvent(fragmentId, direction, txn);
         if (event) {
@@ -59,7 +80,7 @@ export class GapWriter {
         }
     }
 
-    async _findFragmentEdgeEvent(fragmentId, direction, txn) {
+    async _findFragmentEdgeEvent(fragmentId: number, direction: Direction, txn: Transaction): Promise<TimelineEventEntry> {
         if (direction.isBackward) {
             const [firstEvent] = await txn.timelineEvents.firstEvents(this._roomId, fragmentId, 1);
             return firstEvent;
@@ -69,9 +90,16 @@ export class GapWriter {
         }
     }
 
-    async _storeEvents(events, startKey, direction, state, txn, log) {
-        const entries = [];
-        const updatedEntries = [];
+    async _storeEvents(
+        events: any[],
+        startKey: EventKey,
+        direction: Direction,
+        state: StateEvent[],
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<{ entries: EventEntry[]; updatedEntries: EventEntry[] }> {
+        const entries: EventEntry[] = [];
+        const updatedEntries: EventEntry[] = [];
         // events is in reverse chronological order for backwards pagination,
         // e.g. order is moving away from the `from` point.
         let key = startKey;
@@ -97,8 +125,14 @@ export class GapWriter {
         return {entries, updatedEntries};
     }
 
-    _findMember(userId, state, events, index, direction) {
-        function isOurUser(event) {
+    _findMember(
+        userId: string,
+        state: StateEvent[],
+        events: StateEvent[],
+        index: number,
+        direction: Direction
+    ): RoomMember | undefined {
+        function isOurUser(event: StateEvent): boolean {
             return event.type === MEMBER_EVENT_TYPE && event.state_key === userId;
         }
         // older messages are at a higher index in the array when going backwards
@@ -120,16 +154,23 @@ export class GapWriter {
             }
         }
         // assuming the member hasn't changed within the chunk, just take it from state if it's there.
-        // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances 
+        // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances
         const stateMemberEvent = state?.find(isOurUser);
         if (stateMemberEvent) {
             return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent);
         }
     }
 
-    async _updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn, log) {
+    async _updateFragments(
+        fragmentEntry: FragmentBoundaryEntry,
+        neighbourFragmentEntry: FragmentBoundaryEntry,
+        end: string,
+        entries: EventEntry[],
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<FragmentEntry[]> {
         const {direction} = fragmentEntry;
-        const changedFragments = [];
+        const changedFragments: FragmentEntry[] = [];
         directionalAppend(entries, fragmentEntry, direction);
         // set `end` as token, and if we found an event in the step before, link up the fragments in the fragment entry
         if (neighbourFragmentEntry) {
@@ -154,11 +195,20 @@ export class GapWriter {
         return changedFragments;
     }
 
-    async writeFragmentFill(fragmentEntry, response, txn, log) {
+    async writeFragmentFill(
+        fragmentEntry: FragmentBoundaryEntry,
+        response: any,
+        txn: Transaction,
+        log: ILogItem
+    ): Promise<{
+        entries: EventEntry[];
+        updatedEntries: EventEntry[];
+        fragments: FragmentEntry[];
+    }> {
         const {fragmentId, direction} = fragmentEntry;
         // chunk is in reverse-chronological order when backwards
-        const {chunk, start, state} = response;
-        let {end} = response;
+        const {chunk, start, state}: {chunk: any[], start: number, state: StateEvent[]} = response;
+        let {end}: {end: string} = response;
 
         if (!Array.isArray(chunk)) {
             throw new Error("Invalid chunk in response");
@@ -196,7 +246,7 @@ export class GapWriter {
         // create entries for all events in chunk, add them to entries
         const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn, log);
-    
+
         return {entries, updatedEntries, fragments};
     }
 }
@@ -204,19 +254,26 @@ export class GapWriter {
 import {FragmentIdComparer} from "../FragmentIdComparer.js";
 import {RelationWriter} from "./RelationWriter.js";
 import {createMockStorage} from "../../../../mocks/Storage";
-import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
-import {NullLogItem} from "../../../../logging/NullLogger";
-import {TimelineMock, eventIds, eventId} from "../../../../mocks/TimelineMock.ts";
-import {SyncWriter} from "./SyncWriter.js";
-import {MemberWriter} from "./MemberWriter.js";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry";
+import {NullLogger, NullLogItem} from "../../../../logging/NullLogger";
+import {TimelineMock, eventIds, eventId} from "../../../../mocks/TimelineMock";
+import {SyncWriter} from "./SyncWriter";
+import {MemberWriter} from "./MemberWriter";
 import {KeyLimits} from "../../../storage/common";
+import { Transaction } from "../../../storage/idb/Transaction";
+import { ILogItem } from "../../../../logging/types";
+import { Direction } from "../Direction";
+import { TimelineEventEntry } from "../../../storage/idb/stores/TimelineEventStore";
+import { StateEvent, TimelineEvent } from "../../../storage/types";
+import { FragmentEntry } from "../../../storage/idb/stores/TimelineFragmentStore";
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     const roomId = "!room:hs.tdl";
     const alice = "alice@hs.tdl";
-    const logger = new NullLogItem();
+    const logger = new NullLogItem(new NullLogger());
 
-    async function createGapFillTxn(storage) {
+    async function createGapFillTxn(storage: Storage): Promise<Transaction> {
         return storage.readWriteTxn([
             storage.storeNames.roomMembers,
             storage.storeNames.pendingEvents,
@@ -226,7 +283,14 @@ export function tests() {
         ]);
     }
 
-    async function setup() {
+    async function setup(): Promise<{
+        storage: Storage;
+        txn: Transaction;
+        fragmentIdComparer: FragmentIdComparer;
+        gapWriter: GapWriter;
+        syncWriter: SyncWriter;
+        timelineMock: TimelineMock;
+    }> {
         const storage = await createMockStorage();
         const txn = await createGapFillTxn(storage);
         const fragmentIdComparer = new FragmentIdComparer([]);
@@ -243,14 +307,34 @@ export function tests() {
             memberWriter,
             relationWriter
         });
-        return { storage, txn, fragmentIdComparer, gapWriter, syncWriter, timelineMock: new TimelineMock() };
+        return { storage, txn, fragmentIdComparer, gapWriter, syncWriter, timelineMock: new TimelineMock("") };
     }
 
-    async function syncAndWrite(mocks, { previous, limit } = {}) {
+    async function syncAndWrite(
+        mocks: {
+            storage?: Storage;
+            txn: any;
+            fragmentIdComparer: any;
+            gapWriter?: GapWriter;
+            syncWriter: SyncWriter;
+            timelineMock: TimelineMock;
+        },
+        { previous, limit }: { previous?: any, limit?: any } = { previous: undefined, limit: undefined }
+        ): Promise<{
+            syncResponse: {
+                next_batch: string;
+                timeline: {
+                    prev_batch: string;
+                    events: TimelineEvent[];
+                    limited: boolean;
+                };
+            };
+            fragmentEntry: any;
+        }> {
         const {txn, timelineMock, syncWriter, fragmentIdComparer} = mocks;
         const syncResponse = timelineMock.sync(previous?.next_batch, limit);
         const {newLiveKey} = await syncWriter.writeSync(syncResponse, false, false, txn, logger);
-        syncWriter.afterSync(newLiveKey);
+        syncWriter.afterSync(newLiveKey!);
         return {
             syncResponse,
             fragmentEntry: newLiveKey ? FragmentBoundaryEntry.start(
@@ -260,38 +344,38 @@ export function tests() {
         };
     }
 
-    async function backfillAndWrite(mocks, fragmentEntry, limit) {
+    async function backfillAndWrite(mocks, fragmentEntry, limit): Promise<void> {
         const {txn, timelineMock, gapWriter} = mocks;
         const messageResponse = timelineMock.messages(fragmentEntry.token, undefined, fragmentEntry.direction.asApiString(), limit);
         await gapWriter.writeFragmentFill(fragmentEntry, messageResponse, txn, logger);
     }
 
-    async function allFragmentEvents(mocks, fragmentId) {
+    async function allFragmentEvents(mocks, fragmentId): Promise<any> {
         const {txn} = mocks;
         const entries = await txn.timelineEvents.eventsAfter(roomId, new EventKey(fragmentId, KeyLimits.minStorageKey));
         return entries.map(e => e.event);
     }
 
-    async function fetchFragment(mocks, fragmentId) {
+    async function fetchFragment(mocks, fragmentId): Promise<any> {
         const {txn} = mocks;
         return txn.timelineFragments.get(roomId, fragmentId);
     }
 
-    function assertFilledLink(assert, fragment1, fragment2) {
+    function assertFilledLink(assert, fragment1, fragment2): void {
         assert.equal(fragment1.nextId, fragment2.id);
         assert.equal(fragment2.previousId, fragment1.id);
         assert.equal(fragment1.nextToken, null);
         assert.equal(fragment2.previousToken, null);
     }
 
-    function assertGapLink(assert, fragment1, fragment2) {
+    function assertGapLink(assert, fragment1, fragment2): void {
         assert.equal(fragment1.nextId, fragment2.id);
         assert.equal(fragment2.previousId, fragment1.id);
         assert.notEqual(fragment2.previousToken, null);
     }
 
     return {
-        "Backfilling after one sync": async assert => {
+        "Backfilling after one sync": async (assert): Promise<void> => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(30);
@@ -301,7 +385,7 @@ export function tests() {
             assert.deepEqual(events.map(e => e.event_id), eventIds(10, 30));
             await mocks.txn.complete();
         },
-        "Backfilling a fragment that is expected to close a gap, and does": async assert => {
+        "Backfilling a fragment that is expected to close a gap, and does": async (assert): Promise<void> => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(10);
@@ -312,14 +396,14 @@ export function tests() {
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertFilledLink(assert, firstFragment, secondFragment)
+            assertFilledLink(assert, firstFragment, secondFragment);
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
             const secondEvents = await allFragmentEvents(mocks, secondFragmentEntry.fragmentId);
             assert.deepEqual(secondEvents.map(e => e.event_id), eventIds(10, 25));
             await mocks.txn.complete();
         },
-        "Backfilling a fragment that is expected to close a gap, but doesn't yet": async assert => {
+        "Backfilling a fragment that is expected to close a gap, but doesn't yet": async (assert): Promise<void> => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(10);
@@ -330,14 +414,14 @@ export function tests() {
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertGapLink(assert, firstFragment, secondFragment)
+            assertGapLink(assert, firstFragment, secondFragment);
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
             const secondEvents = await allFragmentEvents(mocks, secondFragmentEntry.fragmentId);
             assert.deepEqual(secondEvents.map(e => e.event_id), eventIds(10, 30));
             await mocks.txn.complete();
         },
-        "Receiving a sync with the same events as the current fragment does not create infinite link": async assert => {
+        "Receiving a sync with the same events as the current fragment does not create infinite link": async (assert): Promise<void> => {
             const mocks = await setup();
             const { txn, timelineMock } = mocks;
             timelineMock.append(10);
@@ -352,7 +436,7 @@ export function tests() {
             assert.notEqual(fragment.previousId, fragment.id);
             await mocks.txn.complete();
         },
-        "An event received by sync does not interrupt backfilling": async assert => {
+        "An event received by sync does not interrupt backfilling": async (assert): Promise<void> => {
             const mocks = await setup();
             const { timelineMock } = mocks;
             timelineMock.append(10);
@@ -368,8 +452,8 @@ export function tests() {
             assert.deepEqual(secondEvents.map(e => e.event_id), [...eventIds(21,26), ...eventIds(10, 21)]);
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertFilledLink(assert, firstFragment, secondFragment)
+            assertFilledLink(assert, firstFragment, secondFragment);
             await mocks.txn.complete();
         }
-    }
+    };
 }

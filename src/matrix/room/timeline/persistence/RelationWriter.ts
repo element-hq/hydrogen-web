@@ -16,37 +16,51 @@ limitations under the License.
 
 import {EventEntry} from "../entries/EventEntry.js";
 import {REDACTION_TYPE, isRedacted} from "../../common";
-import {ANNOTATION_RELATION_TYPE, getRelation} from "../relations.js";
-import {redactEvent} from "../common.js";
+import {ANNOTATION_RELATION_TYPE, getRelation, Relation} from "../relations";
+import {redactEvent} from "../common";
+import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event";
+import {createAnnotation} from "../relations";
+import {FragmentIdComparer} from "../FragmentIdComparer";
+import {NullLogger, NullLogItem} from "../../../../logging/NullLogger";
+import {ILogItem} from "../../../../logging/types";
+import {Transaction} from "../../../storage/idb/Transaction";
+import {Direction} from "../Direction";
+import {TimelineEventEntry} from "../../../storage/idb/stores/TimelineEventStore";
+import {StateEvent, TimelineEvent} from "../../../storage/types";
+
+type Options = {roomId: string, ownUserId: string, fragmentIdComparer: FragmentIdComparer};
 
 export class RelationWriter {
-    constructor({roomId, ownUserId, fragmentIdComparer}) {
+    private _roomId: string
+    private _ownUserId: string
+    private _fragmentIdComparer: FragmentIdComparer
+
+    constructor({roomId, ownUserId, fragmentIdComparer}: Options) {
         this._roomId = roomId;
         this._ownUserId = ownUserId;
         this._fragmentIdComparer = fragmentIdComparer;
     }
 
     // this needs to happen again after decryption too for edits
-    async writeRelation(sourceEntry, txn, log) {
+    async writeRelation(sourceEntry: EventEntry, txn: Transaction, log: ILogItem): Promise<EventEntry | undefined> {
         const {relatedEventId} = sourceEntry;
         if (relatedEventId) {
             const relation = getRelation(sourceEntry.event);
             if (relation && relation.rel_type) {
                 // we don't consider replies (which aren't relations in the MSC2674 sense)
-                txn.timelineRelations.add(this._roomId, relation.event_id, relation.rel_type, sourceEntry.id);
+                txn.timelineRelations.add(this._roomId, relation.event_id!, relation.rel_type, sourceEntry.id);
             }
             const target = await txn.timelineEvents.getByEventId(this._roomId, relatedEventId);
             if (target) {
                 const updatedStorageEntries = await this._applyRelation(sourceEntry, target, txn, log);
                 if (updatedStorageEntries) {
                     return updatedStorageEntries.map(e => {
-                        txn.timelineEvents.update(e);
+                        txn.timelineEvents.update(e!);
                         return new EventEntry(e, this._fragmentIdComparer);
                     });
                 }
             }
         }
-        return null;
     }
 
     /**
@@ -55,7 +69,7 @@ export class RelationWriter {
      *        a relation target for which we've previously received relations.
      * @param {Direction} direction of the gap fill
      * */
-    async writeGapRelation(storageEntry, direction, txn, log) {
+    async writeGapRelation(storageEntry: any, direction: Direction, txn: Transaction, log: ILogItem): Promise<EventEntry | undefined> {
         const sourceEntry = new EventEntry(storageEntry, this._fragmentIdComparer);
         const result = await this.writeRelation(sourceEntry, txn, log);
         // when back-paginating, it can also happen that we've received relations
@@ -81,10 +95,10 @@ export class RelationWriter {
      * @param {Object} targetStorageEntry event entry as stored in the timelineEvents store
      * @return {[Object]} array of event storage entries that have been updated
      * */
-    async _applyRelation(sourceEntry, targetStorageEntry, txn, log) {
+    async _applyRelation(sourceEntry: EventEntry, targetStorageEntry: TimelineEventEntry | undefined, txn: Transaction, log: ILogItem): Promise<(TimelineEventEntry | undefined)[] | undefined> {
         if (sourceEntry.eventType === REDACTION_TYPE) {
             return log.wrap("redact", async log => {
-                const redactedEvent = targetStorageEntry.event;
+                const redactedEvent = targetStorageEntry?.event;
                 const relation = getRelation(redactedEvent); // get this before redacting
                 const redacted = this._applyRedaction(sourceEntry.event, targetStorageEntry, txn, log);
                 if (redacted) {
@@ -97,15 +111,14 @@ export class RelationWriter {
                     }
                     return updated;
                 }
-                return null;
             });
         } else {
             const relation = getRelation(sourceEntry.event);
-            if (relation && !isRedacted(targetStorageEntry.event)) {
+            if (relation && !isRedacted(targetStorageEntry?.event)) {
                 const relType = relation.rel_type;
                 if (relType === ANNOTATION_RELATION_TYPE) {
-                    const aggregated = log.wrap("react", log => {
-                        return this._aggregateAnnotation(sourceEntry.event, targetStorageEntry, log);
+                    const aggregated = log.wrap("react", () => {
+                        return this._aggregateAnnotation(sourceEntry.event, targetStorageEntry);
                     });
                     if (aggregated) {
                         return [targetStorageEntry];
@@ -113,37 +126,36 @@ export class RelationWriter {
                 }
             }
         }
-        return null;
     }
 
-    _applyRedaction(redactionEvent, redactedStorageEntry, txn, log) {
-        const redactedEvent = redactedStorageEntry.event;
+    _applyRedaction(redactionEvent: StateEvent | TimelineEvent, redactedStorageEntry: TimelineEventEntry | undefined, txn: Transaction, log: ILogItem): boolean {
+        const redactedEvent = redactedStorageEntry?.event;
         log.set("redactionId", redactionEvent.event_id);
-        log.set("id", redactedEvent.event_id);
+        log.set("id", redactedEvent?.event_id);
 
         const relation = getRelation(redactedEvent);
         if (relation && relation.rel_type) {
-            txn.timelineRelations.remove(this._roomId, relation.event_id, relation.rel_type, redactedEvent.event_id);
+            txn.timelineRelations.remove(this._roomId, relation.event_id!, relation.rel_type, redactedEvent!.event_id);
         }
         // check if we're the target of a relation and remove all relations then as well
-        txn.timelineRelations.removeAllForTarget(this._roomId, redactedEvent.event_id);
+        txn.timelineRelations.removeAllForTarget(this._roomId, redactedEvent!.event_id);
 
         redactEvent(redactionEvent, redactedEvent);
-        delete redactedStorageEntry.annotations;
+        delete redactedStorageEntry?.annotations;
 
         return true;
     }
 
-    _aggregateAnnotation(annotationEvent, targetStorageEntry/*, log*/) {
+    _aggregateAnnotation(annotationEvent: TimelineEvent | StateEvent, targetStorageEntry: TimelineEventEntry | undefined/*, log*/): boolean {
         // TODO: do we want to verify it is a m.reaction event somehow?
         const relation = getRelation(annotationEvent);
         if (!relation) {
             return false;
         }
 
-        let {annotations} = targetStorageEntry;
+        let annotations = targetStorageEntry?.annotations;
         if (!annotations) {
-            targetStorageEntry.annotations = annotations = {};
+            targetStorageEntry!.annotations = annotations = {};
         }
         let annotation = annotations[relation.key];
         if (!annotation) {
@@ -165,21 +177,20 @@ export class RelationWriter {
         return true;
     }
 
-    async _reaggregateRelation(redactedRelationEvent, redactedRelation, txn, log) {
+    async _reaggregateRelation(redactedRelationEvent: TimelineEvent | StateEvent | undefined, redactedRelation: Relation, txn: Transaction, log: ILogItem): Promise<TimelineEventEntry | undefined> {
         if (redactedRelation.rel_type === ANNOTATION_RELATION_TYPE) {
             return log.wrap("reaggregate annotations", log => this._reaggregateAnnotation(
-                redactedRelation.event_id,
+                redactedRelation.event_id!,
                 redactedRelation.key,
                 txn, log
             ));
         }
-        return null;
     }
 
-    async _reaggregateAnnotation(targetId, key, txn, log) {
+    async _reaggregateAnnotation(targetId: string, key: string, txn: Transaction, log: ILogItem): Promise<TimelineEventEntry | undefined> {
         const target = await txn.timelineEvents.getByEventId(this._roomId, targetId);
         if (!target || !target.annotations) { // unknown or redacted event
-            return null;
+            return undefined;
         }
         log.set("id", targetId);
         const relations = await txn.timelineRelations.getForTargetAndType(this._roomId, targetId, ANNOTATION_RELATION_TYPE);
@@ -193,15 +204,15 @@ export class RelationWriter {
             if (!annotation) {
                 log.log({l: "missing annotation", id: relation.sourceEventId});
             }
-            if (getRelation(annotation.event).key === key) {
-                this._aggregateAnnotation(annotation.event, target, log);
+            if (getRelation(annotation!.event!)!.key === key) {
+                this._aggregateAnnotation(annotation!.event, target);
             }
         }));
         return target;
     }
 }
 
-function isObjectEmpty(obj) {
+function isObjectEmpty(obj: {}): boolean {
     for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
             return false;
@@ -212,11 +223,8 @@ function isObjectEmpty(obj) {
 
 
 import {createMockStorage} from "../../../../mocks/Storage";
-import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event.js";
-import {createAnnotation} from "../relations.js";
-import {FragmentIdComparer} from "../FragmentIdComparer.js";
-import {NullLogItem} from "../../../../logging/NullLogger";
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);
     const roomId = "$abc";
@@ -224,7 +232,7 @@ export function tests() {
     const bob = "@bob:hs.tld";
 
     return {
-        "apply redaction": async assert => {
+        "apply redaction": async (assert): Promise<void> => {
             const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
             const reason = "nonsense, cats are the best!";
             const redaction = withRedacts(event.event_id, reason, createEvent("m.room.redaction", "!def", alice));
@@ -233,8 +241,8 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
-            const updatedEntries = await relationWriter.writeRelation(redactionEntry, txn, new NullLogItem());
+            void txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem(new NullLogger()));
+            const updatedEntries = await relationWriter.writeRelation(redactionEntry, txn, new NullLogItem(new NullLogger()));
             await txn.complete();
 
             assert.equal(updatedEntries.length, 1);
@@ -242,14 +250,14 @@ export function tests() {
             assert.equal(redactedMessage.id, "!abc");
             assert.equal(redactedMessage.content.body, undefined);
             assert.equal(redactedMessage.redactionReason, reason);
-            
+
             const readTxn = await storage.readTxn([storage.storeNames.timelineEvents]);
             const storedMessage = await readTxn.timelineEvents.getByEventId(roomId, "!abc");
             await readTxn.complete();
-            assert.equal(storedMessage.event.content.body, undefined);
-            assert.equal(storedMessage.event.unsigned.redacted_because.content.reason, reason);
+            assert.equal(storedMessage!.event.content.body, undefined);
+            assert.equal(storedMessage!.event!.unsigned!.redacted_because.content.reason, reason);
         },
-        "aggregate reaction": async assert => {
+        "aggregate reaction": async (assert): Promise<void> => {
             const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
             const reaction = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
             reaction.origin_server_ts = 5;
@@ -258,8 +266,8 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
-            const updatedEntries = await relationWriter.writeRelation(reactionEntry, txn, new NullLogItem());
+            void txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem(new NullLogger()));
+            const updatedEntries = await relationWriter.writeRelation(reactionEntry, txn, new NullLogItem(new NullLogger()));
             await txn.complete();
 
             assert.equal(updatedEntries.length, 1);
@@ -269,13 +277,13 @@ export function tests() {
             assert.equal(annotation.me, true);
             assert.equal(annotation.count, 1);
             assert.equal(annotation.firstTimestamp, 5);
-            
+
             const readTxn = await storage.readTxn([storage.storeNames.timelineEvents]);
             const storedMessage = await readTxn.timelineEvents.getByEventId(roomId, "!abc");
             await readTxn.complete();
-            assert(storedMessage.annotations["🐶"]);
+            assert(storedMessage!.annotations!["🐶"]);
         },
-        "aggregate second reaction": async assert => {
+        "aggregate second reaction": async (assert): Promise<void> => {
             const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
             const reaction1 = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
             reaction1.origin_server_ts = 5;
@@ -287,9 +295,9 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
-            await relationWriter.writeRelation(reaction1Entry, txn, new NullLogItem());
-            const updatedEntries = await relationWriter.writeRelation(reaction2Entry, txn, new NullLogItem());
+            void txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem(new NullLogger()));
+            await relationWriter.writeRelation(reaction1Entry, txn, new NullLogItem(new NullLogger()));
+            const updatedEntries = await relationWriter.writeRelation(reaction2Entry, txn, new NullLogItem(new NullLogger()));
             await txn.complete();
 
             assert.equal(updatedEntries.length, 1);
@@ -301,7 +309,7 @@ export function tests() {
             assert.equal(annotation.count, 2);
             assert.equal(annotation.firstTimestamp, 5);
         },
-        "redact second reaction": async assert => {
+        "redact second reaction": async (assert): Promise<void> => {
             const event = withTextBody("Dogs > Cats", createEvent("m.room.message", "!abc", bob));
             const myReaction = withContent(createAnnotation(event.event_id, "🐶"), createEvent("m.reaction", "!def", alice));
             myReaction.origin_server_ts = 5;
@@ -316,12 +324,12 @@ export function tests() {
 
             const storage = await createMockStorage();
             const txn = await storage.readWriteTxn([storage.storeNames.timelineEvents, storage.storeNames.timelineRelations]);
-            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem());
-            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 3, event: myReaction, roomId}, new NullLogItem());
-            await relationWriter.writeRelation(myReactionEntry, txn, new NullLogItem());
-            txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 4, event: bobReaction, roomId}, new NullLogItem());
-            await relationWriter.writeRelation(bobReactionEntry, txn, new NullLogItem());
-            const updatedEntries = await relationWriter.writeRelation(myReactionRedactionEntry, txn, new NullLogItem());
+            void txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 2, event, roomId}, new NullLogItem(new NullLogger()));
+            void txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 3, event: myReaction, roomId}, new NullLogItem(new NullLogger()));
+            await relationWriter.writeRelation(myReactionEntry, txn, new NullLogItem(new NullLogger()));
+            void txn.timelineEvents.tryInsert({fragmentId: 1, eventIndex: 4, event: bobReaction, roomId}, new NullLogItem(new NullLogger()));
+            await relationWriter.writeRelation(bobReactionEntry, txn, new NullLogItem(new NullLogger()));
+            const updatedEntries = await relationWriter.writeRelation(myReactionRedactionEntry, txn, new NullLogItem(new NullLogger()));
             await txn.complete();
 
             assert.equal(updatedEntries.length, 2);
@@ -338,8 +346,8 @@ export function tests() {
             const readTxn = await storage.readTxn([storage.storeNames.timelineEvents]);
             const storedMessage = await readTxn.timelineEvents.getByEventId(roomId, "!abc");
             await readTxn.complete();
-            assert.equal(storedMessage.annotations["🐶"].count, 1);
+            assert.equal(storedMessage!.annotations!["🐶"].count, 1);
         },
-        
-    }
+
+    };
 }

@@ -19,7 +19,7 @@ import {ConnectionError} from "../../error.js";
 import {PendingEvent, SendStatus} from "./PendingEvent.js";
 import {makeTxnId, isTxnId} from "../../common.js";
 import {REDACTION_TYPE} from "../common";
-import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
+import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -356,7 +356,7 @@ import {ListObserver} from "../../../mocks/ListObserver.js";
 import {NullLogger, NullLogItem} from "../../../logging/NullLogger";
 import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
 import {poll} from "../../../mocks/poll.js";
-import {createAnnotation} from "../timeline/relations.js";
+import {createAnnotation} from "../timeline/relations";
 
 export function tests() {
     const logger = new NullLogger();
@@ -445,6 +445,6 @@ export function tests() {
             await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
             assert.equal(queue.pendingEvents.length, 2);
         },
-        
+
     }
 }

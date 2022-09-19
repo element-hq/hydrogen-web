@@ -16,20 +16,29 @@ limitations under the License.
 
 import {directionalConcat, directionalAppend} from "./common.js";
 import {Direction} from "../Direction";
-import {EventEntry} from "../entries/EventEntry.js";
-import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
+import {EventEntry} from "../entries/EventEntry";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry";
+import type {Transaction} from "../../../storage/idb/Transaction";
+import type {EventKey} from "../EventKey";
+import type {FragmentIdComparer} from "../FragmentIdComparer";
+import type {Storage} from "../../../storage/idb/Storage";
+import type {StoreNames} from "../../../storage/common";
+import type {ILogItem} from "../../../../logging/types";
+import type {DecryptionRequest} from "../../BaseRoom";
 
 class ReaderRequest {
-    constructor(fn, log) {
-        this.decryptRequest = null;
+    decryptRequest?: DecryptionRequest;
+    private _promise: Promise<EventEntry[]>;
+
+    constructor(fn: (r: any, log: ILogItem) => Promise<EventEntry[]>, log: ILogItem) {
         this._promise = fn(this, log);
     }
 
-    complete() {
+    complete(): Promise<EventEntry[]> {
         return this._promise;
     }
 
-    dispose() {
+    dispose(): void {
         if (this.decryptRequest) {
             this.decryptRequest.dispose();
             this.decryptRequest = null;
@@ -41,8 +50,15 @@ class ReaderRequest {
  * Raw because it doesn't do decryption and in the future it should not read relations either.
  * It is just about reading entries and following fragment links
  */
-async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount, fragmentIdComparer, txn) {
-    let entries = [];
+ async function readRawTimelineEntriesWithTxn(
+    roomId: string,
+    eventKey: EventKey | null,
+    direction: Direction,
+    amount: number,
+    fragmentIdComparer: FragmentIdComparer,
+    txn: Transaction
+): Promise<EventEntry[]> {
+    let entries: EventEntry[] = [];
     const timelineStore = txn.timelineEvents;
     const fragmentStore = txn.timelineFragments;
 
@@ -63,7 +79,7 @@ async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount
             // TODO: why does the first fragment not need to be added? (the next *is* added below)
             // it looks like this would be fine when loading in the sync island
             // (as the live fragment should be added already) but not for permalinks when we support them
-            // 
+            //
             // fragmentIdComparer.addFragment(fragment);
             let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, fragmentIdComparer);
             // append or prepend fragmentEntry, reuse func from GapWriter?
@@ -83,19 +99,28 @@ async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount
     return entries;
 }
 
+type Options = {roomId: string, storage: Storage, fragmentIdComparer: FragmentIdComparer};
+
+type DecryptEntriesFn = (entries: EventEntry[], txn: Transaction, log: ILogItem) => DecryptionRequest;
+
 export class TimelineReader {
-    constructor({roomId, storage, fragmentIdComparer}) {
+    private _roomId: string;
+    private _storage: Storage;
+    private _fragmentIdComparer: FragmentIdComparer;
+    private _decryptEntries?: DecryptEntriesFn;
+
+    constructor({roomId, storage, fragmentIdComparer}: Options) {
         this._roomId = roomId;
         this._storage = storage;
         this._fragmentIdComparer = fragmentIdComparer;
-        this._decryptEntries = null;
+
     }
 
-    enableEncryption(decryptEntries) {
+    enableEncryption(decryptEntries: DecryptEntriesFn | undefined): void {
         this._decryptEntries = decryptEntries;
     }
 
-    get readTxnStores() {
+    get readTxnStores(): StoreNames[] {
         const stores = [
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
@@ -106,14 +131,14 @@ export class TimelineReader {
         return stores;
     }
 
-    readFrom(eventKey, direction, amount, log) {
-        return new ReaderRequest(async (r, log) => {
+    readFrom(eventKey: EventKey, direction: Direction, amount: number, log: ILogItem): ReaderRequest {
+        return new ReaderRequest(async (r: any, log: ILogItem): Promise<EventEntry[]> => {
             const txn = await this._storage.readTxn(this.readTxnStores);
             return await this._readFrom(eventKey, direction, amount, r, txn, log);
         }, log);
     }
 
-    readFromEnd(amount, existingTxn = null, log) {
+    readFromEnd(amount: number, existingTxn: Transaction | undefined = undefined, log: any): ReaderRequest {
         return new ReaderRequest(async (r, log) => {
             const txn = existingTxn || await this._storage.readTxn(this.readTxnStores);
             const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
@@ -132,7 +157,7 @@ export class TimelineReader {
         }, log);
     }
 
-    async readById(id, log) {
+    async readById(id: string, log: ILogItem): Promise<EventEntry | undefined> {
         let stores = [this._storage.storeNames.timelineEvents];
         if (this._decryptEntries) {
             stores.push(this._storage.storeNames.inboundGroupSessions);
@@ -149,7 +174,7 @@ export class TimelineReader {
         }
     }
 
-    async _readFrom(eventKey, direction, amount, r, txn, log) {
+    async _readFrom(eventKey: EventKey, direction: Direction, amount: number, r, txn: Transaction, log: ILogItem): Promise<EventEntry[]> {
         const entries = await readRawTimelineEntriesWithTxn(this._roomId, eventKey, direction, amount, this._fragmentIdComparer, txn);
         if (this._decryptEntries) {
             r.decryptRequest = this._decryptEntries(entries, txn, log);
