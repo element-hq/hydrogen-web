@@ -34,7 +34,7 @@ import {estimateStorageUsage} from "./dom/StorageEstimate.js";
 import {WorkerPool} from "./dom/WorkerPool.js";
 import {BlobHandle} from "./dom/BlobHandle.js";
 import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
-import {downloadInIframe} from "./dom/download.js";
+import {downloadInIframe} from "./dom/download";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
@@ -336,7 +336,7 @@ export class Platform {
         const error = await this.logger.wrapOrRun(log, { l: "replaceStylesheet", location: newPath, }, async (l) => {
             let error;
             const head = document.querySelector("head");
-            // remove default theme 
+            // remove default theme
             document.querySelectorAll(".theme").forEach(e => e.remove());
             // add new theme
             const styleTag = document.createElement("link");

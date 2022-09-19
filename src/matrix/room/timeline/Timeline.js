@@ -20,11 +20,11 @@ import {Disposables} from "../../../utils/Disposables";
 import {Direction} from "./Direction";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
-import {RoomMember} from "../members/RoomMember.js";
+import {RoomMember} from "../members/RoomMember";
 import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
-import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
@@ -45,7 +45,7 @@ export class Timeline {
         });
         this._readerRequest = null;
         this._allEntries = null;
-        /** Stores event entries that we had to fetch from hs/storage for reply previews (because they were not in timeline) */ 
+        /** Stores event entries that we had to fetch from hs/storage for reply previews (because they were not in timeline) */
         this._contextEntriesNotInTimeline = new Map();
         /** Only used to decrypt non-persisted context entries fetched from the homeserver */
         this._decryptEntries = null;
@@ -189,7 +189,7 @@ export class Timeline {
         // before it has any subscriptions, we bail out if this isn't
         // the case yet. This can happen when sync adds or replaces entries
         // before load has finished and the view has subscribed to the timeline.
-        // 
+        //
         // Once the subscription is setup, MappedList will set up the local
         // relations as needed with _applyAndEmitLocalRelationChange,
         // so we're not missing anything by bailing out.
@@ -239,7 +239,7 @@ export class Timeline {
                 if (err.name === "CompareError") {
                     // see FragmentIdComparer, if the replacing entry is on a fragment
                     // that is currently not loaded into the FragmentIdComparer, it will
-                    // throw a CompareError, and it means that the event is not loaded 
+                    // throw a CompareError, and it means that the event is not loaded
                     // in the timeline (like when receiving a relation for an event
                     // that is not loaded in memory) so we can just drop this error as
                     // replacing an event that is not already loaded is a no-op.
@@ -311,7 +311,7 @@ export class Timeline {
      * - timeline
      * - storage
      * - homeserver
-     * @param {EventEntry[]} entries 
+     * @param {EventEntry[]} entries
      */
     async _loadContextEntriesWhereNeeded(entries) {
         for (const entry of entries) {
@@ -392,7 +392,7 @@ export class Timeline {
      * [loadAtTop description]
      * @param  {[type]} amount [description]
      * @return {boolean} true if the top of the timeline has been reached
-     * 
+     *
      */
     async loadAtTop(amount) {
         if (this._disposables.isDisposed) {
@@ -547,7 +547,7 @@ export function tests() {
                 content: {},
                 relatedEventId: event2.event_id
             }}));
-            // 4. subscribe (it's now safe to iterate timeline.entries) 
+            // 4. subscribe (it's now safe to iterate timeline.entries)
             timeline.entries.subscribe(new ListObserver());
             // 5. check the local relation got correctly aggregated
             const locallyRedacted = await poll(() => Array.from(timeline.entries)[0].isRedacting);

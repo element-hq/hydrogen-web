@@ -92,7 +92,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     private profiles: Profile[] = [];
 
     public readonly isEncrypted: boolean;
-    private _calculatedName: string;
+    private _calculatedName?: string;
     private _error?: Error;
     private _isCancelled = false;
 
@@ -195,7 +195,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         } catch (err) {} // swallow error, loading profiles is not essential
     }
 
-    private emitChange(params?: string) {
+    private emitChange(params?: string): void {
         this.updateCallback(this, params);
         this.emit("change");
     }
@@ -204,11 +204,11 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     get avatarUrl(): string | undefined { return this.profiles?.[0]?.avatarUrl; }
     get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
     get roomId(): string | undefined { return this._roomId; }
-    get name() { return this._calculatedName; }
+    get name(): string | undefined { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
     get error(): Error | undefined { return this._error; }
 
-    cancel() {
+    cancel(): void {
         if (!this._isCancelled) {
             this.dispose();
             this._isCancelled = true;
@@ -216,10 +216,10 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         }
     }
     // called from Session when updateCallback is invoked to remove it from the collection
-    get isCancelled() { return this._isCancelled; }
+    get isCancelled(): boolean { return this._isCancelled; }
 
     /** @internal */
-    dispose() {
+    dispose(): void {
         if (this.options.avatar) {
             this.options.avatar.blob.dispose();
         }

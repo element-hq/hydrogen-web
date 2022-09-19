@@ -14,20 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { StateEvent } from "../../storage/types";
 import {getPrevContentFromStateEvent} from "../common";
 
 export const EVENT_TYPE = "m.room.member";
 
+type Membership = "join" | "leave" | "invite" | "ban";
+export interface MemberData {
+    roomId: string;
+    userId: string;
+    avatarUrl?: string;
+    displayName?: string;
+    membership: Membership;
+}
+
 export class RoomMember {
-    constructor(data) {
+    private _data: MemberData;
+
+    constructor(data: MemberData) {
         this._data = data;
     }
 
-    static fromUserId(roomId, userId, membership) {
+    static fromUserId(roomId: string, userId: string, membership: Membership): RoomMember {
         return new RoomMember({roomId, userId, membership});
     }
 
-    static fromMemberEvent(roomId, memberEvent) {
+    static fromMemberEvent(roomId: string, memberEvent: StateEvent): RoomMember | undefined {
         const userId = memberEvent?.state_key;
         if (typeof userId !== "string") {
             return;
@@ -45,7 +57,7 @@ export class RoomMember {
      * Creates a (historical) member from a member event that is the next member event
      * after the point in time where we need a member for. This will use `prev_content`.
      */
-    static fromReplacingMemberEvent(roomId, memberEvent) {
+    static fromReplacingMemberEvent(roomId: string, memberEvent: StateEvent): RoomMember | undefined {
         const userId = memberEvent && memberEvent.state_key;
         if (typeof userId !== "string") {
             return;
@@ -58,7 +70,13 @@ export class RoomMember {
         );
     }
 
-    static _validateAndCreateMember(roomId, userId, membership, displayName, avatarUrl) {
+    static _validateAndCreateMember(
+        roomId: string,
+        userId: string,
+        membership: Membership,
+        displayName: string,
+        avatarUrl: string
+    ): RoomMember | undefined {
         if (typeof membership !== "string") {
             return;
         }
@@ -71,44 +89,35 @@ export class RoomMember {
         });
     }
 
-    get membership() {
+    get membership(): string {
         return this._data.membership;
     }
 
-    /**
-     * @return {String?} the display name, if any
-     */
-    get displayName() {
+    get displayName(): string | undefined {
         return this._data.displayName;
     }
 
-    /**
-     * @return {String} the display name or userId
-     */
-    get name() {
+    get name(): string {
         return this._data.displayName || this._data.userId;
     }
 
-    /**
-     * @return {String?} the avatar mxc url, if any
-     */
-    get avatarUrl() {
+    get avatarUrl(): string | undefined {
         return this._data.avatarUrl;
     }
 
-    get roomId() {
+    get roomId(): string {
         return this._data.roomId;
     }
 
-    get userId() {
+    get userId(): string {
         return this._data.userId;
     }
 
-    serialize() {
+    serialize(): MemberData {
         return this._data;
     }
 
-    equals(other) {
+    equals(other: RoomMember): boolean {
         const data = this._data;
         const otherData = other._data;
         return data.roomId === otherData.roomId &&
@@ -120,28 +129,31 @@ export class RoomMember {
 }
 
 export class MemberChange {
-    constructor(member, previousMembership) {
+    member: RoomMember;
+    previousMembership: string;
+
+    constructor(member: RoomMember, previousMembership: string) {
         this.member = member;
         this.previousMembership = previousMembership;
     }
 
-    get roomId() {
+    get roomId(): string {
         return this.member.roomId;
     }
 
-    get userId() {
+    get userId(): string {
         return this.member.userId;
     }
 
-    get membership() {
+    get membership(): string {
         return this.member.membership;
     }
 
-    get wasInvited() {
+    get wasInvited(): boolean {
         return this.previousMembership === "invite" && this.membership !== "invite";
     }
 
-    get hasLeft() {
+    get hasLeft(): boolean {
         return this.previousMembership === "join" && this.membership !== "join";
     }
 
@@ -150,12 +162,12 @@ export class MemberChange {
      *  - the member event for this change was received in the
      *    state section and wasn't present in the timeline section.
      *  - the room response was limited, e.g. there was a gap.
-     * 
+     *
      * This is because during sync, in this case it is not possible
      * to distinguish between a new member that joined the room
      * during a gap and a lazy-loading member.
      * */
-    get hasJoined() {
+    get hasJoined(): boolean {
         return this.previousMembership !== "join" && this.membership === "join";
     }
 }

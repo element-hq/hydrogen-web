@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {Store} from "../Store";
-import {MemberData} from "./RoomMemberStore";
+import type {MemberData} from "../../../room/members/RoomMember";
 
 // TODO: Move to Invite when that's TypeScript.
 export interface InviteData {

@@ -16,7 +16,7 @@ limitations under the License.
 
 import {reduceStateEvents} from "./RoomSummary.js";
 import {BaseRoom} from "./BaseRoom.js";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember";
 
 export class ArchivedRoom extends BaseRoom {
     constructor(options) {
@@ -53,7 +53,7 @@ export class ArchivedRoom extends BaseRoom {
             return RoomMember.fromUserId(this.id, sender, "join");
         }
     }
-    
+
     async load(archivedRoomSummary, txn, log) {
         const {summary, kickDetails} = archivedRoomSummary;
         this._kickDetails = kickDetails;
@@ -160,7 +160,7 @@ export class ArchivedRoom extends BaseRoom {
 
             this._retentionCount = 0;
             this._releaseCallback();
-            
+
             this._forgetCallback(this.id);
         });
     }

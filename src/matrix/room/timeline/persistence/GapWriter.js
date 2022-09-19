@@ -17,7 +17,7 @@ limitations under the License.
 import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry.js";
 import {createEventEntry, directionalAppend} from "./common.js";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
 
 export class GapWriter {
     constructor({roomId, storage, fragmentIdComparer, relationWriter}) {
@@ -120,7 +120,7 @@ export class GapWriter {
             }
         }
         // assuming the member hasn't changed within the chunk, just take it from state if it's there.
-        // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances 
+        // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances
         const stateMemberEvent = state?.find(isOurUser);
         if (stateMemberEvent) {
             return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent);
@@ -196,7 +196,7 @@ export class GapWriter {
         // create entries for all events in chunk, add them to entries
         const {entries, updatedEntries} = await this._storeEvents(nonOverlappingEvents, lastKey, direction, state, txn, log);
         const fragments = await this._updateFragments(fragmentEntry, neighbourFragmentEntry, end, entries, txn, log);
-    
+
         return {entries, updatedEntries, fragments};
     }
 }

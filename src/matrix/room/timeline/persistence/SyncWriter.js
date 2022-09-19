@@ -19,7 +19,7 @@ import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry.js";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
 import {createEventEntry} from "./common.js";
-import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -114,7 +114,7 @@ export class SyncWriter {
     async _ensureLiveFragment(currentKey, entries, timeline, txn, log) {
         if (!currentKey) {
             // means we haven't synced this room yet (just joined or did initial sync)
-            
+
             // as this is probably a limited sync, prev_batch should be there
             // (but don't fail if it isn't, we won't be able to back-paginate though)
             let liveFragment = await this._createLiveFragment(txn, timeline.prev_batch);
@@ -214,10 +214,10 @@ export class SyncWriter {
      * @type {SyncWriterResult}
      * @property {Array<BaseEntry>} entries new timeline entries written
      * @property {EventKey} newLiveKey the advanced key to write events at
-     * 
+     *
      * @param  {Object}  roomResponse [description]
      * @param  {boolean}  isRejoin whether the room was rejoined in the sync being processed
-     * @param  {Transaction}  txn     
+     * @param  {Transaction}  txn
      * @return {SyncWriterResult}
      */
     async writeSync(roomResponse, isRejoin, hasFetchedMembers, txn, log) {

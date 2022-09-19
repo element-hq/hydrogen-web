@@ -1,16 +1,14 @@
 import {IDOMStorage} from "./types";
 import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
-import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
-import {SummaryData} from "../../room/RoomSummary";
-import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
-import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
+import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember";
+import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common";
+import {RoomMemberStore} from "./stores/RoomMemberStore";
+import {InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
 import {RoomStateEntry} from "./stores/RoomStateStore";
 import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
-import {MAX_UNICODE} from "./stores/common";
 import {ILogItem} from "../../../logging/types";
 
 
@@ -38,7 +36,7 @@ export const schema: MigrationFunc[] = [
 // TODO: how to deal with git merge conflicts of this array?
 
 // TypeScript note: for now, do not bother introducing interfaces / alias
-// for old schemas. Just take them as `any`. 
+// for old schemas. Just take them as `any`.
 
 function createDatabaseNameHelper(db: IDBDatabase): ITransaction {
     // the Store object gets passed in several things through the Transaction class (a wrapper around IDBTransaction),
@@ -55,7 +53,7 @@ function createDatabaseNameHelper(db: IDBDatabase): ITransaction {
 }
 
 
-// how do we deal with schema updates vs existing data migration in a way that 
+// how do we deal with schema updates vs existing data migration in a way that
 //v1
 function createInitialStores(db: IDBDatabase): void {
     db.createObjectStore("session", {keyPath: "key"});

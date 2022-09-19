@@ -16,7 +16,7 @@ limitations under the License.
 
 import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
 import {HistoryVisibility, shouldShareKey} from "./common.js";
-import {RoomMember} from "../room/members/RoomMember.js";
+import {RoomMember} from "../room/members/RoomMember";
 
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
@@ -67,8 +67,8 @@ export class DeviceTracker {
         // the usual problem here is that you share a room with a user,
         // go offline, the remote user leaves the room, changes their devices,
         // then rejoins the room you share (or another room).
-        // At which point you come online, all of this happens in the gap, 
-        // and you don't notice that they ever left, 
+        // At which point you come online, all of this happens in the gap,
+        // and you don't notice that they ever left,
         // and so the client doesn't invalidate their device cache for the user
         log.set("changed", changed.length);
         await Promise.all(changed.map(async userId => {
@@ -336,7 +336,7 @@ export class DeviceTracker {
         // because we don't have multiEntry support in IE11, we get a set of userIds that is pretty close to what we
         // need as a good first filter (given that non-join memberships will be in there). After fetching the identities,
         // we check which ones have the roomId for the room we're looking at.
-        
+
         // So, this will also contain non-joined memberships
         const userIds = await txn.roomMembers.getAllUserIds(roomId);
 
@@ -360,7 +360,7 @@ export class DeviceTracker {
     async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi, log) {
         const allMemberIdentities = await Promise.all(userIds.map(userId => userIdentityTxn.userIdentities.get(userId)));
         const identities = allMemberIdentities.filter(identity => {
-            // identity will be missing for any userIds that don't have 
+            // identity will be missing for any userIds that don't have
             // membership join in any of your encrypted rooms
             return identity && identity.roomIds.includes(roomId);
         });
@@ -578,7 +578,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             // alice is joined, bob is invited
-            const room = await createUntrackedRoomMock(roomId, 
+            const room = await createUntrackedRoomMock(roomId,
                 ["@alice:hs.tld"], ["@bob:hs.tld"]);
             await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
@@ -598,7 +598,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             // alice is joined, bob is invited
-            const room = await createUntrackedRoomMock(roomId, 
+            const room = await createUntrackedRoomMock(roomId,
                 ["@alice:hs.tld"], ["@bob:hs.tld"]);
             await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
             const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
