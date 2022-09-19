@@ -15,11 +15,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IGridItemViewModel} from './IGridItemViewModel';
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
+import type {Options as ViewModelOptions} from "../../ViewModel";
+import type {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated";
+import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 
-export class RoomBeingCreatedViewModel extends ViewModel {
-    constructor(options) {
+type Options = ViewModelOptions & {
+    roomBeingCreated: RoomBeingCreated,
+    mediaRepository: MediaRepository
+}
+
+export class RoomBeingCreatedViewModel extends ViewModel implements IGridItemViewModel {
+    private _roomBeingCreated: RoomBeingCreated;
+    private _mediaRepository: MediaRepository;
+    private _closeUrl: string;
+
+    constructor(options: Options) {
         super(options);
         const {roomBeingCreated, mediaRepository} = options;
         this._roomBeingCreated = roomBeingCreated;
@@ -29,12 +42,12 @@ export class RoomBeingCreatedViewModel extends ViewModel {
         this._roomBeingCreated.on("change", this._onRoomChange);
     }
 
-    get kind() { return "roomBeingCreated"; }
-    get closeUrl() { return this._closeUrl; }
-    get name() { return this._roomBeingCreated.name; }
-    get id() { return this._roomBeingCreated.id; }
-    get isEncrypted() { return this._roomBeingCreated.isEncrypted; }
-    get error() {
+    get kind(): string { return "roomBeingCreated"; }
+    get closeUrl(): string { return this._closeUrl; }
+    get name(): string { return this._roomBeingCreated.name; }
+    get id(): string { return this._roomBeingCreated.id; }
+    get isEncrypted(): boolean { return this._roomBeingCreated.isEncrypted; }
+    get error(): string {
         const {error} = this._roomBeingCreated;
         if (error) {
             if (error.name === "ConnectionError") {
@@ -45,29 +58,29 @@ export class RoomBeingCreatedViewModel extends ViewModel {
         }
         return "";
     }
-    get avatarLetter() { return avatarInitials(this.name); }
-    get avatarColorNumber() { return getIdentifierColorNumber(this._roomBeingCreated.avatarColorId); }
-    get avatarTitle() { return this.name; }
+    get avatarLetter(): string { return avatarInitials(this.name); }
+    get avatarColorNumber(): number { return getIdentifierColorNumber(this._roomBeingCreated.avatarColorId); }
+    get avatarTitle(): string { return this.name; }
 
-    avatarUrl(size) {
+    avatarUrl(size: number): string | null {
         // allow blob url which doesn't need mxc => http resolution
         return this._roomBeingCreated.avatarBlobUrl ??
-            getAvatarHttpUrl(this._roomBeingCreated.avatarUrl, size, this.platform, this._mediaRepository);
+            getAvatarHttpUrl(this._roomBeingCreated.avatarUrl!, size, this.platform, this._mediaRepository);
     }
 
-    focus() {}
+    focus(): void {}
 
-    _onRoomChange() {
-        this.emitChange();
+    _onRoomChange(): void {
+        this.emitChange("roomBeingCreated");
     }
 
-    cancel() {
+    cancel(): void {
         this._roomBeingCreated.cancel();
         // navigate away from the room
         this.navigation.applyPath(this.navigation.path.until("session"));
     }
 
-    dispose() {
+    dispose(): void {
         super.dispose();
         this._roomBeingCreated.off("change", this._onRoomChange);
     }

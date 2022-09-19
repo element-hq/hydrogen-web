@@ -28,17 +28,17 @@ import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 
 import type {SimpleTile} from "./SimpleTile.js";
-import type {Room} from "../../../../../matrix/room/Room";
 import type {Timeline} from "../../../../../matrix/room/timeline/Timeline";
 import type {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry";
 import type {EventEntry} from "../../../../../matrix/room/timeline/entries/EventEntry";
 import type {PendingEventEntry} from "../../../../../matrix/room/timeline/entries/PendingEventEntry";
 import type {Options as ViewModelOptions} from "../../../../ViewModel";
+import type {RoomViewModel} from "../../RoomViewModel";
 
 export type TimelineEntry = FragmentBoundaryEntry | EventEntry | PendingEventEntry;
 export type TileClassForEntryFn = (entry: TimelineEntry) => TileConstructor | undefined;
 export type Options = ViewModelOptions & {
-    room: Room,
+    roomVM: RoomViewModel,
     timeline: Timeline
     tileClassForEntry: TileClassForEntryFn;
 };

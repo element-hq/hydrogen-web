@@ -15,38 +15,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IGridItemViewModel} from './IGridItemViewModel';
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js"
+import {ComposerViewModel} from "./ComposerViewModel.js";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
-import {imageToInfo} from "../common.js";
+import {imageToInfo, MultiMediaInfo} from "../common";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
-import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
+import {tileClassForEntry as defaultTileClassForEntry, TimelineEntry} from "./timeline/tiles/index";
 import {RoomStatus} from "../../../matrix/room/common";
 
-export class RoomViewModel extends ViewModel {
-    constructor(options) {
+import type {Room} from "../../../matrix/room/Room";
+import type {TileClassForEntryFn, Options as TileOptions} from "./timeline/tiles";
+import type {SimpleTile} from "./timeline/tiles/SimpleTile";
+import type {Client} from "../../../matrix/Client";
+import type {Timeout} from "../../../platform/web/dom/Clock";
+import type {VideoHandle} from "../../../platform/web/dom/ImageHandle";
+import type {Options as ViewModelOptions} from "../../ViewModel";
+
+
+type Options = {
+    client?: Client;
+    room: Room,
+    tileClassForEntry?: TileClassForEntryFn
+} & ViewModelOptions;
+
+export class RoomViewModel extends ViewModel implements IGridItemViewModel {
+    private _client: Client;
+    private _room: Room;
+    private _tileClassForEntry: TileClassForEntryFn;
+    private _composerVM?: InternalViewModel;
+    private _timelineVM?: TimelineViewModel;
+    private _tileOptions?: TileOptions;
+    private _timelineError?: Error;
+    private _sendError?: Error;
+    private _clearUnreadTimout?: Timeout;
+    private _closeUrl: string;
+
+    constructor(options: Options) {
         super(options);
-        const {room, tileClassForEntry} = options;
+        const {client, room, tileClassForEntry} = options;
+        this._client = client;
         this._room = room;
-        this._timelineVM = null;
         this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
-        this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
-        this._timelineError = null;
-        this._sendError = null;
-        this._composerVM = null;
         if (room.isArchived) {
             this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
         } else {
-            this._recreateComposerOnPowerLevelChange();
+            void this._recreateComposerOnPowerLevelChange();
         }
-        this._clearUnreadTimout = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("session");
     }
 
-    async load() {
+    async load(): Promise<void> {
         this._room.on("change", this._onRoomChange);
         try {
             const timeline = await this._room.openTimeline();
@@ -65,22 +87,22 @@ export class RoomViewModel extends ViewModel {
             this._timelineError = err;
             this.emitChange("error");
         }
-        this._clearUnreadAfterDelay();
+        void this._clearUnreadAfterDelay();
     }
 
-    async _recreateComposerOnPowerLevelChange() {
+    async _recreateComposerOnPowerLevelChange(): Promise<void> {
         const powerLevelObservable = await this._room.observePowerLevels();
-        const canSendMessage = () => powerLevelObservable.get().canSendType("m.room.message");
+        const canSendMessage = (): boolean => powerLevelObservable.get().canSendType("m.room.message");
         let oldCanSendMessage = canSendMessage();
-        const recreateComposer = newCanSendMessage => {
+        const recreateComposer = (newCanSendMessage: boolean): void => {
             this._composerVM = this.disposeTracked(this._composerVM);
             if (newCanSendMessage) {
                 this._composerVM = this.track(new ComposerViewModel(this));
             }
             else {
-                this._composerVM = this.track(new LowerPowerLevelViewModel(this.childOptions()));
+                this._composerVM = this.track(new LowerPowerLevelViewModel(this.childOptions({})));
             }
-            this.emitChange("powerLevelObservable")
+            this.emitChange("powerLevelObservable");
         };
         this.track(powerLevelObservable.subscribe(() => {
             const newCanSendMessage = canSendMessage();
@@ -92,7 +114,7 @@ export class RoomViewModel extends ViewModel {
         recreateComposer(oldCanSendMessage);
     }
 
-    async _clearUnreadAfterDelay() {
+    async _clearUnreadAfterDelay(): Promise<void> {
         if (this._room.isArchived || this._clearUnreadTimout) {
             return;
         }
@@ -108,11 +130,11 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    focus() {
-        this._clearUnreadAfterDelay();
+    focus(): void {
+        void this._clearUnreadAfterDelay();
     }
 
-    dispose() {
+    dispose(): void {
         super.dispose();
         this._room.off("change", this._onRoomChange);
         if (this._room.isArchived) {
@@ -120,26 +142,26 @@ export class RoomViewModel extends ViewModel {
         }
         if (this._clearUnreadTimout) {
             this._clearUnreadTimout.abort();
-            this._clearUnreadTimout = null;
+            this._clearUnreadTimout = undefined;
         }
     }
 
     // room doesn't tell us yet which fields changed,
     // so emit all fields originating from summary
-    _onRoomChange() {
+    _onRoomChange(): void {
         // propagate the update to the child view models so it's bindings can update based on room changes
-        this._composerVM.emitChange();
-        this.emitChange();
+        this._composerVM?.emitChange("TODO");
+        this.emitChange("TODO");
     }
 
-    get kind() { return "room"; }
-    get closeUrl() { return this._closeUrl; }
-    get name() { return this._room.name || this.i18n`Empty Room`; }
-    get id() { return this._room.id; }
-    get timelineViewModel() { return this._timelineVM; }
-    get isEncrypted() { return this._room.isEncrypted; }
+    get kind(): "room" { return "room"; }
+    get closeUrl(): string { return this._closeUrl; }
+    get name(): string { return this._room.name || this.i18n`Empty Room`; }
+    get id(): string { return this._room.id; }
+    get timelineViewModel(): TimelineViewModel { return this._timelineVM; }
+    get isEncrypted(): boolean { return this._room.isEncrypted; }
 
-    get error() {
+    get error(): string {
         if (this._timelineError) {
             return `Something went wrong loading the timeline: ${this._timelineError.message}`;
         }
@@ -149,47 +171,47 @@ export class RoomViewModel extends ViewModel {
         return "";
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.avatarColorId)
+    get avatarColorNumber(): number {
+        return getIdentifierColorNumber(this._room.avatarColorId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size): string | null {
         return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.name;
     }
 
-    get canLeave() {
+    get canLeave(): boolean {
         return this._room.isJoined;
     }
 
-    leaveRoom() {
+    leaveRoom(): void {
         this._room.leave();
     }
 
-    get canForget() {
+    get canForget(): boolean {
         return this._room.isArchived;
     }
 
-    forgetRoom() {
+    forgetRoom(): void {
         this._room.forget();
     }
 
-    get canRejoin() {
+    get canRejoin(): boolean {
         return this._room.isArchived;
     }
 
-    rejoinRoom() {
+    rejoinRoom(): void {
         this._room.join();
     }
 
-    _createTile(entry) {
+    _createTile(entry: TimelineEntry): SimpleTile | undefined {
         if (this._tileOptions) {
             const Tile = this._tileOptions.tileClassForEntry(entry);
             if (Tile) {
@@ -197,11 +219,11 @@ export class RoomViewModel extends ViewModel {
             }
         }
     }
-    
-    async _processCommandJoin(roomName) {
+
+    async _processCommandJoin(roomName: string): Promise<void> {
         try {
-            const roomId = await this._options.client.session.joinRoom(roomName);
-            const roomStatusObserver = await this._options.client.session.observeRoomStatus(roomId);
+            const roomId = await this._client.session.joinRoom(roomName);
+            const roomStatusObserver = await this._client.session.observeRoomStatus(roomId);
             await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
             this.navigation.push("room", roomId);
         } catch (err) {
@@ -216,14 +238,17 @@ export class RoomViewModel extends ViewModel {
                 exc = err;
             }
             this._sendError = exc;
-            this._timelineError = null;
+            this._timelineError = undefined;
             this.emitChange("error");
         }
-    } 
+    }
 
-    async _processCommand (message) {
-        let msgtype;
-        const [commandName, ...args] = message.substring(1).split(" ");
+    async _processCommand(message: string | undefined): Promise<{
+        type: string,
+        message?: string
+    }> {
+        let msgtype: string = "";
+        const [commandName, ...args] = message!.substring(1).split(" ");
         switch (commandName) {
             case "me":
                 message = args.join(" ");
@@ -235,7 +260,7 @@ export class RoomViewModel extends ViewModel {
                     await this._processCommandJoin(roomName);
                 } else {
                     this._sendError = new Error("join syntax: /join <room-id>");
-                    this._timelineError = null;
+                    this._timelineError = undefined;
                     this.emitChange("error");
                 }
                 break;
@@ -257,16 +282,16 @@ export class RoomViewModel extends ViewModel {
                 break;
             default:
                 this._sendError = new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`);
-                this._timelineError = null;
+                this._timelineError = undefined;
                 this.emitChange("error");
                 message = undefined;
        }
        return {type: msgtype, message: message};
    }
-    
-    async _sendMessage(message, replyingTo) {
+
+    async _sendMessage(message: string, replyingTo): Promise<boolean> {
         if (!this._room.isArchived && message) {
-            let messinfo = {type : "m.text", message : message};
+            let messinfo: {type: string, message?: string} = {type : "m.text", message: message};
             if (message.startsWith("//")) {
                 messinfo.message = message.substring(1).trim();
             } else if (message.startsWith("/")) {
@@ -285,7 +310,7 @@ export class RoomViewModel extends ViewModel {
             } catch (err) {
                 console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
                 this._sendError = err;
-                this._timelineError = null;
+                this._timelineError = undefined;
                 this.emitChange("error");
                 return false;
             }
@@ -294,7 +319,7 @@ export class RoomViewModel extends ViewModel {
         return false;
     }
 
-    async _pickAndSendFile() {
+    async _pickAndSendFile(): Promise<void>{
         try {
             const file = await this.platform.openFile();
             if (!file) {
@@ -306,7 +331,7 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    async _sendFile(file) {
+    async _sendFile(file): Promise<void> {
         const content = {
             body: file.name,
             msgtype: "m.file"
@@ -316,7 +341,7 @@ export class RoomViewModel extends ViewModel {
         });
     }
 
-    async _pickAndSendVideo() {
+    async _pickAndSendVideo(): Promise<void>{
         try {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
@@ -329,7 +354,7 @@ export class RoomViewModel extends ViewModel {
             if (!file.blob.mimeType.startsWith("video/")) {
                 return this._sendFile(file);
             }
-            let video;
+            let video: VideoHandle;
             try {
                 video = await this.platform.loadVideo(file.blob);
             } catch (err) {
@@ -353,7 +378,7 @@ export class RoomViewModel extends ViewModel {
             const maxDimension = limit || Math.min(video.maxDimension, 800);
             const thumbnail = await video.scale(maxDimension);
             content.info.thumbnail_info = imageToInfo(thumbnail);
-            attachments["info.thumbnail_url"] = 
+            attachments["info.thumbnail_url"] =
                 this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments);
         } catch (err) {
@@ -363,7 +388,7 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    async _pickAndSendPicture() {
+    async _pickAndSendPicture(): Promise<void> {
         try {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
@@ -394,7 +419,7 @@ export class RoomViewModel extends ViewModel {
             if (image.maxDimension > 600) {
                 const thumbnail = await image.scale(400);
                 content.info.thumbnail_info = imageToInfo(thumbnail);
-                attachments["info.thumbnail_url"] = 
+                attachments["info.thumbnail_url"] =
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
             await this._room.sendEvent("m.room.message", content, attachments);
@@ -405,46 +430,54 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    get room() {
+    get room(): Room {
         return this._room;
     }
 
-    get composerViewModel() {
+    get composerViewModel(): InternalViewModel | undefined {
         return this._composerVM;
     }
 
-    openDetailsPanel() {
+    openDetailsPanel(): void {
         let path = this.navigation.path.until("room");
-        path = path.with(this.navigation.segment("right-panel", true));
-        path = path.with(this.navigation.segment("details", true));
+        path = path.with(this.navigation.segment("right-panel", true))!;
+        path = path.with(this.navigation.segment("details", true))!;
         this.navigation.applyPath(path);
     }
 
-    startReply(entry) {
+    startReply(entry): void {
         if (!this._room.isArchived) {
-            this._composerVM.setReplyingTo(entry);
+            if (this._composerVM instanceof ComposerViewModel) {
+                this._composerVM?.setReplyingTo(entry);
+            }
         }
     }
-    
-    dismissError() {
-        this._sendError = null;
+
+    dismissError(): void {
+        this._sendError = undefined;
         this.emitChange("error");
     }
 }
 
-function videoToInfo(video) {
+function videoToInfo(video: VideoHandle): MultiMediaInfo {
     const info = imageToInfo(video);
     info.duration = video.duration;
     return info;
 }
 
+type ArchivedViewModelOptions = {
+    archivedRoom: Room;
+} & ViewModelOptions;
+
 class ArchivedViewModel extends ViewModel {
-    constructor(options) {
+    private _archivedRoom: Room;
+
+    constructor(options: ArchivedViewModelOptions) {
         super(options);
         this._archivedRoom = options.archivedRoom;
     }
 
-    get description() {
+    get description(): string {
         if (this._archivedRoom.isKicked) {
             if (this._archivedRoom.kickReason) {
                 return this.i18n`You were kicked from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
@@ -462,17 +495,19 @@ class ArchivedViewModel extends ViewModel {
         }
     }
 
-    get kind() {
+    get kind(): string {
         return "disabled";
     }
 }
 
 class LowerPowerLevelViewModel extends ViewModel {
-    get description() {
+    get description(): string {
         return this.i18n`You do not have the powerlevel necessary to send messages`;
     }
 
-    get kind() {
+    get kind(): string {
         return "disabled";
     }
 }
+
+type InternalViewModel = ArchivedViewModel | ComposerViewModel | LowerPowerLevelViewModel;
