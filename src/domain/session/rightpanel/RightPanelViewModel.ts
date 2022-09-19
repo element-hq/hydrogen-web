@@ -43,7 +43,6 @@ export class RightPanelViewModel extends ViewModel {
         super(options);
         this._room = options.room;
         this._session = options.session;
-        this._members = null;
         this._setupNavigation();
     }
 
@@ -52,11 +51,11 @@ export class RightPanelViewModel extends ViewModel {
     async _getMemberListArguments(): Promise<MemberListViewModelOptions> {
         if (!this._members) {
             this._members = await this._room.loadMemberList();
-            this.track(() => this._members.release());
+            this.track(() => this._members!.release());
         }
         const room = this._room;
         const powerLevelsObservable = await this._room.observePowerLevels();
-        return {members: this._members, powerLevelsObservable, mediaRepository: room.mediaRepository};
+        return {members: this._members!, powerLevelsObservable, mediaRepository: room.mediaRepository};
     }
 
 
