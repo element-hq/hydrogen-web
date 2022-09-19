@@ -13,7 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-const path = require('path').posix;
+// Use the path implementation native to the platform so paths from disk play
+// well with resolving against the relative location (think Windows `C:\` and
+// backslashes).
+const path = require('path');
+// Use the posix (forward slash) implementation when working with `import` paths
+// to reference resources
+const posixPath = require('path').posix;
 const {optimize} = require('svgo');
 
 async function readCSSSource(location) {
@@ -238,7 +244,7 @@ module.exports = function buildThemes(options) {
                     switch (file) {
                         case "index.js": {
                             const isDark = variants[variant].dark;
-                            return `import "${path.resolve(`${location}/theme.css`)}${isDark? "?dark=true": ""}";` +
+                            return `import "${posixPath.resolve(`${location}/theme.css`)}${isDark? "?dark=true": ""}";` +
                                 `import "@theme/${theme}/${variant}/variables.css"`;
                         }
                         case "variables.css": { 
