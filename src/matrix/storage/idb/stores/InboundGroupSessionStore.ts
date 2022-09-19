@@ -35,8 +35,8 @@ export interface InboundGroupSessionEntry {
     session?: string;
     claimedKeys?: { [algorithm : string] : string };
     eventIds?: string[];
-    backup: BackupStatus,
-    source: KeySource
+    backup?: BackupStatus,
+    source?: KeySource
 }
 
 type InboundGroupSessionStorageEntry = InboundGroupSessionEntry & { key: string };
@@ -69,7 +69,7 @@ export class InboundGroupSessionStore {
         this._store.put(storageEntry);
     }
 
-    removeAllForRoom(roomId: string) {
+    removeAllForRoom(roomId: string): void {
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, MAX_UNICODE, MAX_UNICODE)

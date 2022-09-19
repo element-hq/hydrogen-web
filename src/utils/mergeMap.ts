@@ -22,9 +22,10 @@ export function mergeMap<K, V>(src: Map<K, V> | undefined, dst: Map<K, V>): void
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "mergeMap with src": assert => {
+        "mergeMap with src": (assert): void => {
             const src = new Map();
             src.set(1, "a");
             const dst = new Map();
@@ -34,8 +35,8 @@ export function tests() {
             assert.equal(dst.get(2), "b");
             assert.equal(src.get(2), null);
         },
-        "mergeMap without src doesn't fail": () => {
+        "mergeMap without src doesn't fail": (): void => {
             mergeMap(undefined, new Map());
         }
-    }
+    };
 }
