@@ -14,11 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../ViewModel";
+import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {LoginFailure} from "../../matrix/Client.js";
+import type {TokenLoginMethod} from "../../matrix/login";
+import { Client } from "../../matrix/Client.js";
+
+type Options = {
+    client: Client;
+    attemptLogin: (loginMethod: TokenLoginMethod) => Promise<null>;
+    loginToken: string;
+} & BaseOptions
 
 export class CompleteSSOLoginViewModel extends ViewModel {
-    constructor(options) {
+    private _loginToken: string;
+    private _client: Client;
+    private _attemptLogin: (loginMethod: TokenLoginMethod) => Promise<null>;
+    private _errorMessage = "";
+
+    constructor(options: Options) {
         super(options);
         const {
             loginToken,
@@ -29,22 +42,22 @@ export class CompleteSSOLoginViewModel extends ViewModel {
         this._client = client;
         this._attemptLogin = attemptLogin;
         this._errorMessage = "";
-        this.performSSOLoginCompletion();
+        void this.performSSOLoginCompletion();
     }
 
-    get errorMessage() { return this._errorMessage; }
+    get errorMessage(): string { return this._errorMessage; }
 
-    _showError(message) {
+    _showError(message: string): void {
         this._errorMessage = message;
         this.emitChange("errorMessage");
     }
 
-    async performSSOLoginCompletion() {
+    async performSSOLoginCompletion(): Promise<void> {
         if (!this._loginToken) {
             return;
         }
         const homeserver = await this.platform.settingsStorage.getString("sso_ongoing_login_homeserver");
-        let loginOptions;
+        let loginOptions: { token?: (loginToken: string) => TokenLoginMethod; };
         try {
             loginOptions = await this._client.queryLogin(homeserver).result;
         }

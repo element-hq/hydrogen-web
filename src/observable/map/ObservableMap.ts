@@ -97,7 +97,7 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     keys(): Iterator<K> {
         return this._values.keys();
     }
-};
+}
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {

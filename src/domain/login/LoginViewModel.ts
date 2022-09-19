@@ -16,9 +16,9 @@ limitations under the License.
 
 import {Client} from "../../matrix/Client.js";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import {PasswordLoginViewModel} from "./PasswordLoginViewModel.js";
-import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel.js";
-import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel.js";
+import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
+import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
+import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel";
 import {LoadStatus} from "../../matrix/Client.js";
 import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
 import {SegmentType} from "../navigation/index";
@@ -60,15 +60,15 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._initViewModels();
     }
 
-    get passwordLoginViewModel(): PasswordLoginViewModel {
+    get passwordLoginViewModel(): PasswordLoginViewModel | undefined {
         return this._passwordLoginViewModel;
     }
 
-    get startSSOLoginViewModel(): StartSSOLoginViewModel {
+    get startSSOLoginViewModel(): StartSSOLoginViewModel | undefined {
         return this._startSSOLoginViewModel;
     }
 
-    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel {
+    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel | undefined {
         return this._completeSSOLoginViewModel;
     }
 
@@ -285,7 +285,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 type ReadyFn = (client: Client) => void;
 
 // TODO: move to Client.js when its converted to typescript.
-type LoginOptions = {
+export type LoginOptions = {
     homeserver: string;
     password?: (username: string, password: string) => PasswordLoginMethod;
     sso?: SSOLoginHelper;

@@ -45,8 +45,7 @@ export class BaseMappedList<F,T,R = T> extends BaseObservableList<T> {
         return this._mappedValues!.length;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    [Symbol.iterator]() {
+    [Symbol.iterator](): IterableIterator<T> {
         return this._mappedValues!.values();
     }
 }

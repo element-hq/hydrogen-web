@@ -86,13 +86,11 @@ export class ConcatList<T> extends BaseObservableList<T> implements IListObserve
         return len;
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-    [Symbol.iterator]() {
+    [Symbol.iterator](): Iterator<T> {
         let sourceListIdx = 0;
         let it = this._sourceLists[0][Symbol.iterator]();
         return {
-            // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-            next: () => {
+            next: (): IteratorResult<T> => {
                 let result = it.next();
                 while (result.done) {
                     sourceListIdx += 1;

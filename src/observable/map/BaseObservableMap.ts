@@ -34,6 +34,7 @@ Instead, it MUST be imported from index.ts. See the
 top level comment in index.ts for details.
 */
 export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserver<K, V>> {
+
     constructor() {
         super();
     }
