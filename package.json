@@ -18,7 +18,8 @@
     "start": "vite --port 3000",
     "build": "vite build && ./scripts/cleanup.sh",
     "build:sdk": "./scripts/sdk/build.sh",
-    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch"
+    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch",
+    "type-check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -52,7 +53,7 @@
     "regenerator-runtime": "^0.13.7",
     "svgo": "^2.8.0",
     "text-encoding": "^0.7.0",
-    "typescript": "^4.7.0",
+    "typescript": "^4.7.3",
     "vite": "^2.9.8",
     "xxhashjs": "^0.2.2"
   },
