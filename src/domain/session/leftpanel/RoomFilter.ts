@@ -1,5 +1,5 @@
 /*
-Copyright 2020, 2021 The Matrix.org Foundation C.I.C.
+Copyright 2020 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,11 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {BaseTileViewModel} from "./BaseTileViewModel";
 
-export function comparePrimitive(a, b) {
-    if (a === b) {
-        return 0;
-    } else {
-        return a < b ? -1 : 1;
+export class RoomFilter {
+    private _parts: string[];
+
+    constructor(query: string) {
+        this._parts = query.split(" ").map(s => s.toLowerCase().trim());
+    }
+
+    matches(baseTileVM: BaseTileViewModel): boolean {
+        const name = baseTileVM.name.toLowerCase();
+        return this._parts.every(p => name.includes(p));
     }
 }

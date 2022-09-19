@@ -34,6 +34,7 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
+    "join-room": boolean;
 };
 
 export function createNavigation(): Navigation<SegmentType> {

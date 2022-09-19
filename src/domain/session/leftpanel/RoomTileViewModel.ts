@@ -14,29 +14,34 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
+import {Options as ViewModelOptions} from "../../ViewModel.js";
+import {Room} from "../../../matrix/room/Room.js";
 
-import {BaseTileViewModel} from "./BaseTileViewModel.js";
+
+type Options = {
+    room: Room;
+} & ViewModelOptions;
 
 export class RoomTileViewModel extends BaseTileViewModel {
-    constructor(options) {
+    private readonly _room: Room;
+    private _url: string;
+
+    constructor(options: Readonly<Options>) {
         super(options);
         const {room} = options;
         this._room = room;
         this._url = this.urlCreator.openRoomActionUrl(this._room.id);
     }
 
-    get kind() {
-        return "room";
-    }
-
-    get url() {
-        return this._url;
-    }
+    get kind(): Kind { return "room"; }
+    get url(): string { return this._url; }
+    get _avatarSource(): AvatarSource { return this._room; }
 
     /** very important that sorting order is stable and that comparing
      * to itself always returns 0, otherwise SortedMapList will
      * remove the wrong children, etc ... */
-    compare(other) {
+    compare(other: RoomTileViewModel): number {
         const parentComparison = super.compare(other);
         if (parentComparison !== 0) {
             return parentComparison;
@@ -78,23 +83,19 @@ export class RoomTileViewModel extends BaseTileViewModel {
         return timeDiff;
     }
 
-    get isUnread() {
+    get isUnread(): boolean {
         return this._room.isUnread;
     }
 
-    get name() {
+    get name(): string {
         return this._room.name || this.i18n`Empty Room`;
     }
 
-    get badgeCount() {
+    get badgeCount(): number {
         return this._room.notificationCount;
     }
 
-    get isHighlighted() {
+    get isHighlighted(): boolean {
         return this._room.highlightCount !== 0;
-    }
-
-    get _avatarSource() {
-        return this._room;
     }
 }
