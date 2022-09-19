@@ -29,7 +29,7 @@ export type Relation = {
     }
 }
 export type Annotation = {
-    "m.relates_to": Relation;
+    "m.relates_to"?: Relation;
 };
 
 export type RelationEvent = TimelineEvent & {
