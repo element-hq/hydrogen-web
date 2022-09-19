@@ -15,43 +15,56 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
+import type {Options as BaseOptions} from "../../ViewModel";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
+import type {MediaRepository} from "../../../matrix/net/MediaRepository";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember.js";
+
+type Options = {
+    member: RoomMember;
+    emitChange: any;
+    mediaRepository: MediaRepository;
+} & BaseOptions;
 
 export class MemberTileViewModel extends ViewModel {
-    constructor(options) {
+    private _member: RoomMember;
+    private _mediaRepository: MediaRepository;
+    private _previousName?: string;
+    private _nameChanged: boolean = true;
+    private _disambiguate?: boolean;
+
+    constructor(options: Options) {
         super(options);
-        this._member = this._options.member;
-        this._mediaRepository = options.mediaRepository
-        this._previousName = null;
-        this._nameChanged = true;
+        this._member = options.member;
+        this._mediaRepository = options.mediaRepository;
     }
 
-    get name() {
+    get name(): string {
         return `${this._member.name}${this._disambiguationPart}`;
     }
 
-    get _disambiguationPart() {
+    get _disambiguationPart(): string {
         return this._disambiguate ? ` (${this.userId})` : "";
     }
 
-    get userId() {
+    get userId(): string {
         return this._member.userId;
     }
 
-    get previousName() {
+    get previousName(): string | undefined {
         return this._previousName;
     }
 
-    get nameChanged() {
+    get nameChanged(): boolean {
         return this._nameChanged;
     }
 
-    get detailsUrl() {
-        const roomId = this.navigation.path.get("room").value;
+    get detailsUrl(): string {
+        const roomId = this.navigation.path.get("room")!.value;
         return `${this.urlCreator.openRoomActionUrl(roomId)}/member/${this._member.userId}`;
     }
 
-    _updatePreviousName(newName) {
+    _updatePreviousName(newName: string): void {
         const currentName = this._member.name;
         if (currentName !== newName) {
             this._previousName = currentName;
@@ -61,29 +74,29 @@ export class MemberTileViewModel extends ViewModel {
         }
     }
 
-    setDisambiguation(status) {
+    setDisambiguation(status: boolean): void {
         this._disambiguate = status;
-        this.emitChange();
+        this.emitChange("TODO");
     }
 
-    updateFrom(newMember) {
+    updateFrom(newMember: RoomMember): void {
         this._updatePreviousName(newMember.name);
         this._member = newMember;
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this.userId)
+    get avatarColorNumber(): number {
+        return getIdentifierColorNumber(this.userId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size: number): string | null {
         return getAvatarHttpUrl(this._member.avatarUrl, size, this.platform, this._mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.name;
     }
 }
