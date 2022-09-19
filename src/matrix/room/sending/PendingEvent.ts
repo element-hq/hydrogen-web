@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {AbortError} from "../../../utils/error";
 import {REDACTION_TYPE} from "../common";
-import {getRelationFromContent, getRelationTarget, setRelationTarget} from "../timeline/relations.js";
+import {getRelationFromContent, getRelationTarget, setRelationTarget} from "../timeline/relations";
 import type {PendingEntry} from "../../storage/idb/stores/PendingEventStore";
 import type {AttachmentUpload} from "../AttachmentUpload";
 import type {HomeServerApi} from "../../net/HomeServerApi";
@@ -79,8 +79,8 @@ export class PendingEvent {
     get txnId(): string | undefined { return this._data.txnId; }
     get remoteId(): string | null { return this._data.remoteId; }
     get content(): Content { return this._data.content; }
-    get relatedTxnId(): string | null { return this._data.relatedTxnId; }
-    get relatedEventId(): string | null {
+    get relatedTxnId(): string | undefined { return this._data.relatedTxnId; }
+    get relatedEventId(): string | undefined {
         const relation = getRelationFromContent(this.content);
         if (relation) {
             // may be null when target is not sent yet, is intended

@@ -178,7 +178,7 @@ import {Timeline} from "../../../../matrix/room/timeline/Timeline.js";
 import {EventEntry} from "../../../../matrix/room/timeline/entries/EventEntry.js";
 import {RelationWriter} from "../../../../matrix/room/timeline/persistence/RelationWriter.js";
 import {FragmentIdComparer} from "../../../../matrix/room/timeline/FragmentIdComparer.js";
-import {createAnnotation} from "../../../../matrix/room/timeline/relations.js";
+import {createAnnotation} from "../../../../matrix/room/timeline/relations";
 // mocks
 import {Clock as MockClock} from "../../../../mocks/Clock.js";
 import {createMockStorage} from "../../../../mocks/Storage";

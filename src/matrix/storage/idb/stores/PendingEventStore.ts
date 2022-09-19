@@ -24,8 +24,8 @@ export interface PendingEntry {
     queueIndex: number;
     eventType: string;
     content: Content;
-    relatedTxnId: string | null;
-    relatedEventId: string | null;
+    relatedTxnId?: string;
+    relatedEventId?: string;
     txnId?: string;
     needsEncryption: boolean;
     needsUpload: boolean;

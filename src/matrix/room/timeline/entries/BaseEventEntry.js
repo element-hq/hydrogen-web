@@ -16,9 +16,9 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry";
 import {REDACTION_TYPE} from "../../common";
-import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations";
 import {PendingAnnotation} from "../PendingAnnotation.js";
-import {createReplyContent} from "./reply.js"
+import {createReplyContent} from "./reply.js";
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */
@@ -75,7 +75,7 @@ export class BaseEventEntry extends BaseEntry {
     }
 
     /**
-        Aggregates relation or redaction of remote relation.  
+        Aggregates relation or redaction of remote relation.
         Used in two situations:
         - to aggregate local relation/redaction of remote relation
         - to mark this entry as being redacted in Timeline._updateEntriesFetchedFromHomeserver
@@ -101,7 +101,7 @@ export class BaseEventEntry extends BaseEntry {
             }
         }
     }
-    
+
     /**
         deaggregates local relation or a local redaction of a remote relation.
         @return [string] returns the name of the field that has changed, if any

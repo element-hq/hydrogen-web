@@ -19,7 +19,7 @@ import {ConnectionError} from "../../error";
 import {PendingEvent, PendingEventData, SendStatus} from "./PendingEvent";
 import {makeTxnId, isTxnId} from "../../common";
 import {REDACTION_TYPE} from "../common";
-import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations";
+import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE, Relation} from "../timeline/relations";
 import type {RoomEncryption} from "../../e2ee/RoomEncryption.js";
 import type {AttachmentUpload} from "../AttachmentUpload";
 import type {ILogItem} from "../../../logging/types";
@@ -27,6 +27,8 @@ import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {TimelineEvent} from "../../storage/types";
 import type {Storage} from "../../storage/idb/Storage";
+
+type EventContent = { "m.relates_to"?: Relation; reason?: any; body?: string; }
 
 type Options = {
     roomId: string;
@@ -229,22 +231,22 @@ export class SendQueue {
 
     async enqueueEvent(
         eventType: string,
-        content: { body: string }, // TODO
+        content: EventContent,
         attachments: Record<string, AttachmentUpload> | null,
         log: ILogItem | NullLogItem
     ): Promise<void> {
         const relation = getRelationFromContent(content);
-        let relatedTxnId: string | null = null;
+        let relatedTxnId: string | undefined;
         if (relation) {
             const relationTarget = getRelationTarget(relation);
             if (isTxnId(relationTarget)) {
                 relatedTxnId = relationTarget;
-                setRelationTarget(relation, null);
+                setRelationTarget(relation, undefined);
             }
             if (relation.rel_type === ANNOTATION_RELATION_TYPE) {
                 // Here we know the shape of the relation, and can use event_id safely
                 const isAlreadyAnnotating = this._pendingEvents.array.some(pe => {
-                    const r = getRelationFromContent(pe.content);
+                    const r = getRelationFromContent(pe.content as { "m.relates_to": Relation; });
                     return pe.eventType === eventType && r && r.key === relation.key &&
                         (pe.relatedTxnId === relatedTxnId || r.event_id === relation.event_id);
                 });
@@ -254,15 +256,15 @@ export class SendQueue {
                 }
             }
         }
-        await this._enqueueEvent(eventType, content, attachments, relatedTxnId, null, log);
+        await this._enqueueEvent(eventType, content, attachments, relatedTxnId, undefined, log);
     }
 
     async _enqueueEvent(
         eventType: string,
-        content: { body?: string; reason?: any }, // TODO
+        content: EventContent,
         attachments: Record<string, AttachmentUpload> | null,
-        relatedTxnId: string | null,
-        relatedEventId: string | null,
+        relatedTxnId: string | undefined,
+        relatedEventId: string | undefined,
         log: ILogItem | NullLogItem
     ): Promise<void> {
         const pendingEvent = await this._createAndStoreEvent(eventType, content, relatedTxnId, relatedEventId, attachments);
@@ -352,8 +354,8 @@ export class SendQueue {
     async _createAndStoreEvent(
         eventType: string,
         content: { body?: string | undefined; reason?: any },
-        relatedTxnId: string | null,
-        relatedEventId: string | null,
+        relatedTxnId: string | undefined,
+        relatedEventId: string | undefined,
         attachments: Record<string, AttachmentUpload> | null | undefined
     ): Promise<PendingEvent> {
         const txn = await this._storage.readWriteTxn([this._storage.storeNames.pendingEvents]);

@@ -21,7 +21,7 @@ import {Direction} from "./Direction";
 import {TimelineReader} from "./persistence/TimelineReader.js";
 import {PendingEventEntry} from "./entries/PendingEventEntry.js";
 import {RoomMember} from "../members/RoomMember.js";
-import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
+import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations";
 import {REDACTION_TYPE} from "../common";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
@@ -488,7 +488,7 @@ import {NullLogItem} from "../../../logging/NullLogger";
 import {EventEntry} from "./entries/EventEntry.js";
 import {User} from "../../User.js";
 import {PendingEvent} from "../sending/PendingEvent";
-import {createAnnotation} from "./relations.js";
+import {createAnnotation} from "./relations";
 import {redactEvent} from "./common.js";
 
 export function tests() {
