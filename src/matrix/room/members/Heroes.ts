@@ -25,7 +25,7 @@ export function calculateRoomName(
     sortedMembers: RoomMember[] | Profile[] | UserIdProfile[],
     summaryData: { joinCount: number; inviteCount: number },
     log: ILogItem
-): string | undefined {
+): string {
     const countWithoutMe = summaryData.joinCount + summaryData.inviteCount - 1;
     if (sortedMembers.length >= countWithoutMe) {
         if (sortedMembers.length > 1) {
@@ -45,7 +45,7 @@ export function calculateRoomName(
         return sortedMembers.map(m => m.name).join(", ") + ` and ${countWithoutMe} others`;
     } else {
         // Empty Room
-        return undefined;
+        return "undefined";
     }
 }
 

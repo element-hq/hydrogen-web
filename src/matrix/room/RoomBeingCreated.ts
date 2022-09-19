@@ -92,7 +92,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     private profiles: Profile[] = [];
 
     public readonly isEncrypted: boolean;
-    private _calculatedName?: string;
+    private _calculatedName: string;
     private _error?: Error;
     private _isCancelled = false;
 
@@ -204,7 +204,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
     get avatarUrl(): string | undefined { return this.profiles?.[0]?.avatarUrl; }
     get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
     get roomId(): string | undefined { return this._roomId; }
-    get name(): string | undefined { return this._calculatedName; }
+    get name(): string { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
     get error(): Error | undefined { return this._error; }
 
