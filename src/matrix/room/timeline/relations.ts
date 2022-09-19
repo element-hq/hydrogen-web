@@ -14,17 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { TimelineEvent } from "../../storage/types";
 import {REDACTION_TYPE} from "../common";
 
 export const REACTION_TYPE = "m.reaction";
 export const ANNOTATION_RELATION_TYPE = "m.annotation";
 
-type Annotation = {
-    "m.relates_to": {
-        event_id: string;
-        key: string;
-        rel_type: string;
-    };
+export type Relation = {
+    event_id?: string;
+    key: string;
+    rel_type: string
+    "m.in_reply_to"?: {
+        event_id?: string;
+    }
+}
+export type Annotation = {
+    "m.relates_to": Relation;
+};
+
+export type RelationEvent = TimelineEvent & {
+    redacts?: string;
 }
 
 export function createAnnotation(targetId: string, key: string): Annotation {
@@ -37,20 +46,11 @@ export function createAnnotation(targetId: string, key: string): Annotation {
     };
 }
 
-export type Relation = {
-    event_id?: string;
-    "m.in_reply_to"?: {
-        event_id?: string;
-    };
-    rel_type: string;
-    key?: string;
-}
-
 export function getRelationTarget(relation: Relation): string | undefined {
     return relation.event_id || relation["m.in_reply_to"]?.event_id;
 }
 
-export function setRelationTarget(relation: Relation, target?: string): void {
+export function setRelationTarget(relation: Relation, target: string | undefined): void {
     if (relation.event_id !== undefined) {
         relation.event_id = target;
     } else if (relation["m.in_reply_to"]) {
@@ -58,10 +58,7 @@ export function setRelationTarget(relation: Relation, target?: string): void {
     }
 }
 
-export function getRelatedEventId(event: {
-    type: string;
-    redacts: string;
-}): string | undefined {
+export function getRelatedEventId(event: RelationEvent): string | undefined {
 	if (event.type === REDACTION_TYPE) {
         return event.redacts;
     } else {
@@ -72,19 +69,11 @@ export function getRelatedEventId(event: {
     }
 }
 
-export function getRelationFromContent(content?: {
-    "m.relates_to"?: Relation;
-}): Relation | undefined {
+export function getRelationFromContent(content?: Annotation): Relation | undefined {
     return content?.["m.relates_to"];
 }
 
-export function getRelation(event: {
-    type?: string;
-    redacts?: string;
-    content?: {
-        "m.relates_to": Relation;
-    };
-}): Relation | undefined {
-    return getRelationFromContent(event.content);
+export function getRelation(event: RelationEvent | undefined): Relation | undefined {
+	return getRelationFromContent(event?.content as Annotation);
 }
 

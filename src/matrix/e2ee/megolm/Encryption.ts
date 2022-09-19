@@ -140,6 +140,7 @@ export class Encryption {
 
     /**
      * Encrypts a message with megolm
+     * @param  {string} roomId
      * @param  {string} type             event type to encrypt
      * @param  {string} content          content to encrypt
      * @param  {Content} encryptionParams the content of the m.room.encryption event

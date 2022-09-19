@@ -28,7 +28,7 @@ interface Annotation {
     firstTimestamp: number;
 }
 
-interface TimelineEventEntry {
+export interface TimelineEventEntry {
     roomId: string;
     fragmentId: number;
     eventIndex: number;

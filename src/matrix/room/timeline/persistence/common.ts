@@ -14,7 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function createEventEntry(key, roomId, event) {
+import { EventKey } from "../EventKey";
+import type { Direction } from "../Direction";
+
+type EventEnry = {
+    fragmentId: number;
+    eventIndex: number;
+    roomId: string;
+    event: any;
+    displayName?: string;
+    avatarUrl?: string;
+};
+
+export function createEventEntry(
+    key: EventKey,
+    roomId: string,
+    event: any
+): EventEnry {
     return {
         fragmentId: key.fragmentId,
         eventIndex: key.eventIndex,
@@ -23,7 +39,11 @@ export function createEventEntry(key, roomId, event) {
     };
 }
 
-export function directionalAppend(array, value, direction) {
+export function directionalAppend<T>(
+    array: T[],
+    value: T,
+    direction: Direction
+): void {
     if (direction.isForward) {
         array.push(value);
     } else {
@@ -31,7 +51,11 @@ export function directionalAppend(array, value, direction) {
     }
 }
 
-export function directionalConcat(array, otherArray, direction) {
+export function directionalConcat<T>(
+    array: T[],
+    otherArray: T[],
+    direction: Direction
+): T[] {
     if (direction.isForward) {
         return array.concat(otherArray);
     } else {

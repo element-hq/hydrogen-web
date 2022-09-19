@@ -19,7 +19,7 @@ import {KeyLimits} from "../../common";
 import { encodeUint32 } from "../utils";
 import {Store} from "../Store";
 
-interface Fragment {
+export interface Fragment {
     roomId: string;
     id: number;
     previousId: number | null;
@@ -28,7 +28,7 @@ interface Fragment {
     nextToken: string | null;
 }
 
-type FragmentEntry = Fragment & { key: string }
+export type FragmentEntry = Fragment & { key: string }
 
 function encodeKey(roomId: string, fragmentId: number): string {
     return `${roomId}|${encodeUint32(fragmentId)}`;

@@ -574,7 +574,7 @@ export class BaseRoom extends EventEmitter {
     }
 }
 
-class DecryptionRequest {
+export class DecryptionRequest {
     constructor(decryptFn, log) {
         this._cancelled = false;
         this.preparation = null;

@@ -30,13 +30,13 @@ export class BaseLRUCache<T> {
         this._entries = [];
     }
 
-    get size() { return this._entries.length; }
+    get size(): number { return this._entries.length; }
 
-    protected _get(findEntryFn: FindCallback<T>) {
+    protected _get(findEntryFn: FindCallback<T>): T | undefined {
         return this._getByIndexAndMoveUp(this._entries.findIndex(findEntryFn));
     }
 
-    protected _getByIndexAndMoveUp(idx: number) {
+    protected _getByIndexAndMoveUp(idx: number): T | undefined {
         if (idx !== -1) {
             const entry = this._entries[idx];
             // move to top
@@ -48,7 +48,7 @@ export class BaseLRUCache<T> {
         }
     }
 
-    protected _set(value: T, findEntryFn?: FindCallback<T>) {
+    protected _set(value: T, findEntryFn?: FindCallback<T>): void {
         let indexToRemove = findEntryFn ? this._entries.findIndex(findEntryFn) : -1;
         this._entries.unshift(value);
         if (indexToRemove === -1) {
@@ -65,13 +65,13 @@ export class BaseLRUCache<T> {
         }
     }
 
-    protected onEvictEntry(entry: T) {}
+    protected onEvictEntry(entry: T): void {}
 }
 
 export class LRUCache<T, K> extends BaseLRUCache<T> {
-    private _keyFn: (T) => K;
+    private _keyFn: (val: T) => K;
 
-    constructor(limit, keyFn: (T) => K) {
+    constructor(limit: number, keyFn: (val: T) => K) {
         super(limit);
         this._keyFn = keyFn;
     }
@@ -80,12 +80,13 @@ export class LRUCache<T, K> extends BaseLRUCache<T> {
         return this._get(e => this._keyFn(e) === key);
     }
 
-    set(value: T) {
+    set(value: T): void {
         const key = this._keyFn(value);
         this._set(value, e => this._keyFn(e) === key);
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     interface NameTuple {
         id: number;
@@ -93,14 +94,14 @@ export function tests() {
     }
 
     return {
-        "can retrieve added entries": assert => {
+        "can retrieve added entries": (assert): void => {
             const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
             assert.equal(cache.get(1)!.name, "Alice");
             assert.equal(cache.get(2)!.name, "Bob");
         },
-        "first entry is evicted first": assert => {
+        "first entry is evicted first": (assert): void => {
             const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
@@ -110,7 +111,7 @@ export function tests() {
             assert.equal(cache.get(3)!.name, "Charly");
             assert.equal(cache.size, 2);
         },
-        "second entry is evicted if first is requested": assert => {
+        "second entry is evicted if first is requested": (assert): void => {
             const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
@@ -121,7 +122,7 @@ export function tests() {
             assert.equal(cache.get(3)!.name, "Charly");
             assert.equal(cache.size, 2);
         },
-        "setting an entry twice removes the first": assert => {
+        "setting an entry twice removes the first": (assert): void => {
             const cache = new LRUCache<NameTuple, number>(2, e => e.id);
             cache.set({id: 1, name: "Alice"});
             cache.set({id: 2, name: "Bob"});
@@ -132,10 +133,10 @@ export function tests() {
             assert.equal(cache.get(3)!.name, "Charly");
             assert.equal(cache.size, 2);
         },
-        "evict callback is called": assert => {
+        "evict callback is called": (assert): void => {
             let evictions = 0;
             class CustomCache extends LRUCache<NameTuple, number> {
-                onEvictEntry(entry) {
+                onEvictEntry(entry): void {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
                 }
@@ -146,10 +147,10 @@ export function tests() {
             cache.set({id: 3, name: "Charly"});
             assert.equal(evictions, 1);
         },
-        "evict callback is called when replacing entry with same identity": assert => {
+        "evict callback is called when replacing entry with same identity": (assert): void => {
             let evictions = 0;
             class CustomCache extends LRUCache<NameTuple, number> {
-                onEvictEntry(entry) {
+                onEvictEntry(entry): void {
                     assert.equal(entry.name, "Alice");
                     evictions += 1;
                 }
@@ -159,6 +160,6 @@ export function tests() {
             cache.set({id: 1, name: "Bob"});
             assert.equal(evictions, 1);
         },
-        
+
     };
 }
