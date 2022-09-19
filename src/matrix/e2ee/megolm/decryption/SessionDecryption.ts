@@ -93,7 +93,7 @@ export class SessionDecryption {
         return {results, errors, replayEntries};
     }
 
-    dispose() {
+    dispose(): void {
         if (this.decryptionRequests) {
             for (const r of this.decryptionRequests) {
                 r.abort();

@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionError} from "../common";
+import {DecryptionError, MEGOLM_ALGORITHM} from "../common";
 import {DecryptionPreparation} from "./decryption/DecryptionPreparation";
 import {SessionDecryption} from "./decryption/SessionDecryption";
-import {MEGOLM_ALGORITHM} from "../common";
 import {validateEvent, groupEventsBySession} from "./decryption/utils";
 import {keyFromStorage, keyFromDeviceMessage, keyFromBackup} from "./decryption/RoomKey";
 import type {RoomKey, IncomingRoomKey} from "./decryption/RoomKey";
@@ -37,7 +36,7 @@ export class Decryption {
         this.olmWorker = olmWorker;
     }
 
-    async addMissingKeyEventIds(roomId, senderKey, sessionId, eventIds, txn) {
+    async addMissingKeyEventIds(roomId: string, senderKey: string, sessionId: string, eventIds: string[], txn: Transaction): Promise<void> {
         let sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
         // we never want to overwrite an existing key
         if (sessionEntry?.session) {
@@ -55,14 +54,14 @@ export class Decryption {
         txn.inboundGroupSessions.set(sessionEntry);
     }
 
-    async getEventIdsForMissingKey(roomId, senderKey, sessionId, txn) {
+    async getEventIdsForMissingKey(roomId: string, senderKey: string, sessionId: string, txn: Transaction): Promise<string[] | undefined> {
         const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
         if (sessionEntry && !sessionEntry.session) {
             return sessionEntry.eventIds;
         }
     }
 
-    async hasSession(roomId, senderKey, sessionId, txn) {
+    async hasSession(roomId: string, senderKey: string, sessionId: string, txn: Transaction): Promise<boolean> {
         const sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
         const isValidSession = typeof sessionEntry?.session === "string";
         return isValidSession;
@@ -78,15 +77,15 @@ export class Decryption {
      * @param  {[type]} txn          [description]
      * @return {DecryptionPreparation}
      */
-    async prepareDecryptAll(roomId: string, events: TimelineEvent[], newKeys: IncomingRoomKey[] | undefined, txn: Transaction) {
-        const errors = new Map();
+    async prepareDecryptAll(roomId: string, events: TimelineEvent[], newKeys: IncomingRoomKey[] | undefined, txn: Transaction): Promise<DecryptionPreparation> {
+        const errors = new Map<string, DecryptionError>();
         const validEvents: TimelineEvent[] = [];
 
         for (const event of events) {
             if (validateEvent(event)) {
                 validEvents.push(event);
             } else {
-                errors.set(event.event_id, new DecryptionError("MEGOLM_INVALID_EVENT", event))
+                errors.set(event.event_id, new DecryptionError("MEGOLM_INVALID_EVENT", event));
             }
         }
 
@@ -161,7 +160,7 @@ export class Decryption {
         return keyFromBackup(roomId, sessionId, sessionInfo);
     }
 
-    dispose() {
+    dispose(): void {
         this.keyLoader.dispose();
     }
 }

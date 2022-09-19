@@ -16,22 +16,30 @@ limitations under the License.
 
 import {DecryptionChanges} from "./DecryptionChanges";
 import {mergeMap} from "../../../../utils/mergeMap";
+import type {SessionDecryption} from "./SessionDecryption"
+;import type {DecryptionError} from "../../common";
+import type {ReplayDetectionEntry} from "./ReplayDetectionEntry";
+import type {DecryptionResult} from "../../DecryptionResult";
 
 /**
  * Class that contains all the state loaded from storage to decrypt the given events
  */
 export class DecryptionPreparation {
-    constructor(roomId, sessionDecryptions, errors) {
+    private _roomId: string;
+    private _sessionDecryptions: SessionDecryption[];
+    private _initialErrors: Map<string, DecryptionError>;
+
+    constructor(roomId: string, sessionDecryptions: SessionDecryption[], errors: Map<string, DecryptionError>) {
         this._roomId = roomId;
         this._sessionDecryptions = sessionDecryptions;
         this._initialErrors = errors;
     }
 
-    async decrypt() {
+    async decrypt(): Promise<DecryptionChanges> {
         try {
             const errors = this._initialErrors;
-            const results = new Map();
-            const replayEntries = [];
+            const results = new Map<string, DecryptionResult>();
+            const replayEntries: ReplayDetectionEntry[] = [];
             await Promise.all(this._sessionDecryptions.map(async sessionDecryption => {
                 const sessionResult = await sessionDecryption.decryptAll();
                 mergeMap(sessionResult.errors, errors);
@@ -44,7 +52,7 @@ export class DecryptionPreparation {
         }
     }
 
-    dispose() {
+    dispose(): void {
         for (const sd of this._sessionDecryptions) {
             sd.dispose();
         }
