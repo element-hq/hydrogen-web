@@ -82,6 +82,7 @@ export class Navigation<T extends object> {
         this._pathObservable.set(this._path);
     }
 
+
     observe(type: keyof T): SegmentObservable<T> {
         let observable = this._observables.get(type);
         if (!observable) {

@@ -14,23 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {IGridItemViewModel} from './IGridItemViewModel';
 import {ViewModel} from "../../ViewModel";
 
-export class UnknownRoomViewModel extends ViewModel {
-    constructor(options) {
+import type {Options as ViewModelOptions} from "../../ViewModel";
+import type {Session} from "../../../matrix/Session.js";
+
+type Options = {
+    session: Session,
+    roomIdOrAlias: string
+} & ViewModelOptions
+
+export class UnknownRoomViewModel extends ViewModel implements IGridItemViewModel {
+    private _session: Session;
+    private roomIdOrAlias: string;
+    private _error?: Error;
+    private _busy = false;
+
+    constructor(options: Options) {
         super(options);
         const {roomIdOrAlias, session} = options;
         this._session = session;
         this.roomIdOrAlias = roomIdOrAlias;
-        this._error = null;
-        this._busy = false;
     }
 
-    get error() {
+    get error(): string | undefined {
         return this._error?.message;
     }
 
-    async join() {
+    async join(): Promise<void> {
         this._busy = true;
         this.emitChange("busy");
         try {
@@ -48,11 +60,19 @@ export class UnknownRoomViewModel extends ViewModel {
         }
     }
 
-    get busy() {
+    get busy(): boolean {
         return this._busy;
     }
 
-    get kind() {
+    get kind(): string {
         return "unknown";
+    }
+
+    get id(): string {
+        return "";
+    }
+
+    focus(): void {
+        return;
     }
 }

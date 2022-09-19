@@ -18,4 +18,5 @@ export interface IGridItemViewModel {
   id: string;
   kind: string;
   focus(): void;
+  dispose(): void;
 }

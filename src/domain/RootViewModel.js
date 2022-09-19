@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Client} from "../matrix/Client.js";
-import {SessionViewModel} from "./session/SessionViewModel.js";
+import {SessionViewModel} from "./session/SessionViewModel";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";

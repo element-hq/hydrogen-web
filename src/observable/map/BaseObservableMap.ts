@@ -72,7 +72,7 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
          return new MappedMap(this, mapper, updater);
      }
 
-     sortValues(comparator: Comparator<V>): SortedMapList {
+     sortValues(comparator: Comparator<V>): SortedMapList<K, V> {
          return new SortedMapList(this, comparator);
      }
 

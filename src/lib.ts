@@ -21,7 +21,7 @@ export {RoomStatus} from "./matrix/room/common";
 export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
-export {SessionViewModel} from "./domain/session/SessionViewModel.js";
+export {SessionViewModel} from "./domain/session/SessionViewModel";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";

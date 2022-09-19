@@ -37,7 +37,7 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
     private _currentTileVM?: BaseTileViewModel;
     private _tileViewModelsMap: MappedMap<string, RoomBeingCreated | Invite | Room, BaseTileViewModel>;
     private _tileViewModelsFilterMap: ApplyMap<string, BaseTileViewModel>;
-    private _tileViewModels: SortedMapList;
+    private _tileViewModels: SortedMapList<string, BaseTileViewModel>;
     private _closeUrl?: string = this.urlCreator.urlForSegment("session");
     private _settingsUrl?: string = this.urlCreator.urlForSegment("settings");
     private _createRoomUrl?: string = this.urlCreator.urlForSegment("create-room");
@@ -157,7 +157,7 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
         this.navigation.applyPath(path);
     }
 
-    get tileViewModels(): SortedMapList {
+    get tileViewModels(): SortedMapList<string, BaseTileViewModel> {
         return this._tileViewModels;
     }
 

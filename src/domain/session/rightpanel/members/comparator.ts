@@ -17,13 +17,18 @@ limitations under the License.
 import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
 import type {RoomMember} from "../../../../matrix/room/members/RoomMember.js";
 
-type RoomMemberComparator = (member: RoomMember, otherMember: RoomMember) => number;
+interface ComparableRoomMemberI {
+    userId: string
+    name: string
+}
+
+type RoomMemberComparator = (member: ComparableRoomMemberI, otherMember: ComparableRoomMemberI) => number;
 
 export function createMemberComparator(powerLevels: PowerLevels): RoomMemberComparator {
     const collator = new Intl.Collator();
     const removeCharacter = (str: string): string => str.charAt(0) === "@" ? str.slice(1) : str;
 
-    return function comparator(member: RoomMember, otherMember: RoomMember): number {
+    return function comparator(member: ComparableRoomMemberI, otherMember: ComparableRoomMemberI): number {
         const p1 = powerLevels.getUserLevel(member.userId);
         const p2 = powerLevels.getUserLevel(otherMember.userId);
         if (p1 !== p2) { return p2 - p1; }

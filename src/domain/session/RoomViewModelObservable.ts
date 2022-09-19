@@ -16,40 +16,45 @@ limitations under the License.
 
 import {ObservableValue} from "../../observable/ObservableValue";
 import {RoomStatus} from "../../matrix/room/common";
+import type {SessionViewModel} from "./SessionViewModel";
+import type {SubscriptionHandle} from "../../observable/BaseObservable";
+import type {IGridItemViewModel} from "./room/IGridItemViewModel";
 
 /**
 Depending on the status of a room (invited, joined, archived, or none),
 we want to show a different view with a different view model
-when showing a room. Furthermore, this logic is needed both in the 
+when showing a room. Furthermore, this logic is needed both in the
 single room view and in the grid view. So this logic is extracted here,
 and this observable updates with the right view model as the status for
 a room changes.
 
 To not have to track the subscription manually in the SessionViewModel and
 the RoomGridViewModel, all subscriptions are removed in the dispose method.
-Only when transferring a RoomViewModelObservable between the SessionViewModel
-and RoomGridViewModel, unsubscribeAll should be  called prior to doing
-the transfer, so either parent view model don't keep getting updates for
-the now transferred child view model.
+unsubscribeAll should only be called prior to transferring a RoomViewModelObservable
+between the SessionViewModel and RoomGridViewModel, so that either parent
+view model doesn't keep getting updates for the now transferred child view model.
 
 This is also why there is an explicit initialize method, see comment there.
 */
-export class RoomViewModelObservable extends ObservableValue {
-    constructor(sessionViewModel, roomIdOrLocalId) {
-        super(null);
-        this._statusSubscription = null;
+export class RoomViewModelObservable extends ObservableValue<IGridItemViewModel | undefined> {
+    private _sessionViewModel: SessionViewModel;
+    private _statusSubscription?: SubscriptionHandle;
+    id: string;
+
+    constructor(sessionViewModel: SessionViewModel, roomIdOrLocalId: string) {
+        super(undefined);
         this._sessionViewModel = sessionViewModel;
         this.id = roomIdOrLocalId;
     }
 
     /**
-    Separate initialize method rather than doing this onSubscribeFirst because 
+    Separate initialize method rather than doing this onSubscribeFirst because
     we don't want to run this again when transferring this value between
     SessionViewModel and RoomGridViewModel, as onUnsubscribeLast and onSubscribeFirst
     are called in that case.
     */
-    async initialize() {
-        const {session} = this._sessionViewModel._client;
+    async initialize(): Promise<void> {
+        const {session} = this._sessionViewModel.client;
         const statusObservable = await session.observeRoomStatus(this.id);
         this.set(await this._statusToViewModel(statusObservable.get()));
         this._statusSubscription = statusObservable.subscribe(async status => {
@@ -59,10 +64,10 @@ export class RoomViewModelObservable extends ObservableValue {
         });
     }
 
-    async _statusToViewModel(status) {
+    async _statusToViewModel(status: RoomStatus): Promise<IGridItemViewModel | undefined> {
         if (status & RoomStatus.Replaced) {
             if (status & RoomStatus.BeingCreated) {
-                const {session} = this._sessionViewModel._client;
+                const {session} = this._sessionViewModel.client;
                 const roomBeingCreated = session.roomsBeingCreated.get(this.id);
                 this._sessionViewModel.notifyRoomReplaced(roomBeingCreated.id, roomBeingCreated.roomId);
             } else {
@@ -81,7 +86,7 @@ export class RoomViewModelObservable extends ObservableValue {
         }
     }
 
-    dispose() {
+    dispose(): void {
         if (this._statusSubscription) {
             this._statusSubscription = this._statusSubscription();
         }
