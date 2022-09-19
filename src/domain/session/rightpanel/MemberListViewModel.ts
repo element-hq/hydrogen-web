@@ -24,8 +24,9 @@ import type {PowerLevels} from "../../../matrix/room/PowerLevels";
 import type {MemberList} from "../../../matrix/room/members/MemberList";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 import type {MappedMap} from "../../../observable/map/MappedMap";
-import type {ObservableMap, Mapper, Updater} from "../../../observable/map";
+import type {BaseObservableMap, Mapper, Updater} from "../../../observable/map";
 import type {RoomMember} from "../../../matrix/room/members/RoomMember";
+import type {SortedMapList} from "../../../observable/list/SortedMapList";
 
 export type ExplicitOptions = {
     members: MemberList,
@@ -36,7 +37,7 @@ export type ExplicitOptions = {
 type Options = BaseOptions & ExplicitOptions;
 
 export class MemberListViewModel extends ViewModel {
-    memberTileViewModels: MappedMap<string, RoomMember, MemberTileViewModel>;
+    memberTileViewModels: SortedMapList<string, MemberTileViewModel>;
     nameDisambiguator: Disambiguator;
     mediaRepository: MediaRepository;
 
@@ -62,7 +63,7 @@ export class MemberListViewModel extends ViewModel {
     get previousSegmentName(): string { return "details"; }
 
     _mapTileViewModels(
-        members: ObservableMap<string, RoomMember>
+        members: BaseObservableMap<string, RoomMember>
     ): MappedMap<string, RoomMember, MemberTileViewModel> {
         const mapper: Mapper<RoomMember, MemberTileViewModel> = (
             member: RoomMember,
