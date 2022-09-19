@@ -14,11 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM} from "../common.js";
+import {MEGOLM_ALGORITHM} from "../common";
 import {OutboundRoomKey} from "./decryption/RoomKey";
+import type {Account} from "../Account";
+import type {KeyLoader} from "./decryption/KeyLoader";
+import type {Olm} from "../olm/Session";
+import type {Transaction} from "../../storage/idb/Transaction.js";
+import type {RoomKeyMessage} from "../../storage/idb/stores/OperationStore";
+import type {OutboundGroupSession} from "@matrix-org/olm";
+import type {Content} from "../../storage/types";
+
+type Config = {
+    pickleKey: string;
+    olm: Olm;
+    account: Account;
+    keyLoader: KeyLoader;
+    storage: Storage;
+    now: () => number;
+    ownDeviceId: string;
+};
 
 export class Encryption {
-    constructor({pickleKey, olm, account, keyLoader, storage, now, ownDeviceId}) {
+    private _pickleKey: string;
+    private _olm: Olm;
+    private _account: Account;
+    private _keyLoader: KeyLoader;
+    private _storage: Storage;
+    private _now: () => number;
+    private _ownDeviceId: string;
+
+    constructor({pickleKey, olm, account, keyLoader, storage, now, ownDeviceId}: Config) {
         this._pickleKey = pickleKey;
         this._olm = olm;
         this._account = account;
@@ -28,11 +53,11 @@ export class Encryption {
         this._ownDeviceId = ownDeviceId;
     }
 
-    discardOutboundSession(roomId, txn) {
+    discardOutboundSession(roomId: string, txn: Transaction): void {
         txn.outboundGroupSessions.remove(roomId);
     }
 
-    async createRoomKeyMessage(roomId, txn) {
+    async createRoomKeyMessage(roomId: string, txn: Transaction): Promise<RoomKeyMessage | undefined> {
         let sessionEntry = await txn.outboundGroupSessions.get(roomId);
         if (sessionEntry) {
             const session = new this._olm.OutboundGroupSession();
@@ -45,7 +70,7 @@ export class Encryption {
         }
     }
 
-    createWithheldMessage(roomMessage, code, reason) {
+    createWithheldMessage(roomMessage: RoomKeyMessage, code: string, reason: string): WithheldMessage {
         return {
             algorithm: roomMessage.algorithm,
             code,
@@ -56,14 +81,14 @@ export class Encryption {
         };
     }
 
-    async ensureOutboundSession(roomId, encryptionParams) {
+    async ensureOutboundSession(roomId: string, encryptionParams: Content): Promise<RoomKeyMessage | undefined> {
         let session = new this._olm.OutboundGroupSession();
         try {
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.inboundGroupSessions,
                 this._storage.storeNames.outboundGroupSessions,
             ]);
-            let roomKeyMessage;
+            let roomKeyMessage: RoomKeyMessage | undefined;
             try {
                 let sessionEntry = await txn.outboundGroupSessions.get(roomId);
                 roomKeyMessage = await this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
@@ -81,7 +106,13 @@ export class Encryption {
         }
     }
 
-    async _readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn) {
+    async _readOrCreateSession(
+        session: OutboundGroupSession,
+        sessionEntry: { session: any; createdAt: any },
+        roomId: string,
+        encryptionParams: Content,
+        txn: Transaction
+    ): Promise<RoomKeyMessage | undefined> {
         if (sessionEntry) {
             session.unpickle(this._pickleKey, sessionEntry.session);
         }
@@ -99,7 +130,7 @@ export class Encryption {
         }
     }
 
-    _writeSession(createdAt, session, roomId, txn) {
+    _writeSession(createdAt: number, session: OutboundGroupSession, roomId: string, txn: Transaction): void {
         txn.outboundGroupSessions.set({
             roomId,
             session: session.pickle(this._pickleKey),
@@ -109,13 +140,16 @@ export class Encryption {
 
     /**
      * Encrypts a message with megolm
-     * @param  {string} roomId           
      * @param  {string} type             event type to encrypt
      * @param  {string} content          content to encrypt
-     * @param  {object} encryptionParams the content of the m.room.encryption event
-     * @return {Promise<EncryptionResult>}
+     * @param  {Content} encryptionParams the content of the m.room.encryption event
      */
-    async encrypt(roomId, type, content, encryptionParams) {
+     async encrypt(
+        roomId: string,
+        type: string,
+        content: string,
+        encryptionParams: Content
+    ): Promise<EncryptionResult> {
         let session = new this._olm.OutboundGroupSession();
         try {
             const txn = await this._storage.readWriteTxn([
@@ -145,7 +179,7 @@ export class Encryption {
         }
     }
 
-    _needsToRotate(session, createdAt, encryptionParams) {
+    _needsToRotate(session: OutboundGroupSession, createdAt: number, encryptionParams: Content): true | undefined {
         let rotationPeriodMs = 604800000; // default
         if (Number.isSafeInteger(encryptionParams?.rotation_period_ms)) {
             rotationPeriodMs = encryptionParams?.rotation_period_ms;
@@ -160,10 +194,10 @@ export class Encryption {
         }
         if (session.message_index() >= rotationPeriodMsgs) {
             return true;
-        }  
+        }
     }
 
-    _encryptContent(roomId, session, type, content) {
+    _encryptContent(roomId: string, session: OutboundGroupSession, type: string, content: string): EncryptedContent {
         const plaintext = JSON.stringify({
             room_id: roomId,
             type,
@@ -182,7 +216,7 @@ export class Encryption {
         return encryptedContent;
     }
 
-    _createRoomKeyMessage(session, roomId) {
+    _createRoomKeyMessage(session: OutboundGroupSession, roomId: string): RoomKeyMessage {
         return {
             room_id: roomId,
             session_id: session.session_id(),
@@ -191,7 +225,7 @@ export class Encryption {
             // chain_index is ignored by element-web if not all clients
             // but let's send it anyway, as element-web does so
             chain_index: session.message_index()
-        }
+        };
     }
 }
 
@@ -201,11 +235,32 @@ export class Encryption {
  *                                     this contains the content of the m.room_key message
  *                                     that should be sent out over olm.
  * @property {object} content  the encrypted message as the content of
- *                             the m.room.encrypted event that should be sent out   
+ *                             the m.room.encrypted event that should be sent out
  */
 class EncryptionResult {
-    constructor(content, roomKeyMessage) {
+    content: EncryptedContent;
+    roomKeyMessage: RoomKeyMessage;
+
+    constructor(content: EncryptedContent, roomKeyMessage: RoomKeyMessage) {
         this.content = content;
         this.roomKeyMessage = roomKeyMessage;
     }
 }
+
+
+type WithheldMessage = {
+    algorithm: string;
+    code: string;
+    reason: string;
+    room_id: string;
+    sender_key: any;
+    session_id: string;
+};
+
+type EncryptedContent = {
+    algorithm: MEGOLM_ALGORITHM;
+    sender_key: string;
+    ciphertext: string;
+    session_id: string;
+    device_id: string;
+};

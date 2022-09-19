@@ -178,7 +178,7 @@ export class RoomEncryption {
                     this._room.id, group.senderKey, group.sessionId, eventIds, txn);
             }));
         }
-        
+
         if (!this._keyBackup) {
             return;
         }
@@ -327,7 +327,7 @@ export class RoomEncryption {
         await this._deviceTracker.trackRoom(this._room, this._historyVisibility, log);
         const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi, log);
         const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
-            
+
         let writeOpTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
         let operation;
         try {

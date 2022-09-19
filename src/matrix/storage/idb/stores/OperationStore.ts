@@ -32,7 +32,7 @@ type Operation = BaseOperation & OperationType
 
 type OperationEntry = Operation & { scopeTypeKey: string; }
 
-interface RoomKeyMessage {
+export interface RoomKeyMessage {
     room_id: string;
     session_id: string;
     session_key: string;

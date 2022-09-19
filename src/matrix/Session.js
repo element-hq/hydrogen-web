@@ -31,7 +31,7 @@ import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
-import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
+import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
