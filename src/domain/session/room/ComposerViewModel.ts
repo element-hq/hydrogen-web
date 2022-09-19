@@ -15,16 +15,22 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
+import type {RoomViewModel} from "./RoomViewModel";
+import type {SimpleTile} from "./timeline/tiles/SimpleTile";
 
 export class ComposerViewModel extends ViewModel {
-    constructor(roomVM) {
+    private _roomVM: RoomViewModel;
+    private _replyVM?: SimpleTile;
+    private _isEmpty = true;
+
+    constructor(roomVM: RoomViewModel) {
         super(roomVM.options);
         this._roomVM = roomVM;
         this._isEmpty = true;
         this._replyVM = null;
     }
 
-    setReplyingTo(entry) {
+    setReplyingTo(entry): void {
         const changed = new Boolean(entry) !== new Boolean(this._replyVM) || !this._replyVM?.id.equals(entry.asEventKey());
         if (changed) {
             this._replyVM = this.disposeTracked(this._replyVM);
@@ -37,19 +43,19 @@ export class ComposerViewModel extends ViewModel {
         }
     }
 
-    clearReplyingTo() {
+    clearReplyingTo(): void {
         this.setReplyingTo(null);
     }
 
-    get replyViewModel() {
+    get replyViewModel(): SimpleTile {
         return this._replyVM;
     }
 
-    get isEncrypted() {
+    get isEncrypted(): boolean {
         return this._roomVM.isEncrypted;
     }
 
-    async sendMessage(message) {
+    async sendMessage(message): Promise<boolean> {
         const success = await this._roomVM._sendMessage(message, this._replyVM);
         if (success) {
             this._isEmpty = true;
@@ -59,34 +65,34 @@ export class ComposerViewModel extends ViewModel {
         return success;
     }
 
-    sendPicture() {
-        this._roomVM._pickAndSendPicture();
+    sendPicture(): void {
+        void this._roomVM._pickAndSendPicture();
     }
 
-    sendFile() {
-        this._roomVM._pickAndSendFile();
+    sendFile(): void {
+        void this._roomVM._pickAndSendFile();
     }
 
-    sendVideo() {
-        this._roomVM._pickAndSendVideo();
+    sendVideo(): void {
+        void this._roomVM._pickAndSendVideo();
     }
 
-    get canSend() {
+    get canSend(): boolean {
         return !this._isEmpty;
     }
 
-    async setInput(text) {
+    async setInput(text): Promise<void> {
         const wasEmpty = this._isEmpty;
         this._isEmpty = text.length === 0;
         if (wasEmpty && !this._isEmpty) {
-            this._roomVM._room.ensureMessageKeyIsShared();
+            void this._roomVM.room.ensureMessageKeyIsShared();
         }
         if (wasEmpty !== this._isEmpty) {
             this.emitChange("canSend");
         }
     }
 
-    get kind() {
+    get kind(): string {
         return "composer";
     }
 }

@@ -15,35 +15,48 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
+import type {Options as ViewModelOptions} from "../../ViewModel";
+import type {Room} from "../../../matrix/room/Room";
+import type {EventEntry} from "../../../matrix/room/timeline/entries/EventEntry";
+import type {BlobHandle} from "../../../platform/web/dom/BlobHandle.js";
+
+type Options = {
+    eventId: string;
+    room: Room;
+} & ViewModelOptions
 
 export class LightboxViewModel extends ViewModel {
-    constructor(options) {
+    private _eventId: string;
+    private _unencryptedImageUrl: string | null = null;
+    private _decryptedImage?: BlobHandle;
+    private _closeUrl: string;
+    private _eventEntry: EventEntry | null;
+    private _date?: Date;
+
+    constructor(options: Options) {
         super(options);
         this._eventId = options.eventId;
-        this._unencryptedImageUrl = null;
-        this._decryptedImage = null;
         this._closeUrl = this.urlCreator.urlUntilSegment("room");
         this._eventEntry = null;
-        this._date = null;
         this._subscribeToEvent(options.room, options.eventId);
     }
 
-    _subscribeToEvent(room, eventId) {
+    _subscribeToEvent(room: Room, eventId: string): void {
         const eventObservable = room.observeEvent(eventId);
         this.track(eventObservable.subscribe(eventEntry => {
-            this._loadEvent(room, eventEntry);
+            void this._loadEvent(room, eventEntry);
         }));
-        this._loadEvent(room, eventObservable.get());
+        void this._loadEvent(room, eventObservable.get());
     }
 
-    async _loadEvent(room, eventEntry) {
+    async _loadEvent(room: Room, eventEntry: any | null): Promise<void> {
         if (!eventEntry) {
             return;
         }
         const {mediaRepository} = room;
         this._eventEntry = eventEntry;
         const {content} = this._eventEntry;
-        this._date = this._eventEntry.timestamp ? new Date(this._eventEntry.timestamp) : null;
+        this._date = this._eventEntry.timestamp ? new Date(this._eventEntry.timestamp) : undefined;
         if (content.url) {
             this._unencryptedImageUrl = mediaRepository.mxcUrl(content.url);
             this.emitChange("imageUrl");
@@ -53,23 +66,23 @@ export class LightboxViewModel extends ViewModel {
         }
     }
 
-    get imageWidth() {
+    get imageWidth(): number | undefined {
         return this._eventEntry?.content?.info?.w;
     }
 
-    get imageHeight() {
+    get imageHeight(): number | undefined {
         return this._eventEntry?.content?.info?.h;
     }
 
-    get name() {
+    get name(): string {
         return this._eventEntry?.content?.body;
     }
 
-    get sender() {
+    get sender(): string {
         return this._eventEntry?.displayName;
     }
 
-    get imageUrl() {
+    get imageUrl(): string {
         if (this._decryptedImage) {
             return this._decryptedImage.url;
         } else if (this._unencryptedImageUrl) {
@@ -79,19 +92,19 @@ export class LightboxViewModel extends ViewModel {
         }
     }
 
-    get date() {
-        return this._date && this._date.toLocaleDateString({}, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    get date(): string | undefined {
+        return this._date && this._date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
 
-    get time() {
-        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
+    get time(): string | undefined {
+        return this._date && this._date.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"});
     }
 
-    get closeUrl() {
+    get closeUrl(): string {
         return this._closeUrl;
     }
 
-    close() {
+    close(): void {
         this.platform.history.pushUrl(this.closeUrl);
     }
 }

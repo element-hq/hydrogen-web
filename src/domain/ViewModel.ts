@@ -39,7 +39,7 @@ export type Options<T extends object = SegmentType> = {
 }
 
 
-export class ViewModel<N extends object = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<{change: never}> {
+export class ViewModel<N extends object = SegmentType, O extends Options<N> = Options<N>> extends EventEmitter<any> {
     private disposables?: Disposables;
     private _isDisposed = false;
     private _options: Readonly<O>;
