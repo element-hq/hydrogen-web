@@ -31,7 +31,7 @@ import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
-import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
+import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
 import {DeviceTracker} from "./e2ee/DeviceTracker.js";
@@ -192,7 +192,7 @@ export class Session {
     /**
      * Enable secret storage by providing the secret storage credential.
      * This will also see if there is a megolm key backup and try to enable that if so.
-     * 
+     *
      * @param  {string} type       either "passphrase" or "recoverykey"
      * @param  {string} credential either the passphrase or the recovery key, depending on the type
      * @return {Promise} resolves or rejects after having tried to enable secret storage
@@ -663,7 +663,7 @@ export class Session {
         if (this._e2eeAccount && deviceOneTimeKeysCount) {
             changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn, log);
         }
-    
+
         const deviceLists = syncResponse.device_lists;
         if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists.changed.length) {
             await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
@@ -908,7 +908,7 @@ export class Session {
     Creates an empty (summary isn't loaded) the archived room if it isn't
     loaded already, assuming sync will either remove it (when rejoining) or
     write a full summary adopting it from the joined room when leaving
-    
+
     @internal
     */
     createOrGetArchivedRoomForSync(roomId) {

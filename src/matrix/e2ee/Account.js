@@ -128,7 +128,7 @@ export class Account {
             // TODO: should we not modify this in the txn like we do elsewhere?
             // we'd have to pickle and unpickle the account to clone it though ...
             // and the upload has succeed at this point, so in-memory would be correct
-            // but in-storage not if the txn fails. 
+            // but in-storage not if the txn fails.
             await this._updateSessionStorage(storage, sessionStore => {
                 if (oneTimeKeysEntries.length) {
                     this._account.mark_keys_as_published();
@@ -155,7 +155,7 @@ export class Account {
         // private keys clogging up our local storage.
         // So we need some kind of engineering compromise to balance all of
         // these factors.
-        
+
         // Check how many keys we can store in the Account object.
         const maxOTKs = this._account.max_number_of_one_time_keys();
         // Try to keep at most half that number on the server. This leaves the
@@ -264,7 +264,7 @@ export class Account {
         const obj = {};
         for (const [keyId, pubKey] of oneTimeKeysEntries) {
             const keyObj = {
-                key: pubKey  
+                key: pubKey
             };
             this.signObject(keyObj);
             obj[`signed_curve25519:${keyId}`] = keyObj;
@@ -297,7 +297,7 @@ export class Account {
         delete obj.unsigned;
 
         sigs[this._userId] = sigs[this._userId] || {};
-        sigs[this._userId]["ed25519:" + this._deviceId] = 
+        sigs[this._userId]["ed25519:" + this._deviceId] =
             this._account.sign(anotherjson.stringify(obj));
         obj.signatures = sigs;
         if (unsigned !== undefined) {

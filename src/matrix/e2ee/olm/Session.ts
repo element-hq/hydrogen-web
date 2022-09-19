@@ -16,7 +16,7 @@ limitations under the License.
 
 import type {OlmSessionEntry} from "../../storage/idb/stores/OlmSessionStore";
 import type * as OlmNamespace from "@matrix-org/olm";
-type Olm = typeof OlmNamespace;
+export type Olm = typeof OlmNamespace;
 
 export function createSessionEntry(olmSession: Olm.Session, senderKey: string, timestamp: number, pickleKey: string): OlmSessionEntry {
     return {
