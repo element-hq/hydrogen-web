@@ -15,77 +15,86 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
+import type {Options as BaseOptions} from "../../ViewModel";
+import type {SegmentType} from "../../navigation";
+import type {Room} from "../../../matrix/room/Room";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 
+export type ExplicitOptions = { room: Room };
+
+type Options = ExplicitOptions & BaseOptions;
+
 export class RoomDetailsViewModel extends ViewModel {
-    constructor(options) {
+    private _room: Room
+
+    constructor(options: Options) {
         super(options);
         this._room = options.room;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._room.on("change", this._onRoomChange);
     }
 
-    get type() {
+    get type(): string {
         return "room-details";
     }
 
-    get shouldShowBackButton() {
+    get shouldShowBackButton(): boolean {
         return false;
     }
 
-    get previousSegmentName() {
+    get previousSegmentName(): boolean {
         return false;
     }
 
-    get roomId() {
+    get roomId(): string {
         return this._room.id;
     }
 
-    get canonicalAlias() {
+    get canonicalAlias(): string | undefined {
         return this._room.canonicalAlias;
     }
 
-    get name() {
+    get name(): string {
         return this._room.name;
     }
 
-    get isEncrypted() {
+    get isEncrypted(): boolean {
         return !!this._room.isEncrypted;
     }
 
-    get memberCount() {
+    get memberCount(): number {
         return this._room.joinedMemberCount;
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.avatarColorId)
+    get avatarColorNumber(): number {
+        return getIdentifierColorNumber(this._room.avatarColorId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size): string | null {
         return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.name;
     }
 
-    _onRoomChange() {
-        this.emitChange();
+    _onRoomChange(): void {
+        this.emitChange("TODO");
     }
 
-    dispose() {
+    dispose(): void {
         super.dispose();
         this._room.off("change", this._onRoomChange);
     }
 
-    openPanel(segment) {
+    openPanel(segment: keyof SegmentType): void {
         let path = this.navigation.path.until("room");
-        path = path.with(this.navigation.segment("right-panel", true));
-        path = path.with(this.navigation.segment(segment, true));
+        path = path.with(this.navigation.segment("right-panel", true))!;
+        path = path.with(this.navigation.segment(segment, true))!;
         this.navigation.applyPath(path);
     }
 }

@@ -165,7 +165,7 @@ class Path<T> {
     until(type: keyof T): Path<T> {
         const index = this._segments.findIndex(s => s.type === type);
         if (index !== -1) {
-            return new Path(this._segments.slice(0, index + 1), this._allowsChild)
+            return new Path(this._segments.slice(0, index + 1), this._allowsChild);
         }
         return new Path([], this._allowsChild);
     }
@@ -203,7 +203,7 @@ class SegmentObservable<T extends object> extends BaseObservableValue<T[keyof T]
     private readonly _navigation: Navigation<T>;
     private _type: keyof T;
     private _lastSetValue?: T[keyof T];
-        
+
     constructor(navigation: Navigation<T>, type: keyof T) {
         super();
         this._navigation = navigation;
@@ -229,9 +229,10 @@ class SegmentObservable<T extends object> extends BaseObservableValue<T[keyof T]
 
 export type {Path};
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
 
-    function createMockNavigation() {
+    function createMockNavigation(): Navigation<any> {
         return new Navigation((parent, {type}) => {
             switch (parent?.type) {
                 case undefined:
@@ -248,7 +249,7 @@ export function tests() {
         });
     }
 
-    function observeTypes(nav, types) {
+    function observeTypes(nav, types): {type:string, value:any}[] {
         const changes: {type:string, value:any}[] = [];
         for (const type of types) {
             nav.observe(type).subscribe(value => {
@@ -265,7 +266,7 @@ export function tests() {
     }
 
     return {
-        "applying a path emits an event on the observable": assert => {
+        "applying a path emits an event on the observable": (assert): void => {
             const nav = createMockNavigation();
             const path = nav.pathFrom([
                 new Segment("2", 7),
@@ -280,18 +281,18 @@ export function tests() {
             assert.equal(changes[1].type, "2.2");
             assert.equal(changes[1].value, 8);
         },
-        "path.get": assert => {
+        "path.get": (assert): void => {
             const path = new Path<SegmentType>([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             assert.equal(path.get("foo")!.value, 5);
             assert.equal(path.get("bar")!.value, 6);
         },
-        "path.replace success": assert => {
+        "path.replace success": (assert): void => {
             const path = new Path<SegmentType>([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             const newPath = path.replace(new Segment("foo", 1));
             assert.equal(newPath!.get("foo")!.value, 1);
             assert.equal(newPath!.get("bar")!.value, 6);
         },
-        "path.replace not found": assert => {
+        "path.replace not found": (assert): void => {
             const path = new Path<SegmentType>([new Segment("foo", 5), new Segment("bar", 6)], () => true);
             const newPath = path.replace(new Segment("baz", 1));
             assert.equal(newPath, null);

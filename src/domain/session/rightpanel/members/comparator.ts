@@ -15,12 +15,15 @@ limitations under the License.
 */
 
 import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
+import type {RoomMember} from "../../../../matrix/room/members/RoomMember.js";
 
-export function createMemberComparator(powerLevels) {
+type RoomMemberComparator = (member: RoomMember, otherMember: RoomMember) => number;
+
+export function createMemberComparator(powerLevels: PowerLevels): RoomMemberComparator {
     const collator = new Intl.Collator();
-    const removeCharacter = string => string.charAt(0) === "@"? string.slice(1) : string;
+    const removeCharacter = (str: string): string => str.charAt(0) === "@" ? str.slice(1) : str;
 
-    return function comparator(member, otherMember) {
+    return function comparator(member: RoomMember, otherMember: RoomMember): number {
         const p1 = powerLevels.getUserLevel(member.userId);
         const p2 = powerLevels.getUserLevel(otherMember.userId);
         if (p1 !== p2) { return p2 - p1; }
@@ -30,9 +33,10 @@ export function createMemberComparator(powerLevels) {
     };
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
 
-    function createComparatorWithPowerLevel(map) {
+    function createComparatorWithPowerLevel(map?: Record<string, number>): RoomMemberComparator {
         let users = {};
         for (const prop in map) {
             Object.assign(users, {[prop]: map[prop]});
@@ -44,21 +48,21 @@ export function tests() {
     }
 
     return {
-        "power_level(member1) > power_level(member2) returns value <= 0": assert => {
+        "power_level(member1) > power_level(member2) returns value <= 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": 50});
             const member1 = {userId: "@alice:hs.tld", name: "alice"};
             const member2 = {userId: "@bob:hs.tld", name: "bob"};
             assert.strictEqual(fn(member1, member2) <= 0, true);
         },
 
-        "power_level(member1) < power_level(member2) returns value > 0": assert => {
+        "power_level(member1) < power_level(member2) returns value > 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": 50});
             const member1 = {userId: "@bob:hs.tld", name: "bob"};
             const member2 = {userId: "@alice:hs.tld", name: "alice"};
             assert.strictEqual(fn(member1, member2) > 0, true);
         },
 
-        "alphabetic compare on name": assert => {
+        "alphabetic compare on name": (assert): void => {
             const fn = createComparatorWithPowerLevel();
             const member1 = {userId: "@bob:hs.tld", name: "bob"};
             const member2 = {userId: "@alice:hs.tld", name: "alice"};
@@ -66,7 +70,7 @@ export function tests() {
             assert.strictEqual(fn(member2, member1) <= 0, true);
         },
 
-        "alphabetic compare with case (alice comes before Bob)": assert => {
+        "alphabetic compare with case (alice comes before Bob)": (assert): void => {
             const fn = createComparatorWithPowerLevel();
             const member1 = {userId: "@bob:hs.tld", name: "Bob"};
             const member2 = {userId: "@alice:hs.tld", name: "alice"};
@@ -74,7 +78,7 @@ export function tests() {
             assert.strictEqual(fn(member2, member1) <= 0, true);
         },
 
-        "equal powerlevel and same names returns 0": assert => {
+        "equal powerlevel and same names returns 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@bobby:hs.tld": 50, "@bob:hs.tld": 50});
             const member1 = {userId: "@bob:hs.tld", name: "bob"};
             const member2 = {userId: "@bobby:hs.tld", name: "bob"};
@@ -82,28 +86,28 @@ export function tests() {
             assert.strictEqual(fn(member2, member1), 0);
         },
 
-        "(both_negative_powerlevel) power_level(member1) < power_level(member2) returns value > 0": assert => {
+        "(both_negative_powerlevel) power_level(member1) < power_level(member2) returns value > 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": -100, "@bob:hs.tld": -50});
             const member1 = {userId: "@alice:hs.tld", name: "alice"};
             const member2 = {userId: "@bob:hs.tld", name: "bob"};
             assert.strictEqual(fn(member1, member2) > 0, true);
         },
 
-        "(both_negative_powerlevel) power_level(member1) > power_level(member2) returns value <= 0": assert => {
+        "(both_negative_powerlevel) power_level(member1) > power_level(member2) returns value <= 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": -50, "@bob:hs.tld": -100});
             const member1 = {userId: "@alice:hs.tld", name: "alice"};
             const member2 = {userId: "@bob:hs.tld", name: "bob"};
             assert.strictEqual(fn(member1, member2) <= 0, true);
         },
 
-        "(one_negative_powerlevel) power_level(member1) > power_level(member2) returns value <= 0": assert => {
+        "(one_negative_powerlevel) power_level(member1) > power_level(member2) returns value <= 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": 50, "@bob:hs.tld": -100});
             const member1 = {userId: "@alice:hs.tld", name: "alice"};
             const member2 = {userId: "@bob:hs.tld", name: "bob"};
             assert.strictEqual(fn(member1, member2) <= 0, true);
         },
 
-        "(one_negative_powerlevel) power_level(member1) < power_level(member2) returns value > 0": assert => {
+        "(one_negative_powerlevel) power_level(member1) < power_level(member2) returns value > 0": (assert): void => {
             const fn = createComparatorWithPowerLevel({"@alice:hs.tld": -100, "@bob:hs.tld": 50});
             const member1 = {userId: "@alice:hs.tld", name: "alice"};
             const member2 = {userId: "@bob:hs.tld", name: "bob"};
