@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RoomView} from "./room/RoomView.js";
-import {RoomBeingCreatedView} from "./room/RoomBeingCreatedView.js";
-import {InviteView} from "./room/InviteView.js";
+import {RoomView} from "./room/RoomView";
+import {RoomBeingCreatedView} from "./room/RoomBeingCreatedView";
+import {InviteView} from "./room/InviteView";
 import {TemplateView} from "../general/TemplateView";
-import {StaticView} from "../general/StaticView.js";
+import {StaticView} from "../general/StaticView";
 
 export class RoomGridView extends TemplateView {
     constructor(vm, viewClassForTile) {

@@ -21,8 +21,8 @@ import type {Options as BaseOptions} from "../../ViewModel";
 import type {RetainedObservableValue} from "../../../observable/ObservableValue";
 import type { MediaRepository } from "../../../matrix/net/MediaRepository";
 import type {Session} from "../../../matrix/Session";
-import type {RoomMember} from "../../../matrix/room/members/RoomMember.js";
-import type {PowerLevels} from "../../../matrix/room/PowerLevels.js";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember";
+import type {PowerLevels} from "../../../matrix/room/PowerLevels";
 
 export type ExplicitOptions = {
     observableMember: RetainedObservableValue<RoomMember>,

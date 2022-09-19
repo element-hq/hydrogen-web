@@ -19,7 +19,7 @@ import {OutboundRoomKey} from "./decryption/RoomKey";
 import type {Account} from "../Account";
 import type {KeyLoader} from "./decryption/KeyLoader";
 import type {Olm} from "../olm/Session";
-import type {Transaction} from "../../storage/idb/Transaction.js";
+import type {Transaction} from "../../storage/idb/Transaction";
 import type {RoomKeyMessage} from "../../storage/idb/stores/OperationStore";
 import type {OutboundGroupSession} from "@matrix-org/olm";
 import type {Content} from "../../storage/types";

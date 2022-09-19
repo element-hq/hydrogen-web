@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ILogItem} from "../../logging/types";
 import {ILoginMethod} from "./LoginMethod";
-import {HomeServerApi} from "../net/HomeServerApi.js";
+import {HomeServerApi} from "../net/HomeServerApi";
 
 export class PasswordLoginMethod implements ILoginMethod {
     private readonly _username: string;

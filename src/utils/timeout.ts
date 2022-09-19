@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ConnectionError} from "../matrix/error.js";
-import type {Timeout} from "../platform/web/dom/Clock.js"
+import {ConnectionError} from "../matrix/error";
+import type {Timeout} from "../platform/web/dom/Clock"
 import type {IAbortable} from "./AbortableOperation";
 
 type TimeoutCreator = (ms: number) => Timeout;
@@ -55,9 +55,9 @@ export function abortOnTimeout(createTimeout: TimeoutCreator, timeoutAmount: num
 // include platform specific code,
 // and this file is only included by platform specific code,
 // see how to run in package.json and replace src/main.js with this file.
-import {Clock as MockClock} from "../mocks/Clock.js";
-import {Request as MockRequest} from "../mocks/Request.js";
-import {AbortError} from "../matrix/error.js";
+import {Clock as MockClock} from "../mocks/Clock";
+import {Request as MockRequest} from "../mocks/Request";
+import {AbortError} from "../matrix/error";
 export function tests() {
     return {
         "ConnectionError on timeout": async assert => {

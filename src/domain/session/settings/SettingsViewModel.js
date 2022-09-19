@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
+import {KeyBackupViewModel} from "./KeyBackupViewModel";
 import {submitLogsToRageshakeServer} from "../../../domain/rageshake";
 
 class PushNotificationStatus {
@@ -106,7 +106,7 @@ export class SettingsViewModel extends ViewModel {
     }
 
     get version() {
-        const {updateService} = this.platform; 
+        const {updateService} = this.platform;
         if (updateService) {
             return `${updateService.version} (${updateService.buildHash})`;
         }

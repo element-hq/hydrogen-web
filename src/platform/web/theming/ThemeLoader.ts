@@ -20,7 +20,7 @@ import {BuiltThemeParser} from "./parsers/BuiltThemeParser";
 import type {Variant, ThemeInformation} from "./parsers/types";
 import type {ThemeManifest} from "../../types/theme";
 import type {ILogItem} from "../../../logging/types";
-import type {Platform} from "../Platform.js";
+import type {Platform} from "../Platform";
 import {LogLevel} from "../../../logging/LogFilter";
 
 export class ThemeLoader {
@@ -182,7 +182,7 @@ export class ThemeLoader {
     }
 
     private _addDefaultThemeToMapping(log: ILogItem) {
-        log.wrap("addDefaultThemeToMapping", l => { 
+        log.wrap("addDefaultThemeToMapping", l => {
             const defaultThemeId = this.getDefaultTheme();
             if (defaultThemeId) {
                 const themeDetails = this._findThemeDetailsFromId(defaultThemeId);

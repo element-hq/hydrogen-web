@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionError} from "../../common.js";
+import {DecryptionError} from "../../common";
 
 export class DecryptionChanges {
     constructor(roomId, results, errors, replayEntries) {
@@ -28,7 +28,7 @@ export class DecryptionChanges {
      * @type MegolmBatchDecryptionResult
      * @property {Map<string, DecryptionResult>} results a map of event id to decryption result
      * @property {Map<string, Error>} errors event id -> errors
-     * 
+     *
      * Handle replay attack detection, and return result
      * @param  {[type]} txn [description]
      * @return {MegolmBatchDecryptionResult}

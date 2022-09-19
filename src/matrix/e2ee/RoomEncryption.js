@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
+import {MEGOLM_ALGORITHM, DecryptionSource} from "./common";
 import {groupEventsBySession} from "./megolm/decryption/utils";
 import {mergeMap} from "../../utils/mergeMap";
 import {groupBy} from "../../utils/groupBy";
-import {makeTxnId} from "../common.js";
+import {makeTxnId} from "../common";
 import {iterateResponseStateEvents} from "../room/common";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
@@ -557,7 +557,7 @@ import {Clock as MockClock} from "../../mocks/Clock";
 import {poll} from "../../mocks/poll";
 import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
 import {ConsoleLogger} from "../../logging/ConsoleLogger";
-import {HomeServer as MockHomeServer} from "../../mocks/HomeServer.js";
+import {HomeServer as MockHomeServer} from "../../mocks/HomeServer";
 
 export function tests() {
     const roomId = "!abc:hs.tld";

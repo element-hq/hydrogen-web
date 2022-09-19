@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMediaView} from "./BaseMediaView.js";
+import {BaseMediaView} from "./BaseMediaView";
 
 export class ImageView extends BaseMediaView {
     renderMedia(t, vm) {

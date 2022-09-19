@@ -15,19 +15,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LeftPanelView} from "./leftpanel/LeftPanelView.js";
-import {RoomView} from "./room/RoomView.js";
-import {UnknownRoomView} from "./room/UnknownRoomView.js";
-import {RoomBeingCreatedView} from "./room/RoomBeingCreatedView.js";
-import {InviteView} from "./room/InviteView.js";
-import {LightboxView} from "./room/LightboxView.js";
+import {LeftPanelView} from "./leftpanel/LeftPanelView";
+import {RoomView} from "./room/RoomView";
+import {UnknownRoomView} from "./room/UnknownRoomView";
+import {RoomBeingCreatedView} from "./room/RoomBeingCreatedView";
+import {InviteView} from "./room/InviteView";
+import {LightboxView} from "./room/LightboxView";
 import {TemplateView} from "../general/TemplateView";
-import {StaticView} from "../general/StaticView.js";
-import {SessionStatusView} from "./SessionStatusView.js";
-import {RoomGridView} from "./RoomGridView.js";
-import {SettingsView} from "./settings/SettingsView.js";
-import {CreateRoomView} from "./CreateRoomView.js";
-import {RightPanelView} from "./rightpanel/RightPanelView.js";
+import {StaticView} from "../general/StaticView";
+import {SessionStatusView} from "./SessionStatusView";
+import {RoomGridView} from "./RoomGridView";
+import {SettingsView} from "./settings/SettingsView";
+import {CreateRoomView} from "./CreateRoomView";
+import {RightPanelView} from "./rightpanel/RightPanelView";
 import {viewClassForTile} from "./room/common";
 import {JoinRoomView} from "./JoinRoomView";
 

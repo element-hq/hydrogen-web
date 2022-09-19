@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {EventEmitter} from "../../utils/EventEmitter";
-import {SummaryData, processStateEvent} from "./RoomSummary.js";
-import {Heroes} from "./members/Heroes.js";
-import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember.js";
+import {SummaryData, processStateEvent} from "./RoomSummary";
+import {Heroes} from "./members/Heroes";
+import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember";
 
 export class Invite extends EventEmitter {
     constructor({roomId, user, hsApi, mediaRepository, emitCollectionRemove, emitCollectionUpdate, platform}) {
@@ -189,7 +189,7 @@ export class Invite extends EventEmitter {
             roomId: this.id,
             isEncrypted: !!summaryData.encryption,
             isDirectMessage: summaryData.isDirectMessage,
-//            type: 
+//            type:
             name,
             avatarUrl,
             avatarColorId,
@@ -245,9 +245,9 @@ export class Invite extends EventEmitter {
 }
 
 import {NullLogItem} from "../../logging/NullLogger";
-import {Clock as MockClock} from "../../mocks/Clock.js";
-import {default as roomInviteFixture} from "../../fixtures/matrix/invites/room.js";
-import {default as dmInviteFixture} from "../../fixtures/matrix/invites/dm.js";
+import {Clock as MockClock} from "../../mocks/Clock";
+import {default as roomInviteFixture} from "../../fixtures/matrix/invites/room";
+import {default as dmInviteFixture} from "../../fixtures/matrix/invites/dm";
 
 export function tests() {
 

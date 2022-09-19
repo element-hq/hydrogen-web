@@ -18,7 +18,7 @@ limitations under the License.
 import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
 import {comparePrimitive} from "./common";
 import {Options as ViewModelOptions} from "../../ViewModel";
-import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated.js";
+import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated";
 import {Navigation} from "../../navigation/Navigation";
 import type {Platform} from "../../../platform/web/Platform";
 import type {ILogger} from "../../../logging/types";

@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {UTF8} from "../dom/UTF8.js";
-import {Base64} from "./Base64.js";
-import {Base58} from "./Base58.js";
+import {UTF8} from "../dom/UTF8";
+import {Base64} from "./Base64";
+import {Base58} from "./Base58";
 
 export class Encoding {
     constructor() {

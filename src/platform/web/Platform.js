@@ -14,29 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createFetchRequest} from "./dom/request/fetch.js";
-import {xhrRequest} from "./dom/request/xhr.js";
+import {createFetchRequest} from "./dom/request/fetch";
+import {xhrRequest} from "./dom/request/xhr";
 import {StorageFactory} from "../../matrix/storage/idb/StorageFactory";
 import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionInfoStorage";
-import {SettingsStorage} from "./dom/SettingsStorage.js";
-import {Encoding} from "./utils/Encoding.js";
-import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
+import {SettingsStorage} from "./dom/SettingsStorage";
+import {Encoding} from "./utils/Encoding";
+import {OlmWorker} from "../../matrix/e2ee/OlmWorker";
 import {IDBLogger} from "../../logging/IDBLogger";
 import {ConsoleLogger} from "../../logging/ConsoleLogger";
-import {RootView} from "./ui/RootView.js";
-import {Clock} from "./dom/Clock.js";
-import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
-import {NotificationService} from "./dom/NotificationService.js";
-import {History} from "./dom/History.js";
-import {OnlineStatus} from "./dom/OnlineStatus.js";
-import {Crypto} from "./dom/Crypto.js";
-import {estimateStorageUsage} from "./dom/StorageEstimate.js";
-import {WorkerPool} from "./dom/WorkerPool.js";
-import {BlobHandle} from "./dom/BlobHandle.js";
-import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
-import {downloadInIframe} from "./dom/download.js";
+import {RootView} from "./ui/RootView";
+import {Clock} from "./dom/Clock";
+import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler";
+import {NotificationService} from "./dom/NotificationService";
+import {History} from "./dom/History";
+import {OnlineStatus} from "./dom/OnlineStatus";
+import {Crypto} from "./dom/Crypto";
+import {estimateStorageUsage} from "./dom/StorageEstimate";
+import {WorkerPool} from "./dom/WorkerPool";
+import {BlobHandle} from "./dom/BlobHandle";
+import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle";
+import {downloadInIframe} from "./dom/download";
 import {Disposables} from "../../utils/Disposables";
-import {parseHTML} from "./parsehtml.js";
+import {parseHTML} from "./parsehtml";
 import {handleAvatarError} from "./ui/avatar";
 import {ThemeLoader} from "./theming/ThemeLoader";
 
@@ -336,7 +336,7 @@ export class Platform {
         const error = await this.logger.wrapOrRun(log, { l: "replaceStylesheet", location: newPath, }, async (l) => {
             let error;
             const head = document.querySelector("head");
-            // remove default theme 
+            // remove default theme
             document.querySelectorAll(".theme").forEach(e => e.remove());
             // add new theme
             const styleTag = document.createElement("link");

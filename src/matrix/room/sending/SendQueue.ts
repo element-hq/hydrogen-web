@@ -20,7 +20,7 @@ import {PendingEvent, PendingEventData, SendStatus} from "./PendingEvent";
 import {makeTxnId, isTxnId} from "../../common";
 import {REDACTION_TYPE} from "../common";
 import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE, Relation} from "../timeline/relations";
-import type {RoomEncryption} from "../../e2ee/RoomEncryption.js";
+import type {RoomEncryption} from "../../e2ee/RoomEncryption";
 import type {AttachmentUpload} from "../AttachmentUpload";
 import type {ILogItem} from "../../../logging/types";
 import type {HomeServerApi} from "../../net/HomeServerApi";

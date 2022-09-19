@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {encodeQueryParams} from "./common";
-import {decryptAttachment} from "../e2ee/attachment.js";
-import {Platform} from "../../platform/web/Platform.js";
-import {BlobHandle} from "../../platform/web/dom/BlobHandle.js";
+import {decryptAttachment} from "../e2ee/attachment";
+import {Platform} from "../../platform/web/Platform";
+import {BlobHandle} from "../../platform/web/dom/BlobHandle";
 import type {Attachment, EncryptedFile} from "./types/response";
 
 export class MediaRepository {

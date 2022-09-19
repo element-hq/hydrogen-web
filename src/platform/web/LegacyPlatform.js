@@ -17,7 +17,7 @@ limitations under the License.
 import aesjs from "aes-js";
 import {hkdf} from "../../utils/crypto/hkdf";
 
-import {Platform as ModernPlatform} from "./Platform.js";
+import {Platform as ModernPlatform} from "./Platform";
 
 export function Platform({ container, assetPaths, config, configURL, options = null }) {
     return new ModernPlatform({ container, assetPaths, config, configURL, options, cryptoExtras: { aesjs, hkdf }});

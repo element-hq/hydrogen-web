@@ -18,7 +18,7 @@ import {IGridItemViewModel} from './IGridItemViewModel';
 import {ViewModel} from "../../ViewModel";
 
 import type {Options as ViewModelOptions} from "../../ViewModel";
-import type {Session} from "../../../matrix/Session.js";
+import type {Session} from "../../../matrix/Session";
 
 type Options = {
     session: Session,

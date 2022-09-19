@@ -15,20 +15,20 @@ limitations under the License.
 */
 
 import {EventEmitter} from "../../utils/EventEmitter";
-import {RoomSummary} from "./RoomSummary.js";
-import {GapWriter} from "./timeline/persistence/GapWriter.js";
-import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
-import {Timeline} from "./timeline/Timeline.js";
-import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
-import {WrappedError} from "../error.js"
-import {fetchOrLoadMembers, fetchOrLoadMember} from "./members/load.js";
-import {MemberList} from "./members/MemberList.js";
-import {Heroes} from "./members/Heroes.js";
-import {EventEntry} from "./timeline/entries/EventEntry.js";
-import {ObservedEventMap} from "./ObservedEventMap.js";
-import {DecryptionSource} from "../e2ee/common.js";
+import {RoomSummary} from "./RoomSummary";
+import {GapWriter} from "./timeline/persistence/GapWriter";
+import {RelationWriter} from "./timeline/persistence/RelationWriter";
+import {Timeline} from "./timeline/Timeline";
+import {FragmentIdComparer} from "./timeline/FragmentIdComparer";
+import {WrappedError} from "../error"
+import {fetchOrLoadMembers, fetchOrLoadMember} from "./members/load";
+import {MemberList} from "./members/MemberList";
+import {Heroes} from "./members/Heroes";
+import {EventEntry} from "./timeline/entries/EventEntry";
+import {ObservedEventMap} from "./ObservedEventMap";
+import {DecryptionSource} from "../e2ee/common";
 import {ensureLogItem} from "../../logging/utils";
-import {PowerLevels} from "./PowerLevels.js";
+import {PowerLevels} from "./PowerLevels";
 import {RetainedObservableValue} from "../../observable/ObservableValue";
 import {TimelineReader} from "./timeline/persistence/TimelineReader";
 
@@ -268,7 +268,7 @@ export class BaseRoom extends EventEmitter {
             });
             return this._memberList;
         }
-    } 
+    }
 
     /** @public */
     fillGap(fragmentEntry, amount, log = null) {

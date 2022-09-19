@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageTile} from "./BaseMessageTile.js";
-import {stringAsBody} from "../MessageBody.js";
+import {BaseMessageTile} from "./BaseMessageTile";
+import {stringAsBody} from "../MessageBody";
 import {createEnum} from "../../../../../utils/enum";
 
 export const BodyFormat = createEnum("Plain", "Html");

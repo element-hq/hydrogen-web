@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {createEnum} from "../utils/enum";
-import {lookupHomeserver} from "./well-known.js";
+import {lookupHomeserver} from "./well-known";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/ObservableValue";
 import {HomeServerApi} from "./net/HomeServerApi";
@@ -24,12 +24,12 @@ import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
 import {MediaRepository} from "./net/MediaRepository";
 import {RequestScheduler} from "./net/RequestScheduler";
-import {Sync, SyncStatus} from "./Sync.js";
-import {Session} from "./Session.js";
+import {Sync, SyncStatus} from "./Sync";
+import {Session} from "./Session";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod";
 import {TokenLoginMethod} from "./login/TokenLoginMethod";
 import {SSOLoginHelper} from "./login/SSOLoginHelper";
-import {getDehydratedDevice} from "./e2ee/Dehydration.js";
+import {getDehydratedDevice} from "./e2ee/Dehydration";
 import {Registration} from "./registration/Registration";
 
 export const LoadStatus = createEnum(

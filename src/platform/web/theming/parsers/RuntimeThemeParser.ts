@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type {ThemeInformation} from "./types";
-import type {Platform} from "../../Platform.js";
+import type {Platform} from "../../Platform";
 import type {ThemeManifest} from "../../../types/theme";
 import {ColorSchemePreference} from "./types";
 import {IconColorizer} from "../IconColorizer";

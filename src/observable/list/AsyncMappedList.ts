@@ -133,7 +133,7 @@ class ResetEvent<F> {
 }
 
 import {ObservableArray} from "./ObservableArray";
-import {ListObserver} from "../../mocks/ListObserver.js";
+import {ListObserver} from "../../mocks/ListObserver";
 
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

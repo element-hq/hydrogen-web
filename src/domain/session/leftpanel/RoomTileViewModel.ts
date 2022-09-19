@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
-import {Options as ViewModelOptions} from "../../ViewModel.js";
-import {Room} from "../../../matrix/room/Room.js";
+import {Options as ViewModelOptions} from "../../ViewModel";
+import {Room} from "../../../matrix/room/Room";
 
 
 type Options = {

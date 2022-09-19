@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2018 Jun Kurihara
  * Copyright 2020 The Matrix.org Foundation C.I.C.
- * 
+ *
  * MIT LICENSE, See https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-hkdf/LICENSE
  * Based on https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-hkdf/src/hkdf.ts
  */
 
-import type {Crypto} from "../../platform/web/dom/Crypto.js";
+import type {Crypto} from "../../platform/web/dom/Crypto";
 
 // forked this code to make it use the cryptoDriver for HMAC that is more backwards-compatible
 export async function hkdf(cryptoDriver: Crypto, key: Uint8Array, salt: Uint8Array, info: Uint8Array, hash: "SHA-256" | "SHA-512", length: number): Promise<Uint8Array> {

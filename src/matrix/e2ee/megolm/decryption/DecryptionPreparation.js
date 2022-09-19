@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionChanges} from "./DecryptionChanges.js";
+import {DecryptionChanges} from "./DecryptionChanges";
 import {mergeMap} from "../../../../utils/mergeMap";
 
 /**

@@ -16,13 +16,13 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {Popup} from "../../general/Popup.js";
-import {Menu} from "../../general/Menu.js";
+import {Popup} from "../../general/Popup";
+import {Menu} from "../../general/Menu";
 import {TimelineView} from "./TimelineView";
-import {TimelineLoadingView} from "./TimelineLoadingView.js";
-import {MessageComposer} from "./MessageComposer.js";
-import {DisabledComposerView} from "./DisabledComposerView.js";
-import {AvatarView} from "../../AvatarView.js";
+import {TimelineLoadingView} from "./TimelineLoadingView";
+import {MessageComposer} from "./MessageComposer";
+import {DisabledComposerView} from "./DisabledComposerView";
+import {AvatarView} from "../../AvatarView";
 
 export class RoomView extends TemplateView {
     constructor(vm, viewClassForTile) {
@@ -47,7 +47,7 @@ export class RoomView extends TemplateView {
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, [
-                    t.if(vm => vm.error, t => t.div( 
+                    t.if(vm => vm.error, t => t.div(
                         [
                             t.p({}, vm => vm.error),
                             t.button({ className: "RoomView_error_closerButton", onClick: evt => vm.dismissError(evt) })
@@ -70,7 +70,7 @@ export class RoomView extends TemplateView {
             ])
         ]);
     }
-    
+
     _toggleOptionsMenu(evt) {
         if (this._optionsPopup && this._optionsPopup.isOpen) {
             this._optionsPopup.close();

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {HomeServerApi} from "../net/HomeServerApi.js";
+import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
 
 export interface IPusherDescription {

@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {HomeServerError, ConnectionError} from "../error.js";
-import type {RequestResult} from "../../platform/web/dom/request/fetch.js";
+import {HomeServerError, ConnectionError} from "../error";
+import type {RequestResult} from "../../platform/web/dom/request/fetch";
 import type {ILogItem} from "../../logging/types";
 
 export interface IHomeServerRequest {
@@ -73,7 +73,7 @@ export class HomeServerRequest implements IHomeServerRequest {
                 // The service worker sometimes (only on Firefox, on long, large request,
                 // perhaps it has its own timeout?) aborts the request, see #187.
                 // When it happens, the best thing to do seems to be to retry.
-                // 
+                //
                 // In the service worker, we will also actively abort all
                 // ongoing requests when trying to get a new service worker to activate
                 // (this may surface in the app as a TypeError, which already gets mapped
@@ -81,11 +81,11 @@ export class HomeServerRequest implements IHomeServerRequest {
                 // depending on the browser), as the service worker will only be
                 // replaced when there are no more (fetch) events for the
                 // current one to handle.
-                // 
-                // In that case, the request function (in fetch.js) will check 
+                //
+                // In that case, the request function (in fetch.js) will check
                 // the haltRequests flag on the service worker handler, and
                 // block any new requests, as that would break the update process.
-                // 
+                //
                 // So it is OK to return a ConnectionError here.
                 // If we're updating the service worker, the /versions polling will
                 // be blocked at the fetch level because haltRequests is set.
@@ -122,8 +122,8 @@ export class HomeServerRequest implements IHomeServerRequest {
     }
 }
 
-import {Request as MockRequest} from "../../mocks/Request.js";
-import {AbortError} from "../error.js";
+import {Request as MockRequest} from "../../mocks/Request";
+import {AbortError} from "../error";
 
 export function tests() {
     return {

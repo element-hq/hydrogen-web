@@ -18,16 +18,16 @@ import {ListView} from "../../general/ListView";
 import type {IView} from "../../general/types";
 import {TemplateView, Builder} from "../../general/TemplateView";
 import {IObservableValue} from "../../general/BaseUpdateView";
-import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
-import {AnnouncementView} from "./timeline/AnnouncementView.js";
-import {RedactedView} from "./timeline/RedactedView.js";
-import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
+import {MissingAttachmentView} from "./timeline/MissingAttachmentView";
+import {AnnouncementView} from "./timeline/AnnouncementView";
+import {RedactedView} from "./timeline/RedactedView";
+import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile";
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
 
 export interface TileView extends IView {
     readonly value: SimpleTile;
     onClick(event: UIEvent);
-} 
+}
 export type TileViewConstructor = new (
     tile: SimpleTile,
     viewClassForTile: ViewClassForEntryFn,
@@ -35,7 +35,7 @@ export type TileViewConstructor = new (
 ) => TileView;
 export type ViewClassForEntryFn = (tile: SimpleTile) => TileViewConstructor;
 
-//import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
+//import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel";
 export interface TimelineViewModel extends IObservableValue {
     showJumpDown: boolean;
     tiles: ObservableList<SimpleTile>;

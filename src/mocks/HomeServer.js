@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseRequest} from "./Request.js";
+import {BaseRequest} from "./Request";
 
 // a request as returned by the HomeServerApi
 class HomeServerRequest extends BaseRequest {

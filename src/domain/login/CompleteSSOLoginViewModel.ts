@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import {LoginFailure} from "../../matrix/Client.js";
+import {LoginFailure} from "../../matrix/Client";
 import type {TokenLoginMethod} from "../../matrix/login";
-import { Client } from "../../matrix/Client.js";
+import { Client } from "../../matrix/Client";
 
 type Options = {
     client: Client;

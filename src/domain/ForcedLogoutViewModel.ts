@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Options as BaseOptions, ViewModel} from "./ViewModel";
-import {Client} from "../matrix/Client.js";
+import {Client} from "../matrix/Client";
 import {SegmentType} from "./navigation/index";
 
 type Options = { sessionId: string; } & BaseOptions;
@@ -41,7 +41,7 @@ export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
         }
         catch (err) {
             this._error = err;
-            // Show the error in the UI 
+            // Show the error in the UI
             this._showSpinner = false;
             this._showStatus = true;
             this.emitChange("error");
@@ -51,7 +51,7 @@ export class ForcedLogoutViewModel extends ViewModel<SegmentType, Options> {
     async proceed(): Promise<void> {
         /**
          * The logout should already be completed because we started it from the ctor.
-         * In case the logout is still proceeding, we will show a message with a spinner. 
+         * In case the logout is still proceeding, we will show a message with a spinner.
          */
         this._showSpinner = true;
         this._showStatus = true;

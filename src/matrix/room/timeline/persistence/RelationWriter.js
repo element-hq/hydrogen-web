@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventEntry} from "../entries/EventEntry.js";
+import {EventEntry} from "../entries/EventEntry";
 import {REDACTION_TYPE, isRedacted} from "../../common";
 import {ANNOTATION_RELATION_TYPE, getRelation} from "../relations";
-import {redactEvent} from "../common.js";
+import {redactEvent} from "../common";
 
 export class RelationWriter {
     constructor({roomId, ownUserId, fragmentIdComparer}) {
@@ -212,9 +212,9 @@ function isObjectEmpty(obj) {
 
 
 import {createMockStorage} from "../../../../mocks/Storage";
-import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event.js";
+import {createEvent, withTextBody, withRedacts, withContent} from "../../../../mocks/event";
 import {createAnnotation} from "../relations";
-import {FragmentIdComparer} from "../FragmentIdComparer.js";
+import {FragmentIdComparer} from "../FragmentIdComparer";
 import {NullLogItem} from "../../../../logging/NullLogger";
 
 export function tests() {

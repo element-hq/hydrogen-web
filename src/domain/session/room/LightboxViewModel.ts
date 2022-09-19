@@ -18,7 +18,7 @@ import {ViewModel} from "../../ViewModel";
 import type {Options as ViewModelOptions} from "../../ViewModel";
 import type {Room} from "../../../matrix/room/Room";
 import type {EventEntry} from "../../../matrix/room/timeline/entries/EventEntry";
-import type {BlobHandle} from "../../../platform/web/dom/BlobHandle.js";
+import type {BlobHandle} from "../../../platform/web/dom/BlobHandle";
 
 type Options = {
     eventId: string;

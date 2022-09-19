@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
-import type {RoomMember} from "../../../../matrix/room/members/RoomMember.js";
+import {PowerLevels} from "../../../../matrix/room/PowerLevels";
+import type {RoomMember} from "../../../../matrix/room/members/RoomMember";
 
 interface ComparableRoomMemberI {
     userId: string

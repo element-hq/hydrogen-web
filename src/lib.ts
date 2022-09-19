@@ -14,60 +14,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export {Platform} from "./platform/web/Platform.js";
-export {Client, LoadStatus} from "./matrix/Client.js";
+export {Platform} from "./platform/web/Platform";
+export {Client, LoadStatus} from "./matrix/Client";
 export {RoomStatus} from "./matrix/room/common";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index";
-export {RootViewModel} from "./domain/RootViewModel.js";
-export {RootView} from "./platform/web/ui/RootView.js";
+export {RootViewModel} from "./domain/RootViewModel";
+export {RootView} from "./platform/web/ui/RootView";
 export {SessionViewModel} from "./domain/session/SessionViewModel";
-export {SessionView} from "./platform/web/ui/session/SessionView.js";
+export {SessionView} from "./platform/web/ui/session/SessionView";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel";
-export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
-export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
+export {RoomView} from "./platform/web/ui/session/room/RoomView";
+export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
 export type {TimelineEntry, TileClassForEntryFn, Options, TileConstructor} from "./domain/session/room/timeline/tiles/index";
 // export timeline tile view models
-export {GapTile} from "./domain/session/room/timeline/tiles/GapTile.js";
-export {TextTile} from "./domain/session/room/timeline/tiles/TextTile.js";
-export {RedactedTile} from "./domain/session/room/timeline/tiles/RedactedTile.js";
-export {ImageTile} from "./domain/session/room/timeline/tiles/ImageTile.js";
-export {VideoTile} from "./domain/session/room/timeline/tiles/VideoTile.js";
-export {FileTile} from "./domain/session/room/timeline/tiles/FileTile.js";
-export {LocationTile} from "./domain/session/room/timeline/tiles/LocationTile.js";
-export {RoomNameTile} from "./domain/session/room/timeline/tiles/RoomNameTile.js";
-export {RoomMemberTile} from "./domain/session/room/timeline/tiles/RoomMemberTile.js";
-export {EncryptedEventTile} from "./domain/session/room/timeline/tiles/EncryptedEventTile.js";
-export {EncryptionEnabledTile} from "./domain/session/room/timeline/tiles/EncryptionEnabledTile.js";
-export {MissingAttachmentTile} from "./domain/session/room/timeline/tiles/MissingAttachmentTile.js";
-export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile.js";
+export {GapTile} from "./domain/session/room/timeline/tiles/GapTile";
+export {TextTile} from "./domain/session/room/timeline/tiles/TextTile";
+export {RedactedTile} from "./domain/session/room/timeline/tiles/RedactedTile";
+export {ImageTile} from "./domain/session/room/timeline/tiles/ImageTile";
+export {VideoTile} from "./domain/session/room/timeline/tiles/VideoTile";
+export {FileTile} from "./domain/session/room/timeline/tiles/FileTile";
+export {LocationTile} from "./domain/session/room/timeline/tiles/LocationTile";
+export {RoomNameTile} from "./domain/session/room/timeline/tiles/RoomNameTile";
+export {RoomMemberTile} from "./domain/session/room/timeline/tiles/RoomMemberTile";
+export {EncryptedEventTile} from "./domain/session/room/timeline/tiles/EncryptedEventTile";
+export {EncryptionEnabledTile} from "./domain/session/room/timeline/tiles/EncryptionEnabledTile";
+export {MissingAttachmentTile} from "./domain/session/room/timeline/tiles/MissingAttachmentTile";
+export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile";
 
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
 export {viewClassForTile} from "./platform/web/ui/session/room/common";
 export type {TileViewConstructor, ViewClassForEntryFn} from "./platform/web/ui/session/room/TimelineView";
 // export timeline tile views
-export {AnnouncementView} from "./platform/web/ui/session/room/timeline/AnnouncementView.js";
-export {BaseMediaView} from "./platform/web/ui/session/room/timeline/BaseMediaView.js";
-export {BaseMessageView} from "./platform/web/ui/session/room/timeline/BaseMessageView.js";
-export {FileView} from "./platform/web/ui/session/room/timeline/FileView.js";
-export {GapView} from "./platform/web/ui/session/room/timeline/GapView.js";
-export {ImageView} from "./platform/web/ui/session/room/timeline/ImageView.js";
-export {LocationView} from "./platform/web/ui/session/room/timeline/LocationView.js";
-export {MissingAttachmentView} from "./platform/web/ui/session/room/timeline/MissingAttachmentView.js";
-export {ReactionsView} from "./platform/web/ui/session/room/timeline/ReactionsView.js";
-export {RedactedView} from "./platform/web/ui/session/room/timeline/RedactedView.js";
-export {ReplyPreviewView} from "./platform/web/ui/session/room/timeline/ReplyPreviewView.js";
-export {TextMessageView} from "./platform/web/ui/session/room/timeline/TextMessageView.js";
-export {VideoView} from "./platform/web/ui/session/room/timeline/VideoView.js";
+export {AnnouncementView} from "./platform/web/ui/session/room/timeline/AnnouncementView";
+export {BaseMediaView} from "./platform/web/ui/session/room/timeline/BaseMediaView";
+export {BaseMessageView} from "./platform/web/ui/session/room/timeline/BaseMessageView";
+export {FileView} from "./platform/web/ui/session/room/timeline/FileView";
+export {GapView} from "./platform/web/ui/session/room/timeline/GapView";
+export {ImageView} from "./platform/web/ui/session/room/timeline/ImageView";
+export {LocationView} from "./platform/web/ui/session/room/timeline/LocationView";
+export {MissingAttachmentView} from "./platform/web/ui/session/room/timeline/MissingAttachmentView";
+export {ReactionsView} from "./platform/web/ui/session/room/timeline/ReactionsView";
+export {RedactedView} from "./platform/web/ui/session/room/timeline/RedactedView";
+export {ReplyPreviewView} from "./platform/web/ui/session/room/timeline/ReplyPreviewView";
+export {TextMessageView} from "./platform/web/ui/session/room/timeline/TextMessageView";
+export {VideoView} from "./platform/web/ui/session/room/timeline/VideoView";
 
-export {Navigation} from "./domain/navigation/Navigation.js";
-export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
-export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
+export {Navigation} from "./domain/navigation/Navigation";
+export {ComposerViewModel} from "./domain/session/room/ComposerViewModel";
+export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
 export {ViewModel} from "./domain/ViewModel";
-export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
-export {AvatarView} from "./platform/web/ui/AvatarView.js";
+export {LoadingView} from "./platform/web/ui/general/LoadingView";
+export {AvatarView} from "./platform/web/ui/AvatarView";
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";

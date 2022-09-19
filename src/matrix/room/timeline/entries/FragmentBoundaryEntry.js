@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry";
 import {Direction} from "../Direction";
-import {isValidFragmentId} from "../common.js";
+import {isValidFragmentId} from "../common";
 import {KeyLimits} from "../../../storage/common";
 
 export class FragmentBoundaryEntry extends BaseEntry {
@@ -34,7 +34,7 @@ export class FragmentBoundaryEntry extends BaseEntry {
     static end(fragment, fragmentIdComparer) {
         return new FragmentBoundaryEntry(fragment, false, fragmentIdComparer);
     }
-    
+
     get started() {
         return this._isFragmentStart;
     }
@@ -88,7 +88,7 @@ export class FragmentBoundaryEntry extends BaseEntry {
     }
 
     set edgeReached(reached) {
-        
+
         if (this.started) {
             this.fragment.startReached = reached;
         } else {
@@ -96,7 +96,7 @@ export class FragmentBoundaryEntry extends BaseEntry {
         }
     }
 
-    
+
 
     get linkedFragmentId() {
         if (this.started) {

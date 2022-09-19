@@ -17,7 +17,7 @@ limitations under the License.
 
 import {LogLevel, LogFilter} from "./LogFilter";
 import type {BaseLogger} from "./BaseLogger";
-import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
+import type {BlobHandle} from "../platform/web/dom/BlobHandle";
 
 export interface ISerializedItem {
     s: number;

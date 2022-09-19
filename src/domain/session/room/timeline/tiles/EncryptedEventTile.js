@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextTile} from "./BaseTextTile.js";
-import {UpdateAction} from "../UpdateAction.js";
+import {BaseTextTile} from "./BaseTextTile";
+import {UpdateAction} from "../UpdateAction";
 
 export class EncryptedEventTile extends BaseTextTile {
     updateEntry(entry, params) {

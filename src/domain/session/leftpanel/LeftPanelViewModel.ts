@@ -22,12 +22,12 @@ import {InviteTileViewModel} from "./InviteTileViewModel";
 import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel";
 import {RoomFilter} from "./RoomFilter";
 import {ApplyMap, MappedMap, ObservableMap} from "../../../observable/";
-import {SortedMapList} from "../../../observable//list/SortedMapList.js";
-import {addPanelIfNeeded} from "../../navigation/index.js";
-import {Room} from "../../../matrix/room/Room.js";
-import {Invite} from "../../../matrix/room/Invite.js";
+import {SortedMapList} from "../../../observable//list/SortedMapList";
+import {addPanelIfNeeded} from "../../navigation/index";
+import {Room} from "../../../matrix/room/Room";
+import {Invite} from "../../../matrix/room/Invite";
 import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated";
-import {Session} from "../../../matrix/Session.js";
+import {Session} from "../../../matrix/Session";
 import {SegmentType} from "../../navigation";
 import type {Path} from "../../navigation/Navigation";
 

@@ -18,10 +18,10 @@ limitations under the License.
 import {
     AbortError,
     ConnectionError
-} from "../../../../matrix/error.js";
+} from "../../../../matrix/error";
 import {abortOnTimeout} from "../../../../utils/timeout";
-import {addCacheBuster, mapAsFormData} from "./common.js";
-import {xhrRequest} from "./xhr.js";
+import {addCacheBuster, mapAsFormData} from "./common";
+import {xhrRequest} from "./xhr";
 
 class RequestResult {
     constructor(promise, controller) {
@@ -95,7 +95,7 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
             // so we don't do that, and prevent caching with `addCacheBuster`.
             // We also hope the server responds with `Cache-Control: no-store` so
             // we don't fill the http cache with api responses.
-            // 
+            //
             // cache: "no-store",
             cache: "default",
         });
@@ -120,7 +120,7 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
                 }
             } catch (err) {
                 // some error pages return html instead of json, ignore error
-                // detect these ignored errors from the response status 
+                // detect these ignored errors from the response status
                 if (!(err.name === "SyntaxError" && status >= 400)) {
                     throw err;
                 }
@@ -135,7 +135,7 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
                 // Network errors are reported as TypeErrors, see
                 // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#Checking_that_the_fetch_was_successful
                 // this can either mean user is offline, server is offline, or a CORS error (server misconfiguration).
-                // 
+                //
                 // One could check navigator.onLine to rule out the first
                 // but the 2 latter ones are indistinguishable from javascript.
                 throw new ConnectionError(`${method} ${url}: ${err.message}`);
@@ -149,5 +149,5 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
         }
 
         return result;
-    }   
+    }
 }

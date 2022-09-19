@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {AccountSetupViewModel} from "./AccountSetupViewModel.js";
-import {LoadStatus} from "../matrix/Client.js";
-import {SyncStatus} from "../matrix/Sync.js";
+import {AccountSetupViewModel} from "./AccountSetupViewModel";
+import {LoadStatus} from "../matrix/Client";
+import {SyncStatus} from "../matrix/Sync";
 import {ViewModel} from "./ViewModel";
 
 export class SessionLoadViewModel extends ViewModel {
@@ -61,7 +61,7 @@ export class SessionLoadViewModel extends ViewModel {
             } catch (err) {
                 return; // aborted by goBack
             }
-            // TODO: should we deal with no connection during initial sync 
+            // TODO: should we deal with no connection during initial sync
             // and we're retrying as well here?
             // e.g. show in the label what is going on wrt connectionstatus
             // much like we will once you are in the app. Probably a good idea
@@ -72,7 +72,7 @@ export class SessionLoadViewModel extends ViewModel {
             if (loadStatus === LoadStatus.FirstSync || loadStatus === LoadStatus.Ready) {
                 const client = this._client;
                 // session container is ready,
-                // don't dispose it anymore when 
+                // don't dispose it anymore when
                 // we get disposed
                 this._client = null;
                 this._ready(client);
@@ -141,7 +141,7 @@ export class SessionLoadViewModel extends ViewModel {
     }
 
     _getError() {
-        return this._error || this._client?.loadError; 
+        return this._error || this._client?.loadError;
     }
 
     get hasError() {

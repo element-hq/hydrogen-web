@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {UpdateAction} from "../UpdateAction.js";
+import {UpdateAction} from "../UpdateAction";
 import {ViewModel} from "../../../../ViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent";
 

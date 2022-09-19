@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseRoom} from "./BaseRoom.js";
-import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
-import {MemberWriter} from "./timeline/persistence/MemberWriter.js";
-import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
+import {BaseRoom} from "./BaseRoom";
+import {SyncWriter} from "./timeline/persistence/SyncWriter";
+import {MemberWriter} from "./timeline/persistence/MemberWriter";
+import {RelationWriter} from "./timeline/persistence/RelationWriter";
 import {SendQueue} from "./sending/SendQueue";
-import {WrappedError} from "../error.js"
-import {Heroes} from "./members/Heroes.js";
-import {AttachmentUpload} from "./AttachmentUpload.js";
-import {DecryptionSource} from "../e2ee/common.js";
-import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
+import {WrappedError} from "../error"
+import {Heroes} from "./members/Heroes";
+import {AttachmentUpload} from "./AttachmentUpload";
+import {DecryptionSource} from "../e2ee/common";
+import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 

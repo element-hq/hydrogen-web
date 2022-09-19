@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {Key} from "./common";
 import {KeyDescription} from "./common";
-import type {Platform} from "../../platform/web/Platform.js";
+import type {Platform} from "../../platform/web/Platform";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 

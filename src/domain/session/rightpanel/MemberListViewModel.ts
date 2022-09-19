@@ -20,12 +20,12 @@ import {MemberTileViewModel} from "./MemberTileViewModel";
 import {createMemberComparator} from "./members/comparator";
 import {Disambiguator} from "./members/disambiguator";
 import type {RetainedObservableValue} from "../../../observable/ObservableValue";
-import type {PowerLevels} from "../../../matrix/room/PowerLevels.js";
-import type {MemberList} from "../../../matrix/room/members/MemberList.js";
+import type {PowerLevels} from "../../../matrix/room/PowerLevels";
+import type {MemberList} from "../../../matrix/room/members/MemberList";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 import type {MappedMap} from "../../../observable/map/MappedMap";
 import type {ObservableMap, Mapper, Updater} from "../../../observable/map";
-import type {RoomMember} from "../../../matrix/room/members/RoomMember.js";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember";
 
 export type ExplicitOptions = {
     members: MemberList,

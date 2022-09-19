@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {History} from "../../platform/web/dom/History.js";
+import type {History} from "../../platform/web/dom/History";
 import type {Navigation, Segment, Path, OptionalValue} from "./Navigation";
 import type {SubscriptionHandle} from "../../observable/BaseObservable";
 

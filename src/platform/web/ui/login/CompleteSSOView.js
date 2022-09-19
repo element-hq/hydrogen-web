@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView";
-import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
+import {SessionLoadStatusView} from "./SessionLoadStatusView";
 
 export class CompleteSSOView extends TemplateView {
     render(t) {

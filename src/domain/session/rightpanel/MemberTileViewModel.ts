@@ -18,7 +18,7 @@ import {ViewModel} from "../../ViewModel";
 import type {Options as BaseOptions} from "../../ViewModel";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
-import type {RoomMember} from "../../../matrix/room/members/RoomMember.js";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember";
 
 type Options = {
     member: RoomMember;

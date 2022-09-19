@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {PENDING_FRAGMENT_ID} from "./BaseEntry";
-import {BaseEventEntry} from "./BaseEventEntry.js";
+import {BaseEventEntry} from "./BaseEventEntry";
 
 export class PendingEventEntry extends BaseEventEntry {
     constructor({pendingEvent, member, clock, redactingEntry}) {
@@ -83,7 +83,7 @@ export class PendingEventEntry extends BaseEventEntry {
     }
 
     notifyUpdate() {
-        
+
     }
 
     isRelatedToId(id) {

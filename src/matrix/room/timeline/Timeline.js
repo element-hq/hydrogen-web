@@ -18,13 +18,13 @@ limitations under the License.
 import {SortedArray, AsyncMappedList, ConcatList, ObservableArray} from "../../../observable";
 import {Disposables} from "../../../utils/Disposables";
 import {Direction} from "./Direction";
-import {TimelineReader} from "./persistence/TimelineReader.js";
-import {PendingEventEntry} from "./entries/PendingEventEntry.js";
-import {RoomMember} from "../members/RoomMember.js";
+import {TimelineReader} from "./persistence/TimelineReader";
+import {PendingEventEntry} from "./entries/PendingEventEntry";
+import {RoomMember} from "../members/RoomMember";
 import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations";
 import {REDACTION_TYPE} from "../common";
-import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
-import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
+import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry";
+import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
@@ -478,18 +478,18 @@ export class Timeline {
     }
 }
 
-import {FragmentIdComparer} from "./FragmentIdComparer.js";
-import {poll} from "../../../mocks/poll.js";
-import {Clock as MockClock} from "../../../mocks/Clock.js";
+import {FragmentIdComparer} from "./FragmentIdComparer";
+import {poll} from "../../../mocks/poll";
+import {Clock as MockClock} from "../../../mocks/Clock";
 import {createMockStorage} from "../../../mocks/Storage";
-import {ListObserver} from "../../../mocks/ListObserver.js";
-import {createEvent, withTextBody, withContent, withSender, withRedacts, withReply} from "../../../mocks/event.js";
+import {ListObserver} from "../../../mocks/ListObserver";
+import {createEvent, withTextBody, withContent, withSender, withRedacts, withReply} from "../../../mocks/event";
 import {NullLogItem} from "../../../logging/NullLogger";
-import {EventEntry} from "./entries/EventEntry.js";
-import {User} from "../../User.js";
+import {EventEntry} from "./entries/EventEntry";
+import {User} from "../../User";
 import {PendingEvent} from "../sending/PendingEvent";
 import {createAnnotation} from "./relations";
-import {redactEvent} from "./common.js";
+import {redactEvent} from "./common";
 
 export function tests() {
     const fragmentIdComparer = new FragmentIdComparer([]);

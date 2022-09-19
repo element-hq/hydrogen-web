@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMediaView} from "./BaseMediaView.js";
-import {domEventAsPromise} from "../../../../dom/utils.js";
+import {BaseMediaView} from "./BaseMediaView";
+import {domEventAsPromise} from "../../../../dom/utils";
 
 export class VideoView extends BaseMediaView {
     renderMedia(t) {
@@ -52,7 +52,7 @@ export class VideoView extends BaseMediaView {
                 await loadPromise;
                 video.play();
             } catch (err) {/* errors are already caught in error event handler */}
-        }  
+        }
     }
 
     _onError(evt) {

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {Options as BaseOptions, ViewModel} from "./ViewModel";
-import {Client} from "../matrix/Client.js";
+import {Client} from "../matrix/Client";
 import {SegmentType} from "./navigation/index";
 
 type Options = { sessionId: string; } & BaseOptions;

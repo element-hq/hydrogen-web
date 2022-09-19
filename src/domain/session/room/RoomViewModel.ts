@@ -16,8 +16,8 @@ limitations under the License.
 */
 
 import {IGridItemViewModel} from './IGridItemViewModel';
-import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js";
+import {TimelineViewModel} from "./timeline/TimelineViewModel";
+import {ComposerViewModel} from "./ComposerViewModel";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo, MultiMediaInfo} from "../common";

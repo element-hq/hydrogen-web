@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SimpleTile} from "./SimpleTile.js";
+import {SimpleTile} from "./SimpleTile";
 
 export class RoomNameTile extends SimpleTile {
-    
+
     get shape() {
         return "announcement";
     }

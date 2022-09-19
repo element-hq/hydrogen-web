@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageTile} from "./BaseMessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile";
 import {formatSize} from "../../../../../utils/formatSize";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent";
 

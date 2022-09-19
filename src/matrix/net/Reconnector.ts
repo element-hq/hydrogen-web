@@ -16,8 +16,8 @@ limitations under the License.
 
 import {ObservableValue} from "../../observable/ObservableValue";
 import type {ExponentialRetryDelay} from "./ExponentialRetryDelay";
-import type {TimeMeasure} from "../../platform/web/dom/Clock.js";
-import type {OnlineStatus} from "../../platform/web/dom/OnlineStatus.js";
+import type {TimeMeasure} from "../../platform/web/dom/Clock";
+import type {OnlineStatus} from "../../platform/web/dom/OnlineStatus";
 import type {VersionResponse} from "./types/response";
 import type {HomeServerApi} from "./HomeServerApi";
 
@@ -67,9 +67,9 @@ export class Reconnector {
     }
 
     async onRequestFailed(hsApi: HomeServerApi): Promise<void> {
-        if (!this._isReconnecting) {  
+        if (!this._isReconnecting) {
             this._isReconnecting = true;
- 
+
             const onlineStatusSubscription = this._onlineStatus && this._onlineStatus.subscribe(online => {
                 if (online) {
                     this.tryNow();
@@ -109,7 +109,7 @@ export class Reconnector {
             this._state.set(state);
         }
     }
-    
+
     private async _reconnectLoop(hsApi: HomeServerApi): Promise<void> {
         this._versionsResponse = undefined;
         this._retryDelay.reset();
@@ -136,9 +136,9 @@ export class Reconnector {
 }
 
 
-import {Clock as MockClock} from "../../mocks/Clock.js";
+import {Clock as MockClock} from "../../mocks/Clock";
 import {ExponentialRetryDelay as _ExponentialRetryDelay} from "./ExponentialRetryDelay";
-import {ConnectionError} from "../error.js"
+import {ConnectionError} from "../error"
 
 export function tests() {
     function createHsApiMock(remainingFailures) {

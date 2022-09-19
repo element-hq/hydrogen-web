@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageTile} from "./BaseMessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent";
 const MAX_HEIGHT = 300;
 const MAX_WIDTH = 400;

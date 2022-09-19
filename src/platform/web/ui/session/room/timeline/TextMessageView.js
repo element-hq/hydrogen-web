@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import {tag, text} from "../../../general/html";
-import {BaseMessageView} from "./BaseMessageView.js";
-import {ReplyPreviewError, ReplyPreviewView} from "./ReplyPreviewView.js";
+import {BaseMessageView} from "./BaseMessageView";
+import {ReplyPreviewError, ReplyPreviewView} from "./ReplyPreviewView";
 
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {

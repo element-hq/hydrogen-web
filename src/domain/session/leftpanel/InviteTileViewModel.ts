@@ -17,7 +17,7 @@ limitations under the License.
 import {BaseTileViewModel, Kind, AvatarSource} from "./BaseTileViewModel";
 import {comparePrimitive} from "./common";
 import {Options as ViewModelOptions} from "../../ViewModel";
-import {Invite} from "../../../matrix/room/Invite.js";
+import {Invite} from "../../../matrix/room/Invite";
 import {Instance as nullLogger} from "../../../logging/NullLogger";
 
 type Options = {invite: Invite} & ViewModelOptions;

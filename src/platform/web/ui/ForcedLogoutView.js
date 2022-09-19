@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "./general/TemplateView";
-import {spinner} from "./common.js";
+import {spinner} from "./common";
 
 export class ForcedLogoutView extends TemplateView {
     render(t) {

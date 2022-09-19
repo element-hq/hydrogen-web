@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView, InlineTemplateView} from "./general/TemplateView";
-import {spinner} from "./common.js";
+import {spinner} from "./common";
 
 export class LogoutView extends TemplateView {
     render(t, vm) {

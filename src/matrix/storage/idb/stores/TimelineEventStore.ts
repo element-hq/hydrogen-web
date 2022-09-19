@@ -280,10 +280,10 @@ export class TimelineEventStore {
     }
 
     /** Inserts a new entry into the store.
-     * 
+     *
      * If the event already exists in the store (either the eventKey or the event id
      * are already known for the given roomId), this operation has no effect.
-     * 
+     *
      * Returns if the event was not yet known and the entry was written.
      */
     tryInsert(entry: TimelineEventEntry, log: ILogItem): Promise<boolean> {
@@ -318,8 +318,8 @@ export class TimelineEventStore {
 }
 
 import {createMockStorage} from "../../../../mocks/Storage";
-import {createEvent, withTextBody} from "../../../../mocks/event.js";
-import {createEventEntry} from "../../../room/timeline/persistence/common.js";
+import {createEvent, withTextBody} from "../../../../mocks/event";
+import {createEventEntry} from "../../../room/timeline/persistence/common";
 import {Instance as nullLogger} from "../../../../logging/NullLogger";
 
 export function tests() {

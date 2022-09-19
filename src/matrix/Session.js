@@ -15,26 +15,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Room} from "./room/Room.js";
-import {ArchivedRoom} from "./room/ArchivedRoom.js";
+import {Room} from "./room/Room";
+import {ArchivedRoom} from "./room/ArchivedRoom";
 import {RoomStatus} from "./room/common";
 import {RoomBeingCreated} from "./room/RoomBeingCreated";
-import {Invite} from "./room/Invite.js";
+import {Invite} from "./room/Invite";
 import {Pusher} from "./push/Pusher";
 import {ObservableMap} from "../observable";
-import {User} from "./User.js";
-import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
-import {Account as E2EEAccount} from "./e2ee/Account.js";
-import {uploadAccountAsDehydratedDevice} from "./e2ee/Dehydration.js";
+import {User} from "./User";
+import {DeviceMessageHandler} from "./DeviceMessageHandler";
+import {Account as E2EEAccount} from "./e2ee/Account";
+import {uploadAccountAsDehydratedDevice} from "./e2ee/Dehydration";
 import {Decryption as OlmDecryption} from "./e2ee/olm/Decryption";
 import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption";
-import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
-import {RoomEncryption} from "./e2ee/RoomEncryption.js";
-import {DeviceTracker} from "./e2ee/DeviceTracker.js";
+import {MEGOLM_ALGORITHM} from "./e2ee/common";
+import {RoomEncryption} from "./e2ee/RoomEncryption";
+import {DeviceTracker} from "./e2ee/DeviceTracker";
 import {LockMap} from "../utils/LockMap";
 import {groupBy} from "../utils/groupBy";
 import {

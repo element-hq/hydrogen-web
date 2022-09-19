@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {Platform} from "../../platform/web/Platform.js";
+import type {Platform} from "../../platform/web/Platform";
 
 export type KeyDescriptionData = {
     algorithm: string;
@@ -60,8 +60,8 @@ export class KeyDescription {
                 if (!kdOther.passphrase) {
                     return false;
                 }
-                return kd.passphrase.algorithm === kdOther.passphrase.algorithm && 
-                    kd.passphrase.iterations === kdOther.passphrase.iterations && 
+                return kd.passphrase.algorithm === kdOther.passphrase.algorithm &&
+                    kd.passphrase.iterations === kdOther.passphrase.iterations &&
                     kd.passphrase.salt === kdOther.passphrase.salt;
             }
         }
@@ -109,7 +109,7 @@ async function calculateKeyMac(key: BufferSource, ivStr: string, platform: Platf
     // salt for HKDF, with 8 bytes of zeros
     const zerosalt = new Uint8Array(8);
     const ZERO_STR = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-    
+
     const info = utf8.encode("");
     const keybits = await derive.hkdf(key, zerosalt, info, "SHA-256", 512);
     const aesKey = keybits.slice(0, 32);

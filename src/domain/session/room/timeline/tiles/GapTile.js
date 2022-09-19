@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SimpleTile} from "./SimpleTile.js";
-import {UpdateAction} from "../UpdateAction.js";
-import {ConnectionError} from "../../../../../matrix/error.js";
+import {SimpleTile} from "./SimpleTile";
+import {UpdateAction} from "../UpdateAction";
+import {ConnectionError} from "../../../../../matrix/error";
 import {ConnectionStatus} from "../../../../../matrix/net/Reconnector";
 
 export class GapTile extends SimpleTile {
@@ -46,7 +46,7 @@ export class GapTile extends SimpleTile {
                     We need to wait for reconnection here rather than in
                     notifyVisible() because when we return/throw here
                     this._loading is set to false and other queued invocations of
-                    this method will succeed and attempt further room.fillGap() calls - 
+                    this method will succeed and attempt further room.fillGap() calls -
                     resulting in multiple error entries in logs and elsewhere!
                     */
                     await this._waitForReconnection();
@@ -158,7 +158,7 @@ export class GapTile extends SimpleTile {
     }
 }
 
-import {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry.js";
+import {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry";
 export function tests() {
     return {
         "uses updated token to fill": async assert => {

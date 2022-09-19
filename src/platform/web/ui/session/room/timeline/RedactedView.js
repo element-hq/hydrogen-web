@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageView} from "./BaseMessageView.js";
-import {Menu} from "../../../general/Menu.js";
+import {BaseMessageView} from "./BaseMessageView";
+import {Menu} from "../../../general/Menu";
 
 export class RedactedView extends BaseMessageView {
     renderMessageBody(t) {

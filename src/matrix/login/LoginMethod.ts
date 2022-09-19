@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {ILogItem} from "../../logging/types";
-import type {HomeServerApi} from "../net/HomeServerApi.js";
+import type {HomeServerApi} from "../net/HomeServerApi";
 
 export interface ILoginMethod {
     homeserver: string;

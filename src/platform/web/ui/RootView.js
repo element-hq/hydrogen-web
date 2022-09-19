@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SessionView} from "./session/SessionView.js";
+import {SessionView} from "./session/SessionView";
 import {LoginView} from "./login/LoginView";
-import {LogoutView} from "./LogoutView.js";
-import {ForcedLogoutView} from "./ForcedLogoutView.js";
-import {SessionLoadView} from "./login/SessionLoadView.js";
-import {SessionPickerView} from "./login/SessionPickerView.js";
+import {LogoutView} from "./LogoutView";
+import {ForcedLogoutView} from "./ForcedLogoutView";
+import {SessionLoadView} from "./login/SessionLoadView";
+import {SessionPickerView} from "./login/SessionPickerView";
 import {TemplateView} from "./general/TemplateView";
-import {StaticView} from "./general/StaticView.js";
+import {StaticView} from "./general/StaticView";
 
 export class RootView extends TemplateView {
     render(t, vm) {
