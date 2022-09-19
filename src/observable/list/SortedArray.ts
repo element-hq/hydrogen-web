@@ -87,7 +87,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
         const idx = sortedIndex(this._items, item, this._comparator);
         if (idx >= this._items.length || this._comparator(this._items[idx], item) !== 0) {
             this._items.splice(idx, 0, item);
-            this.emitAdd(idx, item)
+            this.emitAdd(idx, item);
         } else {
             this._items[idx] = item;
             this.emitUpdate(idx, item, updateParams);
@@ -112,52 +112,46 @@ export class SortedArray<T> extends BaseObservableList<T> {
         return this._items.length;
     }
 
-    [Symbol.iterator]() {
+    [Symbol.iterator](): Iterator<T> {
         return new Iterator(this);
     }
 }
 
 // iterator that works even if the current value is removed while iterating
 class Iterator<T> {
-    private _sortedArray: SortedArray<T> | null
-    private _current: T | null | undefined
+    private _sortedArray: SortedArray<T>;
+    private _current: T | null | undefined;
+    private _consumed: boolean = false;
 
     constructor(sortedArray: SortedArray<T>) {
         this._sortedArray = sortedArray;
         this._current = null;
     }
 
-    next() {
-        if (this._sortedArray) {
-            if (this._current) {
-                this._current = this._sortedArray._getNext(this._current);
-            } else {
-                this._current = this._sortedArray.get(0);
-            }
-            if (this._current) {
-                return {value: this._current};
-            } else {
-                // cause done below
-                this._sortedArray = null;
-            }
+    next(): IteratorResult<T> {
+        if (this._consumed) {
+            return {value: undefined, done: true};
         }
-        if (!this._sortedArray) {
-            return {done: true};
+        this._current = this._current? this._sortedArray._getNext(this._current): this._sortedArray.get(0);
+        if (!this._current) {
+            this._consumed = true;
         }
+        return { value: this._current, done: this._consumed } as IteratorResult<T>;
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "setManyUnsorted": assert => {
+        "setManyUnsorted": (assert): void => {
             const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "c"]);
             assert.equal(sa.length, 3);
             assert.equal(sa.get(0), "a");
             assert.equal(sa.get(1), "b");
             assert.equal(sa.get(2), "c");
-        }, 
-        "_getNext": assert => {
+        },
+        "_getNext": (assert): void => {
             const sa = new SortedArray<string>((a, b) => a.localeCompare(b));
             sa.setManyUnsorted(["b", "a", "f"]);
             assert.equal(sa._getNext("a"), "b");
@@ -166,7 +160,7 @@ export function tests() {
             assert.equal(sa._getNext("c"), "f");
             assert.equal(sa._getNext("f"), undefined);
         },
-        "iterator with removals": assert => {
+        "iterator with removals": (assert): void => {
             const queue = new SortedArray<{idx: number}>((a, b) => a.idx - b.idx);
             queue.setManyUnsorted([{idx: 5}, {idx: 3}, {idx: 1}, {idx: 4}, {idx: 2}]);
             const it = queue[Symbol.iterator]();
@@ -183,5 +177,5 @@ export function tests() {
             // check done persists
             assert.equal(it.next().done, true);
         }
-    }
+    };
 }

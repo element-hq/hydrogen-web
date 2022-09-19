@@ -20,6 +20,10 @@ module.exports = {
     rules: {
         "@typescript-eslint/no-floating-promises": 2,
         "@typescript-eslint/no-misused-promises": 2,
-        "semi": ["error", "always"]
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["warn"],
+        "no-undef": "off",
+        "semi": ["error", "always"],
+        "@typescript-eslint/explicit-function-return-type": ["error"]
     }
 };

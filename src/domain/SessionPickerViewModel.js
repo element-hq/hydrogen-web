@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedArray} from "../observable/index.js";
+import {SortedArray} from "../observable";
 import {ViewModel} from "./ViewModel";
 import {avatarInitials, getIdentifierColorNumber} from "./avatar";
 
