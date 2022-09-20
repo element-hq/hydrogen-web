@@ -76,6 +76,10 @@ export class EventEntry extends BaseEventEntry {
         return this._eventEntry.event.sender;
     }
 
+    get roomId() {
+        return this._eventEntry.event.room_id;
+    }
+
     get displayName() {
         return this._eventEntry.displayName;
     }
