@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {PeerCall, CallState} from "../PeerCall";
+import {PeerCall, CallState, IncomingMessageAction} from "../PeerCall";
 import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
@@ -251,7 +251,7 @@ export class Member {
     }
 
     /** @internal */
-    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void{
+    handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void {
         const {connection} = this;
         if (connection) {
             const destSessionId = message.content.dest_session_id;
@@ -260,34 +260,63 @@ export class Member {
                 syncLog.refDetached(logItem);
                 return;
             }
+            // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it 
+            let action = IncomingMessageAction.Handle;
+            if (connection.peerCall) {
+                action = connection.peerCall.getMessageAction(message);
+                // deal with glare and replacing the call before creating new calls
+                if (action === IncomingMessageAction.InviteGlare) {
+                    const {shouldReplace, log} = connection.peerCall.handleInviteGlare(message, this.deviceId, connection.logItem);
+                    if (log) {
+                        syncLog.refDetached(log);
+                    }
+                    if (shouldReplace) {
+                        connection.peerCall = undefined;
+                    }
+                }
+            }
             if (message.type === EventType.Invite && !connection.peerCall) {
                 connection.peerCall = this._createPeerCall(message.content.call_id);
             }
-            const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
-            connection.queuedSignallingMessages.splice(idx, 0, message);
-            let hasBeenDequeued = false;
-            if (connection.peerCall) {
-                while (
-                    connection.queuedSignallingMessages.length && (
-                        connection.lastProcessedSeqNr === undefined ||
-                        connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
-                    )
-               ) {
-                    const dequeuedMessage = connection.queuedSignallingMessages.shift()!;
-                    if (dequeuedMessage === message) {
-                        hasBeenDequeued = true;
+            if (action === IncomingMessageAction.Handle) {
+                const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
+                connection.queuedSignallingMessages.splice(idx, 0, message);
+                if (connection.peerCall) {
+                    const hasNewMessageBeenDequeued = this.dequeueSignallingMessages(connection, connection.peerCall, message, syncLog);
+                    if (!hasNewMessageBeenDequeued) {
+                        syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
                     }
-                    const item = connection.peerCall!.handleIncomingSignallingMessage(dequeuedMessage, this.deviceId, connection.logItem);
-                    syncLog.refDetached(item);
-                    connection.lastProcessedSeqNr = dequeuedMessage.content.seq;
                 }
-            }
-            if (!hasBeenDequeued) {
-                syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
+            } else if (action === IncomingMessageAction.Ignore && connection.peerCall) {
+                const logItem = connection.logItem.log({l: "ignoring to_device event with wrong call_id", callId: message.content.call_id, type: message.type});
+                syncLog.refDetached(logItem);
             }
         } else {
             syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
         }
+    }
+
+    private dequeueSignallingMessages(connection: MemberConnection, peerCall: PeerCall, newMessage: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): boolean {
+        let hasNewMessageBeenDequeued = false;
+        while (
+            connection.queuedSignallingMessages.length && (
+                connection.lastProcessedSeqNr === undefined ||
+                connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
+            )
+       ) {
+            const message = connection.queuedSignallingMessages.shift()!;
+            if (message === newMessage) {
+                hasNewMessageBeenDequeued = true;
+            }
+            // ignore items in the queue that should not be handled and prevent
+            // the lastProcessedSeqNr being corrupted with the `seq` for other call ids
+            if (peerCall.getMessageAction(message) === IncomingMessageAction.Handle) {
+                const item = peerCall.handleIncomingSignallingMessage(message, this.deviceId, connection.logItem);
+                syncLog.refDetached(item);
+                connection.lastProcessedSeqNr = message.content.seq;
+            }
+        }
+        return hasNewMessageBeenDequeued;
     }
 
     /** @internal */

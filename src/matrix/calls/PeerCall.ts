@@ -53,6 +53,12 @@ export type Options = {
     sendSignallingMessage: (message: SignallingMessage<MCallBase>, log: ILogItem) => Promise<void>;
 };
 
+export enum IncomingMessageAction {
+    InviteGlare,
+    Handle,
+    Ignore
+};
+
 export class RemoteMedia {
     constructor(public userMedia?: Stream | undefined, public screenShare?: Stream | undefined) {}
 }
@@ -299,6 +305,17 @@ export class PeerCall implements IDisposable {
         await this.sendHangupWithCallId(this.callId, errorCode, log);
     }
 
+    getMessageAction<B extends MCallBase>(message: SignallingMessage<B>): IncomingMessageAction {
+        const callIdMatches = this.callId === message.content.call_id;
+        if (message.type === EventType.Invite && !callIdMatches) {
+            return IncomingMessageAction.InviteGlare;
+        } if (callIdMatches) {
+            return IncomingMessageAction.Handle;
+        } else {
+            return IncomingMessageAction.Ignore;
+        }
+    }
+
     handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): ILogItem {
         // return logItem item immediately so it can be references in sync manner
         let logItem;
@@ -309,40 +326,35 @@ export class PeerCall implements IDisposable {
             payload: message.content
         }, async log => {
             logItem = log;
-
-            const callIdMatches = this.callId === message.content.call_id;
-
-            if (message.type === EventType.Invite && !callIdMatches) {
-                await this.handleInviteGlare(message.content, partyId, log);
-            } else if (callIdMatches) {
-                switch (message.type) {
-                    case EventType.Invite:
-                        await this.handleFirstInvite(message.content, partyId, log);
-                        break;
-                    case EventType.Answer:
-                        await this.handleAnswer(message.content, partyId, log);
-                        break;
-                    case EventType.Negotiate:
-                        await this.onNegotiateReceived(message.content, log);
-                        break;
-                    case EventType.Candidates:
-                        await this.handleRemoteIceCandidates(message.content, partyId, log);
-                        break;
-                    case EventType.SDPStreamMetadataChanged:
-                    case EventType.SDPStreamMetadataChangedPrefix:
-                        this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
-                        break;
-                    case EventType.Hangup:
-                        // TODO: this is a bit hacky, double check its what we need
-                        log.set("reason", message.content.reason);
-                        this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
-                        break;
-                    default:
-                        log.log(`Unknown event type for call: ${message.type}`);
-                        break;
-                }
-            } else if (!callIdMatches) {
+            if (this.getMessageAction(message) !== IncomingMessageAction.Handle) {
                 log.set("wrongCallId", true);
+                return;
+            }
+            switch (message.type) {
+                case EventType.Invite:
+                    await this.handleFirstInvite(message.content, partyId, log);
+                    break;
+                case EventType.Answer:
+                    await this.handleAnswer(message.content, partyId, log);
+                    break;
+                case EventType.Negotiate:
+                    await this.onNegotiateReceived(message.content, log);
+                    break;
+                case EventType.Candidates:
+                    await this.handleRemoteIceCandidates(message.content, partyId, log);
+                    break;
+                case EventType.SDPStreamMetadataChanged:
+                case EventType.SDPStreamMetadataChangedPrefix:
+                    this.updateRemoteSDPStreamMetadata(message.content[SDPStreamMetadataKey], log);
+                    break;
+                case EventType.Hangup:
+                    // TODO: this is a bit hacky, double check its what we need
+                    log.set("reason", message.content.reason);
+                    this.terminate(CallParty.Remote, message.content.reason ?? CallErrorCode.UserHangup, log);
+                    break;
+                default:
+                    log.log(`Unknown event type for call: ${message.type}`);
+                    break;
             }
         });
         return logItem;
@@ -434,30 +446,43 @@ export class PeerCall implements IDisposable {
         }
     };
 
-    private async handleInviteGlare(content: MCallInvite<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
-        // this is only called when the ids are different
-        const newCallId = content.call_id;
-        if (this.callId! > newCallId) {
-            log.log(
-                "Glare detected: answering incoming call " + newCallId +
-                " and canceling outgoing call "
-            );
-            // How do we interrupt `call()`? well, perhaps we need to not just await InviteSent but also CreateAnswer?
-            if (this._state === CallState.Fledgling || this._state === CallState.CreateOffer) {
-                // TODO: don't send invite!
-            } else {
-                await this.sendHangupWithCallId(this.callId, CallErrorCode.Replaced, log);
-            }
-            await this.handleInvite(content, partyId, log);
-            // TODO: need to skip state check
-            await this.answer(this.localMedia!, this.localMuteSettings!, log);
-        } else {
-            log.log(
-                "Glare detected: rejecting incoming call " + newCallId +
-                " and keeping outgoing call "
-            );
-            await this.sendHangupWithCallId(newCallId, CallErrorCode.Replaced, log);
+    /**
+     * @returns {boolean} whether or not this call should be replaced
+     * */
+    handleInviteGlare<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): {shouldReplace: boolean, log?: ILogItem} {
+        if (message.type !== EventType.Invite) {
+            return {shouldReplace: false};
         }
+
+        const {content} = message;
+        const newCallId = content.call_id;
+        const shouldReplace = this.callId! > newCallId;
+
+        let logItem;
+        log.wrap("handling call glare", async log => {
+            logItem = log;
+            if (shouldReplace) {
+                log.log(
+                    "Glare detected: answering incoming call " + newCallId +
+                    " and canceling outgoing call "
+                );
+                // TODO: How do we interrupt `call()`? well, perhaps we need to not just await InviteSent but also CreateAnswer?
+                if (this._state !== CallState.Fledgling && this._state !== CallState.CreateOffer) {
+                    await this.sendHangupWithCallId(this.callId, CallErrorCode.Replaced, log);
+                }
+                // since this method isn't awaited, we dispose ourselves once we hung up
+                this.close(CallErrorCode.Replaced, log);
+                this.dispose();
+            } else {
+                log.log(
+                    "Glare detected: rejecting incoming call " + newCallId +
+                    " and keeping outgoing call "
+                );
+                await this.sendHangupWithCallId(newCallId, CallErrorCode.Replaced, log);
+            }
+        });
+
+        return {shouldReplace, log: logItem};
     }
 
     private handleHangupReceived(content: MCallHangupReject<MCallBase>, log: ILogItem) {
