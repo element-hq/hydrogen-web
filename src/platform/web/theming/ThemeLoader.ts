@@ -112,12 +112,12 @@ export class ThemeLoader {
             else {
                 this._removePreviousCSSVariables();
             }
-            this._platform.settingsStorage.setString("theme-name", themeName);
+            void this._platform.settingsStorage.setString("theme-name", themeName);
             if (themeVariant) {
-                this._platform.settingsStorage.setString("theme-variant", themeVariant);
+                void this._platform.settingsStorage.setString("theme-variant", themeVariant);
             }
             else {
-                this._platform.settingsStorage.remove("theme-variant");
+                void this._platform.settingsStorage.remove("theme-variant");
             }
         });
     }

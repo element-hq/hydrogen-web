@@ -171,7 +171,7 @@ export function tests() {
                 statuses.push(s);
             });
             // @ts-ignore
-            reconnector.onRequestFailed(createHsApiMock(1));
+            void reconnector.onRequestFailed(createHsApiMock(1));
             await connectionStatus.waitFor(s => s === ConnectionStatus.Waiting).promise;
             clock.elapse(2000);
             await connectionStatus.waitFor(s => s === ConnectionStatus.Online).promise;
@@ -192,7 +192,7 @@ export function tests() {
             const reconnector = new Reconnector({retryDelay, onlineStatus, createMeasure});
             const {connectionStatus} = reconnector;
             // @ts-ignore
-            reconnector.onRequestFailed(createHsApiMock(1));
+            void reconnector.onRequestFailed(createHsApiMock(1));
             await connectionStatus.waitFor(s => s === ConnectionStatus.Waiting).promise;
             onlineStatus.set(true); //skip waiting
             await connectionStatus.waitFor(s => s === ConnectionStatus.Online).promise;

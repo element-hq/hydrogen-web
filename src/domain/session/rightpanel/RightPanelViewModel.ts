@@ -102,6 +102,7 @@ export class RightPanelViewModel extends ViewModel {
             argCreator,
             failCallback
         );
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.track(observable.subscribe(updater));
     }
 

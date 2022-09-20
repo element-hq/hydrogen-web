@@ -70,6 +70,7 @@ export abstract class BaseLogger implements ILogger {
         return this._run(item, callback, logLevel, true, filterCreator);
     }
 
+    // eslint-disable-next-line no-dupe-class-members
     _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
     // we don't return if we don't throw, as we don't have anything to return when an error is caught but swallowed for the fire-and-forget case.
     _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;

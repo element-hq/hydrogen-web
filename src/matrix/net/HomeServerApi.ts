@@ -97,7 +97,7 @@ export class HomeServerApi {
                 // but spinning up the reconnector in this case is ok,
                 // as all code ran on session and sync start should be reentrant
                 if (err.name === "ConnectionError") {
-                    this._reconnector.onRequestFailed(this);
+                    void this._reconnector.onRequestFailed(this);
                 }
             });
         }

@@ -88,9 +88,9 @@ export function tests() {
             lock.tryTake();
 
             let first;
-            lock.released()!.then(() => first = lock.tryTake());
+            void lock.released()!.then(() => first = lock.tryTake());
             let second;
-            lock.released()!.then(() => second = lock.tryTake());
+            void lock.released()!.then(() => second = lock.tryTake());
             const promise = lock.released();
             lock.release();
             await promise;

@@ -73,7 +73,7 @@ export class SessionStore {
     }
 
     writeE2EEIdentityToLocalStorage() {
-        this._sessionStore.iterateValues(undefined, (entry: SessionEntry, key: string) => {
+        void this._sessionStore.iterateValues(undefined, (entry: SessionEntry, key: string) => {
             if (key.startsWith(SESSION_E2EE_KEY_PREFIX)) {
                 this._writeKeyToLocalStorage(key, entry.value);
             }

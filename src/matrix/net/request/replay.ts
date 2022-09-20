@@ -68,7 +68,7 @@ export class RecordRequester {
         try {
             const requestResult = this._origRequest(url, options);
             requestResult.response().then(response => {
-                requestItem.handleResponse(response);
+                void requestItem.handleResponse(response);
             });
             return requestResult;
         } catch (err) {

@@ -29,9 +29,9 @@ export class LockMap<T> {
             this._map.set(key, lock);
         }
         // don't leave old locks lying around
-        lock.released()!.then(() => {
+        void lock.released()!.then(() => {
             // give others a chance to take the lock first
-            Promise.resolve().then(() => {
+            void Promise.resolve().then(() => {
                 if (!lock!.isTaken) {
                     this._map.delete(key);
                 }
@@ -86,6 +86,6 @@ export function tests() {
             // @ts-ignore
             assert.equal(lockMap._map.has("foo"), false);
         },
-        
+
     };
 }

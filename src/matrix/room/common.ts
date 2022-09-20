@@ -105,7 +105,7 @@ export function tests() {
             } as unknown as RoomResponse;
             const expectedStateKeys = ["1", "2", "3", "2"];
             const expectedAForMember2 = [1, 2];
-            iterateResponseStateEvents(roomResponse, event => {
+            void iterateResponseStateEvents(roomResponse, event => {
                 assert.strictEqual(event.type, "m.room.member");
                 assert.strictEqual(expectedStateKeys.shift(), event.state_key);
                 if (event.state_key === "2") {
@@ -116,7 +116,7 @@ export function tests() {
             assert.strictEqual(expectedAForMember2.length, 0);
         },
         "test iterateResponseStateEvents with empty response": assert => {
-            iterateResponseStateEvents({}, () => {
+            void iterateResponseStateEvents({}, () => {
                 assert.fail("no events expected");
             });
         }

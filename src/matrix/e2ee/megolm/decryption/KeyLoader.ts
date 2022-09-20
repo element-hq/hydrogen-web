@@ -275,7 +275,7 @@ export function tests() {
     const bobSenderKey = "def";
     const sessionId1 = "s123";
     const sessionId2 = "s456";
-    
+
     return {
         "load key gives correct session": async assert => {
             const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 2);
@@ -323,7 +323,7 @@ export function tests() {
             const loader = new KeyLoader(olm as any as Olm, PICKLE_KEY, 1);
             let resolve;
             let callbackCalled = false;
-            loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {
+            void loader.useKey(new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1), async session => {
                 await new Promise(r => resolve = r);
             });
             await Promise.resolve();

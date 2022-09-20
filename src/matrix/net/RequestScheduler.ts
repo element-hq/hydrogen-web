@@ -128,7 +128,7 @@ export class RequestScheduler {
 
     private _hsApiRequest(name: string, args: any[]): Request {
         const request = new Request(name, args);
-        this._doSend(request);
+        void this._doSend(request);
         return request;
     }
 
