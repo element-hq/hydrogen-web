@@ -25,6 +25,7 @@ import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
 import {CreateRoomViewModel} from "./CreateRoomViewModel.js";
+import {JoinRoomViewModel} from "./JoinRoomViewModel";
 import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
@@ -45,6 +46,7 @@ export class SessionViewModel extends ViewModel {
         this._roomViewModelObservable = null;
         this._gridViewModel = null;
         this._createRoomViewModel = null;
+        this._joinRoomViewModel = null;
         this._setupNavigation();
         this._setupForcedLogoutOnAccessTokenInvalidation();
     }
@@ -82,6 +84,12 @@ export class SessionViewModel extends ViewModel {
             this._updateCreateRoom(createRoomOpen);
         }));
         this._updateCreateRoom(createRoom.get());
+
+        const joinRoom = this.navigation.observe("join-room");
+        this.track(joinRoom.subscribe((joinRoomOpen) => {
+            this._updateJoinRoom(joinRoomOpen);
+        }));
+        this._updateJoinRoom(joinRoom.get());
 
         const lightbox = this.navigation.observe("lightbox");
         this.track(lightbox.subscribe(eventId => {
@@ -121,7 +129,13 @@ export class SessionViewModel extends ViewModel {
     }
 
     get activeMiddleViewModel() {
-        return this._roomViewModelObservable?.get() || this._gridViewModel || this._settingsViewModel || this._createRoomViewModel;
+        return (
+            this._roomViewModelObservable?.get() ||
+            this._gridViewModel ||
+            this._settingsViewModel ||
+            this._createRoomViewModel ||
+            this._joinRoomViewModel
+        );
     }
 
     get roomGridViewModel() {
@@ -150,6 +164,10 @@ export class SessionViewModel extends ViewModel {
 
     get createRoomViewModel() {
         return this._createRoomViewModel;
+    }
+
+    get joinRoomViewModel() {
+        return this._joinRoomViewModel;
     }
 
     _updateGrid(roomIds) {
@@ -282,6 +300,16 @@ export class SessionViewModel extends ViewModel {
         }
         if (createRoomOpen) {
             this._createRoomViewModel = this.track(new CreateRoomViewModel(this.childOptions({session: this._client.session})));
+        }
+        this.emitChange("activeMiddleViewModel");
+    }
+
+    _updateJoinRoom(joinRoomOpen) {
+        if (this._joinRoomViewModel) {
+            this._joinRoomViewModel = this.disposeTracked(this._joinRoomViewModel);
+        }
+        if (joinRoomOpen) {
+            this._joinRoomViewModel = this.track(new JoinRoomViewModel(this.childOptions({session: this._client.session})));
         }
         this.emitChange("activeMiddleViewModel");
     }
