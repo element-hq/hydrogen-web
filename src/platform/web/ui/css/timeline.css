@@ -40,11 +40,10 @@ limitations under the License.
 
 .Timeline_scroller > ul {
     list-style: none;
-    /* This is just so that children can also use `height: 100%;` take up the
-    same height as the scroll viewport. This is used in the Matrix public
-    archive so that even if there aren't enough events from a given day to fill
-    up the scroll, you can still have the last event within scroll range.  */
-    height: 100%;
+    /* If there are only a few events, align them to the bottom */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
     /* use small horizontal padding so first/last children margin isn't collapsed
     at the edge and a scrollbar shows up when setting margin-top to bottom-align
     content when there are not yet enough tiles to fill the viewport */
