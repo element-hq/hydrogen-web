@@ -24,7 +24,7 @@ export class JoinRoomView extends TemplateView<JoinRoomViewModel> {
             type: "text",
             name: "id",
             id: "id",
-            placeholder: vm.i18n`Enter a room id`,
+            placeholder: vm.i18n`Enter a room id or alias`,
             disabled: vm => vm.joinInProgress,
         });
         return t.main({className: "middle"}, 
