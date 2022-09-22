@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {RoomDetailsView} from "./RoomDetailsView.js";
-import {MemberListView} from "./MemberListView.js";
-import {LoadingView} from "../../general/LoadingView.js";
-import {MemberDetailsView} from "./MemberDetailsView.js";
+import {RoomDetailsView} from "./RoomDetailsView";
+import {MemberListView} from "./MemberListView";
+import {LoadingView} from "../../general/LoadingView";
+import {MemberDetailsView} from "./MemberDetailsView";
 
 export class RightPanelView extends TemplateView {
     render(t) {

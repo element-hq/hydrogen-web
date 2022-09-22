@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageTile} from "./BaseMessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile";
 import {formatSize} from "../../../../../utils/formatSize";
-import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
+import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent";
 
 export class FileTile extends BaseMessageTile {
     constructor(entry, options) {
@@ -80,7 +80,7 @@ export class FileTile extends BaseMessageTile {
                 return this.i18n`Downloading ${filename} (${size})…`;
             } else {
                 return this.i18n`Download ${filename} (${size})`;
-            }   
+            }
         }
     }
 

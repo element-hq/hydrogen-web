@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RoomMember} from "./RoomMember.js";
+import {RoomMember} from "./RoomMember";
 
 export function calculateRoomName(sortedMembers, summaryData, log) {
     const countWithoutMe = summaryData.joinCount + summaryData.inviteCount - 1;

@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseTextTile, BodyFormat} from "./BaseTextTile.js";
-import {parsePlainBody} from "../MessageBody.js";
-import {parseHTMLBody} from "../deserialize.js";
+import {BaseTextTile, BodyFormat} from "./BaseTextTile";
+import {parsePlainBody} from "../MessageBody";
+import {parseHTMLBody} from "../deserialize";
 
 export class TextTile extends BaseTextTile {
     _getContentString(key) {

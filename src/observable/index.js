@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedMapList} from "./list/SortedMapList.js";
-import {FilteredMap} from "./map/FilteredMap.js";
-import {MappedMap} from "./map/MappedMap.js";
-import {JoinedMap} from "./map/JoinedMap.js";
+import {SortedMapList} from "./list/SortedMapList";
+import {FilteredMap} from "./map/FilteredMap";
+import {MappedMap} from "./map/MappedMap";
+import {JoinedMap} from "./map/JoinedMap";
 import {BaseObservableMap} from "./map/BaseObservableMap";
 // re-export "root" (of chain) collections
 export { ObservableArray } from "./list/ObservableArray";

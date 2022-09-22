@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {MemberTileViewModel} from "./MemberTileViewModel.js";
-import {createMemberComparator} from "./members/comparator.js";
-import {Disambiguator} from "./members/disambiguator.js";
+import {MemberTileViewModel} from "./MemberTileViewModel";
+import {createMemberComparator} from "./members/comparator";
+import {Disambiguator} from "./members/disambiguator";
 
 export class MemberListViewModel extends ViewModel {
     constructor(options) {

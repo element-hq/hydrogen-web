@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginFailure} from "../../matrix/Client.js";
+import {LoginFailure} from "../../matrix/Client";
 import type {PasswordLoginMethod} from "../../matrix/login";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import type {LoginOptions} from "./LoginViewModel";

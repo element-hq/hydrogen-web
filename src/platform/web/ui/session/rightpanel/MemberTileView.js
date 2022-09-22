@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {AvatarView} from "../../AvatarView.js";
+import {AvatarView} from "../../AvatarView";
 
 export class MemberTileView extends TemplateView {
     render(t, vm) {

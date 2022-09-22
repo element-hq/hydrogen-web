@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type {Key} from "./common";
-import type {Platform} from "../../platform/web/Platform.js";
+import type {Platform} from "../../platform/web/Platform";
 import type {Transaction} from "../storage/idb/Transaction";
 
 type EncryptedData = {

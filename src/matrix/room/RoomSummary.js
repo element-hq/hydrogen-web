@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
+import {MEGOLM_ALGORITHM} from "../e2ee/common";
 
 
 function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
@@ -81,7 +81,7 @@ function processNotificationCounts(data, unreadNotifications) {
         data.notificationCount = notificationCount;
     }
     return data;
-} 
+}
 
 function processRoomAccountData(data, event) {
     if (event?.type === "m.tag") {

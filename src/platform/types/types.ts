@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {RequestResult} from "../web/dom/request/fetch.js";
+import type {RequestResult} from "../web/dom/request/fetch";
 import type {RequestBody} from "../../matrix/net/common";
 import type {ILogItem} from "../../logging/types";
 

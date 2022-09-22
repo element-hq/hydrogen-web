@@ -89,7 +89,7 @@ export class HomeServerApi {
         });
 
         const hsRequest = new HomeServerRequest(method, url, requestResult, options);
-        
+
         if (this._reconnector) {
             hsRequest.response().catch(err => {
                 // Some endpoints such as /sync legitimately time-out
@@ -230,7 +230,7 @@ export class HomeServerApi {
     sendToDevice(type: string, payload: Record<string, any>, txnId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, {}, payload, options);
     }
-    
+
     roomKeysVersion(version?: string, options?: BaseRequestOptions): IHomeServerRequest {
         let versionPart = "";
         if (version) {
@@ -301,13 +301,13 @@ export class HomeServerApi {
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }
-    
+
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
     }
 }
 
-import {Request as MockRequest} from "../../mocks/Request.js";
+import {Request as MockRequest} from "../../mocks/Request";
 
 export function tests() {
     return {

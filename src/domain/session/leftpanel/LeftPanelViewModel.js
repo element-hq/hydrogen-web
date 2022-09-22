@@ -16,11 +16,11 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {RoomTileViewModel} from "./RoomTileViewModel.js";
-import {InviteTileViewModel} from "./InviteTileViewModel.js";
-import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
-import {RoomFilter} from "./RoomFilter.js";
-import {ApplyMap} from "../../../observable/map/ApplyMap.js";
+import {RoomTileViewModel} from "./RoomTileViewModel";
+import {InviteTileViewModel} from "./InviteTileViewModel";
+import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel";
+import {RoomFilter} from "./RoomFilter";
+import {ApplyMap} from "../../../observable/map/ApplyMap";
 import {addPanelIfNeeded} from "../../navigation/index";
 
 export class LeftPanelViewModel extends ViewModel {
@@ -80,7 +80,7 @@ export class LeftPanelViewModel extends ViewModel {
     showJoinRoomView() {
         this.navigation.push("join-room");
     }
-    
+
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");
         this.track(roomObservable.subscribe(roomId => this._open(roomId)));

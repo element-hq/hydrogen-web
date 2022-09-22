@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2018 Jun Kurihara
  * Copyright 2020 The Matrix.org Foundation C.I.C.
- * 
+ *
  * MIT LICENSE, See https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-pbkdf/LICENSE
  * Based on https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-pbkdf/src/pbkdf.ts
  */
 
-import type {Crypto} from "../../platform/web/dom/Crypto.js";
+import type {Crypto} from "../../platform/web/dom/Crypto";
 
 // not used atm, but might in the future
 // forked this code to make it use the cryptoDriver for HMAC that is more backwards-compatible

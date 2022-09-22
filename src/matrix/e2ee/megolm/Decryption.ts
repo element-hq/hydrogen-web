@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionError} from "../common.js";
-import {DecryptionPreparation} from "./decryption/DecryptionPreparation.js";
+import {DecryptionError} from "../common";
+import {DecryptionPreparation} from "./decryption/DecryptionPreparation";
 import {SessionDecryption} from "./decryption/SessionDecryption";
-import {MEGOLM_ALGORITHM} from "../common.js";
+import {MEGOLM_ALGORITHM} from "../common";
 import {validateEvent, groupEventsBySession} from "./decryption/utils";
 import {keyFromStorage, keyFromDeviceMessage, keyFromBackup} from "./decryption/RoomKey";
 import type {RoomKey, IncomingRoomKey} from "./decryption/RoomKey";

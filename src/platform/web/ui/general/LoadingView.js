@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {StaticView} from "./StaticView";
-import {spinner} from "../common.js";
+import {spinner} from "../common";
 
 export class LoadingView extends StaticView {
     constructor(label = "Loading") {

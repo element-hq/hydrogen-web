@@ -31,7 +31,7 @@ the timeline (counted in tiles), which results to a range in sortKeys we want on
 to the room timeline, which unload entries from memory.
 when loading, it just reads events from a sortkey backwards or forwards...
 */
-import {TilesCollection} from "./TilesCollection.js";
+import {TilesCollection} from "./TilesCollection";
 import {ViewModel} from "../../../ViewModel";
 
 export class TimelineViewModel extends ViewModel {

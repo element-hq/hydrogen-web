@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {makeTxnId} from "../common.js";
+import {makeTxnId} from "../common";
 import {ILogItem} from "../../logging/types";
 import {ILoginMethod} from "./LoginMethod";
-import {HomeServerApi} from "../net/HomeServerApi.js";
+import {HomeServerApi} from "../net/HomeServerApi";
 
 export class TokenLoginMethod implements ILoginMethod {
     private readonly _loginToken: string;

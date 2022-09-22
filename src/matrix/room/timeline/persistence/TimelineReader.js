@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {directionalConcat, directionalAppend} from "./common.js";
+import {directionalConcat, directionalAppend} from "./common";
 import {Direction} from "../Direction";
-import {EventEntry} from "../entries/EventEntry.js";
-import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry.js";
+import {EventEntry} from "../entries/EventEntry";
+import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry";
 
 class ReaderRequest {
     constructor(fn, log) {
@@ -63,7 +63,7 @@ async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount
             // TODO: why does the first fragment not need to be added? (the next *is* added below)
             // it looks like this would be fine when loading in the sync island
             // (as the live fragment should be added already) but not for permalinks when we support them
-            // 
+            //
             // fragmentIdComparer.addFragment(fragment);
             let fragmentEntry = new FragmentBoundaryEntry(fragment, direction.isBackward, fragmentIdComparer);
             // append or prepend fragmentEntry, reuse func from GapWriter?

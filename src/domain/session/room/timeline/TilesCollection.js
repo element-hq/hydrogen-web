@@ -204,7 +204,7 @@ export class TilesCollection extends BaseObservableList {
         const nextTile = this._getTileAtIdx(tileIdx + 1);
         // applying and emitting the remove should happen
         // atomically, as updateNext/PreviousSibling might
-        // emit an update with the wrong index otherwise 
+        // emit an update with the wrong index otherwise
         this._tiles.splice(tileIdx, 1);
         tile.dispose();
         this.emitRemove(tileIdx, tile);
@@ -261,7 +261,7 @@ export class TilesCollection extends BaseObservableList {
 }
 
 import {ObservableArray} from "../../../../observable/list/ObservableArray";
-import {UpdateAction} from "./UpdateAction.js";
+import {UpdateAction} from "./UpdateAction";
 
 export function tests() {
     class TestTile {

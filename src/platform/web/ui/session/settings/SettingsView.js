@@ -16,7 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView";
 import {disableTargetCallback} from "../../general/utils";
-import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
+import {KeyBackupSettingsView} from "./KeyBackupSettingsView"
 
 export class SettingsView extends TemplateView {
     render(t, vm) {
@@ -94,7 +94,7 @@ export class SettingsView extends TemplateView {
                 ]);
             })
         );
-        
+
         settingNodes.push(
             t.h3("Preferences"),
             row(t, vm.i18n`Scale down images when sending`, this._imageCompressionRange(t, vm)),
@@ -140,7 +140,7 @@ export class SettingsView extends TemplateView {
             onInput: updateSetting,
             onChange: updateSetting,
         }), " ", t.output(vm => {
-            return vm.sentImageSizeLimit ? 
+            return vm.sentImageSizeLimit ?
                 vm.i18n`resize to ${vm.sentImageSizeLimit}px` :
                 vm.i18n`no resizing`;
         })];

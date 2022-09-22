@@ -19,9 +19,9 @@ import {renderStaticAvatar} from "../../../avatar";
 import {tag} from "../../../general/html";
 import {mountView} from "../../../general/utils";
 import {TemplateView} from "../../../general/TemplateView";
-import {Popup} from "../../../general/Popup.js";
-import {Menu} from "../../../general/Menu.js";
-import {ReactionsView} from "./ReactionsView.js";
+import {Popup} from "../../../general/Popup";
+import {Menu} from "../../../general/Menu";
+import {ReactionsView} from "./ReactionsView";
 
 export class BaseMessageView extends TemplateView {
     constructor(value, viewClassForTile, renderFlags, tagName = "li") {

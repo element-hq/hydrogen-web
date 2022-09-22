@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMediaTile} from "./BaseMediaTile.js";
+import {BaseMediaTile} from "./BaseMediaTile";
 
 export class VideoTile extends BaseMediaTile {
     async loadVideo() {

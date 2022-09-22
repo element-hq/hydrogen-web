@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageTile} from "./BaseMessageTile.js";
+import {BaseMessageTile} from "./BaseMessageTile";
 
 export class RedactedTile extends BaseMessageTile {
     get shape() {
@@ -41,7 +41,7 @@ export class RedactedTile extends BaseMessageTile {
     get isRedacting() {
         return this._entry.isRedacting;
     }
-    
+
     /** override parent property to disable redacting, even if still pending */
     get canRedact() {
         return false;

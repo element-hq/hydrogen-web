@@ -15,9 +15,9 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {RoomDetailsViewModel} from "./RoomDetailsViewModel.js";
-import {MemberListViewModel} from "./MemberListViewModel.js";
-import {MemberDetailsViewModel} from "./MemberDetailsViewModel.js";
+import {RoomDetailsViewModel} from "./RoomDetailsViewModel";
+import {MemberListViewModel} from "./MemberListViewModel";
+import {MemberDetailsViewModel} from "./MemberDetailsViewModel";
 
 export class RightPanelViewModel extends ViewModel {
     constructor(options) {
@@ -41,7 +41,7 @@ export class RightPanelViewModel extends ViewModel {
     }
 
     async _getMemberDetailsArguments() {
-        const segment = this.navigation.path.get("member"); 
+        const segment = this.navigation.path.get("member");
         const userId = segment.value;
         const observableMember = await this._room.observeMember(userId);
         if (!observableMember) {

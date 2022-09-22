@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TextMessageView} from "./timeline/TextMessageView.js";
-import {ImageView} from "./timeline/ImageView.js";
-import {VideoView} from "./timeline/VideoView.js";
-import {FileView} from "./timeline/FileView.js";
-import {LocationView} from "./timeline/LocationView.js";
-import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
-import {AnnouncementView} from "./timeline/AnnouncementView.js";
-import {RedactedView} from "./timeline/RedactedView.js";
-import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
-import {GapView} from "./timeline/GapView.js";
+import {TextMessageView} from "./timeline/TextMessageView";
+import {ImageView} from "./timeline/ImageView";
+import {VideoView} from "./timeline/VideoView";
+import {FileView} from "./timeline/FileView";
+import {LocationView} from "./timeline/LocationView";
+import {MissingAttachmentView} from "./timeline/MissingAttachmentView";
+import {AnnouncementView} from "./timeline/AnnouncementView";
+import {RedactedView} from "./timeline/RedactedView";
+import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile";
+import {GapView} from "./timeline/GapView";
 import type {TileViewConstructor, ViewClassForEntryFn} from "./TimelineView";
 
 export function viewClassForTile(vm: SimpleTile): TileViewConstructor {

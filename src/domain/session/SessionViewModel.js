@@ -15,21 +15,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
-import {RoomViewModel} from "./room/RoomViewModel.js";
-import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
-import {InviteViewModel} from "./room/InviteViewModel.js";
-import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel.js";
-import {LightboxViewModel} from "./room/LightboxViewModel.js";
-import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
-import {RoomGridViewModel} from "./RoomGridViewModel.js";
-import {SettingsViewModel} from "./settings/SettingsViewModel.js";
-import {CreateRoomViewModel} from "./CreateRoomViewModel.js";
+import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel";
+import {RoomViewModel} from "./room/RoomViewModel";
+import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel";
+import {InviteViewModel} from "./room/InviteViewModel";
+import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel";
+import {LightboxViewModel} from "./room/LightboxViewModel";
+import {SessionStatusViewModel} from "./SessionStatusViewModel";
+import {RoomGridViewModel} from "./RoomGridViewModel";
+import {SettingsViewModel} from "./settings/SettingsViewModel";
+import {CreateRoomViewModel} from "./CreateRoomViewModel";
 import {JoinRoomViewModel} from "./JoinRoomViewModel";
 import {ViewModel} from "../ViewModel";
-import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
-import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
-import {SyncStatus} from "../../matrix/Sync.js";
+import {RoomViewModelObservable} from "./RoomViewModelObservable";
+import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel";
+import {SyncStatus} from "../../matrix/Sync";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {

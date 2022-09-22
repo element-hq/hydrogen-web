@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageView} from "./BaseMessageView.js";
-import {Menu} from "../../../general/Menu.js";
+import {BaseMessageView} from "./BaseMessageView";
+import {Menu} from "../../../general/Menu";
 
 export class BaseMediaView extends BaseMessageView {
     renderMessageBody(t, vm) {
-        const heightRatioPercent = (vm.height / vm.width) * 100; 
+        const heightRatioPercent = (vm.height / vm.width) * 100;
         let spacerStyle = `padding-top: ${heightRatioPercent}%;`;
         if (vm.platform.isIE11) {
             // preserving aspect-ratio in a grid with padding percentages

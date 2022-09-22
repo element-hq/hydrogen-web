@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Client} from "../../matrix/Client.js";
+import {Client} from "../../matrix/Client";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
 import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel";
-import {LoadStatus} from "../../matrix/Client.js";
-import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
+import {LoadStatus} from "../../matrix/Client";
+import {SessionLoadViewModel} from "../SessionLoadViewModel";
 import {SegmentType} from "../navigation/index";
 
 import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";

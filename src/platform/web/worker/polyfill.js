@@ -19,7 +19,7 @@ limitations under the License.
 // just enough to run olm, have promises and async/await
 
 // load this first just in case anything else depends on it
-import Promise from "es6-promise/lib/es6-promise/promise.js";
+import Promise from "es6-promise/lib/es6-promise/promise";
 // not calling checkNeedsSyncPromise from here as we don't do any idb in the worker,
 // mainly because IE doesn't handle multiple concurrent connections well
 self.Promise = Promise;

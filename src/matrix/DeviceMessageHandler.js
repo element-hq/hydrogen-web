@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {OLM_ALGORITHM} from "./e2ee/common.js";
+import {OLM_ALGORITHM} from "./e2ee/common";
 import {countBy, groupBy} from "../utils/groupBy";
 
 export class DeviceMessageHandler {

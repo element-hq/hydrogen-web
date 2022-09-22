@@ -16,7 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView";
 import {classNames, tag} from "../../general/html";
-import {AvatarView} from "../../AvatarView.js";
+import {AvatarView} from "../../AvatarView";
 
 export class RoomDetailsView extends TemplateView {
     render(t, vm) {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {encryptAttachment} from "../e2ee/attachment.js";
+import {encryptAttachment} from "../e2ee/attachment";
 
 export class AttachmentUpload {
     constructor({filename, blob, platform}) {

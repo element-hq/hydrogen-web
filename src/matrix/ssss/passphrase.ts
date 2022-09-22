@@ -16,7 +16,7 @@ limitations under the License.
 
 import {Key} from "./common";
 import type {KeyDescription} from "./common";
-import type {Platform} from "../../platform/web/Platform.js";
+import type {Platform} from "../../platform/web/Platform";
 
 const DEFAULT_ITERATIONS = 500000;
 const DEFAULT_BITSIZE = 256;

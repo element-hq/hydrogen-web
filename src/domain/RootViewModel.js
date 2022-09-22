@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Client} from "../matrix/Client.js";
-import {SessionViewModel} from "./session/SessionViewModel.js";
-import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
+import {Client} from "../matrix/Client";
+import {SessionViewModel} from "./session/SessionViewModel";
+import {SessionLoadViewModel} from "./SessionLoadViewModel";
 import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
 import {ForcedLogoutViewModel} from "./ForcedLogoutViewModel";
-import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
+import {SessionPickerViewModel} from "./SessionPickerViewModel";
 import {ViewModel} from "./ViewModel";
 
 export class RootViewModel extends ViewModel {

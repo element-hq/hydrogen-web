@@ -15,11 +15,11 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView";
-import {hydrogenGithubLink} from "./common.js";
-import {PasswordLoginView} from "./PasswordLoginView.js";
-import {CompleteSSOView} from "./CompleteSSOView.js";
-import {SessionLoadStatusView} from "./SessionLoadStatusView.js";
-import {spinner} from "../common.js";
+import {hydrogenGithubLink} from "./common";
+import {PasswordLoginView} from "./PasswordLoginView";
+import {CompleteSSOView} from "./CompleteSSOView";
+import {SessionLoadStatusView} from "./SessionLoadStatusView";
+import {spinner} from "../common";
 
 export class LoginView extends TemplateView {
     render(t, vm) {

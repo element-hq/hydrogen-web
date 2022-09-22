@@ -1,4 +1,4 @@
-import {createEvent, withTextBody, withSender} from "./event.js";
+import {createEvent, withTextBody, withSender} from "./event";
 import {TimelineEvent} from "../matrix/storage/types";
 
 export const TIMELINE_START_TOKEN = "timeline_start";
@@ -57,7 +57,7 @@ export class TimelineMock {
         return events[events.length - 1]?.event_id;
     }
 
-    _getStep(direction: "f" | "b") : 1 | -1 { 
+    _getStep(direction: "f" | "b") : 1 | -1 {
         return direction === "f" ? 1 : -1;
     }
 
@@ -72,7 +72,7 @@ export class TimelineMock {
             }
             const orderIndex = eventOrdering.findIndex(e => e.event_id === firstSyncEvent.event_id);
             return orderIndex;
-        } 
+        }
         // All other tokens are (non-inclusive) event indices
         const index = eventOrdering.findIndex(e => e.event_id === token);
         if (index === -1) {
@@ -235,7 +235,7 @@ export function tests() {
             const sync1 = timeline.sync();
             const sync2 = timeline.sync(sync1.next_batch);
             assert.equal(sync1.next_batch, sync2.next_batch);
-        }, 
+        },
         "An event inserted at the staart still shows up in a sync": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);

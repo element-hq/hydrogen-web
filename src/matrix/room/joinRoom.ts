@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type {Session} from "../Session.js";
+import type {Session} from "../Session";
 import {RoomStatus} from "./common";
 
 /**

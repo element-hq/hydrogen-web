@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {EventEntry} from "./EventEntry.js";
+import {EventEntry} from "./EventEntry";
 
 // EventEntry but without the two properties that are populated via SyncWriter
 // Useful if you want to create an EventEntry that is ephemeral

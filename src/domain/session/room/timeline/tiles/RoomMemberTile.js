@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SimpleTile} from "./SimpleTile.js";
+import {SimpleTile} from "./SimpleTile";
 
 export class RoomMemberTile extends SimpleTile {
 
@@ -31,12 +31,12 @@ export class RoomMemberTile extends SimpleTile {
 
         if (prevMembership === "join" && membership === "join") {
             if (content.avatar_url !== prevContent.avatar_url) {
-                return `${senderName} changed their avatar`; 
+                return `${senderName} changed their avatar`;
             } else if (content.displayname !== prevContent.displayname) {
                 if (!content.displayname) {
                     return `${stateKey} removed their name (${prevContent.displayname})`;
                 }
-                return `${prevContent.displayname ?? stateKey} changed their name to ${content.displayname}`; 
+                return `${prevContent.displayname ?? stateKey} changed their name to ${content.displayname}`;
             }
         } else if (membership === "join") {
             return `${targetName} joined the room`;
@@ -58,7 +58,7 @@ export class RoomMemberTile extends SimpleTile {
         } else if (membership === "ban") {
             return `${targetName} was banned from the room by ${senderName}`;
         }
-        
+
         return `${sender} membership changed to ${content.membership}`;
     }
 }

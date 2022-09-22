@@ -15,11 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js"
+import {TimelineViewModel} from "./timeline/TimelineViewModel";
+import {ComposerViewModel} from "./ComposerViewModel"
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ViewModel} from "../../ViewModel";
-import {imageToInfo} from "../common.js";
+import {imageToInfo} from "../common";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
@@ -197,7 +197,7 @@ export class RoomViewModel extends ViewModel {
             }
         }
     }
-    
+
     async _processCommandJoin(roomName) {
         try {
             const session = this._options.client.session;
@@ -208,7 +208,7 @@ export class RoomViewModel extends ViewModel {
             this._timelineError = null;
             this.emitChange("error");
         }
-    } 
+    }
 
     async _processCommand (message) {
         let msgtype;
@@ -252,7 +252,7 @@ export class RoomViewModel extends ViewModel {
        }
        return {type: msgtype, message: message};
    }
-    
+
     async _sendMessage(message, replyingTo) {
         if (!this._room.isArchived && message) {
             let messinfo = {type : "m.text", message : message};
@@ -342,7 +342,7 @@ export class RoomViewModel extends ViewModel {
             const maxDimension = limit || Math.min(video.maxDimension, 800);
             const thumbnail = await video.scale(maxDimension);
             content.info.thumbnail_info = imageToInfo(thumbnail);
-            attachments["info.thumbnail_url"] = 
+            attachments["info.thumbnail_url"] =
                 this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments);
         } catch (err) {
@@ -383,7 +383,7 @@ export class RoomViewModel extends ViewModel {
             if (image.maxDimension > 600) {
                 const thumbnail = await image.scale(400);
                 content.info.thumbnail_info = imageToInfo(thumbnail);
-                attachments["info.thumbnail_url"] = 
+                attachments["info.thumbnail_url"] =
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
             await this._room.sendEvent("m.room.message", content, attachments);
@@ -414,7 +414,7 @@ export class RoomViewModel extends ViewModel {
             this._composerVM.setReplyingTo(entry);
         }
     }
-    
+
     dismissError() {
         this._sendError = null;
         this.emitChange("error");

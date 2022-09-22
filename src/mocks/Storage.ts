@@ -30,7 +30,7 @@ export async function createMockStorage(): Promise<Storage> {
 // as this is a devDependency
 export async function createMockIDBFactory(): Promise<IDBFactory> {
     // @ts-ignore
-    const FDBFactory = (await import("fake-indexeddb/lib/FDBFactory.js")).default;
+    const FDBFactory = (await import("fake-indexeddb/lib/FDBFactory")).default;
     return new FDBFactory();
 }
 
@@ -38,7 +38,7 @@ export async function createMockIDBFactory(): Promise<IDBFactory> {
 // as this is a devDependency
 export async function getMockIDBKeyRange(): Promise<typeof IDBKeyRange> {
     // @ts-ignore
-    return (await import("fake-indexeddb/lib/FDBKeyRange.js")).default;
+    return (await import("fake-indexeddb/lib/FDBKeyRange")).default;
 }
 
 export function createMockDatabase(name: string, createObjectStore: CreateObjectStore, idbFactory: IDBFactory): Promise<IDBDatabase> {

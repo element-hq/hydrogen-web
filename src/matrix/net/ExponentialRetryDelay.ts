@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {AbortError} from "../../utils/error";
-import type {Timeout} from "../../platform/web/dom/Clock.js";
+import type {Timeout} from "../../platform/web/dom/Clock";
 
 type TimeoutCreator = (ms: number) => Timeout;
 
@@ -70,7 +70,7 @@ export class ExponentialRetryDelay {
 }
 
 
-import {Clock as MockClock} from "../../mocks/Clock.js";
+import {Clock as MockClock} from "../../mocks/Clock";
 
 export function tests() {
     return {
@@ -130,5 +130,5 @@ export function tests() {
             await promise;
         },
     }
-    
+
 }

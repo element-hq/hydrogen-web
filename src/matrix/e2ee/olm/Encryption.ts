@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {groupByWithCreator} from "../../../utils/groupBy";
-import {verifyEd25519Signature, OLM_ALGORITHM} from "../common.js";
+import {verifyEd25519Signature, OLM_ALGORITHM} from "../common";
 import {createSessionEntry} from "./Session";
 
 import type {OlmMessage, OlmPayload, OlmEncryptedMessageContent} from "./types";
@@ -84,7 +84,7 @@ export class Encryption {
     }
 
     async _encryptForMaxDevices(type: string, content: Record<string, any>, devices: DeviceIdentity[], hsApi: HomeServerApi, log: ILogItem): Promise<EncryptedMessage[]> {
-        // TODO: see if we can only hold some of the locks until after the /keys/claim call (if needed) 
+        // TODO: see if we can only hold some of the locks until after the /keys/claim call (if needed)
         // take a lock on all senderKeys so decryption and other calls to encrypt (should not happen)
         // don't modify the sessions at the same time
         const locks = await Promise.all(devices.map(device => {
@@ -95,8 +95,8 @@ export class Encryption {
                 devicesWithoutSession,
                 existingEncryptionTargets,
             } = await this._findExistingSessions(devices);
-        
-            const timestamp = this.now(); 
+
+            const timestamp = this.now();
 
             let encryptionTargets: EncryptionTarget[] = [];
             try {
@@ -235,7 +235,7 @@ export class Encryption {
                         }
                     }
                 }
-            } 
+            }
         }
         return verifiedEncryptionTargets;
     }
@@ -287,11 +287,11 @@ export class Encryption {
 // (and later converted to a session) in case of a new session
 // or an existing session
 class EncryptionTarget {
-    
+
     public session: Olm.Session | null = null;
 
     constructor(
-        public readonly device: DeviceIdentity, 
+        public readonly device: DeviceIdentity,
         public readonly oneTimeKey: string | null,
         public readonly sessionId: string | null
     ) {}

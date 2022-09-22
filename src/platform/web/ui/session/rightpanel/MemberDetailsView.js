@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {AvatarView} from "../../AvatarView.js";
+import {AvatarView} from "../../AvatarView";
 import {TemplateView} from "../../general/TemplateView";
 
 export class MemberDetailsView extends TemplateView {

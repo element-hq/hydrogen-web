@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionError} from "../common.js";
+import {DecryptionError} from "../common";
 import {groupBy} from "../../../utils/groupBy";
 import {MultiLock, ILock} from "../../../utils/Lock";
 import {Session} from "./Session";
@@ -57,14 +57,14 @@ export class Decryption {
         private readonly olm: Olm,
         private readonly senderKeyLock: LockMap<string>
     ) {}
-    
+
     // we need to lock because both encryption and decryption can't be done in one txn,
     // so for them not to step on each other toes, we need to lock.
-    // 
+    //
     // the lock is release from 1 of 3 places, whichever comes first:
     //  - decryptAll below fails (to release the lock as early as we can)
     //  - DecryptionChanges.write succeeds
-    //  - Sync finishes the writeSync phase (or an error was thrown, in case we never get to DecryptionChanges.write) 
+    //  - Sync finishes the writeSync phase (or an error was thrown, in case we never get to DecryptionChanges.write)
     async obtainDecryptionLock(events: OlmEncryptedEvent[]): Promise<ILock> {
         const senderKeys = new Set<string>();
         for (const event of events) {
@@ -83,15 +83,15 @@ export class Decryption {
 
     // we need decryptAll because there is some parallelization we can do for decrypting different sender keys at once
     // but for the same sender key we need to do one by one
-    // 
+    //
     // also we want to store the room key, etc ... in the same txn as we remove the pending encrypted event
-    // 
+    //
     // so we need to decrypt events in a batch (so we can decide which ones can run in parallel and which one one by one)
     // and also can avoid side-effects before all can be stored this way
-    // 
+    //
     // doing it one by one would be possible, but we would lose the opportunity for parallelization
-    // 
-    
+    //
+
     /**
      * It is importants the lock obtained from obtainDecryptionLock is for the same set of events as passed in here.
      * [decryptAll description]

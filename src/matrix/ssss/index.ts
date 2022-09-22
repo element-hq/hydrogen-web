@@ -17,11 +17,11 @@ limitations under the License.
 import {KeyDescription, Key} from "./common";
 import {keyFromPassphrase} from "./passphrase";
 import {keyFromRecoveryKey} from "./recoveryKey";
-import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common.js";
+import {SESSION_E2EE_KEY_PREFIX} from "../e2ee/common";
 import type {Storage} from "../storage/idb/Storage";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {KeyDescriptionData} from "./common";
-import type {Platform} from "../../platform/web/Platform.js";
+import type {Platform} from "../../platform/web/Platform";
 import type * as OlmNamespace from "@matrix-org/olm"
 
 type Olm = typeof OlmNamespace;

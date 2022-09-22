@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM} from "../common.js";
+import {MEGOLM_ALGORITHM} from "../common";
 import {OutboundRoomKey} from "./decryption/RoomKey";
 
 export class Encryption {
@@ -109,7 +109,7 @@ export class Encryption {
 
     /**
      * Encrypts a message with megolm
-     * @param  {string} roomId           
+     * @param  {string} roomId
      * @param  {string} type             event type to encrypt
      * @param  {string} content          content to encrypt
      * @param  {object} encryptionParams the content of the m.room.encryption event
@@ -160,7 +160,7 @@ export class Encryption {
         }
         if (session.message_index() >= rotationPeriodMsgs) {
             return true;
-        }  
+        }
     }
 
     _encryptContent(roomId, session, type, content) {
@@ -201,7 +201,7 @@ export class Encryption {
  *                                     this contains the content of the m.room_key message
  *                                     that should be sent out over olm.
  * @property {object} content  the encrypted message as the content of
- *                             the m.room.encrypted event that should be sent out   
+ *                             the m.room.encrypted event that should be sent out
  */
 class EncryptionResult {
     constructor(content, roomKeyMessage) {

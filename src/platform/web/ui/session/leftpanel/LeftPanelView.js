@@ -16,9 +16,9 @@ limitations under the License.
 
 import {ListView} from "../../general/ListView";
 import {TemplateView} from "../../general/TemplateView";
-import {RoomTileView} from "./RoomTileView.js";
-import {Menu} from "../../general/Menu.js";
-import {Popup} from "../../general/Popup.js";
+import {RoomTileView} from "./RoomTileView";
+import {Menu} from "../../general/Menu";
+import {Popup} from "../../general/Popup";
 
 class FilterField extends TemplateView {
     render(t, options) {

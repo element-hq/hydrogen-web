@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
-import {Popup} from "../../general/Popup.js";
-import {Menu} from "../../general/Menu.js";
+import {Popup} from "../../general/Popup";
+import {Menu} from "../../general/Menu";
 
 export class MessageComposer extends TemplateView {
     constructor(viewModel, viewClassForTile) {

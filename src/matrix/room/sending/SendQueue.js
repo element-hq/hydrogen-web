@@ -15,11 +15,11 @@ limitations under the License.
 */
 
 import {SortedArray} from "../../../observable/list/SortedArray";
-import {ConnectionError} from "../../error.js";
-import {PendingEvent, SendStatus} from "./PendingEvent.js";
-import {makeTxnId, isTxnId} from "../../common.js";
+import {ConnectionError} from "../../error";
+import {PendingEvent, SendStatus} from "./PendingEvent";
+import {makeTxnId, isTxnId} from "../../common";
 import {REDACTION_TYPE} from "../common";
-import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations.js";
+import {getRelationFromContent, getRelationTarget, setRelationTarget, REACTION_TYPE, ANNOTATION_RELATION_TYPE} from "../timeline/relations";
 
 export class SendQueue {
     constructor({roomId, storage, hsApi, pendingEvents}) {
@@ -350,13 +350,13 @@ export class SendQueue {
     }
 }
 
-import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer.js";
+import {HomeServer as MockHomeServer} from "../../../mocks/HomeServer";
 import {createMockStorage} from "../../../mocks/Storage";
-import {ListObserver} from "../../../mocks/ListObserver.js";
+import {ListObserver} from "../../../mocks/ListObserver";
 import {NullLogger, NullLogItem} from "../../../logging/NullLogger";
-import {createEvent, withTextBody, withTxnId} from "../../../mocks/event.js";
-import {poll} from "../../../mocks/poll.js";
-import {createAnnotation} from "../timeline/relations.js";
+import {createEvent, withTextBody, withTxnId} from "../../../mocks/event";
+import {poll} from "../../../mocks/poll";
+import {createAnnotation} from "../timeline/relations";
 
 export function tests() {
     const logger = new NullLogger();
@@ -445,6 +445,6 @@ export function tests() {
             await queue.enqueueEvent("m.reaction", createAnnotation("!target", "🚀"), null, new NullLogItem());
             assert.equal(queue.pendingEvents.length, 2);
         },
-        
+
     }
 }

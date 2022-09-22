@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageView} from "./BaseMessageView.js";
+import {BaseMessageView} from "./BaseMessageView";
 
 export class LocationView extends BaseMessageView {
     renderMessageBody(t, vm) {

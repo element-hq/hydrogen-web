@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseRoom} from "./BaseRoom.js";
-import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
-import {MemberWriter} from "./timeline/persistence/MemberWriter.js";
-import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
-import {SendQueue} from "./sending/SendQueue.js";
-import {WrappedError} from "../error.js"
-import {Heroes} from "./members/Heroes.js";
-import {AttachmentUpload} from "./AttachmentUpload.js";
-import {DecryptionSource} from "../e2ee/common.js";
-import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
+import {BaseRoom} from "./BaseRoom";
+import {SyncWriter} from "./timeline/persistence/SyncWriter";
+import {MemberWriter} from "./timeline/persistence/MemberWriter";
+import {RelationWriter} from "./timeline/persistence/RelationWriter";
+import {SendQueue} from "./sending/SendQueue";
+import {WrappedError} from "../error"
+import {Heroes} from "./members/Heroes";
+import {AttachmentUpload} from "./AttachmentUpload";
+import {DecryptionSource} from "../e2ee/common";
+import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -149,7 +149,7 @@ export class Room extends BaseRoom {
         // also apply (decrypted) timeline entries to the summary changes
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
-        
+
         // if we've have left the room, remove the summary
         if (summaryChanges.membership !== "join") {
             txn.roomSummary.remove(this.id);
@@ -319,7 +319,7 @@ export class Room extends BaseRoom {
                 });
             }
         }
-        
+
         this._sendQueue.resumeSending(parentLog);
     }
 
@@ -380,7 +380,7 @@ export class Room extends BaseRoom {
     get notificationCount() {
         return this._summary.data.notificationCount;
     }
-    
+
     get highlightCount() {
         return this._summary.data.highlightCount;
     }
@@ -417,7 +417,7 @@ export class Room extends BaseRoom {
                 await txn.complete();
                 this._summary.applyChanges(data);
                 this._emitUpdate();
-                
+
                 try {
                     const lastEventId = await this._getLastEventId();
                     if (lastEventId) {

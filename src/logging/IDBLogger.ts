@@ -24,8 +24,8 @@ import {
 } from "../matrix/storage/idb/utils";
 import {BaseLogger} from "./BaseLogger";
 import type {Interval} from "../platform/web/dom/Clock";
-import type {Platform} from "../platform/web/Platform.js";
-import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
+import type {Platform} from "../platform/web/Platform";
+import type {BlobHandle} from "../platform/web/dom/BlobHandle";
 import type {ILogItem, ILogExport, ISerializedItem} from "./types";
 import type {LogFilter} from "./LogFilter";
 
@@ -116,7 +116,7 @@ export class IDBLogger extends BaseLogger {
     _openDB(): Promise<IDBDatabase> {
         return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
-    
+
     _persistItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
         const serializedItem = logItem.serialize(filter, undefined, forced);
         if (serializedItem) {
@@ -185,7 +185,7 @@ class IDBLogExport implements ILogExport {
         this._logger = logger;
         this._platform = platform;
     }
-    
+
     get count(): number {
         return this._items.length;
     }

@@ -16,11 +16,11 @@ limitations under the License.
 */
 
 import {AbortError} from "../../utils/error";
-import {HomeServerError} from "../error.js";
+import {HomeServerError} from "../error";
 import {HomeServerApi} from "./HomeServerApi";
 import {ExponentialRetryDelay} from "./ExponentialRetryDelay";
-import {Clock} from "../../platform/web/dom/Clock.js";
-import type {IHomeServerRequest} from "./HomeServerRequest.js";
+import {Clock} from "../../platform/web/dom/Clock";
+import type {IHomeServerRequest} from "./HomeServerRequest";
 
 class Request implements IHomeServerRequest {
     public readonly methodName: string;

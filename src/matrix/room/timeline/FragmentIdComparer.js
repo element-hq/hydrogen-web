@@ -38,7 +38,7 @@ until no more fragments
 
 */
 
-import {isValidFragmentId} from "./common.js";
+import {isValidFragmentId} from "./common";
 
 function findBackwardSiblingFragments(current, byId) {
     const sortedSiblings = [];
@@ -213,10 +213,10 @@ export function tests() {
 
             assert(index.compare(1, 3) < 0);
             assert(index.compare(3, 1) > 0);
-            
+
             assert(index.compare(2, 3) < 0);
             assert(index.compare(3, 2) > 0);
-            
+
             assert.equal(index.compare(1, 1), 0);
         },
         test_falsy_id(assert) {
@@ -271,12 +271,12 @@ export function tests() {
                 {id: 2, previousId: 1},
                 {id: 11, nextId: 12},
                 {id: 12, previousId: 11},
-                
+
             ]);
 
             assert(index.compare(1, 2) < 0);
             assert(index.compare(11, 12) < 0);
-            
+
             assert.throws(() => index.compare(1, 11));
             assert.throws(() => index.compare(12, 2));
         },
@@ -294,7 +294,7 @@ export function tests() {
                 {id: 11, nextId: 12},
                 {id: 12, previousId: 11},
             ]);
-            
+
             assert.throws(() => index.compare(1, 2));
             assert(index.compare(11, 12) < 0);
         },

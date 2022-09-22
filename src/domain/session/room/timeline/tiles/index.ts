@@ -14,20 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {GapTile} from "./GapTile.js";
-import {TextTile} from "./TextTile.js";
-import {RedactedTile} from "./RedactedTile.js";
-import {ImageTile} from "./ImageTile.js";
-import {VideoTile} from "./VideoTile.js";
-import {FileTile} from "./FileTile.js";
-import {LocationTile} from "./LocationTile.js";
-import {RoomNameTile} from "./RoomNameTile.js";
-import {RoomMemberTile} from "./RoomMemberTile.js";
-import {EncryptedEventTile} from "./EncryptedEventTile.js";
-import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
-import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
+import {GapTile} from "./GapTile";
+import {TextTile} from "./TextTile";
+import {RedactedTile} from "./RedactedTile";
+import {ImageTile} from "./ImageTile";
+import {VideoTile} from "./VideoTile";
+import {FileTile} from "./FileTile";
+import {LocationTile} from "./LocationTile";
+import {RoomNameTile} from "./RoomNameTile";
+import {RoomMemberTile} from "./RoomMemberTile";
+import {EncryptedEventTile} from "./EncryptedEventTile";
+import {EncryptionEnabledTile} from "./EncryptionEnabledTile";
+import {MissingAttachmentTile} from "./MissingAttachmentTile";
 
-import type {SimpleTile} from "./SimpleTile.js";
+import type {SimpleTile} from "./SimpleTile";
 import type {Room} from "../../../../../matrix/room/Room";
 import type {Timeline} from "../../../../../matrix/room/timeline/Timeline";
 import type {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry";

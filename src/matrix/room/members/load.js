@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RoomMember} from "./RoomMember.js";
+import {RoomMember} from "./RoomMember";
 
 async function loadMembers({roomId, storage, txn}) {
     if (!txn) {
@@ -32,7 +32,7 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
     // they will end up here, so we check not to override them
     const changedMembersDuringSync = new Map();
     setChangedMembersMap(changedMembersDuringSync);
-    
+
     const memberResponse = await hsApi.members(roomId, {at: syncToken}, {log}).response();
 
     const txn = await storage.readWriteTxn([
@@ -42,7 +42,7 @@ async function fetchMembers({summary, syncToken, roomId, hsApi, storage, setChan
 
     let summaryChanges;
     let members;
-    
+
     try {
         summaryChanges = summary.writeHasFetchedMembers(true, txn);
         const {roomMembers} = txn;

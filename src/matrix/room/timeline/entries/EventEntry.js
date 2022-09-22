@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseEventEntry} from "./BaseEventEntry.js";
+import {BaseEventEntry} from "./BaseEventEntry";
 import {getPrevContentFromStateEvent, isRedacted} from "../../common";
-import {getRelationFromContent, getRelatedEventId} from "../relations.js";
+import {getRelationFromContent, getRelatedEventId} from "../relations";
 
 export class EventEntry extends BaseEventEntry {
     constructor(eventEntry, fragmentIdComparer) {
@@ -157,11 +157,11 @@ export class EventEntry extends BaseEventEntry {
 
 }
 
-import {withTextBody, withContent, createEvent} from "../../../../mocks/event.js";
-import {Clock as MockClock} from "../../../../mocks/Clock.js";
-import {PendingEventEntry} from "./PendingEventEntry.js";
-import {PendingEvent} from "../../sending/PendingEvent.js";
-import {createAnnotation} from "../relations.js";
+import {withTextBody, withContent, createEvent} from "../../../../mocks/event";
+import {Clock as MockClock} from "../../../../mocks/Clock";
+import {PendingEventEntry} from "./PendingEventEntry";
+import {PendingEvent} from "../../sending/PendingEvent";
+import {createAnnotation} from "../relations";
 
 export function tests() {
     let queueIndex = 0;
