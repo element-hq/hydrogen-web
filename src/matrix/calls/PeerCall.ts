@@ -818,14 +818,16 @@ export class PeerCall implements IDisposable {
 
     private async addIceCandidates(candidates: RTCIceCandidate[], log: ILogItem): Promise<void> {
         for (const candidate of candidates) {
+            let logItem;
             if (
                 (candidate.sdpMid === null || candidate.sdpMid === undefined) &&
                 (candidate.sdpMLineIndex === null || candidate.sdpMLineIndex === undefined)
             ) {
-                log.log(`Ignoring remote ICE candidate with no sdpMid or sdpMLineIndex`);
-                continue;
+                logItem = log.log(`Got remote end-of-ICE candidates`);
             }
-            const logItem = log.log(`Adding remote ICE ${candidate.sdpMid} candidate: ${candidate.candidate}`);
+            else {
+                logItem = log.log(`Adding remote ICE ${candidate.sdpMid} candidate: ${candidate.candidate}`);
+            }
             try {
                 await this.peerConnection.addIceCandidate(candidate);
             } catch (err) {
