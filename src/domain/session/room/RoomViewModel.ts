@@ -25,6 +25,7 @@ import {imageToInfo, MultiMediaInfo} from "../common";
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry, TimelineEntry} from "./timeline/tiles/index";
 import {RoomStatus} from "../../../matrix/room/common";
+import {joinRoom} from "../../../matrix/room/joinRoom";
 
 import type {Room} from "../../../matrix/room/Room";
 import type {TileClassForEntryFn, Options as TileOptions} from "./timeline/tiles";
@@ -222,22 +223,11 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
 
     async _processCommandJoin(roomName: string): Promise<void> {
         try {
-            const roomId = await this._client.session.joinRoom(roomName);
-            const roomStatusObserver = await this._client.session.observeRoomStatus(roomId);
-            await roomStatusObserver.waitFor(status => status === RoomStatus.Joined);
+            const session = this._client.session;
+            const roomId = await joinRoom(roomName, session);
             this.navigation.push("room", roomId);
         } catch (err) {
-            let exc;
-            if ((err.statusCode ?? err.status) === 400) {
-                exc = new Error(`/join : '${roomName}' was not legal room ID or room alias`);
-            } else if ((err.statusCode ?? err.status) === 404 || (err.statusCode ?? err.status) === 502 || err.message == "Internal Server Error") {
-                exc = new Error(`/join : room '${roomName}' not found`);
-            } else if ((err.statusCode ?? err.status) === 403) {
-                exc = new Error(`/join : you're not invited to join '${roomName}'`);
-            } else {
-                exc = err;
-            }
-            this._sendError = exc;
+            this._sendError = err;
             this._timelineError = undefined;
             this.emitChange("error");
         }

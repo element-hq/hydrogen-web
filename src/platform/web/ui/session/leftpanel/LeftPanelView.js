@@ -17,6 +17,8 @@ limitations under the License.
 import {ListView} from "../../general/ListView";
 import {TemplateView} from "../../general/TemplateView";
 import {RoomTileView} from "./RoomTileView.js";
+import {Menu} from "../../general/Menu.js";
+import {Popup} from "../../general/Popup.js";
 
 class FilterField extends TemplateView {
     render(t, options) {
@@ -51,6 +53,11 @@ class FilterField extends TemplateView {
 }
 
 export class LeftPanelView extends TemplateView {
+    constructor(vm) {
+        super(vm);
+        this._createMenuPopup = null;
+    }
+
     render(t, vm) {
         const gridButtonLabel = vm => {
             return vm.gridEnabled ?
@@ -90,12 +97,30 @@ export class LeftPanelView extends TemplateView {
                 "aria-label": gridButtonLabel
             }),
             t.a({className: "button-utility settings", href: vm.settingsUrl, "aria-label": vm.i18n`Settings`, title: vm.i18n`Settings`}),
-            t.a({className: "button-utility create", href: vm.createRoomUrl, "aria-label": vm.i18n`Create room`, title: vm.i18n`Create room`}),
+            t.button({
+                className: "button-utility create",
+                "aria-label": vm.i18n`Create room`,
+                onClick: evt => this._toggleCreateMenu(evt)
+            }),
         ]);
 
         return t.div({className: "LeftPanel"}, [
             utilitiesRow,
             roomList
         ]);
+    }
+
+    _toggleCreateMenu(evt) {
+        if (this._createMenuPopup && this._createMenuPopup.isOpen) {
+            this._createMenuPopup.close();
+        } else {
+            const vm = this.value;
+            const options = [];
+            options.push(Menu.option(vm.i18n`Create Room`, () => vm.showCreateRoomView()));
+            options.push(Menu.option(vm.i18n`Join Room`, () => vm.showJoinRoomView()));
+            this._createMenuPopup = new Popup(new Menu(options));
+            this._createMenuPopup.trackInTemplateView(this);
+            this._createMenuPopup.showRelativeTo(evt.target, 10);
+        }
     }
 }
