@@ -75,6 +75,12 @@ export class CallHandler implements RoomStateHandler {
         this._loadCallEntries(callEntries, txn);
     }
 
+    async setTurnServers(turnServers: RTCIceServer) {
+        this.options.turnServers = turnServers;
+        this.groupCallOptions.turnServers = turnServers;
+        // TODO: we should update any ongoing peerconnections if the TURN server details have changed
+    }
+
     private async _getLoadTxn(): Promise<Transaction> {
         const names = this.options.storage.storeNames;
         const txn = await this.options.storage.readTxn([

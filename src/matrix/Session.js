@@ -513,6 +513,7 @@ export class Session {
             // TODO: what can we do if this throws?
             await txn.complete();
         }
+        await this._updateTurnServers();
         // enable session backup, this requests the latest backup version
         if (!this._keyBackup.get()) {
             if (dehydratedDevice) {
@@ -556,6 +557,18 @@ export class Session {
                 roomOperationsByType = groupBy(roomOperations, r => r.type);
             }
             room.start(roomOperationsByType, log);
+        }
+    }
+
+    async _updateTurnServers() {
+        const turnServersData = await this._hsApi.getTurnServers().response();
+        this._callHandler.setTurnServers({
+            urls: turnServerData.uris,
+            username: turnServerData.username,
+            credential: turnServerData.password,
+        });
+        if (turnServersData.ttl > 0) {
+            setTimeout(this._updateTurnServers, turnServersData.ttl * 1000);
         }
     }
 
