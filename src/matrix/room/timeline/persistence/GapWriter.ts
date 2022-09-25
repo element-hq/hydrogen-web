@@ -42,11 +42,11 @@ export class GapWriter {
 
     async _findOverlappingEvents(
         fragmentEntry: FragmentBoundaryEntry,
-        events: any[],
+        events: StateEvent[],
         txn: Transaction,
         log: ILogItem
     ): Promise<{
-        nonOverlappingEvents: any[];
+        nonOverlappingEvents: StateEvent[];
         neighbourFragmentEntry: FragmentBoundaryEntry;
     }> {
         const eventIds = events.map(e => e.event_id);
@@ -91,7 +91,7 @@ export class GapWriter {
     }
 
     async _storeEvents(
-        events: any[],
+        events: StateEvent[],
         startKey: EventKey,
         direction: Direction,
         state: StateEvent[],
@@ -197,7 +197,12 @@ export class GapWriter {
 
     async writeFragmentFill(
         fragmentEntry: FragmentBoundaryEntry,
-        response: any,
+        response: {
+            start: string;
+            end: string;
+            chunk: StateEvent[];
+            state: any[];
+        },
         txn: Transaction,
         log: ILogItem
     ): Promise<{
@@ -207,7 +212,7 @@ export class GapWriter {
     }> {
         const {fragmentId, direction} = fragmentEntry;
         // chunk is in reverse-chronological order when backwards
-        const {chunk, start, state}: {chunk: any[], start: number, state: StateEvent[]} = response;
+        const {chunk, start, state} = response;
         let {end}: {end: string} = response;
 
         if (!Array.isArray(chunk)) {
@@ -312,10 +317,10 @@ export function tests() {
 
     async function syncAndWrite(
         mocks: {
-            storage?: Storage;
-            txn: any;
-            fragmentIdComparer: any;
-            gapWriter?: GapWriter;
+            storage: Storage;
+            txn: Transaction;
+            fragmentIdComparer: FragmentIdComparer;
+            gapWriter: GapWriter;
             syncWriter: SyncWriter;
             timelineMock: TimelineMock;
         },
@@ -329,7 +334,7 @@ export function tests() {
                     limited: boolean;
                 };
             };
-            fragmentEntry: any;
+            fragmentEntry?: FragmentBoundaryEntry;
         }> {
         const {txn, timelineMock, syncWriter, fragmentIdComparer} = mocks;
         const syncResponse = timelineMock.sync(previous?.next_batch, limit);
@@ -340,20 +345,60 @@ export function tests() {
             fragmentEntry: newLiveKey ? FragmentBoundaryEntry.start(
                 await txn.timelineFragments.get(roomId, newLiveKey.fragmentId),
                 fragmentIdComparer,
-            ) : null,
+            ) : undefined,
         };
     }
 
-    async function backfillAndWrite(mocks, fragmentEntry, limit): Promise<void> {
-        const {txn, timelineMock, gapWriter} = mocks;
-        const messageResponse = timelineMock.messages(fragmentEntry.token, undefined, fragmentEntry.direction.asApiString(), limit);
-        await gapWriter.writeFragmentFill(fragmentEntry, messageResponse, txn, logger);
+    async function backfillAndWrite(
+        mocks: {
+            storage: Storage;
+            txn: Transaction;
+            fragmentIdComparer: FragmentIdComparer;
+            gapWriter: GapWriter;
+            syncWriter: SyncWriter;
+            timelineMock: TimelineMock;
+        },
+        fragmentEntry: FragmentBoundaryEntry,
+        limit: number
+    ): Promise<void> {
+        const { txn, timelineMock, gapWriter } = mocks;
+        const messageResponse = timelineMock.messages(
+            fragmentEntry.token,
+            undefined,
+            fragmentEntry.direction.asApiString(),
+            limit
+        ) as unknown as {
+            start: string;
+            end: string;
+            chunk: StateEvent[]; // TODO: This has to be force cast from its true type of TimelineEvent[], which may indicate a mistake in the GapWriter's type system.
+            state: any[];
+        };
+        await gapWriter!.writeFragmentFill(
+            fragmentEntry,
+            messageResponse,
+            txn,
+            logger
+        );
     }
 
-    async function allFragmentEvents(mocks, fragmentId): Promise<any> {
-        const {txn} = mocks;
-        const entries = await txn.timelineEvents.eventsAfter(roomId, new EventKey(fragmentId, KeyLimits.minStorageKey));
-        return entries.map(e => e.event);
+    async function allFragmentEvents(
+        mocks: {
+            storage: Storage;
+            txn: Transaction;
+            fragmentIdComparer: FragmentIdComparer;
+            gapWriter: GapWriter;
+            syncWriter: SyncWriter;
+            timelineMock: TimelineMock;
+        },
+        fragmentId: number
+    ): Promise<(TimelineEvent | StateEvent)[]> {
+        const { txn } = mocks;
+        const entries = await txn.timelineEvents.eventsAfter(
+            roomId,
+            new EventKey(fragmentId, KeyLimits.minStorageKey),
+            20
+        );
+        return entries.map((e) => e.event);
     }
 
     async function fetchFragment(mocks, fragmentId): Promise<any> {
