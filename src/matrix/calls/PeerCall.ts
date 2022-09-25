@@ -823,7 +823,7 @@ export class PeerCall implements IDisposable {
                 (candidate.sdpMid === null || candidate.sdpMid === undefined) &&
                 (candidate.sdpMLineIndex === null || candidate.sdpMLineIndex === undefined)
             ) {
-                logItem = log.log(`Got remote ICE end-of-ICE candidates`);
+                logItem = log.log(`Got remote end-of-ICE candidates`);
             }
             else {
                 logItem = log.log(`Adding remote ICE ${candidate.sdpMid} candidate: ${candidate.candidate}`);
