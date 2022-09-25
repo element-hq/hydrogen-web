@@ -17,7 +17,7 @@ limitations under the License.
 import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember.js";
 import {LRUCache} from "../../../../utils/LRUCache";
 import type {Transaction} from "../../../storage/idb/Transaction";
-import { StateEvent } from "../../../storage/types";
+import type {StateEvent} from "../../../storage/types";
 
 export class MemberWriter {
     private _roomId: string;

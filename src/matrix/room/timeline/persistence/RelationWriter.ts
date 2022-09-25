@@ -69,7 +69,7 @@ export class RelationWriter {
      *        a relation target for which we've previously received relations.
      * @param {Direction} direction of the gap fill
      * */
-    async writeGapRelation(storageEntry: any, direction: Direction, txn: Transaction, log: ILogItem): Promise<EventEntry | undefined> {
+    async writeGapRelation(storageEntry: EventEntry, direction: Direction, txn: Transaction, log: ILogItem): Promise<EventEntry | undefined> {
         const sourceEntry = new EventEntry(storageEntry, this._fragmentIdComparer);
         const result = await this.writeRelation(sourceEntry, txn, log);
         // when back-paginating, it can also happen that we've received relations
@@ -204,7 +204,7 @@ export class RelationWriter {
             if (!annotation) {
                 log.log({l: "missing annotation", id: relation.sourceEventId});
             }
-            if (getRelation(annotation!.event!)!.key === key) {
+            if (getRelation(annotation!.event)!.key === key) {
                 this._aggregateAnnotation(annotation!.event, target);
             }
         }));
