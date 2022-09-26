@@ -17,15 +17,17 @@ limitations under the License.
 import {ObservableValue} from "./ObservableValue";
 
 export class RetainedObservableValue<T> extends ObservableValue<T> {
-    private _freeCallback: () => void;
 
-    constructor(initialValue: T, freeCallback: () => void) {
+    constructor(initialValue: T, private freeCallback: () => void, private startCallback: () => void = () => {}) {
         super(initialValue);
-        this._freeCallback = freeCallback;
+    }
+
+    onSubscribeFirst() {
+        this.startCallback();
     }
 
     onUnsubscribeLast() {
         super.onUnsubscribeLast();
-        this._freeCallback();
+        this.freeCallback();
     }
 }
