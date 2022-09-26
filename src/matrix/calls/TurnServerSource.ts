@@ -120,7 +120,7 @@ export class TurnServerSource {
         }
     }
 
-    stopPollLoop() {
+    private stopPollLoop() {
         this.isPolling = false;
         this.currentObservable = undefined;
         this.pollTimeout?.dispose();
