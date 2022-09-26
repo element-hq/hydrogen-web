@@ -115,8 +115,18 @@ export class PeerCall implements IDisposable {
     ) {
         logItem.log({l: "create PeerCall", id: callId});
         this._remoteMedia = new RemoteMedia();
-        this.peerConnection = options.webRTC.createPeerConnection(this.options.forceTURN, this.options.turnServers, 0);
-        
+        this.peerConnection = options.webRTC.createPeerConnection(
+            this.options.forceTURN,
+            [this.options.turnServer.get()],
+            0
+        );
+        // update turn servers when they change (see TurnServerSource) if possible
+        if (typeof this.peerConnection["setConfiguration"] === "function") {
+            this.disposables.track(this.options.turnServer.subscribe(turnServer => {
+                this.logItem.log({l: "updating turn server", turnServer})
+                this.peerConnection["setConfiguration"]({iceServers: [turnServer]});
+            }));
+        }
         const listen = <K extends keyof PeerConnectionEventMap>(type: K, listener: (this: PeerConnection, ev: PeerConnectionEventMap[K]) => any, options?: boolean | EventListenerOptions): void => {
             this.peerConnection.addEventListener(type, listener);
             const dispose = () => {
