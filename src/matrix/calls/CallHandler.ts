@@ -75,7 +75,7 @@ export class CallHandler implements RoomStateHandler {
         this._loadCallEntries(callEntries, txn);
     }
 
-    async setTurnServers(turnServers: RTCIceServer[]) {
+    setTurnServers(turnServers: RTCIceServer[]) {
         this.options.turnServers = turnServers;
         this.groupCallOptions.turnServers = turnServers;
         // TODO: we should update any ongoing peerconnections if the TURN server details have changed
