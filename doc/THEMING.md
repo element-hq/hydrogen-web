@@ -167,3 +167,38 @@ To find the theme-id of some theme, you can look at the built-asset section of t
 This default theme will render as "Default" option in the theme-chooser dropdown. If the device preference is for dark theme, the dark default is selected and vice versa.
 
 **You'll need to reload twice so that Hydrogen picks up the config changes!**
+
+# Derived Theme(Collection)
+This allows users to theme Hydrogen without the need for rebuilding. Derived theme collections can be thought of as extensions (derivations) of some existing build time theme. 
+
+## Creating a derived theme:
+Here's how you create a new derived theme:
+1. You create a new theme manifest file (eg: theme-awesome.json) and mention which build time theme you're basing your new theme on using the `extends` field. The base css file of the mentioned theme is used for your new theme.
+2. You configure the theme manifest as usual by populating the `variants` field with your desired colors.
+3. You add your new theme manifest to the list of themes in `config.json`.
+
+Refresh Hydrogen twice (once to refresh cache, and once to load) and the new theme should show up in the theme chooser.
+
+## How does it work?
+
+For every theme collection in hydrogen, the build process emits a runtime css file which like the built theme css file contains variables in the css code. But unlike the theme css file, the runtime css file lacks the definition for these variables:
+
+CSS for the built theme:
+```css
+:root {
+    --background-color-primary: #f2f20f;
+}
+
+body {
+    background-color: var(--background-color-primary);
+}
+```
+and the corresponding runtime theme:
+```css
+/* Notice the lack of definiton for --background-color-primary here! */
+body {
+    background-color: var(--background-color-primary);
+}
+```
+
+When hydrogen loads a derived theme, it takes the runtime css file of the extended theme and dynamically adds the variable definition based on the values specified in the manifest. Icons are also colored dynamically and injected as variables using Data URIs.

@@ -19,8 +19,12 @@ export type {ILogItem} from "./logging/types";
 export {IDBLogPersister} from "./logging/IDBLogPersister";
 export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
-export {Client, LoadStatus} from "./matrix/Client.js";
+export {Client, LoadStatus, LoginFailure} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
+export {AttachmentUpload} from "./matrix/room/AttachmentUpload";
+export {CallIntent} from "./matrix/calls/callEventTypes";
+export {OidcApi} from "./matrix/net/OidcApi";
+export {OIDCLoginMethod} from "./matrix/login/OIDCLoginMethod";
 // export everything needed to observe state events on all rooms using session.observeRoomState
 export type {RoomStateHandler} from "./matrix/room/state/types";
 export type {MemberChange} from "./matrix/room/members/RoomMember";
@@ -29,7 +33,7 @@ export type {Room} from "./matrix/room/Room";
 export type {StateEvent} from "./matrix/storage/types";
 
 // export main view & view models
-export {createNavigation, createRouter} from "./domain/navigation/index.js";
+export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";
@@ -79,7 +83,7 @@ export {TemplateView} from "./platform/web/ui/general/TemplateView";
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
-export {RoomType} from "./matrix/room/common";
+export {RoomVisibility, RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
 export {LocalMedia} from "./matrix/calls/LocalMedia";

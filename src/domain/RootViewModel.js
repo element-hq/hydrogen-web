@@ -17,7 +17,7 @@ limitations under the License.
 import {Client} from "../matrix/Client.js";
 import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
-import {LoginViewModel} from "./login/LoginViewModel.js";
+import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel";
@@ -38,6 +38,7 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
@@ -46,6 +47,7 @@ export class RootViewModel extends ViewModel {
         const logoutSessionId = this.navigation.path.get("logout")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
+        const oidcCallback = this.navigation.path.get("oidc")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -77,7 +79,18 @@ export class RootViewModel extends ViewModel {
         } else if (loginToken) {
             this.urlCreator.normalizeUrl();
             if (this.activeSection !== "login") {
-                this._showLogin(loginToken);
+                this._showLogin({loginToken});
+            }
+        } else if (oidcCallback) {
+            if (oidcCallback.error) {
+                this._setSection(() => this._error = new Error(`OIDC error: ${oidcCallback.error}`));
+            } else {
+                this.urlCreator.normalizeUrl();
+                if (this.activeSection !== "login") {
+                    this._showLogin({
+                        oidc: oidcCallback,
+                    });
+                }
             }
         }
         else {
@@ -109,7 +122,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(loginToken) {
+    _showLogin({loginToken, oidc} = {}) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
@@ -118,14 +131,15 @@ export class RootViewModel extends ViewModel {
                     // but we also want the change of screen to go through the navigation
                     // so we store the session container in a temporary variable that will be
                     // consumed by _applyNavigation, triggered by the navigation change
-                    // 
+                    //
                     // Also, we should not call _setSection before the navigation is in the correct state,
                     // as url creation (e.g. in RoomTileViewModel)
                     // won't be using the correct navigation base path.
                     this._pendingClient = client;
                     this.navigation.push("session", client.sessionId);
                 },
-                loginToken
+                loginToken,
+                oidc,
             }));
         });
     }

@@ -82,6 +82,7 @@ export function processStateEvent(data, event, ownUserId) {
     if (event.type === "m.room.create") {
         data = data.cloneIfNeeded();
         data.lastMessageTimestamp = event.origin_server_ts;
+        data.type = event.content?.type ?? null;
     } else if (event.type === "m.room.encryption") {
         const algorithm = event.content?.algorithm;
         if (!data.encryption && algorithm === MEGOLM_ALGORITHM) {
@@ -167,6 +168,7 @@ export class SummaryData {
     constructor(copy, roomId) {
         this.roomId = copy ? copy.roomId : roomId;
         this.name = copy ? copy.name : null;
+        this.type = copy ? copy.type : null;
         this.lastMessageTimestamp = copy ? copy.lastMessageTimestamp : null;
         this.isUnread = copy ? copy.isUnread : false;
         this.encryption = copy ? copy.encryption : null;

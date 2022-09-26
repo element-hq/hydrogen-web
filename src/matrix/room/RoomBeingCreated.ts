@@ -20,7 +20,7 @@ import {MediaRepository} from "../net/MediaRepository";
 import {EventEmitter} from "../../utils/EventEmitter";
 import {AttachmentUpload} from "./AttachmentUpload";
 import {loadProfiles, Profile, UserIdProfile} from "../profile";
-import {RoomType} from "./common";
+import {RoomType, RoomVisibility} from "./common";
 
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
@@ -36,8 +36,9 @@ type CreateRoomPayload = {
     topic?: string;
     invite?: string[];
     room_alias_name?: string;
-    creation_content?: {"m.federate": boolean};
-    initial_state: {type: string; state_key: string; content: Record<string, any>}[]
+    creation_content?: {"m.federate"?: boolean, type?: string};
+    initial_state: { type: string; state_key: string; content: Record<string, any> }[];
+    power_level_content_override?: Record<string, any>;
 }
 
 type ImageInfo = {
@@ -49,12 +50,12 @@ type ImageInfo = {
 
 type Avatar = {
     info: ImageInfo;
-    blob: IBlobHandle;
     name: string;
-}
+} & ({ blob: IBlobHandle } | { url: string });
 
 type Options = {
-    type: RoomType;
+    type?: RoomType;
+    visibility: RoomVisibility;
     isEncrypted?: boolean;
     isFederationDisabled?: boolean;
     name?: string;
@@ -62,25 +63,27 @@ type Options = {
     invites?: string[];
     avatar?: Avatar;
     alias?: string;
+    powerLevelContentOverride?: Record<string, any>;
+    initialState?: any[];
 }
 
-function defaultE2EEStatusForType(type: RoomType): boolean {
+function defaultE2EEStatusForType(type: RoomVisibility): boolean {
     switch (type) {
-        case RoomType.DirectMessage:
-        case RoomType.Private:
+        case RoomVisibility.DirectMessage:
+        case RoomVisibility.Private:
             return true;
-        case RoomType.Public:
+        case RoomVisibility.Public:
             return false;
     }
 }
 
-function presetForType(type: RoomType): string {
+function presetForType(type: RoomVisibility): string {
     switch (type) {
-        case RoomType.DirectMessage:
+        case RoomVisibility.DirectMessage:
             return "trusted_private_chat";
-        case RoomType.Private:
+        case RoomVisibility.Private:
             return "private_chat";
-        case RoomType.Public:
+        case RoomVisibility.Public:
             return "public_chat";
     }
 }
@@ -103,7 +106,7 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
         log: ILogItem
     ) {
         super();
-        this.isEncrypted = options.isEncrypted === undefined ? defaultE2EEStatusForType(options.type) : options.isEncrypted;
+        this.isEncrypted = options.isEncrypted === undefined ? defaultE2EEStatusForType(options.visibility) : options.isEncrypted;
         if (options.name) {
             this._calculatedName = options.name;
         } else {
@@ -122,16 +125,22 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             let avatarEventContent;
             if (this.options.avatar) {
                 const {avatar} = this.options;
-                const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
-                await attachment.upload(hsApi, () => {}, log);
+
                 avatarEventContent = {
                     info: avatar.info
                 };
-                attachment.applyToContent("url", avatarEventContent);
+
+                if ("blob" in avatar) {
+                    const attachment = new AttachmentUpload({filename: avatar.name, blob: avatar.blob, platform: this.platform});
+                    await attachment.upload(hsApi, () => {}, log);
+                    attachment.applyToContent("url", avatarEventContent);
+                } else {
+                    avatarEventContent.url = avatar.url;
+                }
             }
             const createOptions: CreateRoomPayload = {
-                is_direct: this.options.type === RoomType.DirectMessage,
-                preset: presetForType(this.options.type),
+                is_direct: this.options.visibility === RoomVisibility.DirectMessage,
+                preset: presetForType(this.options.visibility),
                 initial_state: []
             };
             if (this.options.name) {
@@ -146,10 +155,15 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
             if (this.options.alias) {
                 createOptions.room_alias_name = this.options.alias;
             }
+            if (this.options.type !== undefined) {
+                let type: string | undefined = undefined;
+                if (this.options.type === RoomType.World) type =  "org.matrix.msc3815.world";
+                if (this.options.type === RoomType.Profile) type =  "org.matrix.msc3815.profile";
+                createOptions.creation_content = { type };
+            }
             if (this.options.isFederationDisabled === true) {
-                createOptions.creation_content = {
-                    "m.federate": false
-                };
+                if (createOptions.creation_content === undefined) createOptions.creation_content = {};
+                createOptions.creation_content["m.federate"] = false;
             }
             if (this.isEncrypted) {
                 createOptions.initial_state.push(createRoomEncryptionEvent());
@@ -161,6 +175,14 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
                     content: avatarEventContent
                 });
             }
+            if (this.options.powerLevelContentOverride) {
+                createOptions.power_level_content_override = this.options.powerLevelContentOverride;
+            }
+
+            if (this.options.initialState) {
+                createOptions.initial_state.push(...this.options.initialState);
+            }
+
             const response = await hsApi.createRoom(createOptions, {log}).response();
             this._roomId = response["room_id"];
         } catch (err) {
@@ -197,7 +219,15 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
 
     get avatarColorId(): string { return this.options.invites?.[0] ?? this._roomId ?? this.id; }
     get avatarUrl(): string | undefined { return this.profiles?.[0]?.avatarUrl; }
-    get avatarBlobUrl(): string | undefined { return this.options.avatar?.blob?.url; }
+    get avatarBlobUrl(): string | undefined {
+        const avatar = this.options.avatar;
+
+        if (!avatar || !("blob" in avatar)) {
+            return undefined;
+        }
+
+        return avatar.blob.url;
+    }
     get roomId(): string | undefined { return this._roomId; }
     get name() { return this._calculatedName; }
     get isBeingCreated(): boolean { return true; }
@@ -215,13 +245,13 @@ export class RoomBeingCreated extends EventEmitter<{change: never}> {
 
     /** @internal */
     dispose() {
-        if (this.options.avatar) {
+        if (this.options.avatar && "blob" in this.options.avatar) {
             this.options.avatar.blob.dispose();
         }
     }
 
     async adjustDirectMessageMapIfNeeded(user: User, storage: Storage, hsApi: HomeServerApi, log: ILogItem): Promise<void> {
-        if (!this.options.invites || this.options.type !== RoomType.DirectMessage) {
+        if (!this.options.invites || this.options.visibility !== RoomVisibility.DirectMessage) {
             return;
         }
         const userId = this.options.invites[0];

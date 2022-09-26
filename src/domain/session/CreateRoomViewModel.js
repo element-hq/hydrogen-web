@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../ViewModel";
 import {imageToInfo} from "./common.js";
-import {RoomType} from "../../matrix/room/common";
+import {RoomVisibility} from "../../matrix/room/common";
 
 export class CreateRoomViewModel extends ViewModel {
     constructor(options) {
@@ -89,7 +89,7 @@ export class CreateRoomViewModel extends ViewModel {
             }
         }
         const roomBeingCreated = this._session.createRoom({
-            type: this.isPublic ? RoomType.Public : RoomType.Private,
+            type: this.isPublic ? RoomVisibility.Public : RoomVisibility.Private,
             name: this._name ?? undefined,
             topic: this._topic ?? undefined,
             isEncrypted: !this.isPublic && this._isEncrypted,
