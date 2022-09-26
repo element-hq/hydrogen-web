@@ -64,7 +64,7 @@ export class TurnServerSource {
                         },
                         () => {
                             // start loop on first subscribe
-                            this.runLoop(this.currentObservable!, settings?.ttl ?? DEFAULT_TTL);
+                            this.runLoop(settings?.ttl ?? DEFAULT_TTL);
                         });
                 }
             }
@@ -72,7 +72,7 @@ export class TurnServerSource {
         });
     }
 
-    private async runLoop(observable: ObservableValue<RTCIceServer>, initialTtl: number): Promise<void> {
+    private async runLoop(initialTtl: number): Promise<void> {
         let ttl = initialTtl;
         this.isPolling = true;
         while(this.isPolling) {
@@ -83,8 +83,8 @@ export class TurnServerSource {
                 const settings = await this.doRequest(undefined);
                 if (settings) {
                     const iceServer = toIceServer(settings);
-                    if (shouldUpdate(observable, iceServer)) {
-                        observable.set(iceServer);
+                    if (shouldUpdate(this.currentObservable!, iceServer)) {
+                        this.currentObservable!.set(iceServer);
                     }
                     if (settings.ttl > 0) {
                         ttl = settings.ttl;
