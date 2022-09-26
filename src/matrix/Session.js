@@ -488,6 +488,8 @@ export class Session {
         this._megolmDecryption = undefined;
         this._e2eeAccount?.dispose();
         this._e2eeAccount = undefined;
+        this._callHandler?.dispose();
+        this._callHandler = undefined;
         for (const room of this._rooms.values()) {
             room.dispose();
         }

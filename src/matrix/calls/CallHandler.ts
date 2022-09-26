@@ -55,10 +55,12 @@ export class CallHandler implements RoomStateHandler {
     private roomMemberToCallIds: Map<string, Set<string>> = new Map();
     private groupCallOptions: GroupCallOptions;
     private sessionId = makeId("s");
+    private turnServerSource: TurnServerSource;
 
     constructor(private readonly options: Options) {
+        this.turnServerSource = new TurnServerSource(this.options.hsApi, this.options.clock);
         this.groupCallOptions = Object.assign({}, this.options, {
-            turnServerSource: new TurnServerSource(this.options.hsApi, this.options.clock),
+            turnServerSource: this.turnServerSource,
             emitUpdate: (groupCall, params) => this._calls.update(groupCall.id, params),
             createTimeout: this.options.clock.createTimeout,
             sessionId: this.sessionId
@@ -242,6 +244,12 @@ export class CallHandler implements RoomStateHandler {
         } else {
             this.roomMemberToCallIds.set(roomMemberKey, newCallIdsMemberOf);
         }
+    }
+
+    dispose() {
+        this.turnServerSource.dispose();
+        const joinedCalls = Array.from(this._calls.values()).filter(c => c.hasJoined);
+        Promise.all(joinedCalls.map(c => c.leave())).then(() => {}, () => {});
     }
 }
 
