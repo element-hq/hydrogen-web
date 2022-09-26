@@ -24,7 +24,9 @@ export const SDPStreamMetadataKey = "org.matrix.msc3077.sdp_stream_metadata";
 
 export interface CallDeviceMembership {
     device_id: string,
-    session_id: string
+    session_id: string,
+    ["m.expires_ts"]?: number,
+    feeds?: Array<{purpose: string}>
 }
 
 export interface CallMembership {

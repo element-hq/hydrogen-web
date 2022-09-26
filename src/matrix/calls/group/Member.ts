@@ -30,6 +30,7 @@ import type {RoomMember} from "../../room/members/RoomMember";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
 import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import type {Clock, Timeout} from "../../../platform/web/dom/Clock";
 
 export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage" | "turnServer"> & {
     confId: string,
@@ -40,6 +41,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
     emitUpdate: (participant: Member, params?: any) => void,
+    clock: Clock
 }
 
 const errorCodesWithoutRetry = [
@@ -69,12 +71,33 @@ class MemberConnection {
 
 export class Member {
     private connection?: MemberConnection;
+    private expireTimeout?: Timeout;
 
     constructor(
         public member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
         private readonly options: Options,
-    ) {}
+        updateMemberLog: ILogItem
+    ) {
+        this._renewExpireTimeout(updateMemberLog);
+    }
+
+    private _renewExpireTimeout(log: ILogItem) {
+        this.expireTimeout?.dispose();
+        this.expireTimeout = undefined;
+        const expiresAt = memberExpiresAt(this.callDeviceMembership);
+        if (typeof expiresAt !== "number") {
+            return;
+        }
+        const expiresFromNow = Math.max(0, expiresAt - this.options.clock.now());
+        log?.set("expiresIn", expiresFromNow);
+        // add 10ms to make sure isExpired returns true
+        this.expireTimeout = this.options.clock.createTimeout(expiresFromNow + 10);
+        this.expireTimeout.elapsed().then(
+            () => { this.options.emitUpdate(this, "isExpired"); },
+            (err) => { /* ignore abort error */ },
+        );
+    }
 
     /**
      * Gives access the log item for this item once joined to the group call.
@@ -87,6 +110,11 @@ export class Member {
 
     get remoteMedia(): RemoteMedia | undefined {
         return this.connection?.peerCall?.remoteMedia;
+    }
+
+    get isExpired(): boolean {
+        // never consider a peer we're connected to, to be expired
+        return !this.isConnected && isMemberExpired(this.callDeviceMembership, this.options.clock.now());
     }
 
     get remoteMuteSettings(): MuteSettings | undefined {
@@ -184,6 +212,7 @@ export class Member {
     /** @internal */
     updateCallInfo(callDeviceMembership: CallDeviceMembership, causeItem: ILogItem) {
         this.callDeviceMembership = callDeviceMembership;
+        this._renewExpireTimeout(causeItem);
         if (this.connection) {
             this.connection.logItem.refDetached(causeItem);
         }
@@ -352,4 +381,21 @@ export class Member {
             turnServer: connection.turnServer
         }), connection.logItem);
     }
+
+    dispose() {
+        this.expireTimeout?.dispose();
+        this.connection?.peerCall?.dispose();
+    }
+}
+
+export function memberExpiresAt(callDeviceMembership: CallDeviceMembership): number | undefined {
+    const expiresAt = callDeviceMembership["m.expires_ts"];
+    if (Number.isSafeInteger(expiresAt)) {
+        return expiresAt;
+    }
+}
+
+export function isMemberExpired(callDeviceMembership: CallDeviceMembership, now: number, margin: number = 0) {
+    const expiresAt = memberExpiresAt(callDeviceMembership);
+    return typeof expiresAt === "number" && ((expiresAt + margin) <= now);
 }

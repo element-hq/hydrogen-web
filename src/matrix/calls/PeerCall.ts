@@ -1098,7 +1098,13 @@ export class PeerCall implements IDisposable {
     private async delay(timeoutMs: number): Promise<void> {
         // Allow a short time for initial candidates to be gathered
         const timeout = this.disposables.track(this.options.createTimeout(timeoutMs));
-        await timeout.elapsed();
+        try {
+            await timeout.elapsed();
+        } catch (err) {
+            if (err.name !== "AbortError") {
+                throw err;
+            }
+        }
         this.disposables.untrack(timeout);
     }
 
