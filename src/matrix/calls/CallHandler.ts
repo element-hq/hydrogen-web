@@ -23,6 +23,7 @@ import {GroupCall} from "./group/GroupCall";
 import {makeId} from "../common";
 import {CALL_LOG_TYPE} from "./common";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE, RoomMember} from "../room/members/RoomMember";
+import {TurnServerSource} from "./TurnServerSource";
 
 import type {LocalMedia} from "./LocalMedia";
 import type {Room} from "../room/Room";
@@ -57,6 +58,7 @@ export class CallHandler implements RoomStateHandler {
 
     constructor(private readonly options: Options) {
         this.groupCallOptions = Object.assign({}, this.options, {
+            turnServerSource: new TurnServerSource(this.options.hsApi, this.options.clock),
             emitUpdate: (groupCall, params) => this._calls.update(groupCall.id, params),
             createTimeout: this.options.clock.createTimeout,
             sessionId: this.sessionId
@@ -73,12 +75,6 @@ export class CallHandler implements RoomStateHandler {
         const txn = await this._getLoadTxn();
         const callEntries = await txn.calls.getByIntentAndRoom(intent, roomId);
         this._loadCallEntries(callEntries, txn);
-    }
-
-    setTurnServers(turnServers: RTCIceServer[]) {
-        this.options.turnServers = turnServers;
-        this.groupCallOptions.turnServers = turnServers;
-        // TODO: we should update any ongoing peerconnections if the TURN server details have changed
     }
 
     private async _getLoadTxn(): Promise<Transaction> {

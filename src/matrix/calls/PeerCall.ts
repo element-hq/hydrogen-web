@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../observable/map/ObservableMap";
+import {BaseObservableValue} from "../../observable/value/BaseObservableValue";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {Disposables, Disposable, IDisposable} from "../../utils/Disposables";
 import {WebRTC, PeerConnection, Transceiver, TransceiverDirection, Sender, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";
@@ -47,7 +48,7 @@ import type {
 export type Options = {
     webRTC: WebRTC,
     forceTURN: boolean,
-    turnServers: RTCIceServer[],
+    turnServer: BaseObservableValue<RTCIceServer>,
     createTimeout: TimeoutCreator,
     emitUpdate: (peerCall: PeerCall, params: any, log: ILogItem) => void;
     sendSignallingMessage: (message: SignallingMessage<MCallBase>, log: ILogItem) => Promise<void>;
