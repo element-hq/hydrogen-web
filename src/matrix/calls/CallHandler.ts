@@ -40,7 +40,7 @@ import type {Clock} from "../../platform/web/dom/Clock";
 import type {RoomStateHandler} from "../room/state/types";
 import type {MemberSync} from "../room/timeline/persistence/MemberWriter";
 
-export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout"> & {
+export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout" | "turnServerSource"> & {
     clock: Clock
 };
 

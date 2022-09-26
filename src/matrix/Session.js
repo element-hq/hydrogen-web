@@ -101,9 +101,6 @@ export class Session {
             ownDeviceId: sessionInfo.deviceId,
             ownUserId: sessionInfo.userId,
             logger: this._platform.logger,
-            turnServers: [{
-                urls: ["stun:turn.matrix.org"],
-            }],
             forceTURN: false,
         });
         this._roomStateHandler = new RoomStateHandlerSet();
