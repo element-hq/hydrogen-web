@@ -212,7 +212,7 @@ export class Member {
             if (hangupReason && !errorCodesWithoutRetry.includes(hangupReason)) {
                 connection.retryCount += 1;
                 const {retryCount} = connection;
-            connection.logItem.wrap({l: "retry connection", retryCount}, async retryLog => {
+                connection.logItem.wrap({l: "retry connection", retryCount}, async retryLog => {
                     log.refDetached(retryLog);
                     if (retryCount <= 3) {
                         await this.callIfNeeded(retryLog);
