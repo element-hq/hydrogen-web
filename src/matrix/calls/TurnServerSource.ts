@@ -24,7 +24,7 @@ import type {Clock, Timeout} from "../../platform/web/dom/Clock";
 import type {ILogItem} from "../../logging/types";
 
 type TurnServerSettings = {
-    urls: string[],
+    uris: string[],
     username: string,
     password: string,
     ttl: number
@@ -54,6 +54,7 @@ export class TurnServerSource {
             if (!this.isPolling) {
                 const settings = await this.doRequest(log);
                 const iceServer = settings ? toIceServer(settings) : this.defaultSettings;
+                log.set("iceServer", iceServer);
                 if (this.currentObservable) {
                     this.currentObservable.set(iceServer);
                 } else {
@@ -149,7 +150,7 @@ function shouldUpdate(observable: BaseObservableValue<RTCIceServer | undefined>,
 
 function toIceServer(settings: TurnServerSettings): RTCIceServer {
     return {
-        urls: settings.urls,
+        urls: settings.uris,
         username: settings.username,
         credential: settings.password,
         credentialType: "password"
