@@ -19,6 +19,7 @@ import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
 import {sortedIndex} from "../../../utils/sortedIndex";
+
 import type {MuteSettings} from "../common";
 import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
@@ -28,8 +29,9 @@ import type {GroupCall} from "./GroupCall";
 import type {RoomMember} from "../../room/members/RoomMember";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
+import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
 
-export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage"> & {
+export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage" | "turnServer"> & {
     confId: string,
     ownUserId: string,
     ownDeviceId: string,
@@ -60,6 +62,7 @@ class MemberConnection {
     constructor(
         public localMedia: LocalMedia,
         public localMuteSettings: MuteSettings,
+        public turnServer: BaseObservableValue<RTCIceServer>,
         public readonly logItem: ILogItem
     ) {}
 }
@@ -112,12 +115,17 @@ export class Member {
     }
 
     /** @internal */
-    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, memberLogItem: ILogItem): ILogItem | undefined {
+    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, turnServer: BaseObservableValue<RTCIceServer>, memberLogItem: ILogItem): ILogItem | undefined {
         if (this.connection) {
             return;
         }
         // Safari can't send a MediaStream to multiple sources, so clone it
-        const connection = new MemberConnection(localMedia.clone(), localMuteSettings, memberLogItem);
+        const connection = new MemberConnection(
+            localMedia.clone(),
+            localMuteSettings,
+            turnServer,
+            memberLogItem
+        );
         this.connection = connection;
         let connectLogItem;
         connection.logItem.wrap("connect", async log => {
@@ -337,9 +345,11 @@ export class Member {
     }
 
     private _createPeerCall(callId: string): PeerCall {
+        const connection = this.connection!;
         return new PeerCall(callId, Object.assign({}, this.options, {
             emitUpdate: this.emitUpdateFromPeerCall,
-            sendSignallingMessage: this.sendSignallingMessage
-        }), this.connection!.logItem);
+            sendSignallingMessage: this.sendSignallingMessage,
+            turnServer: connection.turnServer
+        }), connection.logItem);
     }
 }

@@ -23,6 +23,7 @@ import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
 
 import type {Options as MemberOptions} from "./Member";
+import type {TurnServerSource} from "../TurnServerSource";
 import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
 import type {Track} from "../../../platform/types/MediaDevices";
 import type {SignallingMessage, MGroupCallBase, CallMembership} from "../callEventTypes";
@@ -32,6 +33,7 @@ import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem, ILogger} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
+import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
 
 export enum GroupCallState {
     Fledgling = "fledgling",
@@ -53,11 +55,12 @@ function getDeviceFromMemberKey(key: string): string {
     return JSON.parse(`[${key}]`)[1];
 }
 
-export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage"> & {
+export type Options = Omit<MemberOptions, "emitUpdate" | "confId" | "encryptDeviceMessage" | "turnServer"> & {
     emitUpdate: (call: GroupCall, params?: any) => void;
     encryptDeviceMessage: (roomId: string, userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
     storage: Storage,
     logger: ILogger,
+    turnServerSource: TurnServerSource
 };
 
 class JoinedData {
@@ -65,7 +68,8 @@ class JoinedData {
         public readonly logItem: ILogItem,
         public readonly membersLogItem: ILogItem,
         public localMedia: LocalMedia,
-        public localMuteSettings: MuteSettings
+        public localMuteSettings: MuteSettings,
+        public turnServer: BaseObservableValue<RTCIceServer>
     ) {}
 
     dispose() {
@@ -136,6 +140,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             id: this.id,
             ownSessionId: this.options.sessionId
         });
+        const turnServer = await this.options.turnServerSource.getSettings(logItem);
         const membersLogItem = logItem.child("member connections");
         const localMuteSettings = new MuteSettings();
         localMuteSettings.updateTrackInfo(localMedia.userMedia);
@@ -143,7 +148,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
             logItem,
             membersLogItem,
             localMedia,
-            localMuteSettings
+            localMuteSettings,
+            turnServer
         );
         this.joinedData = joinedData;
         await joinedData.logItem.wrap("join", async log => {
@@ -509,7 +515,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
         const logItem = joinedData.membersLogItem.child({l: "member", id: memberKey});
         logItem.set("sessionId", member.sessionId);
         log.wrap({l: "connect", id: memberKey}, log => {
-            const connectItem = member.connect(joinedData.localMedia, joinedData.localMuteSettings, logItem);
+            const connectItem = member.connect(
+                joinedData.localMedia,
+                joinedData.localMuteSettings,
+                joinedData.turnServer,
+                logItem
+            );
             if (connectItem) {
                 log.refDetached(connectItem);
             }

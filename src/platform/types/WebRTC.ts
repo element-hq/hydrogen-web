@@ -148,6 +148,7 @@ export interface PeerConnection {
     addEventListener<K extends keyof PeerConnectionEventMap>(type: K, listener: (this: PeerConnection, ev: PeerConnectionEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
     removeEventListener<K extends keyof PeerConnectionEventMap>(type: K, listener: (this: PeerConnection, ev: PeerConnectionEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
     getStats(selector?: Track | null): Promise<StatsReport>;
+    setConfiguration(configuration?: RTCConfiguration): void;
 }
 
 

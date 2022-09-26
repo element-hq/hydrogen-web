@@ -305,9 +305,13 @@ export class HomeServerApi {
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }
-    
+
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
+    }
+
+    getTurnServer(options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/voip/turnServer`, undefined, undefined, options);
     }
 }
 

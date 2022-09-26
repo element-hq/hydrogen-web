@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {ObservableMap} from "../../observable/map/ObservableMap";
+import {BaseObservableValue} from "../../observable/value/BaseObservableValue";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {Disposables, Disposable, IDisposable} from "../../utils/Disposables";
 import {WebRTC, PeerConnection, Transceiver, TransceiverDirection, Sender, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";
@@ -47,7 +48,7 @@ import type {
 export type Options = {
     webRTC: WebRTC,
     forceTURN: boolean,
-    turnServers: RTCIceServer[],
+    turnServer: BaseObservableValue<RTCIceServer>,
     createTimeout: TimeoutCreator,
     emitUpdate: (peerCall: PeerCall, params: any, log: ILogItem) => void;
     sendSignallingMessage: (message: SignallingMessage<MCallBase>, log: ILogItem) => Promise<void>;
@@ -114,8 +115,16 @@ export class PeerCall implements IDisposable {
     ) {
         logItem.log({l: "create PeerCall", id: callId});
         this._remoteMedia = new RemoteMedia();
-        this.peerConnection = options.webRTC.createPeerConnection(this.options.forceTURN, this.options.turnServers, 0);
-        
+        this.peerConnection = options.webRTC.createPeerConnection(
+            this.options.forceTURN,
+            [this.options.turnServer.get()],
+            0
+        );
+        // update turn servers when they change (see TurnServerSource)
+        this.disposables.track(this.options.turnServer.subscribe(turnServer => {
+            this.logItem.log({l: "updating turn server", turnServer})
+            this.peerConnection.setConfiguration({iceServers: [turnServer]});
+        }));
         const listen = <K extends keyof PeerConnectionEventMap>(type: K, listener: (this: PeerConnection, ev: PeerConnectionEventMap[K]) => any, options?: boolean | EventListenerOptions): void => {
             this.peerConnection.addEventListener(type, listener);
             const dispose = () => {
