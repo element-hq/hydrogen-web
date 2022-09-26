@@ -562,11 +562,11 @@ export class Session {
 
     async _updateTurnServers() {
         const turnServerData = await this._hsApi.getTurnServer().response();
-        this._callHandler.setTurnServers({
+        this._callHandler.setTurnServers([{
             urls: turnServerData.uris,
             username: turnServerData.username,
             credential: turnServerData.password,
-        });
+        }]);
         if (turnServerData.ttl > 0) {
             setTimeout(this._updateTurnServers, turnServerData.ttl * 1000);
         }
