@@ -55,7 +55,7 @@ export const LoginFailure = createEnum(
 );
 
 export class Client {
-    constructor(platform) {
+    constructor(platform, options) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -70,6 +70,7 @@ export class Client {
         this._olmPromise = platform.loadOlm();
         this._workerPromise = platform.loadOlmWorker();
         this._accountSetup = undefined;
+        this._deviceName = options?.deviceName || "Hydrogen";
     }
 
     createNewSessionId() {
@@ -181,7 +182,7 @@ export class Client {
             try {
                 const request = this._platform.request;
                 const hsApi = new HomeServerApi({homeserver: loginMethod.homeserver, request});
-                const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
+                const loginData = await loginMethod.login(hsApi, this._deviceName, log);
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     id: sessionId,
