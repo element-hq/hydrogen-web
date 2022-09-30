@@ -325,6 +325,7 @@ export class Member {
                     }
                     if (shouldReplace) {
                         connection.peerCall = undefined;
+                        action = IncomingMessageAction.Handle;
                     }
                 }
             }
