@@ -432,8 +432,9 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     private removeOwnDevice(log: ILogItem) {
-        log.set("leave_own", true);
-        this.disconnect(log);
+        log.wrap("remove own membership", log => {
+            this.disconnect(log);
+        });
     }
 
     /** @internal */
