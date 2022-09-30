@@ -73,7 +73,7 @@ class JoinedData {
         public readonly membersLogItem: ILogItem,
         public localMedia: LocalMedia,
         public localMuteSettings: MuteSettings,
-        public turnServer: BaseObservableValue<RTCIceServer>
+        public readonly turnServer: BaseObservableValue<RTCIceServer>
     ) {}
 
     dispose() {
