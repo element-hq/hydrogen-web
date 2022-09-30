@@ -771,7 +771,8 @@ export class PeerCall implements IDisposable {
         const {flushCandidatesLog} = this;
         // MSC2746 recommends these values (can be quite long when calling because the
         // callee will need a while to answer the call)
-        await this.delay(this.direction === CallDirection.Inbound ? 500 : 2000);
+        try { await this.delay(this.direction === CallDirection.Inbound ? 500 : 2000); }
+        catch (err) { return; }
         this.sendCandidateQueue(flushCandidatesLog);
         this.flushCandidatesLog = undefined;
     }
@@ -1100,12 +1101,9 @@ export class PeerCall implements IDisposable {
         const timeout = this.disposables.track(this.options.createTimeout(timeoutMs));
         try {
             await timeout.elapsed();
-        } catch (err) {
-            if (err.name !== "AbortError") {
-                throw err;
-            }
+        } finally {
+            this.disposables.untrack(timeout);
         }
-        this.disposables.untrack(timeout);
     }
 
     private sendSignallingMessage(message: SignallingMessage<MCallBase>, log: ILogItem) {
