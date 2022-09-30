@@ -437,7 +437,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     /** @internal */
     disconnect(log: ILogItem) {
-        if (this._state === GroupCallState.Joined) {
+        if (this.hasJoined) {
             for (const [,member] of this._members) {
                 const disconnectLogItem = member.disconnect(true);
                 if (disconnectLogItem) {
