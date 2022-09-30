@@ -102,14 +102,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         this._memberOptions = Object.assign({}, options, {
             confId: this.id,
             emitUpdate: member => {
-                if (!member.isExpired) {
-                    this._members.update(getMemberKey(member.userId, member.deviceId), member);
-                } else if (!member.isConnected) {
-                    // don't just kick out connected members, even if their timestamp expired
-                    this._members.remove(getMemberKey(member.userId, member.deviceId));
-                }
-                if (member.isExpired && member.isConnected) {
-                    console.trace("was about to kick a connected but expired member");
+                const memberKey = getMemberKey(member.userId, member.deviceId);
+                // only remove expired members from the call if we don't have a peer conn with them
+                if (member.isExpired && !member.isConnected) {
+                    this._members.remove(memberKey);
+                } else {
+                    if (member.isExpired && member.isConnected) {
+                        console.trace("was about to kick a connected but expired member");
+                    }
+                    this._members.update(memberKey, member);
                 }
             },
             encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
