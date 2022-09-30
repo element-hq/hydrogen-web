@@ -67,6 +67,22 @@ class MemberConnection {
         public turnServer: BaseObservableValue<RTCIceServer>,
         public readonly logItem: ILogItem
     ) {}
+
+    get canDequeueNextSignallingMessage() {
+        if (this.queuedSignallingMessages.length === 0) {
+            return false;
+        }
+        if (this.lastProcessedSeqNr === undefined) {
+            return true;
+        }
+        const first = this.queuedSignallingMessages[0];
+        // allow messages with both a seq we've just seen and
+        // the next one to be dequeued as it can happen
+        // that messages for other callIds (which could repeat seq)
+        // are present in the queue
+        return first.content.seq === this.lastProcessedSeqNr ||
+            first.content.seq === this.lastProcessedSeqNr + 1;
+    }
 }
 
 export class Member {
@@ -335,12 +351,7 @@ export class Member {
 
     private dequeueSignallingMessages(connection: MemberConnection, peerCall: PeerCall, newMessage: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): boolean {
         let hasNewMessageBeenDequeued = false;
-        while (
-            connection.queuedSignallingMessages.length && (
-                connection.lastProcessedSeqNr === undefined ||
-                connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
-            )
-       ) {
+        while (connection.canDequeueNextSignallingMessage) {
             const message = connection.queuedSignallingMessages.shift()!;
             if (message === newMessage) {
                 hasNewMessageBeenDequeued = true;
