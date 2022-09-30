@@ -324,7 +324,9 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     log.wrap("update own membership", log => {
                         // TODO: should we check if new device is expired?
                         if (this.hasJoined) {
-                            this.joinedData!.logItem.refDetached(log);
+                            if (this.joinedData) {
+                                this.joinedData.logItem.refDetached(log);
+                            }
                             this._setupRenewMembershipTimeout(device, log);
                         }
                         if (this._state === GroupCallState.Joining) {
