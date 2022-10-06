@@ -88,6 +88,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private _memberOptions: MemberOptions;
     private _state: GroupCallState;
     private bufferedDeviceMessages = new Map<string, Set<SignallingMessage<MGroupCallBase>>>();
+    /** Set between calling join and leave. */
     private joinedData?: JoinedData;
 
     constructor(
