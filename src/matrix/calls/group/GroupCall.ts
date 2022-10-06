@@ -548,8 +548,11 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     private connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
         const memberKey = getMemberKey(member.userId, member.deviceId);
-        const logItem = joinedData.membersLogItem.child({l: "member", id: memberKey});
-        logItem.set("sessionId", member.sessionId);
+        const logItem = joinedData.membersLogItem.child({
+            l: "member",
+            id: memberKey,
+            sessionId: member.sessionId
+        });
         log.wrap({l: "connect", id: memberKey}, log => {
             const connectItem = member.connect(
                 joinedData.localMedia,
