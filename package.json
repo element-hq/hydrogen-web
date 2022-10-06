@@ -31,7 +31,7 @@
   },
   "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
   "devDependencies": {
-    "@matrixdotorg/structured-logviewer": "^0.0.1",
+    "@matrixdotorg/structured-logviewer": "^0.0.3",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
     "acorn": "^8.6.0",
