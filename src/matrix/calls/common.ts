@@ -59,5 +59,4 @@ export class MuteSettings {
 }
 
 export const CALL_LOG_TYPE = "call";
-//export const CALL_MEMBER_VALIDITY_PERIOD_MS = 3600 * 1000; // 1h
-export const CALL_MEMBER_VALIDITY_PERIOD_MS = 60 * 1000;
+export const CALL_MEMBER_VALIDITY_PERIOD_MS = 3600 * 1000; // 1h
