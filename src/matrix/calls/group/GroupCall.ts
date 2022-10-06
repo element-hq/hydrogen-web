@@ -105,6 +105,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 const memberKey = getMemberKey(member.userId, member.deviceId);
                 // only remove expired members from the call if we don't have a peer conn with them
                 if (member.isExpired && !member.isConnected) {
+                    member.dispose();
                     this._members.remove(memberKey);
                 } else {
                     if (member.isExpired && member.isConnected) {
@@ -339,6 +340,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, log => {
                         if (isMemberExpired(device, now)) {
                             log.set("expired", true);
+                            this._members.get(memberKey)?.dispose();
                             this._members.remove(memberKey);
                             return;
                         }
@@ -354,6 +356,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                                 if (disconnectLogItem) {
                                     log.refDetached(disconnectLogItem);
                                 }
+                                member.dispose();
                                 this._members.remove(memberKey);
                                 member = undefined;
                             }
@@ -462,11 +465,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
             const member = this._members.get(memberKey);
             if (member) {
                 log.set("leave", true);
-                this._members.remove(memberKey);
                 const disconnectLogItem = member.disconnect(false);
                 if (disconnectLogItem) {
                     log.refDetached(disconnectLogItem);
                 }
+                member.dispose();
+                this._members.remove(memberKey);
             }
             this.emitChange();
         });
