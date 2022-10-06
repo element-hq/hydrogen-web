@@ -583,10 +583,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
             return;
         }
         const expiresFromNow = expiresAt - this.options.clock.now();
-        // renew 1 to 5 minutes (8.3% of 1h) before expiring
+        // renew 1 to 5 minutes (8.3% of 1h, but min 10s) before expiring
         // do it a bit beforehand and somewhat random to not collide with
         // other clients trying to renew as well
-        const timeToRenewBeforeExpiration = Math.max(4000, Math.ceil((0.2 +(this.options.random() * 0.8)) * (0.08333 * CALL_MEMBER_VALIDITY_PERIOD_MS)));
+        const timeToRenewBeforeExpiration = Math.max(10000, Math.ceil((0.2 +(this.options.random() * 0.8)) * (0.08333 * CALL_MEMBER_VALIDITY_PERIOD_MS)));
         const renewFromNow = Math.max(0, expiresFromNow - timeToRenewBeforeExpiration);
         log.set("expiresIn", expiresFromNow);
         log.set("renewIn", renewFromNow);
