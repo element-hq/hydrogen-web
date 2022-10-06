@@ -83,6 +83,12 @@ class MemberConnection {
         return first.content.seq === this.lastProcessedSeqNr ||
             first.content.seq === this.lastProcessedSeqNr + 1;
     }
+
+    dispose() {
+        this.peerCall?.dispose();
+        this.localMedia.dispose();
+        this.logItem.finish();
+    }
 }
 
 export class Member {
@@ -210,18 +216,15 @@ export class Member {
             return;
         }
         let disconnectLogItem;
+        // if if not sending the hangup, still log disconnect
         connection.logItem.wrap("disconnect", async log => {
             disconnectLogItem = log;
-            if (hangup) {
-                await connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
-            } else {
-                await connection.peerCall?.close(undefined, log);
+            if (hangup && connection.peerCall) {
+                await connection.peerCall.hangup(CallErrorCode.UserHangup, log);
             }
-            connection.peerCall?.dispose();
-            connection.localMedia?.dispose();
-            this.connection = undefined;
         });
-        connection.logItem.finish();
+        connection.dispose();
+        this.connection = undefined;
         return disconnectLogItem;
     }
 
@@ -395,8 +398,10 @@ export class Member {
     }
 
     dispose() {
+        this.connection?.dispose();
+        this.connection = undefined;
         this.expireTimeout?.dispose();
-        this.connection?.peerCall?.dispose();
+        this.expireTimeout = undefined;
     }
 }
 
