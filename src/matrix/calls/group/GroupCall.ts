@@ -344,8 +344,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, log => {
                         if (isMemberExpired(device, now)) {
                             log.set("expired", true);
-                            this._members.get(memberKey)?.dispose();
-                            this._members.remove(memberKey);
+                            const member = this._members.get(memberKey);
+                            if (member) {
+                                member.dispose();
+                                this._members.remove(memberKey);
+                                log.set("removed", true);
+                            }
                             return;
                         }
                         let member = this._members.get(memberKey);
