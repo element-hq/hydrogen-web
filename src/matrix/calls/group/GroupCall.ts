@@ -327,7 +327,6 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 const memberKey = getMemberKey(userId, deviceId);
                 if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
                     log.wrap("update own membership", log => {
-                        // TODO: should we check if new device is expired?
                         if (this.hasJoined) {
                             if (this.joinedData) {
                                 this.joinedData.logItem.refDetached(log);
