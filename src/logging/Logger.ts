@@ -30,10 +30,11 @@ export class Logger implements ILogger {
         this._platform = platform;
     }
 
-    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): void {
+    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): ILogItem {
         const item = new LogItem(labelOrValues, logLevel, this);
         item.end = item.start;
         this._persistItem(item, undefined, false);
+        return item;
     }
 
     /** Prefer `run()` or `log()` above this method; only use it if you have a long-running operation

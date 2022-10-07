@@ -104,14 +104,17 @@ export class GroupCall extends EventEmitter<{change: never}> {
             confId: this.id,
             emitUpdate: member => {
                 const memberKey = getMemberKey(member.userId, member.deviceId);
-                // only remove expired members from the call if we don't have a peer conn with them
+                // only remove expired members to whom we're not already connected
                 if (member.isExpired && !member.isConnected) {
+                    const logItem = this.options.logger.log({
+                        l: "removing expired member from call",
+                        memberKey,
+                        callId: this.id
+                    })
+                    member.logItem?.refDetached(logItem);
                     member.dispose();
                     this._members.remove(memberKey);
                 } else {
-                    if (member.isExpired && member.isConnected) {
-                        console.trace("was about to kick a connected but expired member");
-                    }
                     this._members.update(memberKey, member);
                 }
             },
