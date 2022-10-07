@@ -98,7 +98,7 @@ export class Member {
     constructor(
         public member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
-        private readonly options: Options,
+        private options: Options,
         updateMemberLog: ILogItem
     ) {
         this._renewExpireTimeout(updateMemberLog);
@@ -402,6 +402,8 @@ export class Member {
         this.connection = undefined;
         this.expireTimeout?.dispose();
         this.expireTimeout = undefined;
+        // ensure the emitUpdate callback can't be called anymore
+        this.options = undefined as any as Options;
     }
 }
 
