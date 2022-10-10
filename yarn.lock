@@ -56,10 +56,10 @@
   version "3.2.8"
   resolved "https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.8.tgz#8d53636d045e1776e2a2ec6613e57330dd9ce856"
 
-"@matrixdotorg/structured-logviewer@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@matrixdotorg/structured-logviewer/-/structured-logviewer-0.0.1.tgz#9c29470b552f874afbb1df16c6e8e9e0c55cbf59"
-  integrity sha512-IdPYxAFDEoEs2G1ImKCkCxFI3xF1DDctP3N9JOtHRvIPbPPdTT9DyNqKTewCb5zwjNB1mGBrnWyURnHDiOOL3w==
+"@matrixdotorg/structured-logviewer@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@matrixdotorg/structured-logviewer/-/structured-logviewer-0.0.3.tgz#1555111159d83cde0cfd5ba1a571e1faa1a90871"
+  integrity sha512-QqFglx0M8ix0IoRsJXDg1If26ltbYfuLjJ0MQrJYze3yz4ayEESRpQEA0YxJRVVtbco5M94tmrDpikokTFnn3A==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"

@@ -337,7 +337,7 @@ export class DeviceTracker {
             // verify signature
             const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
             //// END EXTRACT
-
+            // TODO: what if verifiedKeysPerUser is empty or does not contain userId?
             const verifiedKeys = verifiedKeysPerUser
                 .find(vkpu => vkpu.userId === userId).verifiedKeys
                 .find(vk => vk["device_id"] === deviceId);
