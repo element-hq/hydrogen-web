@@ -34,7 +34,7 @@ export class Registration {
     private readonly _hsApi: HomeServerApi;
     private readonly _accountDetails: AccountDetails;
     private readonly _flowSelector: FlowSelector;
-    private _sessionInfo?: RegistrationResponseSuccess
+    private _sessionInfo?: RegistrationResponseSuccess;
     public readonly homeserver: string;
 
     constructor(homeserver: string, hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
