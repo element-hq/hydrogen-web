@@ -137,13 +137,28 @@ export class Client {
     async startRegistration(homeserver, username, password, initialDeviceDisplayName, flowSelector) {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
-        const registration = new Registration(hsApi, {
+        const registration = new Registration(homeserver, hsApi, {
             username,
             password,
             initialDeviceDisplayName,
         },
         flowSelector);
         return registration;
+    }
+
+    async startWithFinishedRegistration(registration) {
+        this._platform.logger.run("startWithFinishedRegistration", async (log) => {
+            const sessionInfo = registration.sessionInfo;
+            if (!sessionInfo) {
+                throw new Error("Registration.sessionInfo is not available; are you sure that registration is finished?");
+            }
+            await this.startWithSessionInfo({
+                accessToken: sessionInfo.access_token,
+                deviceId: sessionInfo.device_id,
+                userId: sessionInfo.user_id,
+                homeserver: registration.homeserver,
+            }, true, log);
+        });
     }
 
     async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
@@ -156,23 +171,17 @@ export class Client {
         this._resetStatus();
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
-            const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
                 const hsApi = new HomeServerApi({homeserver: loginMethod.homeserver, request});
                 const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
-                const sessionId = this.createNewSessionId();
                 sessionInfo = {
-                    id: sessionId,
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
-                    homeServer: loginMethod.homeserver, // deprecate this over time
                     homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
-                    lastUsed: clock.now()
                 };
-                log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -191,9 +200,26 @@ export class Client {
                 }
                 return;
             }
+            await this.startWithSessionInfo(sessionInfo, inspectAccountSetup, log);
+        });
+    }
+
+    async startWithSessionInfo({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+        await log.wrap("startWithSessionInfo", async (l) => {
+            const id = this.createNewSessionId();
+            const lastUsed = this._platform.clock.now();
+            const sessionInfo = {
+                id,
+                deviceId,
+                userId,
+                homeServer: homeserver, // deprecate this over time
+                homeserver,
+                accessToken,
+                lastUsed,
+            };
             let dehydratedDevice;
             if (inspectAccountSetup) {
-                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, l);
                 if (dehydratedDevice) {
                     sessionInfo.deviceId = dehydratedDevice.deviceId;
                 }
@@ -203,10 +229,10 @@ export class Client {
             // LoadStatus.Error in case of an error,
             // so separate try/catch
             try {
-                await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
-                log.set("status", this._status.get());
+                await this._loadSessionInfo(sessionInfo, dehydratedDevice, l);
+                l.set("status", this._status.get());
             } catch (err) {
-                log.catch(err);
+                l.catch(err);
                 // free olm Account that might be contained
                 dehydratedDevice?.dispose();
                 this._error = err;
