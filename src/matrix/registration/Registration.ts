@@ -35,8 +35,10 @@ export class Registration {
     private readonly _accountDetails: AccountDetails;
     private readonly _flowSelector: FlowSelector;
     private _sessionInfo?: RegistrationResponseSuccess
+    public readonly homeserver: string;
 
-    constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
+    constructor(homeserver: string, hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
+        this.homeserver = homeserver;
         this._hsApi = hsApi;
         this._accountDetails = accountDetails;
         this._flowSelector = flowSelector ?? (flows => flows[0]);
