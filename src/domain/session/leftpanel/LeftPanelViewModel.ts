@@ -101,6 +101,14 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
 
     get createRoomUrl(): string | undefined { return this._createRoomUrl; }
 
+    showCreateRoomView(): void {
+        this.navigation.push("create-room");
+    }
+
+    showJoinRoomView(): void {
+        this.navigation.push("join-room");
+    }
+
     _setupNavigation(): void {
         const roomObservable = this.navigation.observe("room");
         this.track(roomObservable.subscribe(roomId => this._open(roomId as string)));
