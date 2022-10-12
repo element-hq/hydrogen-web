@@ -1,25 +1,29 @@
 module.exports = {
-    "env": {
+    root: true,
+    env: {
         "browser": true,
         "es6": true
     },
-    "extends": "eslint:recommended",
-    "parserOptions": {
+    extends: [
+    //    "plugin:@typescript-eslint/recommended",
+    //    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    ],
+    parser: '@typescript-eslint/parser',
+    parserOptions: {
         "ecmaVersion": 2020,
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": "./tsconfig.json"
     },
-    "rules": {
-        "no-console": "off",
-        "no-empty": "off",
-        "no-prototype-builtins": "off",
-        "no-unused-vars": "warn"
-    },
-    "globals": {
-        "DEFINE_VERSION": "readonly",
-        "DEFINE_GLOBAL_HASH": "readonly",
-        // only available in sw.js
-        "DEFINE_UNHASHED_PRECACHED_ASSETS": "readonly",
-        "DEFINE_HASHED_PRECACHED_ASSETS": "readonly",
-        "DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS": "readonly"
+    plugins: [
+        '@typescript-eslint',
+    ],
+    rules: {
+        "@typescript-eslint/no-floating-promises": 2,
+        "@typescript-eslint/no-misused-promises": 2,
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": ["warn"],
+        "no-undef": "off",
+        "semi": ["error", "always"],
+        "@typescript-eslint/explicit-function-return-type": ["warn"]
     }
-};
+}

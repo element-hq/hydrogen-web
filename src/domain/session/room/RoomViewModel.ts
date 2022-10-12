@@ -24,16 +24,18 @@ import {imageToInfo, MultiMediaInfo} from "../common";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry, TimelineEntry} from "./timeline/tiles/index";
-import {RoomStatus} from "../../../matrix/room/common";
 import {joinRoom} from "../../../matrix/room/joinRoom";
 
 import type {Room} from "../../../matrix/room/Room";
 import type {TileClassForEntryFn, Options as TileOptions} from "./timeline/tiles";
 import type {SimpleTile} from "./timeline/tiles/SimpleTile";
 import type {Client} from "../../../matrix/Client";
+import type {EventEntry} from "../../../matrix/room/timeline/entries/EventEntry";
 import type {Timeout} from "../../../platform/web/dom/Clock";
 import type {VideoHandle} from "../../../platform/web/dom/ImageHandle";
 import type {Options as ViewModelOptions} from "../../ViewModel";
+import type {BaseMessageTile} from "./timeline/tiles/BaseMessageTile.js";
+import type {File} from "../../../platform/types/types";
 
 
 type Options = {
@@ -151,8 +153,8 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
     // so emit all fields originating from summary
     _onRoomChange(): void {
         // propagate the update to the child view models so it's bindings can update based on room changes
-        this._composerVM?.emitChange("TODO");
-        this.emitChange("TODO");
+        this._composerVM?.emitChange("room");
+        this.emitChange("room");
     }
 
     get kind(): "room" { return "room"; }
@@ -279,7 +281,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
        return {type: msgtype, message: message};
    }
 
-    async _sendMessage(message: string, replyingTo): Promise<boolean> {
+    async _sendMessage(message: string, replyingTo: BaseMessageTile): Promise<boolean> {
         if (!this._room.isArchived && message) {
             let messinfo: {type: string, message?: string} = {type : "m.text", message: message};
             if (message.startsWith("//")) {
@@ -309,7 +311,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
         return false;
     }
 
-    async _pickAndSendFile(): Promise<void>{
+    async _pickAndSendFile(): Promise<void> {
         try {
             const file = await this.platform.openFile();
             if (!file) {
@@ -321,7 +323,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
         }
     }
 
-    async _sendFile(file): Promise<void> {
+    async _sendFile(file: File): Promise<void> {
         const content = {
             body: file.name,
             msgtype: "m.file"
@@ -331,7 +333,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
         });
     }
 
-    async _pickAndSendVideo(): Promise<void>{
+    async _pickAndSendVideo(): Promise<void> {
         try {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
@@ -435,7 +437,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
         this.navigation.applyPath(path);
     }
 
-    startReply(entry): void {
+    startReply(entry: EventEntry): void {
         if (!this._room.isArchived) {
             if (this._composerVM instanceof ComposerViewModel) {
                 this._composerVM?.setReplyingTo(entry);
@@ -500,4 +502,7 @@ class LowerPowerLevelViewModel extends ViewModel {
     }
 }
 
-type InternalViewModel = ArchivedViewModel | ComposerViewModel | LowerPowerLevelViewModel;
+type InternalViewModel =
+    | ArchivedViewModel
+    | ComposerViewModel
+    | LowerPowerLevelViewModel;
