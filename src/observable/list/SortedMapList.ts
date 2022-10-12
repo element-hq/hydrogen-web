@@ -14,8 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {BaseObservableMap} from "../map";
 import {BaseObservableList} from "./BaseObservableList";
 import {sortedIndex} from "../../utils/sortedIndex";
+import {SubscriptionHandle} from "../BaseObservable";
 
 /*
 
@@ -44,32 +46,37 @@ with a node containing {value, leftCount, rightCount, leftNode, rightNode, paren
 // does not assume whether or not the values are reference
 // types modified outside of the collection (and affecting sort order) or not
 
+export type Element<K, V> = { key: K, value: V }
+
 // no duplicates allowed for now
-export class SortedMapList extends BaseObservableList {
-    constructor(sourceMap, comparator) {
+export class SortedMapList<K, V> extends BaseObservableList<V> {
+    private _sourceMap: BaseObservableMap<K, V>;
+    private _comparator: (left: Element<K, V>, right: Element<K, V>) => number;
+    private _sortedPairs?: Element<K, V>[];
+    private _mapSubscription?: SubscriptionHandle
+
+    constructor(sourceMap: BaseObservableMap<K, V>, comparator: (left: V, right: V) => number) {
         super();
         this._sourceMap = sourceMap;
-        this._comparator = (a, b) => comparator(a.value, b.value);
-        this._sortedPairs = null;
-        this._mapSubscription = null;
+        this._comparator = (a, b): number => comparator(a.value, b.value);
     }
 
-    onAdd(key, value) {
+    onAdd(key: K, value: V): void {
         const pair = {key, value};
-        const idx = sortedIndex(this._sortedPairs, pair, this._comparator);
-        this._sortedPairs.splice(idx, 0, pair);
+        const idx = sortedIndex(this._sortedPairs!, pair, this._comparator);
+        this._sortedPairs!.splice(idx, 0, pair);
         this.emitAdd(idx, value);
     }
 
-    onRemove(key, value) {
+    onRemove(key: K, value: V): void {
         const pair = {key, value};
-        const idx = sortedIndex(this._sortedPairs, pair, this._comparator);
+        const idx = sortedIndex(this._sortedPairs!, pair, this._comparator);
         // assert key === this._sortedPairs[idx].key;
-        this._sortedPairs.splice(idx, 1);
+        this._sortedPairs!.splice(idx, 1);
         this.emitRemove(idx, value);
     }
 
-    onUpdate(key, value, params) {
+    onUpdate(key: K, value: V, params: any): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._sortedPairs) {
             return;
@@ -88,12 +95,12 @@ export class SortedMapList extends BaseObservableList {
         this.emitUpdate(newIdx, value, params);
     }
 
-    onReset() {
+    onReset(): void {
         this._sortedPairs = [];
         this.emitReset();
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._mapSubscription = this._sourceMap.subscribe(this);
         this._sortedPairs = new Array(this._sourceMap.size);
         let i = 0;
@@ -105,41 +112,42 @@ export class SortedMapList extends BaseObservableList {
         super.onSubscribeFirst();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
-        this._sortedPairs = null;
-        this._mapSubscription = this._mapSubscription();
+        this._sortedPairs = undefined;
+        this._mapSubscription = this._mapSubscription!();
     }
 
-    get(index) {
-        return this._sortedPairs[index].value;
+    get(index): V {
+        return this._sortedPairs![index].value;
     }
 
-    get length() {
+    get length(): number {
         return this._sourceMap.size;
     }
 
-    [Symbol.iterator]() {
-        const it = this._sortedPairs.values();
+    [Symbol.iterator](): Iterator<V> {
+        const it: IterableIterator<Element<K, V>> = this._sortedPairs!.values();
         return {
-            next() {
+            next(): IteratorResult<V> {
                 const v = it.next();
                 if (v.value) {
                     v.value = v.value.value;
                 }
-                return v;
+                return v as IteratorResult<V>;
             }
         };
     }
 }
 
-import {ObservableMap} from "../";
+import {ObservableMap} from "..";
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        test_sortIndex(assert) {
+        test_sortIndex(assert): void {
             const a = [1, 5, 6, 8];
-            const cmp = (a, b) => a - b;
+            const cmp = (a, b): number => a - b;
             let idx = sortedIndex(a, 0, cmp);
             assert.equal(idx, 0);
             idx = sortedIndex(a, 3, cmp);
@@ -150,33 +158,35 @@ export function tests() {
             assert.equal(idx, 3);
         },
 
-        test_sortIndex_reverse(assert) {
+        test_sortIndex_reverse(assert): void {
             let idx = sortedIndex([8, 6, 5, 1], 6, (a, b) => b - a);
             assert.equal(idx, 1);
         },
 
-        test_sortIndex_comparator_Array_compatible(assert) {
+        test_sortIndex_comparator_Array_compatible(assert): void {
             const a = [5, 1, 8, 2];
-            const cmp = (a, b) => a - b;
+            const cmp = (a, b): number => a - b;
             a.sort(cmp);
             assert.deepEqual(a, [1, 2, 5, 8]);
             let idx = sortedIndex(a, 2, cmp);
             assert.equal(idx, 1);
         },
 
-        test_initial_values(assert) {
+        test_initial_values(assert): void {
             const map = new ObservableMap([
                 ["a", 50],
                 ["b", 6],
                 ["c", -5],
             ]);
             const list = new SortedMapList(map, (a, b) => a - b);
-            list.subscribe({}); //needed to populate iterator
+            list.subscribe({
+                onReset(){}, onUpdate(){}, onAdd(){}, onMove(){}, onRemove(){}
+            }); //needed to populate iterator
             assert.deepEqual(Array.from(list), [-5, 6, 50]);
             assert.equal(list.length, 3);
         },
 
-        test_add(assert) {
+        test_add(assert): void {
             const map = new ObservableMap([["a", 50], ["b", 6], ["c", -5]]);
             const list = new SortedMapList(map, (a, b) => a - b);
             let fired = 0;
@@ -185,14 +195,15 @@ export function tests() {
                     fired++;
                     assert.equal(idx, 2);
                     assert.equal(value, 20);
-                }
+                },
+                onReset(){}, onUpdate(){}, onRemove(){}, onMove(){}
             });
             map.add("d", 20);
             assert.equal(fired, 1);
             assert.equal(list.length, 4);
         },
 
-        test_remove(assert) {
+        test_remove(assert): void {
             const map = new ObservableMap([["a", 50], ["b", 6], ["c", -5]]);
             const list = new SortedMapList(map, (a, b) => a - b);
             let fired = 0;
@@ -201,14 +212,15 @@ export function tests() {
                     fired++;
                     assert.equal(idx, 2);
                     assert.equal(value, 50);
-                }
+                },
+                onReset(){}, onUpdate(){}, onAdd(){}, onMove(){}
             });
             map.remove("a");
             assert.equal(fired, 1);
             assert.equal(list.length, 2);
         },
 
-        test_move_reference(assert) {
+        test_move_reference(assert): void {
             const a = {number: 3};
             const map = new ObservableMap([
                 ["a", a],
@@ -230,7 +242,9 @@ export function tests() {
                     assert.equal(oldIdx, 1);
                     assert.equal(newIdx, 2);
                     assert.equal(value, a);
-                }
+                },
+
+                onReset(){}, onAdd(){}, onRemove(){},
             });
             a.number = 111;
             map.update("a", "number");
@@ -238,7 +252,7 @@ export function tests() {
             assert.equal(updateFired, 1);
         },
 
-        test_update_without_move(assert) {
+        test_update_without_move(assert): void {
             const a = {number: 3};
             const map = new ObservableMap([
                 ["a", a],
@@ -257,7 +271,9 @@ export function tests() {
 
                 onMove() {
                     moveFired++;
-                }
+                },
+
+                onReset(){}, onAdd(){}, onRemove(){},
             });
             assert.deepEqual(Array.from(list).map(v => v.number), [1, 3, 11]);
             // asume some part of a that doesn't affect
