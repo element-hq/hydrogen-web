@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
+import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
@@ -28,8 +28,8 @@ import {CreateRoomViewModel} from "./CreateRoomViewModel.js";
 import {JoinRoomViewModel} from "./JoinRoomViewModel";
 import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
-import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
-import {SyncStatus} from "../../matrix/Sync.js";
+import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel";
+import {SyncStatus} from "../../matrix/Sync";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {
