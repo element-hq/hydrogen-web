@@ -15,11 +15,34 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {RoomType} from "../../../matrix/room/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
+import {RoomType} from "../../../matrix/room/common";
+import type {Options as BaseOptions} from "../../ViewModel";
+import type {RetainedObservableValue} from "../../../observable/ObservableValue";
+import type { MediaRepository } from "../../../matrix/net/MediaRepository";
+import type {Session} from "../../../matrix/Session";
+import type {RoomMember} from "../../../matrix/room/members/RoomMember.js";
+import type {PowerLevels} from "../../../matrix/room/PowerLevels.js";
+
+export type ExplicitOptions = {
+    observableMember: RetainedObservableValue<RoomMember>,
+    mediaRepository: MediaRepository,
+    isEncrypted: boolean,
+    powerLevelsObservable: RetainedObservableValue<PowerLevels>,
+    session: Session
+};
+
+type Options = BaseOptions & ExplicitOptions;
 
 export class MemberDetailsViewModel extends ViewModel {
-    constructor(options) {
+    private _observableMember: RetainedObservableValue<RoomMember>;
+    private _mediaRepository: MediaRepository;
+    private _member: RoomMember;
+    private _isEncrypted: boolean;
+    private _powerLevelsObservable: RetainedObservableValue<PowerLevels>;
+    private _session: Session;
+
+    constructor(options: Options) {
         super(options);
         this._observableMember = options.observableMember;
         this._mediaRepository = options.mediaRepository;
@@ -31,58 +54,58 @@ export class MemberDetailsViewModel extends ViewModel {
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
     }
 
-    get name() { return this._member.name; }
-    get userId() { return this._member.userId; }
+    get name(): string { return this._member.name; }
+    get userId(): string { return this._member.userId; }
 
-    get type() { return "member-details"; }
-    get shouldShowBackButton() { return true; }
-    get previousSegmentName() { return "members"; }
-    
-    get role() {
+    get type(): string { return "member-details"; }
+    get shouldShowBackButton(): boolean { return true; }
+    get previousSegmentName(): string { return "members"; }
+
+    get role(): string {
         if (this.powerLevel >= 100) { return this.i18n`Admin`; }
         else if (this.powerLevel >= 50) { return this.i18n`Moderator`; }
         else if (this.powerLevel === 0) { return this.i18n`Default`; }
         else { return this.i18n`Custom (${this.powerLevel})`; }
     }
 
-    _onMemberChange() {
+    _onMemberChange(): void {
         this._member = this._observableMember.get();
         this.emitChange("member");
     }
 
-    _onPowerLevelsChange() {
+    _onPowerLevelsChange(): void {
         this.emitChange("role");
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.name);
     }
 
-    get avatarColorNumber() {
-        return getIdentifierColorNumber(this.userId)
+    get avatarColorNumber(): number {
+        return getIdentifierColorNumber(this.userId);
     }
 
-    avatarUrl(size) {
+    avatarUrl(size): string | null {
         return getAvatarHttpUrl(this._member.avatarUrl, size, this.platform, this._mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string{
         return this.name;
     }
 
-    get isEncrypted() {
+    get isEncrypted(): boolean {
         return this._isEncrypted;
     }
 
-    get powerLevel() {
+    get powerLevel(): number {
         return this._powerLevelsObservable.get()?.getUserLevel(this._member.userId);
     }
 
-    get linkToUser() {
+    get linkToUser(): string {
         return `https://matrix.to/#/${encodeURIComponent(this._member.userId)}`;
     }
 
-    async openDirectMessage() {
+    async openDirectMessage(): Promise<void> {
         const room = this._session.findDirectMessageForUserId(this.userId);
         let roomId = room?.id;
         if (!roomId) {
