@@ -34,6 +34,7 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
+    "join-room": true;
 };
 
 export function createNavigation(): Navigation<SegmentType> {
@@ -131,7 +132,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
     const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
     const segments: Segment<SegmentType>[] = [];
-    let next; 
+    let next;
     while (!(next = iterator.next()).done) {
         const type = next.value;
         if (type === "rooms") {
@@ -184,7 +185,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             const loginToken = type.split("=").pop();
             segments.push(new Segment("sso", loginToken));
         } else {
-            // might be undefined, which will be turned into true by Segment 
+            // might be undefined, which will be turned into true by Segment
             const value = iterator.next().value;
             segments.push(new Segment(type, value));
         }
@@ -488,6 +489,6 @@ export function tests() {
             assert.equal(newPath?.segments[1].type, "room");
             assert.equal(newPath?.segments[1].value, "b");
         },
-        
+
     }
 }
