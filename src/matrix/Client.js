@@ -200,40 +200,38 @@ export class Client {
     }
 
     async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
-        await log.wrap("_createSessionAfterAuth", async (l) => {
-            const id = this.createNewSessionId();
-            const lastUsed = this._platform.clock.now();
-            const sessionInfo = {
-                id,
-                deviceId,
-                userId,
-                homeServer: homeserver, // deprecate this over time
-                homeserver,
-                accessToken,
-                lastUsed,
-            };
-            let dehydratedDevice;
-            if (inspectAccountSetup) {
-                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, l);
-                if (dehydratedDevice) {
-                    sessionInfo.deviceId = dehydratedDevice.deviceId;
-                }
+        const id = this.createNewSessionId();
+        const lastUsed = this._platform.clock.now();
+        const sessionInfo = {
+            id,
+            deviceId,
+            userId,
+            homeServer: homeserver, // deprecate this over time
+            homeserver,
+            accessToken,
+            lastUsed,
+        };
+        let dehydratedDevice;
+        if (inspectAccountSetup) {
+            dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+            if (dehydratedDevice) {
+                sessionInfo.deviceId = dehydratedDevice.deviceId;
             }
-            await this._platform.sessionInfoStorage.add(sessionInfo);
-            // loading the session can only lead to
-            // LoadStatus.Error in case of an error,
-            // so separate try/catch
-            try {
-                await this._loadSessionInfo(sessionInfo, dehydratedDevice, l);
-                l.set("status", this._status.get());
-            } catch (err) {
-                l.catch(err);
-                // free olm Account that might be contained
-                dehydratedDevice?.dispose();
-                this._error = err;
-                this._status.set(LoadStatus.Error);
-            }
-        });
+        }
+        await this._platform.sessionInfoStorage.add(sessionInfo);
+        // loading the session can only lead to
+        // LoadStatus.Error in case of an error,
+        // so separate try/catch
+        try {
+            await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
+            log.set("status", this._status.get());
+        } catch (err) {
+            log.catch(err);
+            // free olm Account that might be contained
+            dehydratedDevice?.dispose();
+            this._error = err;
+            this._status.set(LoadStatus.Error);
+        }
     }
 
     async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {
