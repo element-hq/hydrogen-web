@@ -34,7 +34,7 @@ export abstract class BaseObservable<T> {
         if (this._handlers.size === 1) {
             this.onSubscribeFirst();
         }
-        return () => {
+        return (): undefined => {
             return this.unsubscribe(handler);
         };
     }
@@ -63,22 +63,23 @@ export abstract class BaseObservable<T> {
     // Add iterator over handlers here
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     class Collection extends BaseObservable<{}> {
         firstSubscribeCalls: number = 0;
         firstUnsubscribeCalls: number = 0;
 
-        onSubscribeFirst() { this.firstSubscribeCalls += 1; }
-        onUnsubscribeLast() { this.firstUnsubscribeCalls += 1; }
+        onSubscribeFirst(): void { this.firstSubscribeCalls += 1; }
+        onUnsubscribeLast(): void { this.firstUnsubscribeCalls += 1; }
     }
 
     return {
-        test_unsubscribe(assert) {
+        test_unsubscribe(assert): void {
             const c = new Collection();
             const unsubscribe = c.subscribe({});
             unsubscribe();
             assert.equal(c.firstSubscribeCalls, 1);
             assert.equal(c.firstUnsubscribeCalls, 1);
         }
-    }
+    };
 }

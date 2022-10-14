@@ -164,7 +164,7 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: BaseRequestOptions = {}): IHomeServerRequest {
+    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = false , options: BaseRequestOptions = {}): IHomeServerRequest {
         options.allowedStatusCodes = [401];
         const body: any = {
             auth,

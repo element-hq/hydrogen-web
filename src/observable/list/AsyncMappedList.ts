@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {IListObserver} from "./BaseObservableList";
-import {BaseMappedList, Mapper, Updater, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
+import {BaseMappedList, runAdd, runUpdate, runRemove, runMove, runReset} from "./BaseMappedList";
 
 export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> implements IListObserver<F> {
     private _eventQueue: AsyncEvent<F>[] | null = null;
@@ -31,7 +31,7 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
             this._eventQueue.push(new AddEvent(idx, item));
             idx += 1;
         }
-        this._flush();
+        void this._flush();
     }
 
     async _flush(): Promise<void> {
@@ -52,35 +52,35 @@ export class AsyncMappedList<F,T> extends BaseMappedList<F,T,Promise<T>> impleme
     onReset(): void {
         if (this._eventQueue) {
             this._eventQueue.push(new ResetEvent());
-            this._flush();
+            void this._flush();
         }
     }
 
     onAdd(index: number, value: F): void {
         if (this._eventQueue) {
             this._eventQueue.push(new AddEvent(index, value));
-            this._flush();
+            void this._flush();
         }
     }
 
     onUpdate(index: number, value: F, params: any): void {
         if (this._eventQueue) {
             this._eventQueue.push(new UpdateEvent(index, value, params));
-            this._flush();
+            void this._flush();
         }
     }
 
     onRemove(index: number): void {
         if (this._eventQueue) {
             this._eventQueue.push(new RemoveEvent(index));
-            this._flush();
+            void this._flush();
         }
     }
 
     onMove(fromIdx: number, toIdx: number): void {
         if (this._eventQueue) {
             this._eventQueue.push(new MoveEvent(fromIdx, toIdx));
-            this._flush();
+            void this._flush();
         }
     }
 
@@ -135,10 +135,12 @@ class ResetEvent<F> {
 import {ObservableArray} from "./ObservableArray";
 import {ListObserver} from "../../mocks/ListObserver.js";
 
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "events are emitted in order": async assert => {
-            const double = n => n * n;
+        "events are emitted in order": async (assert): Promise<void> => {
+            const double = (n: number): number => n * n;
             const source = new ObservableArray<number>();
             const mapper = new AsyncMappedList(source, async n => {
                 await new Promise(r => setTimeout(r, n));
@@ -150,7 +152,7 @@ export function tests() {
             mapper.subscribe(observer);
             source.append(2); // will sleep this amount, so second append would take less time
             source.append(1);
-            source.update(0, 7, "lucky seven")
+            source.update(0, 7, "lucky seven");
             source.remove(0);
             {
                 const {type, index, value} = await observer.next();
@@ -182,5 +184,5 @@ export function tests() {
                 assert.equal(value.n, 49);
             }
         }
-    }
+    };
 }

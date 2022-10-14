@@ -14,55 +14,76 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableMap} from "./BaseObservableMap";
+import {BaseObservableMap, Mapper, Updater} from "./index";
+import {SubscriptionHandle} from "../BaseObservable";
+
+
 /*
 so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
-export class MappedMap extends BaseObservableMap {
-    constructor(source, mapper, updater) {
+/*
+This class MUST never be imported directly from here.
+Instead, it MUST be imported from index.ts. See the
+top level comment in index.ts for details.
+*/
+export class MappedMap<K, V, MappedV> extends BaseObservableMap<K, MappedV> {
+    private _source: BaseObservableMap<K, V>;
+    private _mapper: Mapper<V, MappedV>;
+    private _updater?: Updater<V, MappedV>;
+    private _mappedValues: Map<K, MappedV>;
+    private _subscription?: SubscriptionHandle;
+
+
+    constructor(
+        source: BaseObservableMap<K, V>,
+        mapper: Mapper<V, MappedV>,
+        updater?: Updater<V, MappedV>
+    ) {
         super();
         this._source = source;
         this._mapper = mapper;
         this._updater = updater;
-        this._mappedValues = new Map();
+        this._mappedValues = new Map<K, MappedV>();
     }
 
-    _emitSpontaneousUpdate(key, params) {
+    _emitSpontaneousUpdate(key: K, params: any): void {
         const value = this._mappedValues.get(key);
         if (value) {
             this.emitUpdate(key, value, params);
         }
     }
 
-    onAdd(key, value) {
+    onAdd(key: K, value: V): void {
         const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
         const mappedValue = this._mapper(value, emitSpontaneousUpdate);
         this._mappedValues.set(key, mappedValue);
         this.emitAdd(key, mappedValue);
     }
 
-    onRemove(key/*, _value*/) {
+    onRemove(key: K/*, _value*/): void {
         const mappedValue = this._mappedValues.get(key);
         if (this._mappedValues.delete(key)) {
-            this.emitRemove(key, mappedValue);
+            if (mappedValue) {
+                this.emitRemove(key, mappedValue);
+            }
         }
     }
 
-    onUpdate(key, value, params) {
+    onUpdate(key: K, value: V, params: any): void {
         // if an update is emitted while calling source.subscribe() from onSubscribeFirst, ignore it
         if (!this._mappedValues) {
             return;
         }
         const mappedValue = this._mappedValues.get(key);
         if (mappedValue !== undefined) {
-            this._updater?.(mappedValue, params, value);
+            this._updater?.(params, mappedValue, value);
             // TODO: map params somehow if needed?
             this.emitUpdate(key, mappedValue, params);
         }
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this._subscription = this._source.subscribe(this);
         for (let [key, value] of this._source) {
             const emitSpontaneousUpdate = this._emitSpontaneousUpdate.bind(this, key);
@@ -72,26 +93,28 @@ export class MappedMap extends BaseObservableMap {
         super.onSubscribeFirst();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
-        this._subscription = this._subscription();
+        if (this._subscription) {
+            this._subscription = this._subscription();
+        }
         this._mappedValues.clear();
     }
 
-    onReset() {
+    onReset(): void {
         this._mappedValues.clear();
         this.emitReset();
     }
 
-    [Symbol.iterator]() {
+    [Symbol.iterator](): IterableIterator<[K, MappedV]> {
         return this._mappedValues.entries();
     }
 
-    get size() {
+    get size(): number {
         return this._mappedValues.size;
     }
 
-    get(key) {
+    get(key: K): MappedV | undefined {
         return this._mappedValues.get(key);
     }
 }

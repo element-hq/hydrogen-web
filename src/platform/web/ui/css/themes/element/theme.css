@@ -1180,7 +1180,7 @@ button.RoomDetailsView_row::after {
     gap: 12px;
 }
 
-.CreateRoomView, .RoomBeingCreated_error {
+.CreateRoomView, .JoinRoomView, .RoomBeingCreated_error {
     max-width: 400px;
 }
 
@@ -1210,4 +1210,15 @@ button.RoomDetailsView_row::after {
     background-repeat: no-repeat;
     background-position: center;
     background-size: 36px;
+}
+
+.JoinRoomView_status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.JoinRoomView_status .spinner {
+    margin-right: 5px;
 }
