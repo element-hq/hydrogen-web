@@ -146,18 +146,13 @@ export class Client {
         return registration;
     }
 
-    async startWithFinishedRegistration(registration) {
-        this._platform.logger.run("startWithFinishedRegistration", async (log) => {
-            const sessionInfo = registration.sessionInfo;
-            if (!sessionInfo) {
-                throw new Error("Registration.sessionInfo is not available; are you sure that registration is finished?");
-            }
-            await this.startWithSessionInfo({
-                accessToken: sessionInfo.access_token,
-                deviceId: sessionInfo.device_id,
-                userId: sessionInfo.user_id,
-                homeserver: registration.homeserver,
-            }, true, log);
+    /** Method to start client after registration or with given access token.
+     * To start the client after registering, use `startWithAuthData(registration.authData)`.
+     * `homeserver` won't be resolved or normalized using this method,
+     * use `lookupHomeserver` first if needed (not needed after registration) */
+    async startWithAuthData({accessToken, deviceId, userId, homeserver}) {
+        this._platform.logger.run("startWithAuthData", async (log) => {
+            await this._createSessionAfterAuth({accessToken, deviceId, userId, homeserver}, true, log);
         });
     }
 
@@ -200,12 +195,12 @@ export class Client {
                 }
                 return;
             }
-            await this.startWithSessionInfo(sessionInfo, inspectAccountSetup, log);
+            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, log);
         });
     }
 
-    async startWithSessionInfo({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
-        await log.wrap("startWithSessionInfo", async (l) => {
+    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+        await log.wrap("_createSessionAfterAuth", async (l) => {
             const id = this.createNewSessionId();
             const lastUsed = this._platform.clock.now();
             const sessionInfo = {
