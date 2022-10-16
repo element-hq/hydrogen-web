@@ -20,7 +20,7 @@ import type {SubscriptionHandle} from "./BaseObservable";
 
 // like an EventEmitter, but doesn't have an event type
 export abstract class BaseObservableValue<T> extends BaseObservable<(value: T) => void> {
-    emit(argument: T) {
+    emit(argument: T): void {
         for (const h of this._handlers) {
             h(argument);
         }
@@ -68,7 +68,7 @@ class WaitForHandle<T> implements IWaitHandle<T> {
         return this._promise;
     }
 
-    dispose() {
+    dispose(): void {
         if (this._subscription) {
             this._subscription();
             this._subscription = null;
@@ -82,7 +82,7 @@ class WaitForHandle<T> implements IWaitHandle<T> {
 
 class ResolvedWaitForHandle<T> implements IWaitHandle<T> {
     constructor(public promise: Promise<T>) {}
-    dispose() {}
+    dispose(): void {}
 }
 
 export class ObservableValue<T> extends BaseObservableValue<T> {
@@ -113,7 +113,7 @@ export class RetainedObservableValue<T> extends ObservableValue<T> {
         this._freeCallback = freeCallback;
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         this._freeCallback();
     }
@@ -130,7 +130,7 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
         super();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         this.sourceSubscription = this.sourceSubscription!();
         if (this.targetSubscription) {
@@ -138,7 +138,7 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
         }
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         super.onSubscribeFirst();
         this.sourceSubscription = this.source.subscribe(() => {
             this.updateTargetSubscription();
@@ -147,7 +147,7 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
         this.updateTargetSubscription();
     }
 
-    private updateTargetSubscription() {
+    private updateTargetSubscription(): void {
         const sourceValue = this.source.get();
         if (sourceValue) {
             const target = this.mapper(sourceValue);
@@ -174,9 +174,10 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function tests() {
     return {
-        "set emits an update": assert => {
+        "set emits an update": (assert): void => {
             const a = new ObservableValue<number>(0);
             let fired = false;
             const subscription = a.subscribe(v => {
@@ -187,7 +188,7 @@ export function tests() {
             assert(fired);
             subscription();
         },
-        "set doesn't emit if value hasn't changed": assert => {
+        "set doesn't emit if value hasn't changed": (assert): void => {
             const a = new ObservableValue(5);
             let fired = false;
             const subscription = a.subscribe(() => {
@@ -198,24 +199,24 @@ export function tests() {
             assert(!fired);
             subscription();
         },
-        "waitFor promise resolves on matching update": async assert => {
+        "waitFor promise resolves on matching update": async (assert): Promise<void> => {
             const a = new ObservableValue(5);
             const handle = a.waitFor(v => v === 6);
-            Promise.resolve().then(() => {
+            await Promise.resolve().then(() => {
                 a.set(6);
             });
             await handle.promise;
             assert.strictEqual(a.get(), 6);
         },
-        "waitFor promise rejects when disposed": async assert => {
+        "waitFor promise rejects when disposed": async (assert): Promise<void> => {
             const a = new ObservableValue<number>(0);
             const handle = a.waitFor(() => false);
-            Promise.resolve().then(() => {
+            await Promise.resolve().then(() => {
                 handle.dispose();
             });
             await assert.rejects(handle.promise, AbortError);
         },
-        "flatMap.get": assert => {
+        "flatMap.get": (assert): void => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const countProxy = a.flatMap(a => a!.count);
             assert.strictEqual(countProxy.get(), undefined);
@@ -223,7 +224,7 @@ export function tests() {
             a.set({count});
             assert.strictEqual(countProxy.get(), 0);
         },
-        "flatMap update from source": assert => {
+        "flatMap update from source": (assert): void => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const updates: (number | undefined)[] = [];
             a.flatMap(a => a!.count).subscribe(count => {
@@ -233,7 +234,7 @@ export function tests() {
             a.set({count});
             assert.deepEqual(updates, [0]);
         },
-        "flatMap update from target": assert => {
+        "flatMap update from target": (assert): void => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const updates: (number | undefined)[] = [];
             a.flatMap(a => a!.count).subscribe(count => {
@@ -244,5 +245,5 @@ export function tests() {
             count.set(5);
             assert.deepEqual(updates, [0, 5]);
         }
-    }
+    };
 }

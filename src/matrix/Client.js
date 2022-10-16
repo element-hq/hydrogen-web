@@ -137,13 +137,23 @@ export class Client {
     async startRegistration(homeserver, username, password, initialDeviceDisplayName, flowSelector) {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
-        const registration = new Registration(hsApi, {
+        const registration = new Registration(homeserver, hsApi, {
             username,
             password,
             initialDeviceDisplayName,
         },
         flowSelector);
         return registration;
+    }
+
+    /** Method to start client after registration or with given access token.
+     * To start the client after registering, use `startWithAuthData(registration.authData)`.
+     * `homeserver` won't be resolved or normalized using this method,
+     * use `lookupHomeserver` first if needed (not needed after registration) */
+    async startWithAuthData({accessToken, deviceId, userId, homeserver}) {
+        await this._platform.logger.run("startWithAuthData", async (log) => {
+            await this._createSessionAfterAuth({accessToken, deviceId, userId, homeserver}, true, log);
+        });
     }
 
     async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
@@ -156,23 +166,17 @@ export class Client {
         this._resetStatus();
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
-            const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
                 const hsApi = new HomeServerApi({homeserver: loginMethod.homeserver, request});
                 const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
-                const sessionId = this.createNewSessionId();
                 sessionInfo = {
-                    id: sessionId,
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
-                    homeServer: loginMethod.homeserver, // deprecate this over time
                     homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
-                    lastUsed: clock.now()
                 };
-                log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -191,28 +195,43 @@ export class Client {
                 }
                 return;
             }
-            let dehydratedDevice;
-            if (inspectAccountSetup) {
-                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
-                if (dehydratedDevice) {
-                    sessionInfo.deviceId = dehydratedDevice.deviceId;
-                }
-            }
-            await this._platform.sessionInfoStorage.add(sessionInfo);
-            // loading the session can only lead to
-            // LoadStatus.Error in case of an error,
-            // so separate try/catch
-            try {
-                await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
-                log.set("status", this._status.get());
-            } catch (err) {
-                log.catch(err);
-                // free olm Account that might be contained
-                dehydratedDevice?.dispose();
-                this._error = err;
-                this._status.set(LoadStatus.Error);
-            }
+            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, log);
         });
+    }
+
+    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+        const id = this.createNewSessionId();
+        const lastUsed = this._platform.clock.now();
+        const sessionInfo = {
+            id,
+            deviceId,
+            userId,
+            homeServer: homeserver, // deprecate this over time
+            homeserver,
+            accessToken,
+            lastUsed,
+        };
+        let dehydratedDevice;
+        if (inspectAccountSetup) {
+            dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+            if (dehydratedDevice) {
+                sessionInfo.deviceId = dehydratedDevice.deviceId;
+            }
+        }
+        await this._platform.sessionInfoStorage.add(sessionInfo);
+        // loading the session can only lead to
+        // LoadStatus.Error in case of an error,
+        // so separate try/catch
+        try {
+            await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
+            log.set("status", this._status.get());
+        } catch (err) {
+            log.catch(err);
+            // free olm Account that might be contained
+            dehydratedDevice?.dispose();
+            this._error = err;
+            this._status.set(LoadStatus.Error);
+        }
     }
 
     async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {

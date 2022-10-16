@@ -75,7 +75,7 @@ export class ObservableArray<T> extends BaseObservableList<T> {
         return this._items.length;
     }
 
-    [Symbol.iterator]() {
+    [Symbol.iterator](): IterableIterator<T> {
         return this._items.values();
     }
 }
