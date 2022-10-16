@@ -22,6 +22,7 @@ import type {Reconnector} from "./Reconnector";
 import type {EncodedBody} from "./common";
 import type {RequestFunction} from "../../platform/types/types";
 import type {ILogItem} from "../../logging/types";
+import type {SyncResponse} from "./types/sync";
 
 type RequestMethod = "POST" | "GET" | "PUT";
 
@@ -89,7 +90,7 @@ export class HomeServerApi {
         });
 
         const hsRequest = new HomeServerRequest(method, url, requestResult, options);
-        
+
         if (this._reconnector) {
             hsRequest.response().catch(err => {
                 // Some endpoints such as /sync legitimately time-out
@@ -125,8 +126,8 @@ export class HomeServerApi {
         return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    sync(since: string, filter: string, timeout: number, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._get("/sync", {since, timeout, filter}, undefined, options);
+    sync(since: string, filter: string, timeout: number, options?: BaseRequestOptions): IHomeServerRequest<SyncResponse> {
+        return this._get("/sync", {since, timeout, filter}, undefined, {prefix: CS_V3_PREFIX, ...options});
     }
 
     context(roomId: string, eventId: string, limit: number, filter: string): IHomeServerRequest {
@@ -164,7 +165,7 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = false , options: BaseRequestOptions = {}): IHomeServerRequest {
+    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: BaseRequestOptions = {}): IHomeServerRequest {
         options.allowedStatusCodes = [401];
         const body: any = {
             auth,
@@ -230,7 +231,7 @@ export class HomeServerApi {
     sendToDevice(type: string, payload: Record<string, any>, txnId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, {}, payload, options);
     }
-    
+
     roomKeysVersion(version?: string, options?: BaseRequestOptions): IHomeServerRequest {
         let versionPart = "";
         if (version) {
@@ -301,13 +302,13 @@ export class HomeServerApi {
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }
-    
+
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
     }
 }
 
-import {Request as MockRequest} from "../../mocks/Request.js";
+import {Request as MockRequest} from "../../mocks/Request";
 
 export function tests() {
     return {
