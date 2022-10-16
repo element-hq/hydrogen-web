@@ -19,9 +19,9 @@ import {HomeServerError, ConnectionError} from "../error";
 import type {RequestResult} from "../../platform/web/dom/request/fetch";
 import type {ILogItem} from "../../logging/types";
 
-export interface IHomeServerRequest {
+export interface IHomeServerRequest<Response = any> {
     abort(): void;
-    response(): Promise<any>;
+    response(): Promise<Response>;
     responseCode(): Promise<number>;
 }
 

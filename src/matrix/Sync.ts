@@ -16,24 +16,51 @@ limitations under the License.
 */
 
 import {ObservableValue} from "../observable/ObservableValue";
-import {createEnum} from "../utils/enum";
+
+import type {EventEntry} from "./room/timeline/entries/EventEntry";
+import type {RoomEncryption, SummaryData, DecryptionPreparation} from "./e2ee/RoomEncryption";
+import type {Room} from "./room/Room";
+import type {LogItem} from "../logging/LogItem";
+import type {ILogger, ILogItem} from "../logging/types";
+import type {HomeServerApi} from "./net/HomeServerApi";
+import type {IHomeServerRequest} from "./net/HomeServerRequest";
+import type {JoinedRoom, LeftRoom, InvitedRoom, Rooms, SyncResponse} from "./net/types/sync";
+import type {Session} from "./Session";
+import type {Storage} from "./storage/idb/Storage";
+import type {ILock} from "../utils/Lock";
+import type {SyncPreparation} from "./DeviceMessageHandler";
+import type {EventKey} from "./room/timeline/EventKey";
+import type {MemberChange, MemberData} from "./room/members/RoomMember";
+import type {PendingEvent} from "./room/sending/PendingEvent";
+import type {HeroChanges} from "./room/members/Heroes";
+import type {HistoryVisibility, PowerLevelsEvent} from "./net/types/roomEvents";
+import type {ArchivedRoom} from "./room/ArchivedRoom";
+import type {Invite} from "./room/Invite";
+import type {Transaction} from "./storage/idb/Transaction";
 
 const INCREMENTAL_TIMEOUT = 30000;
 
-export const SyncStatus = createEnum(
-    "InitialSync",
-    "CatchupSync",
-    "Syncing",
-    "Stopped"
-);
+export enum SyncStatus {
+    InitialSync = "InitialSync",
+    CatchupSync = "CatchupSync",
+    Syncing = "Syncing",
+    Stopped = "Stopped"
+}
 
-function timelineIsEmpty(roomResponse) {
+function timelineIsEmpty(roomResponse: JoinedRoom | LeftRoom): boolean {
     try {
         const events = roomResponse?.timeline?.events;
         return Array.isArray(events) && events.length === 0;
     } catch (err) {
         return true;
     }
+}
+
+type Options = {
+    hsApi: HomeServerApi,
+    session: Session,
+    storage: Storage,
+    logger: ILogger
 }
 
 /**
@@ -54,22 +81,27 @@ function timelineIsEmpty(roomResponse) {
  * ```
  */
 export class Sync {
-    constructor({hsApi, session, storage, logger}) {
+    private _hsApi: HomeServerApi;
+    private _logger: ILogger;
+    private _session: Session;
+    private _storage: Storage;
+    private _currentRequest?: IHomeServerRequest<any> | IHomeServerRequest<SyncResponse>
+    private _status = new ObservableValue(SyncStatus.Stopped);
+    private _error?: any;
+
+    constructor({hsApi, session, storage, logger}: Options) {
         this._hsApi = hsApi;
         this._logger = logger;
         this._session = session;
         this._storage = storage;
-        this._currentRequest = null;
-        this._status = new ObservableValue(SyncStatus.Stopped);
-        this._error = null;
     }
 
-    get status() {
+    get status(): ObservableValue<SyncStatus> {
         return this._status;
     }
 
     /** the error that made the sync stop */
-    get error() {
+    get error(): any {
         return this._error;
     }
 
@@ -85,14 +117,14 @@ export class Sync {
         } else {
             this._status.set(SyncStatus.InitialSync);
         }
-        this._syncLoop(syncToken);
+        void this._syncLoop(syncToken);
     }
 
-    async _syncLoop(syncToken) {
-        // if syncToken is falsy, it will first do an initial sync ... 
+    async _syncLoop(syncToken: string): Promise<void> {
+        // if syncToken is falsy, it will first do an initial sync ...
         while(this._status.get() !== SyncStatus.Stopped) {
-            let roomStates;
-            let sessionChanges;
+            let roomStates: RoomSyncProcessState[];
+            let sessionChanges: SessionWriteSyncChanges | undefined;
             let wasCatchupOrInitial = this._status.get() === SyncStatus.CatchupSync || this._status.get() === SyncStatus.InitialSync;
             await this._logger.run("sync", async log => {
                 log.set("token", syncToken);
@@ -109,7 +141,7 @@ export class Sync {
                     // * We want to know if the server has any to_device messages queued up
                     //   for us. We do that by calling it with a zero timeout until it
                     //   doesn't give us any more to_device messages.
-                    const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0; 
+                    const timeout = this._status.get() === SyncStatus.Syncing ? INCREMENTAL_TIMEOUT : 0;
                     const syncResult = await this._syncRequest(syncToken, timeout, log);
                     syncToken = syncResult.syncToken;
                     roomStates = syncResult.roomStates;
@@ -146,8 +178,8 @@ export class Sync {
                 }
             },
             this._logger.level.Info,
-            (filter, log) => {
-                if (log.durationWithoutType("network") >= 2000 || log.error || wasCatchupOrInitial) {
+            (filter, log: LogItem) => {
+                if (log.durationWithoutType("network") || 0 >= 2000 || log.error || wasCatchupOrInitial) {
                     return filter.minLevel(log.level.Detail);
                 } else {
                     return filter.minLevel(log.level.Info);
@@ -156,7 +188,7 @@ export class Sync {
         }
     }
 
-    async _runAfterSyncCompleted(sessionChanges, roomStates, log) {
+    async _runAfterSyncCompleted(sessionChanges: SessionWriteSyncChanges | undefined, roomStates: RoomSyncProcessState[], log: ILogItem): Promise<void> {
         const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
@@ -179,7 +211,16 @@ export class Sync {
         await Promise.all(roomsPromises.concat(sessionPromise));
     }
 
-    async _syncRequest(syncToken, timeout, log) {
+    async _syncRequest(
+        syncToken: string,
+        timeout: number,
+        log: ILogItem
+      ): Promise<{
+        syncToken: string;
+        roomStates: RoomSyncProcessState[];
+        sessionChanges?: SessionWriteSyncChanges;
+        hadToDeviceMessages: boolean;
+      }> {
         let {syncFilterId} = this._session;
         if (typeof syncFilterId !== "string") {
             this._currentRequest = this._hsApi.createFilter(this._session.user.id, {room: {state: {lazy_load_members: true}}}, {log});
@@ -187,7 +228,7 @@ export class Sync {
         }
         const totalRequestTimeout = timeout + (80 * 1000);  // same as riot-web, don't get stuck on wedged long requests
         this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout, {timeout: totalRequestTimeout, log});
-        const response = await this._currentRequest.response();
+        const response = await (this._currentRequest as IHomeServerRequest<SyncResponse>).response();
 
         const isInitialSync = !syncToken;
         const sessionState = new SessionSyncProcessState();
@@ -221,7 +262,7 @@ export class Sync {
         };
     }
 
-    _openPrepareSyncTxn() {
+    _openPrepareSyncTxn(): Promise<Transaction> {
         const storeNames = this._storage.storeNames;
         return this._storage.readTxn([
             storeNames.olmSessions,
@@ -234,7 +275,7 @@ export class Sync {
         ]);
     }
 
-    async _prepareSync(sessionState, roomStates, response, log) {
+    async _prepareSync(sessionState: SessionSyncProcessState, roomStates: RoomSyncProcessState[], response: SyncResponse, log: ILogItem): Promise<void> {
         const prepareTxn = await this._openPrepareSyncTxn();
         sessionState.preparation = await log.wrap("session", log => this._session.prepareSync(
             response, sessionState.lock, prepareTxn, log));
@@ -254,7 +295,7 @@ export class Sync {
                 }
             }
         }
-        
+
         await Promise.all(roomStates.map(async rs => {
             const newKeys = newKeysByRoom?.get(rs.room.id);
             rs.preparation = await log.wrap("room", async log => {
@@ -264,7 +305,7 @@ export class Sync {
                     await rs.room.load(null, prepareTxn, log);
                 }
                 return rs.room.prepareSync(
-                    rs.roomResponse, rs.membership, newKeys, prepareTxn, log)
+                    rs.roomResponse, rs.membership, newKeys, prepareTxn, log);
             }, log.level.Detail);
         }));
 
@@ -272,7 +313,16 @@ export class Sync {
         await prepareTxn.complete();
     }
 
-    async _writeSync(sessionState, inviteStates, roomStates, archivedRoomStates, response, syncFilterId, isInitialSync, log) {
+    async _writeSync(
+        sessionState: SessionSyncProcessState,
+        inviteStates: InviteSyncProcessState[],
+        roomStates: RoomSyncProcessState[],
+        archivedRoomStates: ArchivedRoomSyncProcessState[],
+        response: SyncResponse,
+        syncFilterId: Session,
+        isInitialSync: boolean,
+        log: ILogItem,
+      ): Promise<void> {
         const syncTxn = await this._openSyncTxn();
         try {
             sessionState.changes = await log.wrap("session", log => this._session.writeSync(
@@ -302,7 +352,13 @@ export class Sync {
         await syncTxn.complete(log);
     }
 
-    _afterSync(sessionState, inviteStates, roomStates, archivedRoomStates, log) {
+    _afterSync(
+        sessionState: SessionSyncProcessState,
+        inviteStates: InviteSyncProcessState[],
+        roomStates: RoomSyncProcessState[],
+        archivedRoomStates: ArchivedRoomSyncProcessState[],
+        log: ILogItem
+      ): void {
         log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
         for(let ars of archivedRoomStates) {
             log.wrap("archivedRoom", log => {
@@ -319,7 +375,7 @@ export class Sync {
         this._session.applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log);
     }
 
-    _openSyncTxn() {
+    _openSyncTxn(): Promise<Transaction> {
         const storeNames = this._storage.storeNames;
         return this._storage.readWriteTxn([
             storeNames.session,
@@ -345,16 +401,22 @@ export class Sync {
             storeNames.inboundGroupSessions,
         ]);
     }
-    
-    async _parseRoomsResponse(roomsSection, inviteStates, isInitialSync, log) {
-        const roomStates = [];
-        const archivedRoomStates = [];
+
+     async _parseRoomsResponse(
+        roomsSection: Rooms | undefined,
+        inviteStates: InviteSyncProcessState[],
+        isInitialSync: boolean,
+        log: ILogItem
+      ): Promise<{ roomStates: RoomSyncProcessState[]; archivedRoomStates: ArchivedRoomSyncProcessState[] }> {
+        const roomStates: RoomSyncProcessState[] = [];
+        const archivedRoomStates: ArchivedRoomSyncProcessState[] = [];
         if (roomsSection) {
-            const allMemberships = ["join", "leave"];
+            const allMemberships: ("join" | "leave")[] = ["join", "leave"];
             for(const membership of allMemberships) {
                 const membershipSection = roomsSection[membership];
                 if (membershipSection) {
-                    for (const [roomId, roomResponse] of Object.entries(membershipSection)) {
+                    for (const [roomId, _roomResponse] of Object.entries(membershipSection)) {
+                        const roomResponse: JoinedRoom | LeftRoom = _roomResponse;
                         // ignore rooms with empty timelines during initial sync,
                         // see https://github.com/vector-im/hydrogen-web/issues/15
                         if (isInitialSync && timelineIsEmpty(roomResponse)) {
@@ -364,7 +426,7 @@ export class Sync {
                         // if there is an existing invite, add a process state for it
                         // so its writeSync and afterSync will run and remove the invite
                         if (invite) {
-                            inviteStates.push(new InviteSyncProcessState(invite, false, null, membership));
+                            inviteStates.push(new InviteSyncProcessState(invite, false, undefined, membership));
                         }
                         const roomState = this._createRoomSyncState(roomId, roomResponse, membership, isInitialSync);
                         if (roomState) {
@@ -381,7 +443,7 @@ export class Sync {
         return {roomStates, archivedRoomStates};
     }
 
-    _createRoomSyncState(roomId, roomResponse, membership, isInitialSync) {
+    _createRoomSyncState(roomId: string, roomResponse: JoinedRoom | LeftRoom, membership: "join" | "leave", isInitialSync: boolean): RoomSyncProcessState | undefined {
         let isNewRoom = false;
         let room = this._session.rooms.get(roomId);
         // create room only either on new join,
@@ -401,8 +463,15 @@ export class Sync {
         }
     }
 
-    async _createArchivedRoomSyncState(roomId, roomState, roomResponse, membership, isInitialSync, log) {
-        let archivedRoom;
+    async _createArchivedRoomSyncState(
+        roomId: string,
+        roomState: RoomSyncProcessState | undefined,
+        roomResponse: JoinedRoom | LeftRoom,
+        membership: 'join' | 'leave',
+        isInitialSync: boolean,
+        log: ILogItem
+      ): Promise<ArchivedRoomSyncProcessState | undefined> {
+        let archivedRoom: ArchivedRoom | undefined;
         if (roomState?.shouldAdd && !isInitialSync) {
             // when adding a joined room during incremental sync,
             // always create the archived room to write the removal
@@ -427,10 +496,11 @@ export class Sync {
         }
     }
 
-    _parseInvites(roomsSection) {
-        const inviteStates = [];
+    _parseInvites(roomsSection?: Rooms): InviteSyncProcessState[] {
+        const inviteStates: InviteSyncProcessState[] = [];
         if (roomsSection?.invite) {
-            for (const [roomId, roomResponse] of Object.entries(roomsSection.invite)) {
+            for (const [roomId, _roomResponse] of Object.entries(roomsSection.invite)) {
+                const roomResponse = _roomResponse as InvitedRoom;
                 let invite = this._session.invites.get(roomId);
                 let isNewInvite = false;
                 if (!invite) {
@@ -450,31 +520,69 @@ export class Sync {
         this._status.set(SyncStatus.Stopped);
         if (this._currentRequest) {
             this._currentRequest.abort();
-            this._currentRequest = null;
+            this._currentRequest = undefined;
         }
     }
 }
 
 class SessionSyncProcessState {
-    constructor() {
-        this.lock = null;
-        this.preparation = null;
-        this.changes = null;
-    }
+    lock?: ILock;
+    preparation?: SyncPreparation;
+    changes?: SessionWriteSyncChanges;
 
     dispose() {
         this.lock?.release();
     }
 }
 
+// TODO: move to Room.js when that gets converted to typescript.
+// It's the return value of Room.prepareSync().
+type RoomSyncPreparation = {
+    roomEncryption: RoomEncryption;
+    summaryChanges: SummaryData;
+    decryptPreparation: DecryptionPreparation;
+    decryptChanges: null;
+    retryEntries: EventEntry[];
+}
+
+// TODO: move to Room.js when that gets converted to typescript.
+// It's the return value of Room.writeSync().
+type RoomWriteSyncChanges = {
+    summaryChanges: SummaryData;
+    roomEncryption: RoomEncryption;
+    entries: EventEntry[];
+    updatedEntries: EventEntry[];
+    newLiveKey: EventKey | undefined;
+    memberChanges: Map<string, MemberChange | undefined>;
+    removedPendingEvents?: PendingEvent[];
+    heroChanges?: HeroChanges;
+    powerLevelsEvent?: PowerLevelsEvent;
+    encryptionChanges?: RoomEncryptionWriteSyncChanges;
+}
+
+// TODO: move to RoomEncryption.js when that gets converted to typescript.
+// It's the return value of RoomEncryption.writeSync().
+type RoomEncryptionWriteSyncChanges = {
+    shouldFlush: boolean;
+    historyVisibility: HistoryVisibility;
+}
+
 class RoomSyncProcessState {
-    constructor(room, isNewRoom, roomResponse, membership) {
+    /**
+     * @param {Object} roomResponse - a matrix Joined Room type or matrix Left Room type
+     */
+    room: Room;
+    isNewRoom: boolean;
+    roomResponse: JoinedRoom | LeftRoom;
+    membership: string;
+    preparation?: RoomSyncPreparation;
+    changes?: RoomWriteSyncChanges;
+
+    constructor(room: Room, isNewRoom: boolean, roomResponse: JoinedRoom | LeftRoom, membership: string) {
         this.room = room;
         this.isNewRoom = isNewRoom;
         this.roomResponse = roomResponse;
         this.membership = membership;
-        this.preparation = null;
-        this.changes = null;
     }
 
     get id() {
@@ -496,46 +604,90 @@ class RoomSyncProcessState {
 
 
 class ArchivedRoomSyncProcessState {
-    constructor(archivedRoom, roomState, roomResponse, membership, isInitialSync) {
+    archivedRoom: ArchivedRoom;
+    roomState: RoomSyncProcessState | undefined;
+    roomResponse: JoinedRoom | LeftRoom;
+    membership: "join" | "leave";
+    isInitialSync?: boolean;
+    changes?: {};
+
+    constructor(archivedRoom: ArchivedRoom, roomState: RoomSyncProcessState | undefined, roomResponse: JoinedRoom | LeftRoom, membership: "join" | "leave", isInitialSync?: boolean) {
         this.archivedRoom = archivedRoom;
         this.roomState = roomState;
         this.roomResponse = roomResponse;
         this.membership = membership;
         this.isInitialSync = isInitialSync;
-        this.changes = null;
     }
 
-    get id() {
+    get id(): string {
         return this.archivedRoom.id;
     }
 
-    get shouldAdd() {
+    get shouldAdd(): boolean | undefined {
         return (this.roomState || this.isInitialSync) && this.membership === "leave";
     }
 
-    get shouldRemove() {
+    get shouldRemove(): boolean {
         return this.membership === "join";
     }
 }
 
+// TODO: move this to a more appropriate file
+// https://spec.matrix.org/v1.4/client-server-api/#mroomjoin_rules
+type JoinRule = "public" | "knock" | "invite" | "private" | "restricted"
+
+// TODO: move to Invite.js when that gets converted to typescript.
+// It's the return value of Invite._createData().
+type InviteData = {
+    roomId: string,
+    isEncrypted: boolean,
+    isDirectMessage: boolean,
+    name?: string,
+    avatarUrl?: string,
+    avatarColorId: string | null,
+    canonicalAlias: string | null,
+    timestamp: number,
+    joinRule: JoinRule | null,
+    inviter?: MemberData,
+}
+
+// TODO: move to Invite.js when that gets converted to typescript.
+// It's the return value of Invite.writeSync().
+type InviteWriteSyncChanges =
+  | { removed: true; membership: "join" | "leave" | "invite" }
+  | { inviteData: InviteData; inviter?: MemberData };
+
 class InviteSyncProcessState {
-    constructor(invite, isNewInvite, roomResponse, membership) {
+    invite: Invite;
+    isNewInvite: boolean;
+    roomResponse: InvitedRoom | undefined;
+    membership: "join" | "leave" | "invite";
+    changes?: InviteWriteSyncChanges;
+
+    constructor(invite: Invite, isNewInvite: boolean, roomResponse: InvitedRoom | undefined, membership: "join" | "leave" | "invite") {
         this.invite = invite;
         this.isNewInvite = isNewInvite;
         this.membership = membership;
         this.roomResponse = roomResponse;
-        this.changes = null;
     }
 
-    get id() {
+    get id(): string {
         return this.invite.id;
     }
 
-    get shouldAdd() {
+    get shouldAdd(): boolean {
         return this.isNewInvite;
     }
 
-    get shouldRemove() {
+    get shouldRemove(): boolean {
         return this.membership !== "invite";
     }
 }
+
+// TODO: move this to src/matrix/Session.js once that's
+// converted to typescript.
+type SessionWriteSyncChanges = {
+    syncInfo?: {token: string, filterId: number},
+    e2eeAccountChanges?: number
+    hasNewRoomKeys?: boolean
+};

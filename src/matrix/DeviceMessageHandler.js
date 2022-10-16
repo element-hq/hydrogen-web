@@ -62,7 +62,7 @@ export class DeviceMessageHandler {
     }
 }
 
-class SyncPreparation {
+export class SyncPreparation {
     constructor(olmDecryptChanges, newRoomKeys) {
         this.olmDecryptChanges = olmDecryptChanges;
         this.newRoomKeys = newRoomKeys;

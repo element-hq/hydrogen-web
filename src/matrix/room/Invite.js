@@ -132,6 +132,9 @@ export class Invite extends EventEmitter {
         this._inviter = inviteData.inviter ? new RoomMember(inviteData.inviter) : null;
     }
 
+    /**
+     * @return {InviteWriteSyncChanges} (find it in Sync.ts)
+     */
     async writeSync(membership, roomResponse, txn, log) {
         if (membership === "invite") {
             log.set("id", this.id);
@@ -181,6 +184,9 @@ export class Invite extends EventEmitter {
         }
     }
 
+    /**
+     * @return {InviteData} (find it in Sync.ts)
+     */
     _createData(inviteState, myInvite, inviter, summaryData, heroes) {
         const name = heroes ? heroes.roomName : summaryData.name;
         const avatarUrl = heroes ? heroes.roomAvatarUrl : summaryData.avatarUrl;

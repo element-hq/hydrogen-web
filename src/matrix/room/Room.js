@@ -19,11 +19,12 @@ import {SyncWriter} from "./timeline/persistence/SyncWriter";
 import {MemberWriter} from "./timeline/persistence/MemberWriter";
 import {RelationWriter} from "./timeline/persistence/RelationWriter";
 import {SendQueue} from "./sending/SendQueue";
-import {WrappedError} from "../error"
+import {WrappedError} from "../error";
 import {Heroes} from "./members/Heroes";
 import {AttachmentUpload} from "./AttachmentUpload";
 import {DecryptionSource} from "../e2ee/common";
-import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels";
+import {PowerLevels} from "./PowerLevels";
+import {RoomEventType} from "../net/types/roomEvents";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -54,6 +55,9 @@ export class Room extends BaseRoom {
         return false;
     }
 
+    /**
+     * @return {RoomSyncPreparation} (find the type in Sync.ts)
+     */
     async prepareSync(roomResponse, membership, newKeys, txn, log) {
         log.set("id", this.id);
         if (newKeys) {
@@ -111,7 +115,11 @@ export class Room extends BaseRoom {
         }
     }
 
-    /** @package */
+    /**
+     * @package
+     * @arg3 {RoomSyncPreparation} (find it in Sync.ts)
+     * @return {RoomWriteSyncChanges} (find it in Sync.ts)
+     */
     async writeSync(roomResponse, isInitialSync, {summaryChanges, decryptChanges, roomEncryption, retryEntries}, txn, log) {
         log.set("id", this.id);
         const isRejoin = summaryChanges.isNewJoin(this._summary.data);
@@ -275,7 +283,7 @@ export class Room extends BaseRoom {
     }
 
     _getPowerLevelsEvent(roomResponse) {
-        const isPowerlevelEvent = event => event.state_key === "" && event.type === POWERLEVELS_EVENT_TYPE;
+        const isPowerlevelEvent = event => event.state_key === "" && event.type === RoomEventType.PowerLevels;
         const powerLevelEvent = roomResponse.timeline?.events.find(isPowerlevelEvent) ?? roomResponse.state?.events.find(isPowerlevelEvent);
         return powerLevelEvent;
     }

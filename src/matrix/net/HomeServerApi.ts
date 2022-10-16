@@ -125,8 +125,8 @@ export class HomeServerApi {
         return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
     }
 
-    sync(since: string, filter: string, timeout: number, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._get("/sync", {since, timeout, filter}, undefined, options);
+    sync(since: string, filter: string, timeout: number, options?: BaseRequestOptions): IHomeServerRequest<SyncResponse> {
+        return this._get("/sync", {since, timeout, filter}, undefined, {prefix: CS_V3_PREFIX, ...options});
     }
 
     context(roomId: string, eventId: string, limit: number, filter: string): IHomeServerRequest {
@@ -164,7 +164,7 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = false , options: BaseRequestOptions = {}): IHomeServerRequest {
+    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: BaseRequestOptions = {}): IHomeServerRequest {
         options.allowedStatusCodes = [401];
         const body: any = {
             auth,
@@ -308,6 +308,7 @@ export class HomeServerApi {
 }
 
 import {Request as MockRequest} from "../../mocks/Request";
+import { SyncResponse } from "./types/sync";
 
 export function tests() {
     return {

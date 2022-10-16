@@ -645,7 +645,10 @@ export class Session {
         }
     }
 
-    /** @internal */
+    /**
+     * @internal
+     * @return {SessionWriteSyncChanges} (find it in Sync.ts)
+     */
     async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
         const changes = {
             syncInfo: null,

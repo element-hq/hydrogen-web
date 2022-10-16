@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const EVENT_TYPE = "m.room.power_levels";
-
 export class PowerLevels {
     constructor({powerLevelEvent, createEvent, ownUserId, membership}) {
         this._plEvent = powerLevelEvent;
@@ -156,5 +154,5 @@ export function tests() {
             assert.equal(pl.canRedactFromSender(alice), false);
             assert.equal(pl.canSendType("m.room.message"), false);
         },
-    }
+    };
 }

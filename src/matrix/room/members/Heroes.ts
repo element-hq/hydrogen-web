@@ -49,6 +49,7 @@ export function calculateRoomName(
     }
 }
 
+
 export class Heroes {
     private _roomId: string;
     private _roomName?: string;
@@ -62,10 +63,7 @@ export class Heroes {
         newHeroes: string[],
         memberChanges: Map<string, MemberChange>,
         txn: Transaction
-    ): Promise<{
-        updatedHeroMembers: IterableIterator<RoomMember>;
-        removedUserIds: string[];
-    }> {
+    ): Promise<HeroChanges> {
         const updatedHeroMembers = new Map<string, RoomMember>();
         const removedUserIds: Array<string> = [];
         // remove non-present members
@@ -142,4 +140,9 @@ export class Heroes {
         }
         return null;
     }
+}
+
+export type HeroChanges = {
+    updatedHeroMembers: IterableIterator<RoomMember>;
+    removedUserIds: string[];
 }
