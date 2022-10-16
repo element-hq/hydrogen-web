@@ -150,8 +150,8 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
     // so emit all fields originating from summary
     _onRoomChange(): void {
         // propagate the update to the child view models so it's bindings can update based on room changes
-        this._composerVM?.emitChange("TODO");
-        this.emitChange("TODO");
+        this._composerVM?.emitChange("room");
+        this.emitChange("room");
     }
 
     get kind(): "room" { return "room"; }

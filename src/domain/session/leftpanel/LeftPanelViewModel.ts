@@ -15,40 +15,54 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel, Options as ViewModelOptions} from "../../ViewModel";
-import {BaseTileViewModel} from "./BaseTileViewModel";
-import {RoomTileViewModel} from "./RoomTileViewModel";
-import {InviteTileViewModel} from "./InviteTileViewModel";
-import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel";
-import {RoomFilter} from "./RoomFilter";
-import {ApplyMap, MappedMap, ObservableMap} from "../../../observable/";
-import {SortedMapList} from "../../../observable//list/SortedMapList";
-import {addPanelIfNeeded} from "../../navigation/index";
-import {Room} from "../../../matrix/room/Room";
-import {Invite} from "../../../matrix/room/Invite";
-import {RoomBeingCreated} from "../../../matrix/room/RoomBeingCreated";
-import {Session} from "../../../matrix/Session";
-import {SegmentType} from "../../navigation";
-import type {Path} from "../../navigation/Navigation";
+import { ViewModel, Options as ViewModelOptions } from "../../ViewModel";
+import { BaseTileViewModel } from "./BaseTileViewModel";
+import { RoomTileViewModel } from "./RoomTileViewModel";
+import { InviteTileViewModel } from "./InviteTileViewModel";
+import { RoomBeingCreatedTileViewModel } from "./RoomBeingCreatedTileViewModel";
+import { RoomFilter } from "./RoomFilter";
+import { ApplyMap, MappedMap, ObservableMap } from "../../../observable/";
+import { SortedMapList } from "../../../observable//list/SortedMapList";
+import { addPanelIfNeeded } from "../../navigation/index";
+import { Room } from "../../../matrix/room/Room";
+import { Invite } from "../../../matrix/room/Invite";
+import { RoomBeingCreated } from "../../../matrix/room/RoomBeingCreated";
+import { Session } from "../../../matrix/Session";
+import { SegmentType } from "../../navigation";
+import type { Path } from "../../navigation/Navigation";
 
 type LOptions = { session: Session } & ViewModelOptions;
 
-export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions> {
+export class LeftPanelViewModel extends ViewModel<
+    SegmentType,
+    ViewModelOptions
+> {
     private _currentTileVM?: BaseTileViewModel;
-    private _tileViewModelsMap: MappedMap<string, RoomBeingCreated | Invite | Room, BaseTileViewModel>;
+    private _tileViewModelsMap: MappedMap<
+        string,
+        RoomBeingCreated | Invite | Room,
+        BaseTileViewModel
+    >;
     private _tileViewModelsFilterMap: ApplyMap<string, BaseTileViewModel>;
     private _tileViewModels: SortedMapList<string, BaseTileViewModel>;
     private _closeUrl?: string = this.urlCreator.urlForSegment("session");
     private _settingsUrl?: string = this.urlCreator.urlForSegment("settings");
-    private _createRoomUrl?: string = this.urlCreator.urlForSegment("create-room");
+    private _createRoomUrl?: string =
+        this.urlCreator.urlForSegment("create-room");
     gridEnabled: boolean;
 
     constructor(options: LOptions) {
         super(options);
-        const {session} = options;
-        this._tileViewModelsMap = this._mapTileViewModels(session.roomsBeingCreated, session.invites, session.rooms);
+        const { session } = options;
+        this._tileViewModelsMap = this._mapTileViewModels(
+            session.roomsBeingCreated,
+            session.invites,
+            session.rooms
+        );
         this._tileViewModelsFilterMap = new ApplyMap(this._tileViewModelsMap);
-        this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
+        this._tileViewModels = this._tileViewModelsFilterMap.sortValues(
+            (a, b) => a.compare(b)
+        );
         this._setupNavigation();
         this._closeUrl = this.urlCreator.urlForSegment("session");
         this._settingsUrl = this.urlCreator.urlForSegment("settings");
@@ -60,28 +74,37 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
         rooms: ObservableMap<string, Room>
     ): MappedMap<string, RoomBeingCreated | Invite | Room, BaseTileViewModel> {
         // join is not commutative, invites will take precedence over rooms
-        const allTiles = invites.join(roomsBeingCreated, rooms).mapValues((item: RoomBeingCreated | Invite | Room, emitChange) => {
-            let vm: BaseTileViewModel;
-            if (item.isBeingCreated) {
-                vm = new RoomBeingCreatedTileViewModel(
-                        this.childOptions({roomBeingCreated: item as RoomBeingCreated, emitChange})
+        const allTiles = invites
+            .join(roomsBeingCreated, rooms)
+            .mapValues((item: RoomBeingCreated | Invite | Room, emitChange) => {
+                let vm: BaseTileViewModel;
+                if (item.isBeingCreated) {
+                    vm = new RoomBeingCreatedTileViewModel(
+                        this.childOptions({
+                            roomBeingCreated: item as RoomBeingCreated,
+                            emitChange,
+                        })
                     );
-            } else if (item.isInvite) {
-                vm = new InviteTileViewModel(
-                        this.childOptions({invite: item as Invite, emitChange})
+                } else if (item.isInvite) {
+                    vm = new InviteTileViewModel(
+                        this.childOptions({
+                            invite: item as Invite,
+                            emitChange,
+                        })
                     );
-            } else {
-                vm = new RoomTileViewModel(
-                        this.childOptions({room: item as Room, emitChange})
+                } else {
+                    vm = new RoomTileViewModel(
+                        this.childOptions({ room: item as Room, emitChange })
                     );
-            }
-            const isOpen = this.navigation.path.get("room")?.value === item.id;
-            if (isOpen) {
-                vm.open();
-                this._updateCurrentVM(vm);
-            }
-            return vm;
-        });
+                }
+                const isOpen =
+                    this.navigation.path.get("room")?.value === item.id;
+                if (isOpen) {
+                    vm.open();
+                    this._updateCurrentVM(vm);
+                }
+                return vm;
+            });
         return allTiles;
     }
 
@@ -111,20 +134,24 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
 
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");
-        this.track(roomObservable.subscribe(roomId => this._open(roomId as string)));
+        this.track(
+            roomObservable.subscribe((roomId) => this._open(roomId as string))
+        );
 
         const gridObservable = this.navigation.observe("rooms");
         this.gridEnabled = !!gridObservable.get();
-        this.track(gridObservable.subscribe((roomIds: string[]) => {
-            const xor = (b1: boolean, b2: boolean): boolean => {
-                return (b1 || b2) && !(b1 && b2);
-            };
-            const changed = xor(this.gridEnabled, !!roomIds);
-            this.gridEnabled = !!roomIds;
-            if (changed) {
-                this.emitChange("gridEnabled");
-            }
-        }));
+        this.track(
+            gridObservable.subscribe((roomIds: string[]) => {
+                const xor = (b1: boolean, b2: boolean): boolean => {
+                    return (b1 || b2) && !(b1 && b2);
+                };
+                const changed = xor(this.gridEnabled, !!roomIds);
+                this.gridEnabled = !!roomIds;
+                if (changed) {
+                    this.emitChange("gridEnabled");
+                }
+            })
+        );
     }
 
     _open(roomId: string): void {
@@ -146,12 +173,18 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
             }
         } else {
             if (room) {
-                path = path.with(this.navigation.segment("rooms", [room.value])) as Path<SegmentType>;
+                path = path.with(
+                    this.navigation.segment("rooms", [room.value])
+                ) as Path<SegmentType>;
                 path = path.with(room) as Path<SegmentType>;
                 path = addPanelIfNeeded(this.navigation, path);
             } else {
-                path = path.with(this.navigation.segment("rooms", [])) as Path<SegmentType>;
-                path = path.with(this.navigation.segment("empty-grid-tile", 0)) as Path<SegmentType>;
+                path = path.with(
+                    this.navigation.segment("rooms", [])
+                ) as Path<SegmentType>;
+                path = path.with(
+                    this.navigation.segment("empty-grid-tile", 0)
+                ) as Path<SegmentType>;
             }
         }
         this.navigation.applyPath(path);
@@ -163,7 +196,9 @@ export class LeftPanelViewModel extends ViewModel<SegmentType, ViewModelOptions>
 
     clearFilter(): void {
         this._tileViewModelsFilterMap.setApply(undefined);
-        this._tileViewModelsFilterMap.applyOnce((_roomId, vm) => vm.hidden = false);
+        this._tileViewModelsFilterMap.applyOnce(
+            (_roomId, vm) => (vm.hidden = false)
+        );
     }
 
     setFilter(query: string): boolean {

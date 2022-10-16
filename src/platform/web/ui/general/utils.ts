@@ -22,6 +22,9 @@ export function mountView(view: IView, mountArgs?: IMountArgs): ViewNode {
     try {
         node = view.mount(mountArgs);
     } catch (err) {
+        // Log it to the console so it's easy to reference
+        console.error(err);
+        // Then render our error boundary to the DOM
         node = errorToDOM(err);
     }
     return node;
