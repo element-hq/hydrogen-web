@@ -80,6 +80,9 @@ export class RoomEncryption {
         this._senderDeviceCache = new Map();    // purge the sender device cache
     }
 
+    /**
+     * @return {RoomEncryptionWriteSyncChanges} (find it in Sync.ts)
+     */
     async writeSync(roomResponse, memberChanges, txn, log) {
         let historyVisibility = await this._loadHistoryVisibilityIfNeeded(this._historyVisibility, txn);
         const addedMembers = [];

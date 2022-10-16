@@ -40,6 +40,7 @@ export function calculateRoomName(sortedMembers, summaryData, log) {
     }
 }
 
+
 export class Heroes {
     constructor(roomId) {
         this._roomId = roomId;
@@ -50,7 +51,7 @@ export class Heroes {
      * @param  {string[]} newHeroes      array of user ids
      * @param  {Map<string, MemberChange>} memberChanges map of changed memberships
      * @param  {Transaction} txn
-     * @return {Promise}
+     * @return {Promise<HeroChanges>} (defined in Sync.ts)
      */
     async calculateChanges(newHeroes, memberChanges, txn) {
         const updatedHeroMembers = new Map();
