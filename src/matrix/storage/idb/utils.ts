@@ -83,7 +83,11 @@ export function openDatabase(name: string, createObjectStore: CreateObjectStore,
             // try aborting on error, if that hasn't been done already
             try {
                 txn.abort();
-            } catch (err) {}
+            } catch (err) {
+                // No-op: `InvalidStateError` is only thrown if the transaction has
+                // already been committed or aborted. Since we wanted the txn to
+                // be aborted anyway, it doesn't matter if this fails.
+            }
         }
     }; 
     return reqAsPromise(req);
