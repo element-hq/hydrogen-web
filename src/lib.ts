@@ -17,6 +17,7 @@ limitations under the License.
 export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
+export {PowerLevels} from "./matrix/room/PowerLevels.js";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
