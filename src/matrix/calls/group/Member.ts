@@ -30,6 +30,7 @@ import type {RoomMember} from "../../room/members/RoomMember";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
 import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import type {Clock, Timeout} from "../../../platform/web/dom/Clock";
 
 export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage" | "turnServer"> & {
     confId: string,
@@ -40,6 +41,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
     emitUpdate: (participant: Member, params?: any) => void,
+    clock: Clock
 }
 
 const errorCodesWithoutRetry = [
@@ -65,18 +67,61 @@ class MemberConnection {
         public turnServer: BaseObservableValue<RTCIceServer>,
         public readonly logItem: ILogItem
     ) {}
+
+    get canDequeueNextSignallingMessage() {
+        if (this.queuedSignallingMessages.length === 0) {
+            return false;
+        }
+        if (this.lastProcessedSeqNr === undefined) {
+            return true;
+        }
+        const first = this.queuedSignallingMessages[0];
+        // allow messages with both a seq we've just seen and
+        // the next one to be dequeued as it can happen
+        // that messages for other callIds (which could repeat seq)
+        // are present in the queue
+        return first.content.seq === this.lastProcessedSeqNr ||
+            first.content.seq === this.lastProcessedSeqNr + 1;
+    }
+
+    dispose() {
+        this.peerCall?.dispose();
+        this.localMedia.dispose();
+        this.logItem.finish();
+    }
 }
 
 export class Member {
     private connection?: MemberConnection;
+    private expireTimeout?: Timeout;
 
     constructor(
         public member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
         private _deviceIndex: number,
         private _eventTimestamp: number,
-        private readonly options: Options,
-    ) {}
+        private options: Options,
+        updateMemberLog: ILogItem
+    ) {
+        this._renewExpireTimeout(updateMemberLog);
+    }
+
+    private _renewExpireTimeout(log: ILogItem) {
+        this.expireTimeout?.dispose();
+        this.expireTimeout = undefined;
+        const expiresAt = memberExpiresAt(this.callDeviceMembership);
+        if (typeof expiresAt !== "number") {
+            return;
+        }
+        const expiresFromNow = Math.max(0, expiresAt - this.options.clock.now());
+        log?.set("expiresIn", expiresFromNow);
+        // add 10ms to make sure isExpired returns true
+        this.expireTimeout = this.options.clock.createTimeout(expiresFromNow + 10);
+        this.expireTimeout.elapsed().then(
+            () => { this.options.emitUpdate(this, "isExpired"); },
+            (err) => { /* ignore abort error */ },
+        );
+    }
 
     /**
      * Gives access the log item for this item once joined to the group call.
@@ -89,6 +134,11 @@ export class Member {
 
     get remoteMedia(): RemoteMedia | undefined {
         return this.connection?.peerCall?.remoteMedia;
+    }
+
+    get isExpired(): boolean {
+        // never consider a peer we're connected to, to be expired
+        return !this.isConnected && isMemberExpired(this.callDeviceMembership, this.options.clock.now());
     }
 
     get remoteMuteSettings(): MuteSettings | undefined {
@@ -176,18 +226,15 @@ export class Member {
             return;
         }
         let disconnectLogItem;
+        // if if not sending the hangup, still log disconnect
         connection.logItem.wrap("disconnect", async log => {
             disconnectLogItem = log;
-            if (hangup) {
-                await connection.peerCall?.hangup(CallErrorCode.UserHangup, log);
-            } else {
-                await connection.peerCall?.close(undefined, log);
+            if (hangup && connection.peerCall) {
+                await connection.peerCall.hangup(CallErrorCode.UserHangup, log);
             }
-            connection.peerCall?.dispose();
-            connection.localMedia?.dispose();
-            this.connection = undefined;
         });
-        connection.logItem.finish();
+        connection.dispose();
+        this.connection = undefined;
         return disconnectLogItem;
     }
 
@@ -202,6 +249,7 @@ export class Member {
         this._deviceIndex = deviceIndex;
         this._eventTimestamp = eventTimestamp;
 
+        this._renewExpireTimeout(causeItem);
         if (this.connection) {
             this.connection.logItem.refDetached(causeItem);
         }
@@ -298,6 +346,7 @@ export class Member {
                     }
                     if (shouldReplace) {
                         connection.peerCall = undefined;
+                        action = IncomingMessageAction.Handle;
                     }
                 }
             }
@@ -324,12 +373,7 @@ export class Member {
 
     private dequeueSignallingMessages(connection: MemberConnection, peerCall: PeerCall, newMessage: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): boolean {
         let hasNewMessageBeenDequeued = false;
-        while (
-            connection.queuedSignallingMessages.length && (
-                connection.lastProcessedSeqNr === undefined ||
-                connection.queuedSignallingMessages[0].content.seq === connection.lastProcessedSeqNr + 1
-            )
-       ) {
+        while (connection.canDequeueNextSignallingMessage) {
             const message = connection.queuedSignallingMessages.shift()!;
             if (message === newMessage) {
                 hasNewMessageBeenDequeued = true;
@@ -370,4 +414,25 @@ export class Member {
             turnServer: connection.turnServer
         }), connection.logItem);
     }
+
+    dispose() {
+        this.connection?.dispose();
+        this.connection = undefined;
+        this.expireTimeout?.dispose();
+        this.expireTimeout = undefined;
+        // ensure the emitUpdate callback can't be called anymore
+        this.options = undefined as any as Options;
+    }
+}
+
+export function memberExpiresAt(callDeviceMembership: CallDeviceMembership): number | undefined {
+    const expiresAt = callDeviceMembership["m.expires_ts"];
+    if (Number.isSafeInteger(expiresAt)) {
+        return expiresAt;
+    }
+}
+
+export function isMemberExpired(callDeviceMembership: CallDeviceMembership, now: number, margin: number = 0) {
+    const expiresAt = memberExpiresAt(callDeviceMembership);
+    return typeof expiresAt === "number" && ((expiresAt + margin) <= now);
 }

@@ -21,7 +21,9 @@ function noop (): void {}
 export class NullLogger implements ILogger {
     public readonly item: ILogItem = new NullLogItem(this);
 
-    log(): void {}
+    log(): ILogItem {
+        return this.item;
+    }
 
     addReporter() {}
 

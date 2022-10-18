@@ -68,7 +68,7 @@ export interface ILogItemCreator {
 */
 
 export interface ILogger {
-    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): void;
+    log(labelOrValues: LabelOrValues, logLevel?: LogLevel): ILogItem;
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
     wrapOrRun<T>(item: ILogItem | undefined, labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): T;
     runDetached<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;

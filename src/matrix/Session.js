@@ -78,6 +78,7 @@ export class Session {
         this._user = new User(sessionInfo.userId);
         this._callHandler = new CallHandler({
             clock: this._platform.clock,
+            random: this._platform.random,
             hsApi: this._hsApi,
             encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
                 if (!this._deviceTracker || !this._olmEncryption) {
