@@ -10,5 +10,4 @@ lib
 *.tar.gz
 .eslintcache
 .tmp
-cypress/videos
-cypress/synapselogs
+playwright/synapselogs

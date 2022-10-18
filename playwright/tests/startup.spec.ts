@@ -13,23 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import { test } from '@playwright/test';
 
-/// <reference types="cypress" />
-
-import PluginEvents = Cypress.PluginEvents;
-import PluginConfigOptions = Cypress.PluginConfigOptions;
-
-export function log(on: PluginEvents, config: PluginConfigOptions) {
-    on("task", {
-        log(message: string) {
-            console.log(message);
-
-            return null;
-        },
-        table(message: string) {
-            console.table(message);
-
-            return null;
-        },
-    });
-}
+test("App has no startup errors that prevent UI render", async ({ page }) => {
+    await page.goto('/');
+    await page.getByText('Log In', { exact: true }).waitFor();
+});

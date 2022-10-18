@@ -14,7 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/// <reference types="cypress" />
+const env = {
+    SYNAPSE_IP_ADDRESS: "172.18.0.5",
+    SYNAPSE_PORT: "8008",
+    DEX_IP_ADDRESS: "172.18.0.4",
+    DEX_PORT: "5556",
+}
 
-import "./synapse";
-import "./dex";
+export default function setupEnvironmentVariables() {
+    for (const [key, value] of Object.entries(env)) {
+        process.env[key] = value;
+    }
+}

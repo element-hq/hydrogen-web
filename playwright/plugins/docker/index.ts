@@ -20,11 +20,6 @@ import * as os from "os";
 import * as childProcess from "child_process";
 import * as fse from "fs-extra";
 
-import PluginEvents = Cypress.PluginEvents;
-import PluginConfigOptions = Cypress.PluginConfigOptions;
-
-// A cypress plugin to run docker commands
-
 export function dockerRun(args: {
     image: string;
     containerName: string;
@@ -48,8 +43,7 @@ export function dockerRun(args: {
             ...params,
             args.image,
             ... appParams
-        ], (err, stdout, stderr) => {
-            console.log("error", err, "stdout", stdout, "stderr", stderr);
+        ], (err, stdout) => {
             if (err) {
                 reject(err);
             }
@@ -153,20 +147,5 @@ export function dockerRm(args: {
             }
             resolve();
         });
-    });
-}
-
-/**
- * @type {Cypress.PluginConfig}
- */
-export function docker(on: PluginEvents, config: PluginConfigOptions) {
-    console.log("Code gets to here!");
-    on("task", {
-        dockerRun,
-        dockerExec,
-        dockerLogs,
-        dockerStop,
-        dockerRm,
-        dockerCreateNetwork
     });
 }

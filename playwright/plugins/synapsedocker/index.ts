@@ -21,9 +21,8 @@ import * as os from "os";
 import * as crypto from "crypto";
 import * as fse from "fs-extra";
 
-import PluginEvents = Cypress.PluginEvents;
-import PluginConfigOptions = Cypress.PluginConfigOptions;
 import { dockerCreateNetwork, dockerExec, dockerLogs, dockerRun, dockerStop } from "../docker";
+import { request } from "@playwright/test";
 
 
 // A cypress plugins to add command to start & stop synapses in
@@ -43,7 +42,6 @@ export interface SynapseInstance extends SynapseConfig {
 }
 
 const synapses = new Map<string, SynapseInstance>();
-let env;
 
 function randB64Bytes(numBytes: number): string {
     return crypto.randomBytes(numBytes).toString("base64").replace(/=*$/, "");
@@ -56,7 +54,7 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
     if (!stats?.isDirectory) {
         throw new Error(`No such template: ${template}`);
     }
-    const tempDir = await fse.mkdtemp(path.join(os.tmpdir(), 'react-sdk-synapsedocker-'));
+    const tempDir = await fse.mkdtemp(path.join(os.tmpdir(), 'synapsedocker-'));
 
     // copy the contents of the template dir, omitting homeserver.yaml as we'll template that
     console.log(`Copy ${templateDir} -> ${tempDir}`);
@@ -66,9 +64,10 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
     const macaroonSecret = randB64Bytes(16);
     const formSecret = randB64Bytes(16);
 
-    const host = env["SYNAPSE_IP_ADDRESS"];
-    const port = parseInt(env["SYNAPSE_PORT"], 10);
-    const baseUrl = `http://${host}:${port}`;
+    const synapseHost = process.env["SYNAPSE_IP_ADDRESS"]!!;
+    const synapsePort = parseInt(process.env["SYNAPSE_PORT"]!, 10);
+    const baseUrl = `http://${synapseHost}:${synapsePort}`;
+
 
     // now copy homeserver.yaml, applying substitutions
     console.log(`Gen ${path.join(templateDir, "homeserver.yaml")}`);
@@ -77,7 +76,10 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
     hsYaml = hsYaml.replace(/{{MACAROON_SECRET_KEY}}/g, macaroonSecret);
     hsYaml = hsYaml.replace(/{{FORM_SECRET}}/g, formSecret);
     hsYaml = hsYaml.replace(/{{PUBLIC_BASEURL}}/g, baseUrl);
-    const dexUrl = `http://${env["DEX_IP_ADDRESS"]}:${env["DEX_PORT"]}/dex`;
+
+    const dexHost = process.env["DEX_IP_ADDRESS"];
+    const dexPort = process.env["DEX_PORT"];
+    const dexUrl = `http://${dexHost}:${dexPort}/dex`;
     hsYaml = hsYaml.replace(/{{OIDC_ISSUER}}/g, dexUrl);
     await fse.writeFile(path.join(tempDir, "homeserver.yaml"), hsYaml);
 
@@ -89,8 +91,8 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
     await fse.writeFile(path.join(tempDir, "localhost.signing.key"), `ed25519 x ${signingKey}`);
 
     return {
-        port,
-        host,
+        port: synapsePort,
+        host: synapseHost,
         baseUrl,
         configDir: tempDir,
         registrationSecret,
@@ -100,7 +102,7 @@ async function cfgDirFromTemplate(template: string): Promise<SynapseConfig> {
 // Start a synapse instance: the template must be the name of
 // one of the templates in the cypress/plugins/synapsedocker/templates
 // directory
-async function synapseStart(template: string): Promise<SynapseInstance> {
+export async function synapseStart(template: string): Promise<SynapseInstance> {
     const synCfg = await cfgDirFromTemplate(template);
     console.log(`Starting synapse with config dir ${synCfg.configDir}...`);
     await dockerCreateNetwork({ networkName: "hydrogen" });
@@ -143,12 +145,12 @@ async function synapseStart(template: string): Promise<SynapseInstance> {
     return synapse;
 }
 
-async function synapseStop(id: string): Promise<void> {
+export async function synapseStop(id: string): Promise<void> {
     const synCfg = synapses.get(id);
 
     if (!synCfg) throw new Error("Unknown synapse ID");
 
-    const synapseLogsPath = path.join("cypress", "synapselogs", id);
+    const synapseLogsPath = path.join("playwright", "synapselogs", id);
     await fse.ensureDir(synapseLogsPath);
 
     await dockerLogs({
@@ -162,42 +164,40 @@ async function synapseStop(id: string): Promise<void> {
     });
 
     await fse.remove(synCfg.configDir);
-
     synapses.delete(id);
-
     console.log(`Stopped synapse id ${id}.`);
-    // cypress deliberately fails if you return 'undefined', so
-    // return null to signal all is well, and we've handled the task.
-    return null;
 }
 
-/**
- * @type {Cypress.PluginConfig}
- */
-export function synapseDocker(on: PluginEvents, config: PluginConfigOptions) {
-    env = config.env;
 
-    
-    on("task", {
-        synapseStart,
-        synapseStop,
-    });
 
-    on("after:spec", async (spec) => {
-        // Cleans up any remaining synapse instances after a spec run
-        // This is on the theory that we should avoid re-using synapse
-        // instances between spec runs: they should be cheap enough to
-        // start that we can have a separate one for each spec run or even
-        // test. If we accidentally re-use synapses, we could inadvertently
-        // make our tests depend on each other.
-        for (const synId of synapses.keys()) {
-            console.warn(`Cleaning up synapse ID ${synId} after ${spec.name}`);
-            await synapseStop(synId);
+interface Credentials {
+    accessToken: string;
+    userId: string;
+    deviceId: string;
+    homeServer: string;
+}
+
+export async function registerUser(synapse: SynapseInstance, username: string, password: string, displayName?: string,): Promise<Credentials> {
+    const url = `${synapse.baseUrl}/_synapse/admin/v1/register`;
+    const context = await request.newContext({ baseURL: url }); 
+    const { nonce } = await (await context.get(url)).json();
+    const mac = crypto.createHmac('sha1', synapse.registrationSecret).update(
+        `${nonce}\0${username}\0${password}\0notadmin`,
+    ).digest('hex');
+    const response = await (await context.post(url, {
+        data: {
+            nonce,
+            username,
+            password,
+            mac,
+            admin: false,
+            displayname: displayName,
         }
-    });
-
-    on("before:run", async () => {
-        // tidy up old synapse log files before each run
-        await fse.emptyDir(path.join("cypress", "synapselogs"));
-    });
+    })).json();
+    return {
+        homeServer: response.home_server,
+        accessToken: response.access_token,
+        userId: response.user_id,
+        deviceId: response.device_id,
+    };
 }

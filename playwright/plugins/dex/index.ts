@@ -20,8 +20,6 @@ import * as path from "path";
 import * as os from "os";
 import * as fse from "fs-extra";
 
-import PluginEvents = Cypress.PluginEvents;
-import PluginConfigOptions = Cypress.PluginConfigOptions;
 import {dockerRun, dockerStop } from "../docker";
 
 // A cypress plugins to add command to start & stop dex instances
@@ -38,7 +36,6 @@ export interface DexInstance extends DexConfig {
 }
 
 const dexConfigs = new Map<string, DexInstance>();
-let env;
 
 async function produceConfigWithSynapseURLAdded(): Promise<DexConfig> {
     const templateDir = path.join(__dirname, "template");
@@ -56,24 +53,26 @@ async function produceConfigWithSynapseURLAdded(): Promise<DexConfig> {
     // now copy config.yaml, applying substitutions
     console.log(`Gen ${path.join(templateDir, "config.yaml")}`);
     let hsYaml = await fse.readFile(path.join(templateDir, "config.yaml"), "utf8");
-    const synapseAddress = `${env.SYNAPSE_IP_ADDRESS}:${env.SYNAPSE_PORT}`;
+    const synapseHost = process.env.SYNAPSE_IP_ADDRESS;
+    const synapsePort = process.env.SYNAPSE_PORT;
+    const synapseAddress = `${synapseHost}:${synapsePort}`;
     hsYaml = hsYaml.replace(/{{SYNAPSE_ADDRESS}}/g, synapseAddress);
-    const host = env.DEX_IP_ADDRESS;
-    const port = env.DEX_PORT;
-    const dexAddress = `${host}:${port}`;
+    const dexHost = process.env.DEX_IP_ADDRESS!;
+    const dexPort = parseInt(process.env.DEX_PORT!, 10);
+    const dexAddress = `${dexHost}:${dexPort}`;
     hsYaml = hsYaml.replace(/{{DEX_ADDRESS}}/g, dexAddress);
     await fse.writeFile(path.join(tempDir, "config.yaml"), hsYaml);
 
-    const baseUrl = `http://${host}:${port}`;
+    const baseUrl = `http://${dexHost}:${dexPort}`;
     return {
-        host,
-        port,
+        host: dexHost,
+        port: dexPort,
         baseUrl,
         configDir: tempDir,
     };
 }
 
-async function dexStart(): Promise<DexInstance> {
+export async function dexStart(): Promise<DexInstance> {
     const dexCfg = await produceConfigWithSynapseURLAdded();
     console.log(`Starting dex with config dir ${dexCfg.configDir}...`);
     const dexId = await dockerRun({
@@ -99,34 +98,11 @@ async function dexStart(): Promise<DexInstance> {
     return dex;
 }
 
-async function dexStop(id: string): Promise<void> {
+export async function dexStop(id: string): Promise<void> {
     const dexCfg = dexConfigs.get(id);
     if (!dexCfg) throw new Error("Unknown dex ID");
     await dockerStop({ containerId: id, });
     await fse.remove(dexCfg.configDir);
     dexConfigs.delete(id);
     console.log(`Stopped dex id ${id}.`);
-    // cypress deliberately fails if you return 'undefined', so
-    // return null to signal all is well, and we've handled the task.
-    return null;
 }
-
-/**
- * @type {Cypress.PluginConfig}
- */
-export function dexDocker(on: PluginEvents, config: PluginConfigOptions) {
-    env = config.env;
-
-    on("task", {
-        dexStart,
-        dexStop,
-    });
-
-    on("after:spec", async (spec) => {
-        for (const dexId of dexConfigs.keys()) {
-            console.warn(`Cleaning up dex ID ${dexId} after ${spec.name}`);
-            await dexStop(dexId);
-        }
-    });
-}
-
