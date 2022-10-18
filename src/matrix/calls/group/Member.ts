@@ -434,5 +434,5 @@ export function memberExpiresAt(callDeviceMembership: CallDeviceMembership): num
 
 export function isMemberExpired(callDeviceMembership: CallDeviceMembership, now: number, margin: number = 0) {
     const expiresAt = memberExpiresAt(callDeviceMembership);
-    return typeof expiresAt === "number" && ((expiresAt + margin) <= now);
+    return typeof expiresAt === "number" ? ((expiresAt + margin) <= now) : true;
 }
