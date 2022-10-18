@@ -80,7 +80,7 @@ export class CallView extends TemplateView<CallViewModel> {
 
     public unmount() {
         if (this.resizeObserver) {
-            this.resizeObserver.unobserve((this.root()! as Element).querySelector(".CallView_members"));
+            this.resizeObserver.unobserve((this.root()! as Element).querySelector(".CallView_members")!);
             this.resizeObserver = undefined;
         }
         super.unmount();
