@@ -95,8 +95,7 @@ export {
     MappedList,
     AsyncMappedList,
     ConcatList,
-    ObservableMap
-} from "./observable/index";
+} from "./observable";
 export {
     BaseObservableValue,
     ObservableValue,
