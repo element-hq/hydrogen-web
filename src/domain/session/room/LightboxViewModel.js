@@ -30,7 +30,7 @@ export class LightboxViewModel extends ViewModel {
 
     _subscribeToEvent(room, eventId) {
         let event = this._eventEntry;
-        if (!this._eventEntry) {
+        if (!event) {
             const eventObservable = room.observeEvent(eventId);
             this.track(eventObservable.subscribe(eventEntry => {
                 this._loadEvent(room, eventEntry);
