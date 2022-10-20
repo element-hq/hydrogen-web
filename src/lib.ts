@@ -75,6 +75,7 @@ export {TextMessageView} from "./platform/web/ui/session/room/timeline/TextMessa
 export {VideoView} from "./platform/web/ui/session/room/timeline/VideoView.js";
 
 export {Navigation} from "./domain/navigation/Navigation.js";
+export {URLRouter} from "./domain/navigation/URLRouter";
 export {History} from "./platform/web/dom/History.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
