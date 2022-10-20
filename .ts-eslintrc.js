@@ -23,7 +23,6 @@ module.exports = {
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": ["warn"],
         "no-undef": "off",
-        "semi": ["error", "always"],
-        "@typescript-eslint/explicit-function-return-type": ["error"]
+        "semi": ["error", "always"]
     }
-};
+}
