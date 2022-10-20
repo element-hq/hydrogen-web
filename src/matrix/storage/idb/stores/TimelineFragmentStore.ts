@@ -24,7 +24,7 @@ export interface Fragment {
     id: number;
     previousId: number | null;
     nextId: number | null;
-    previousToken: string | null;
+    previousToken?: string;
     nextToken: string | null;
 }
 

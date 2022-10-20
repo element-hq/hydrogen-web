@@ -110,7 +110,7 @@ type RoomSummary = {
   'm.joined_member_count'?: number;
 };
 
-type Timeline = {
+export type Timeline = {
   events?: ClientEventWithoutRoomID[];
   limited?: boolean;
   prev_batch?: string;

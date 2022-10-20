@@ -12,7 +12,7 @@ import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {ILogItem} from "../../../logging/types";
 
 
-export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) => Promise<void> | void;
+export type MigrationFunc = (db: IDBDatabase, txn?: IDBTransaction, localStorage?: IDOMStorage, log?: ILogItem) => Promise<void> | void;
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
 // the index in the array is the database version
 export const schema: MigrationFunc[] = [
@@ -188,7 +188,7 @@ function createTimelineRelationsStore(db: IDBDatabase) : void {
 function fixMissingRoomsInUserIdentities() {}
 
 // v12 move ssssKey to e2ee:ssssKey so it will get backed up in the next step
-async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
+async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
     const session = txn.objectStore("session");
     const ssssKey = await reqAsPromise(session.get("ssssKey"));
     if (ssssKey) {
@@ -196,7 +196,7 @@ async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
     }
 }
 // v13
-async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) {
+async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
     const session = txn.objectStore("session");
     const sessionStore = new SessionStore(new Store(session, createDatabaseNameHelper(db)), localStorage);
     // if we already have an e2ee identity, write a backup to local storage.
@@ -238,7 +238,7 @@ async function clearAllStores(db: IDBDatabase, txn: IDBTransaction) {
 }
 
 // v15 add backup index to inboundGroupSessions
-async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem): Promise<void> {
+async function addInboundSessionBackupIndex(db: IDBDatabase, txn: IDBTransaction): Promise<void> {
     const inboundGroupSessions = txn.objectStore("inboundGroupSessions");
     inboundGroupSessions.createIndex("byBackup", "backup", {unique: false});
 }

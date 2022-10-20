@@ -18,6 +18,7 @@ limitations under the License.
 import {MAX_UNICODE} from "./common";
 import {Store} from "../Store";
 import {StateEvent} from "../../types";
+import type {RoomEventType} from "../../../net/types/roomEvents";
 
 function encodeKey(roomId: string, eventType: string, stateKey: string) {
      return `${roomId}|${eventType}|${stateKey}`;
@@ -36,7 +37,11 @@ export class RoomStateStore {
         this._roomStateStore = idbStore;
     }
 
-    get(roomId: string, type: string, stateKey: string): Promise<RoomStateEntry | undefined> {
+    get(
+      roomId: string,
+      type: RoomEventType.PowerLevels | RoomEventType.Create | RoomEventType.HistoryVisibility,
+      stateKey: string
+    ): Promise<RoomStateEntry | undefined> {
         const key = encodeKey(roomId, type, stateKey);
         return this._roomStateStore.get(key);
     }

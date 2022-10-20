@@ -20,9 +20,8 @@ import {mergeMap} from "../../utils/mergeMap";
 import {groupBy} from "../../utils/groupBy";
 import {makeTxnId} from "../common";
 import {iterateResponseStateEvents} from "../room/common";
+import {RoomEventType} from "../net/types/roomEvents";
 
-const ENCRYPTED_TYPE = "m.room.encrypted";
-const ROOM_HISTORY_VISIBILITY_TYPE = "m.room.history_visibility";
 // how often ensureMessageKeyIsShared can check if it needs to
 // create a new outbound session
 // note that encrypt could still create a new session
@@ -91,7 +90,7 @@ export class RoomEncryption {
         await iterateResponseStateEvents(roomResponse, event => {
             // TODO: can the same state event appear twice? Hence we would be rewriting the useridentities twice...
             // we'll see in the logs
-            if(event.state_key === "" && event.type === ROOM_HISTORY_VISIBILITY_TYPE) {
+            if(event.state_key === "" && event.type === RoomEventType.HistoryVisibility) {
                 const newHistoryVisibility = event?.content?.history_visibility;
                 if (newHistoryVisibility !== historyVisibility) {
                     return log.wrap({
@@ -139,7 +138,7 @@ export class RoomEncryption {
             if (!txn) {
                 txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
             }
-            const visibilityEntry = await txn.roomState.get(this._room.id, ROOM_HISTORY_VISIBILITY_TYPE, "");
+            const visibilityEntry = await txn.roomState.get(this._room.id, RoomEventType.HistoryVisibility, "");
             if (visibilityEntry) {
                 return visibilityEntry.event?.content?.history_visibility;
             }
@@ -311,7 +310,7 @@ export class RoomEncryption {
             await log.wrap("share key", log => this._shareNewRoomKey(megolmResult.roomKeyMessage, hsApi, log));
         }
         return {
-            type: ENCRYPTED_TYPE,
+            type: RoomEventType.Encrypted,
             content: megolmResult.content
         };
     }
@@ -404,7 +403,7 @@ export class RoomEncryption {
         const messages = await log.wrap("olm encrypt", log => this._olmEncryption.encrypt(
             "m.room_key", operation.roomKeyMessage, devices, hsApi, log));
         const missingDevices = devices.filter(d => !messages.some(m => m.device === d));
-        await log.wrap("send", log => this._sendMessagesToDevices(ENCRYPTED_TYPE, messages, hsApi, log));
+        await log.wrap("send", log => this._sendMessagesToDevices(RoomEventType.Encrypted, messages, hsApi, log));
         if (missingDevices.length) {
             await log.wrap("missingDevices", async log => {
                 log.set("devices", missingDevices.map(d => d.deviceId));
@@ -594,7 +593,7 @@ export function tests() {
                 }
             }
             const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
-            writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
+            writeTxn.roomState.set(roomId, {state_key: "", type: RoomEventType.HistoryVisibility, content: {
                 history_visibility: "invited"
             }});
             await writeTxn.complete();
@@ -644,7 +643,7 @@ export function tests() {
                 }
             }
             const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
-            writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
+            writeTxn.roomState.set(roomId, {state_key: "", type: RoomEventType.HistoryVisibility, content: {
                 history_visibility: "invited"
             }});
             await writeTxn.complete();
@@ -678,7 +677,7 @@ export function tests() {
                 }
             }
             const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
-            writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
+            writeTxn.roomState.set(roomId, {state_key: "", type: RoomEventType.HistoryVisibility, content: {
                 history_visibility: "invited"
             }});
             const memberChanges = new Map([["@alice:hs.tld", {}]]);

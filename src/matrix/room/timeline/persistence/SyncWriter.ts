@@ -28,6 +28,7 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type {Fragment} from "../../../storage/idb/stores/TimelineFragmentStore";
 import type {BaseEntry} from "../entries/BaseEntry";
 import type {StateEvent,TimelineEvent} from "../../../storage/types";
+import type {JoinedRoom, LeftRoom, Timeline} from "../../../net/types/sync";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -76,11 +77,11 @@ export class SyncWriter {
         }
     }
 
-    async _createLiveFragment(txn: Transaction, previousToken: string | null): Promise<Fragment> {
+    async _createLiveFragment(txn: Transaction, previousToken?: string): Promise<Fragment> {
         const liveFragment = await txn.timelineFragments.liveFragment(this._roomId);
         if (!liveFragment) {
             if (!previousToken) {
-                previousToken = null;
+                previousToken = undefined;
             }
             const fragment = {
                 roomId: this._roomId,
@@ -101,7 +102,7 @@ export class SyncWriter {
     async _replaceLiveFragment(
         oldFragmentId: number,
         newFragmentId: number,
-        previousToken: string | null,
+        previousToken: string | undefined,
         txn: Transaction
     ): Promise<{ oldFragment: Fragment; newFragment: Fragment }> {
         const oldFragment = await txn.timelineFragments.get(this._roomId, oldFragmentId);
@@ -134,7 +135,7 @@ export class SyncWriter {
      async _ensureLiveFragment(
         currentKey: EventKey,
         entries: Array<BaseEntry>,
-        timeline: { prev_batch: any; limited: any },
+        timeline: Timeline,
         txn: Transaction,
         log: ILogItem
     ): Promise<EventKey> {
@@ -173,7 +174,7 @@ export class SyncWriter {
 
     async _writeTimeline(
         timelineEvents: StateEvent[],
-        timeline: { prev_batch: any; limited: any },
+        timeline: Timeline,
         memberSync: MemberSync,
         currentKey: EventKey | undefined,
         txn: Transaction,
@@ -247,39 +248,29 @@ export class SyncWriter {
         return timeline;
     }
 
-    /**
-     * @type {SyncWriterResult}
-     * @property {Array<BaseEntry>} entries new timeline entries written
-     * @property {EventKey} newLiveKey the advanced key to write events at
-     *
-     * @param  {Object}  roomResponse [description]
-     * @param  {boolean}  isRejoin whether the room was rejoined in the sync being processed
-     * @param  {Transaction}  txn
-     * @return {SyncWriterResult}
-     */
-    async writeSync(roomResponse: any, isRejoin: boolean, hasFetchedMembers: boolean, txn: Transaction, log: ILogItem): Promise<SyncWriterResult> {
+    async writeSync(roomResponse: JoinedRoom | LeftRoom, isRejoin: boolean, hasFetchedMembers: boolean, txn: Transaction, log: ILogItem): Promise<SyncWriterResult> {
         let {timeline} = roomResponse;
         // we have rejoined the room after having synced it before,
         // check for overlap with the last synced event
         log.set("isRejoin", isRejoin);
         if (isRejoin) {
-            timeline = await this._handleRejoinOverlap(timeline, txn, log);
+            timeline = await this._handleRejoinOverlap(timeline!, txn, log);
         }
         let timelineEvents;
         if (Array.isArray(timeline?.events)) {
-            timelineEvents = deduplicateEvents(timeline.events);
+            timelineEvents = deduplicateEvents(timeline!.events);
         }
         const {state} = roomResponse;
         let stateEvents;
         if (Array.isArray(state?.events)) {
-            stateEvents = state.events;
+            stateEvents = state!.events;
         }
         const memberSync = this._memberWriter.prepareMemberSync(stateEvents, timelineEvents, hasFetchedMembers);
         if (stateEvents) {
             await this._writeStateEvents(stateEvents, txn, log);
         }
         const {currentKey, entries, updatedEntries} =
-            await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
+            await this._writeTimeline(timelineEvents, timeline!, memberSync, this._lastLiveKey, txn, log);
         const memberChanges = await memberSync.write(txn);
         return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }
