@@ -151,7 +151,7 @@ export class Client {
      * `homeserver` won't be resolved or normalized using this method,
      * use `lookupHomeserver` first if needed (not needed after registration) */
     async startWithAuthData({accessToken, deviceId, userId, homeserver}) {
-        this._platform.logger.run("startWithAuthData", async (log) => {
+        await this._platform.logger.run("startWithAuthData", async (log) => {
             await this._createSessionAfterAuth({accessToken, deviceId, userId, homeserver}, true, log);
         });
     }
