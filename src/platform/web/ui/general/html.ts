@@ -103,7 +103,7 @@ export const TAG_NAMES = {
     [HTML_NS]: [
         "br", "a", "ol", "ul", "li", "div", "h1", "h2", "h3", "h4", "h5", "h6",
         "p", "strong", "em", "span", "img", "section", "header", "main", "footer", "dialog",
-        "article", "aside", "del", "blockquote",
+        "article", "aside", "del", "blockquote", "details", "summary",
         "table", "thead", "tbody", "tr", "th", "td", "hr",
         "pre", "code", "button", "time", "input", "textarea", "select", "option", "optgroup", "label", "form",
         "progress", "output", "video", "style"],
