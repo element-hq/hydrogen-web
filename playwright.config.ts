@@ -16,5 +16,6 @@ const config: PlaywrightTestConfig = {
         command: "yarn start",
         url: `${BASE_URL}/#/login`,
     },
+    workers: 1
 };
 export default config;
