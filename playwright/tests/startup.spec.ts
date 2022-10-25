@@ -16,6 +16,6 @@ limitations under the License.
 import { test } from '@playwright/test';
 
 test("App has no startup errors that prevent UI render", async ({ page }) => {
-    await page.goto('/');
-    await page.getByText('Log In', { exact: true }).waitFor();
+    await page.goto("/");
+    await page.getByText("Log In", { exact: true }).waitFor();
 });
