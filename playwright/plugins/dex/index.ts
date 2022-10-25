@@ -77,7 +77,7 @@ export async function dexStart(): Promise<DexInstance> {
     console.log(`Starting dex with config dir ${dexCfg.configDir}...`);
     const dexId = await dockerRun({
         image: "bitnami/dex:latest",
-        containerName: "dex",
+        containerName: "hydrogen-dex",
         dockerParams: [
             "--rm",
             "-v", `${dexCfg.configDir}:/data`,

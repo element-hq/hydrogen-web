@@ -108,7 +108,7 @@ export async function synapseStart(template: string): Promise<SynapseInstance> {
     await dockerCreateNetwork({ networkName: "hydrogen" });
     const synapseId = await dockerRun({
         image: "matrixdotorg/synapse:develop",
-        containerName: `react-sdk-cypress-synapse-${crypto.randomBytes(4).toString("hex")}`,
+        containerName: `hydrogen-synapse`,
         dockerParams: [
             "--rm",
             "-v", `${synCfg.configDir}:/data`,
