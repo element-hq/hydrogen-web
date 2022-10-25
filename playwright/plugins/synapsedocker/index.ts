@@ -21,8 +21,8 @@ import * as os from "os";
 import * as crypto from "crypto";
 import * as fse from "fs-extra";
 
-import { dockerCreateNetwork, dockerExec, dockerLogs, dockerRun, dockerStop } from "../docker";
-import { request } from "@playwright/test";
+import {dockerCreateNetwork, dockerExec, dockerLogs, dockerRun, dockerStop} from "../docker";
+import {request} from "@playwright/test";
 
 
 // A cypress plugins to add command to start & stop synapses in
