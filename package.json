@@ -18,7 +18,8 @@
     "start": "vite --port 3000",
     "build": "vite build && ./scripts/cleanup.sh",
     "build:sdk": "./scripts/sdk/build.sh",
-    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch"
+    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch",
+    "test:app": "./scripts/test-app.sh"
   },
   "repository": {
     "type": "git",
@@ -31,6 +32,7 @@
   },
   "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
   "devDependencies": {
+    "@playwright/test": "^1.27.1",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
     "acorn": "^8.6.0",
