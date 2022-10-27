@@ -16,13 +16,21 @@ limitations under the License.
 
 export type Content = { [key: string]: any }
 
-export interface TimelineEvent {
-    content: Content;
-    type: string;
+// T can be a string literal denoting the specific type of an event, like "m.room.message".
+export type TimelineEvent<T extends string = string, C = Content, U = Content> = {
+    content: C;
+    type: T;
     event_id: string;
     sender: string;
     origin_server_ts: number;
-    unsigned?: Content;
+    unsigned?: U;
 }
 
-export type StateEvent = TimelineEvent & { prev_content?: Content, state_key: string }
+// S can be a string literal denoting the state_key, most often it's ""
+export type StateEvent<
+    T extends string = string,
+    C = Content,
+    S extends string = string,
+    U = Content
+> = TimelineEvent<T, C, U> & { prev_content?: C; state_key: S };
+
