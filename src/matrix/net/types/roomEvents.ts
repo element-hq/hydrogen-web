@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { StateEvent } from "./event";
+import {StateEvent} from "../../storage/types";
 
 // TODO: replace the hardcoded values of this throughout the codebase with the enum.
 export enum RoomEventType {
@@ -45,7 +45,7 @@ export enum RoomEventType {
 /**
  * https://spec.matrix.org/v1.4/client-server-api/#mroompower_levels
  */
-export type PowerLevelsEvent = StateEvent<PowerLevelsContent, RoomEventType.PowerLevels, "">
+export type PowerLevelsEvent = StateEvent<RoomEventType.PowerLevels, PowerLevelsContent, "">
 
 type PowerLevelsContent = {
   ban: number;
