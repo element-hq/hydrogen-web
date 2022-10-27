@@ -29,7 +29,7 @@ import {JoinRoomViewModel} from "./JoinRoomViewModel";
 import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
-import {SyncStatus} from "../../matrix/Sync.js";
+import {SyncStatus} from "../../matrix/Sync";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {

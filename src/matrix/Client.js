@@ -24,7 +24,7 @@ import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
 import {MediaRepository} from "./net/MediaRepository";
 import {RequestScheduler} from "./net/RequestScheduler";
-import {Sync, SyncStatus} from "./Sync.js";
+import {Sync, SyncStatus} from "./Sync";
 import {Session} from "./Session.js";
 import {PasswordLoginMethod} from "./login/PasswordLoginMethod";
 import {TokenLoginMethod} from "./login/TokenLoginMethod";

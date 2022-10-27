@@ -17,7 +17,7 @@ limitations under the License.
 import {ViewModel} from "../ViewModel";
 import {createEnum} from "../../utils/enum";
 import {ConnectionStatus} from "../../matrix/net/Reconnector";
-import {SyncStatus} from "../../matrix/Sync.js";
+import {SyncStatus} from "../../matrix/Sync";
 
 const SessionStatus = createEnum(
     "Disconnected",
