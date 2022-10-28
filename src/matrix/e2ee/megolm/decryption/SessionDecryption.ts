@@ -31,17 +31,14 @@ interface DecryptAllResult {
  * Does the actual decryption of all events for a given megolm session in a batch
  */
 export class SessionDecryption {
-    private key: RoomKey;
-    private events: TimelineEvent[];
-    private keyLoader: KeyLoader;
-    private olmWorker?: OlmWorker;
     private decryptionRequests?: any[];
 
-    constructor(key: RoomKey, events: TimelineEvent[], olmWorker: OlmWorker | undefined, keyLoader: KeyLoader) {
-        this.key = key;
-        this.events = events;
-        this.olmWorker = olmWorker;
-        this.keyLoader = keyLoader;
+    constructor(
+        private readonly key: RoomKey,
+        private readonly events: TimelineEvent[],
+        private readonly olmWorker: OlmWorker | undefined,
+        private readonly keyLoader: KeyLoader
+    ) {
         this.decryptionRequests = olmWorker ? [] : undefined;
     }
 
