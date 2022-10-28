@@ -75,7 +75,7 @@ export class SessionDecryption {
                             {encryptedRoomId: payload.room_id, eventRoomId: this.key.roomId});
                     }
                     replayEntries.push(new ReplayDetectionEntry(this.key.sessionId, decryptionResult!.message_index, event));
-                    const result = new DecryptionResult(payload, this.key.senderKey, this.key.claimedEd25519Key);
+                    const result = new DecryptionResult(payload, this.key.senderKey, this.key.claimedEd25519Key, event);
                     results.set(event.event_id, result);
                 } catch (err) {
                     // ignore AbortError from cancelling decryption requests in dispose method

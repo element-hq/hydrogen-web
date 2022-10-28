@@ -27,6 +27,7 @@ limitations under the License.
  */
 
 import type {DeviceIdentity} from "../storage/idb/stores/DeviceIdentityStore";
+import type {TimelineEvent} from "../storage/types";
 
 type DecryptedEvent = {
     type?: string,
@@ -35,12 +36,12 @@ type DecryptedEvent = {
 
 export class DecryptionResult {
     private device?: DeviceIdentity;
-    private roomTracked: boolean = true;
 
     constructor(
         public readonly event: DecryptedEvent,
         public readonly senderCurve25519Key: string,
-        public readonly claimedEd25519Key: string
+        public readonly claimedEd25519Key: string,
+        public readonly encryptedEvent?: TimelineEvent
     ) {}
 
     setDevice(device: DeviceIdentity): void {
