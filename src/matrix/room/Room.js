@@ -124,8 +124,9 @@ export class Room extends BaseRoom {
         const {entries: newEntries, updatedEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(
                 roomResponse, isRejoin, summaryChanges.hasFetchedMembers, txn, log), log.level.Detail);
+        let decryption;
         if (decryptChanges) {
-            const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
+            decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
             log.set("decryptionResults", decryption.results.size);
             log.set("decryptionErrors", decryption.errors.size);
             if (this._isTimelineOpen) {

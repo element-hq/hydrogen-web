@@ -235,7 +235,7 @@ export class RoomEncryption {
                 await this._deviceTracker.devicesForRoomMembers(this._room.id, sendersWithoutDevice, hsApi, log);
                 // now that we've fetched the missing devices, try verifying the results again
                 const txn = await this._storage.readTxn([this._storage.storeNames.deviceIdentities]);
-                return this._verifyDecryptionResults(resultsWithoutDevice, txn);
+                await this._verifyDecryptionResults(resultsWithoutDevice, txn);
                 const resultsWithFoundDevice = resultsWithoutDevice.filter(r => !r.isVerificationUnknown);
                 const resultsToEventIdMap = resultsWithFoundDevice.reduce((map, r) => {
                     map.set(r.encryptedEvent.event_id, r);
@@ -600,7 +600,6 @@ import {createMockStorage} from "../../mocks/Storage";
 import {Clock as MockClock} from "../../mocks/Clock";
 import {poll} from "../../mocks/poll";
 import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
-import {ConsoleLogger} from "../../logging/ConsoleLogger";
 import {HomeServer as MockHomeServer} from "../../mocks/HomeServer.js";
 
 export function tests() {
@@ -709,7 +708,7 @@ export function tests() {
             const storage = await createMockStorage();
             let isMemberChangesCalled = false;
             const deviceTracker = {
-                async writeMemberChanges(room, memberChanges, historyVisibility, txn) {
+                async writeMemberChanges(room, memberChanges, historyVisibility) {
                     assert.equal(historyVisibility, "invited");
                     isMemberChangesCalled = true;
                     return {removed: [], added: []};
