@@ -16,10 +16,8 @@ limitations under the License.
 
 import { StateEvent } from "../../storage/types";
 import {getPrevContentFromStateEvent} from "../common";
+import {MemberStateEvent, Membership} from "../../net/types/roomEvents";
 
-export const EVENT_TYPE = "m.room.member";
-
-type Membership = "join" | "leave" | "invite" | "ban";
 export interface MemberData {
     roomId: string;
     userId: string;
@@ -39,7 +37,7 @@ export class RoomMember {
         return new RoomMember({roomId, userId, membership});
     }
 
-    static fromMemberEvent(roomId: string, memberEvent: StateEvent): RoomMember | undefined {
+    static fromMemberEvent(roomId: string, memberEvent: MemberStateEvent): RoomMember | undefined {
         const userId = memberEvent?.state_key;
         if (typeof userId !== "string") {
             return;
@@ -73,7 +71,7 @@ export class RoomMember {
     static _validateAndCreateMember(
         roomId: string,
         userId: string,
-        membership: Membership,
+        membership: Membership | undefined,
         displayName: string,
         avatarUrl: string
     ): RoomMember | undefined {

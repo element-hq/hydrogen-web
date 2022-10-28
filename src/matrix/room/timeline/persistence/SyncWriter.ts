@@ -19,7 +19,7 @@ import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry";
 import {FragmentBoundaryEntry} from "../entries/FragmentBoundaryEntry";
 import {createEventEntry} from "./common";
-import {MemberChange, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
+import {MemberChange} from "../../members/RoomMember";
 import type {FragmentIdComparer} from "../FragmentIdComparer";
 import type {MemberSync, MemberWriter} from "./MemberWriter";
 import type {RelationWriter} from "./RelationWriter";
@@ -28,7 +28,8 @@ import type {Transaction} from "../../../storage/idb/Transaction";
 import type {Fragment} from "../../../storage/idb/stores/TimelineFragmentStore";
 import type {BaseEntry} from "../entries/BaseEntry";
 import type {StateEvent,TimelineEvent} from "../../../storage/types";
-import type {JoinedRoom, LeftRoom, Timeline} from "../../../net/types/sync";
+import type {ClientEventWithoutRoomID, JoinedRoom, LeftRoom, Timeline} from "../../../net/types/sync";
+import {MemberStateEvent, RoomEventType} from "../../../net/types/roomEvents";
 
 // Synapse bug? where the m.room.create event appears twice in sync response
 // when first syncing the room
@@ -160,12 +161,12 @@ export class SyncWriter {
         return currentKey;
     }
 
-    async _writeStateEvents(stateEvents: StateEvent[], txn: Transaction, log: ILogItem): Promise<void> {
+    async _writeStateEvents(stateEvents: ClientEventWithoutRoomID[], txn: Transaction, log: ILogItem): Promise<void> {
         let nonMemberStateEvents = 0;
         for (const event of stateEvents) {
             // member events are written prior by MemberWriter
-            if (event.type !== MEMBER_EVENT_TYPE) {
-                txn.roomState.set(this._roomId, event);
+            if (event.type !== RoomEventType.Member) {
+                txn.roomState.set(this._roomId, event  as MemberStateEvent);
                 nonMemberStateEvents += 1;
             }
         }
@@ -173,8 +174,8 @@ export class SyncWriter {
     }
 
     async _writeTimeline(
-        timelineEvents: StateEvent[],
-        timeline: Timeline,
+        timelineEvents: ClientEventWithoutRoomID[],
+        timeline: Timeline | undefined,
         memberSync: MemberSync,
         currentKey: EventKey | undefined,
         txn: Transaction,
@@ -182,7 +183,7 @@ export class SyncWriter {
     ): Promise<{ currentKey: EventKey | undefined; entries: EventEntry[]; updatedEntries: EventEntry[]; }> {
         const entries: EventEntry[] = [];
         const updatedEntries: EventEntry[] = [];
-        if (timelineEvents?.length) {
+        if (timelineEvents?.length && timeline) {
             // only create a fragment when we will really write an event
             currentKey = await this._ensureLiveFragment(currentKey!, entries, timeline, txn, log);
             log.set("timelineEvents", timelineEvents.length);
@@ -210,9 +211,9 @@ export class SyncWriter {
                 // we only update the member info after having written the member event
                 // to the timeline, as we want that event to have the old profile info.
                 // member events are written prior by MemberWriter.
-                if (typeof event.state_key === "string" && event.type !== MEMBER_EVENT_TYPE) {
+                if (typeof event.state_key === "string" && event.type !== RoomEventType.Member) {
                     timelineStateEventCount += 1;
-                    txn.roomState.set(this._roomId, event);
+                    txn.roomState.set(this._roomId, event as MemberStateEvent);
                 }
             }
             log.set("timelineStateEventCount", timelineStateEventCount);
@@ -256,21 +257,15 @@ export class SyncWriter {
         if (isRejoin) {
             timeline = await this._handleRejoinOverlap(timeline!, txn, log);
         }
-        let timelineEvents;
-        if (Array.isArray(timeline?.events)) {
-            timelineEvents = deduplicateEvents(timeline!.events);
-        }
+        let timelineEvents: ClientEventWithoutRoomID[] = Array.isArray(timeline?.events) ? deduplicateEvents(timeline!.events) : [];
         const {state} = roomResponse;
-        let stateEvents;
-        if (Array.isArray(state?.events)) {
-            stateEvents = state!.events;
-        }
+        let stateEvents: ClientEventWithoutRoomID[] = Array.isArray(state?.events) ? state!.events : [];
         const memberSync = this._memberWriter.prepareMemberSync(stateEvents, timelineEvents, hasFetchedMembers);
         if (stateEvents) {
             await this._writeStateEvents(stateEvents, txn, log);
         }
         const {currentKey, entries, updatedEntries} =
-            await this._writeTimeline(timelineEvents, timeline!, memberSync, this._lastLiveKey, txn, log);
+            await this._writeTimeline(timelineEvents, timeline, memberSync, this._lastLiveKey, txn, log);
         const memberChanges = await memberSync.write(txn);
         return {entries, updatedEntries, newLiveKey: currentKey, memberChanges};
     }

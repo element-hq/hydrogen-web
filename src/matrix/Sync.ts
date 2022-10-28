@@ -33,7 +33,7 @@ import type {EventKey} from "./room/timeline/EventKey";
 import type {MemberChange, MemberData} from "./room/members/RoomMember";
 import type {PendingEvent} from "./room/sending/PendingEvent";
 import type {HeroChanges} from "./room/members/Heroes";
-import type {HistoryVisibility, PowerLevelsEvent} from "./net/types/roomEvents";
+import type {HistoryVisibility, PowerLevelsStateEvent} from "./net/types/roomEvents";
 import type {ArchivedRoom} from "./room/ArchivedRoom";
 import type {Invite} from "./room/Invite";
 import type {Transaction} from "./storage/idb/Transaction";
@@ -556,7 +556,7 @@ type RoomWriteSyncChanges = {
     memberChanges: Map<string, MemberChange | undefined>;
     removedPendingEvents?: PendingEvent[];
     heroChanges?: HeroChanges;
-    powerLevelsEvent?: PowerLevelsEvent;
+    powerLevelsEvent?: PowerLevelsStateEvent;
     encryptionChanges?: RoomEncryptionWriteSyncChanges;
 }
 

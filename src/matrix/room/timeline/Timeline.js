@@ -24,7 +24,7 @@ import {RoomMember} from "../members/RoomMember";
 import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations";
 import {REDACTION_TYPE} from "../common";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry";
-import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember";
+import {RoomEventType} from "../../net/types/roomEvents";
 
 export class Timeline {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
@@ -373,7 +373,7 @@ export class Timeline {
     async _getEventFromHomeserver(eventId) {
         const response = await this._hsApi.context(this._roomId, eventId, 0).response();
         const sender = response.event.sender;
-        const member = response.state.find(e => e.type === MEMBER_EVENT_TYPE && e.user_id === sender);
+        const member = response.state.find(e => e.type === RoomEventType.Member && e.user_id === sender);
         const entry = {
             event: response.event,
             displayName: member.content.displayname,
@@ -501,7 +501,7 @@ export function tests() {
             const result = {
                 event: withTextBody("foo", createEvent("m.room.message", "event_id_1", alice)),
                 state: [{
-                    type: MEMBER_EVENT_TYPE,
+                    type: RoomEventType.Member,
                     user_id: alice,
                     content: {
                         displayName: "",

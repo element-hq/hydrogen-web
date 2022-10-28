@@ -1,7 +1,7 @@
 import {IDOMStorage} from "./types";
 import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember";
+import {RoomMember} from "../../room/members/RoomMember";
 import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common";
 import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
@@ -10,6 +10,7 @@ import {SessionStore} from "./stores/SessionStore";
 import {Store} from "./Store";
 import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {ILogItem} from "../../../logging/types";
+import {MemberStateEvent, RoomEventType} from "../../net/types/roomEvents";
 
 
 export type MigrationFunc = (db: IDBDatabase, txn?: IDBTransaction, localStorage?: IDOMStorage, log?: ILogItem) => Promise<void> | void;
@@ -78,9 +79,9 @@ async function createMemberStore(db: IDBDatabase, txn: IDBTransaction): Promise<
     // migrate existing member state events over
     const roomState = txn.objectStore("roomState");
     await iterateCursor<RoomStateEntry>(roomState.openCursor(), entry => {
-        if (entry.event.type === MEMBER_EVENT_TYPE) {
+        if (entry.event.type === RoomEventType.Member) {
             roomState.delete(entry.key);
-            const member = RoomMember.fromMemberEvent(entry.roomId, entry.event);
+            const member = RoomMember.fromMemberEvent(entry.roomId, entry.event as MemberStateEvent);
             if (member) {
                 roomMembers.set(member.serialize());
             }

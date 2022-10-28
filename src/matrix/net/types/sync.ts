@@ -87,7 +87,7 @@ type State = {
   events: ClientEventWithoutRoomID[];
 };
 
-type ClientEventWithoutRoomID = {
+export type ClientEventWithoutRoomID = {
   content: Object;
   event_id: string;
   origin_server_ts: number;

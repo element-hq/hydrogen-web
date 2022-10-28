@@ -45,7 +45,7 @@ export enum RoomEventType {
 /**
  * https://spec.matrix.org/v1.4/client-server-api/#mroompower_levels
  */
-export type PowerLevelsEvent = StateEvent<RoomEventType.PowerLevels, PowerLevelsContent, "">
+export type PowerLevelsStateEvent = StateEvent<RoomEventType.PowerLevels, PowerLevelsContent, "">
 
 type PowerLevelsContent = {
   ban: number;
@@ -61,3 +61,39 @@ type PowerLevelsContent = {
 }
 
 export type HistoryVisibility = "invited" | "joined" | "shared" | "world readable"
+
+/**
+ * https://spec.matrix.org/v1.4/client-server-api/#mroommember
+ *
+ * Special note about the state key from the docs:
+ * The user_id this membership event relates to. In all cases except for when membership is join,
+ * the user ID sending the event does not need to match the user ID in the state_key, unlike other events.
+ * Regular authorisation rules still apply.
+ */
+export type MemberStateEvent = StateEvent<RoomEventType.Member, MemberContent, string>
+
+type MemberContent = {
+  avatar_url?: string;
+  displayname?: string;
+  is_direct?: boolean;
+  join_authorised_via_users_server?: string;
+  membership?: Membership;
+  reason?: string;
+  third_party_invite: {
+    display_name: string;
+    signed: {
+      mxid: string;
+      signatures: Signatures;
+      token: string;
+    };
+  };
+}
+
+export type Membership = "invite" | "join" | "knock" | "leave" | "ban"
+
+// A map from user ID, to a map from <algorithm>:<device_id> to the signature.
+type Signatures = {
+  [key: string]: {
+    [key: string]: string;
+  }
+}

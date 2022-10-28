@@ -17,7 +17,9 @@ limitations under the License.
 import {EventKey} from "../EventKey";
 import {EventEntry} from "../entries/EventEntry";
 import {createEventEntry, directionalAppend} from "./common";
-import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
+import {RoomMember} from "../../members/RoomMember";
+import {RoomEventType} from "../../../net/types/roomEvents";
+import {MemberStateEvent} from "../../../net/types/roomEvents";
 import type {Storage} from "../../../storage/idb/Storage";
 
 type Options = {
@@ -133,14 +135,14 @@ export class GapWriter {
         direction: Direction
     ): RoomMember | undefined {
         function isOurUser(event: StateEvent): boolean {
-            return event.type === MEMBER_EVENT_TYPE && event.state_key === userId;
+            return event.type === RoomEventType.Member && event.state_key === userId;
         }
         // older messages are at a higher index in the array when going backwards
         const inc = direction.isBackward ? 1 : -1;
         for (let i = index + inc; i >= 0 && i < events.length; i += inc) {
             const event = events[i];
             if (isOurUser(event)) {
-                return RoomMember.fromMemberEvent(this._roomId, event);
+                return RoomMember.fromMemberEvent(this._roomId, event as MemberStateEvent);
             }
         }
         // look into newer events, but using prev_content if found.
@@ -157,7 +159,7 @@ export class GapWriter {
         // Don't assume state is set though, as it can be empty at the top of the timeline in some circumstances
         const stateMemberEvent = state?.find(isOurUser);
         if (stateMemberEvent) {
-            return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent);
+            return RoomMember.fromMemberEvent(this._roomId, stateMemberEvent as MemberStateEvent);
         }
     }
 

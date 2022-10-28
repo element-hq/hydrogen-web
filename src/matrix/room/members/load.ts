@@ -20,8 +20,8 @@ import type {ILogger, ILogItem} from "../../../logging/types";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {RoomSummary} from "../RoomSummary";
 import type {HomeServerApi} from "../../net/HomeServerApi";
-import type {StateEvent} from "../../storage/types";
 import type {SummaryData} from "../RoomSummary";
+import {MemberStateEvent} from "../../net/types/roomEvents";
 
 
 async function loadMembers({roomId, storage, txn}: LoadMembersOptions): Promise<RoomMember[]> {
@@ -63,7 +63,7 @@ async function fetchMembers(
     try {
         summaryChanges = summary.writeHasFetchedMembers(true, txn);
         const {roomMembers} = txn;
-        const memberEvents: StateEvent[] = memberResponse.chunk;
+        const memberEvents: MemberStateEvent[] = memberResponse.chunk;
         if (!Array.isArray(memberEvents)) {
             throw new Error("malformed");
         }

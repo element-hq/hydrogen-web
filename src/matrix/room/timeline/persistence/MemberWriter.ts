@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../members/RoomMember";
+import {MemberChange, RoomMember} from "../../members/RoomMember";
 import {LRUCache} from "../../../../utils/LRUCache";
 import type {Transaction} from "../../../storage/idb/Transaction";
-import { StateEvent } from "../../../storage/types";
+import type {StateEvent} from "../../../storage/types";
+import {ClientEventWithoutRoomID} from "../../../net/types/sync";
+import {MemberStateEvent} from "../../../net/types/roomEvents";
+import {RoomEventType} from "../../../net/types/roomEvents";
 
 export class MemberWriter {
     private _roomId: string;
@@ -28,7 +31,7 @@ export class MemberWriter {
         this._cache = new LRUCache<RoomMember, string>(5, (member: RoomMember) => member.userId);
     }
 
-    prepareMemberSync(stateEvents: StateEvent[], timelineEvents: StateEvent[], hasFetchedMembers: boolean): MemberSync {
+    prepareMemberSync(stateEvents: ClientEventWithoutRoomID[], timelineEvents: ClientEventWithoutRoomID[], hasFetchedMembers: boolean): MemberSync {
         return new MemberSync(this, stateEvents, timelineEvents, hasFetchedMembers);
     }
 
@@ -67,12 +70,11 @@ export class MemberWriter {
 
 export class MemberSync {
     private _memberWriter: MemberWriter;
-    private _stateEvents: StateEvent[];
-    private _timelineEvents: StateEvent[];
+    private _timelineEvents: ClientEventWithoutRoomID[];
     private _hasFetchedMembers: boolean;
     private _newStateMembers?: Map<string, RoomMember>;
 
-    constructor(memberWriter: MemberWriter, stateEvents: StateEvent[], timelineEvents: StateEvent[], hasFetchedMembers: boolean) {
+    constructor(memberWriter: MemberWriter, stateEvents: ClientEventWithoutRoomID[], timelineEvents: ClientEventWithoutRoomID[], hasFetchedMembers: boolean) {
         this._memberWriter = memberWriter;
         this._timelineEvents = timelineEvents;
         this._hasFetchedMembers = hasFetchedMembers;
@@ -85,11 +87,12 @@ export class MemberSync {
         return this._memberWriter.roomId;
     }
 
-    _stateEventsToMembers(stateEvents: StateEvent[]): Map<string, RoomMember> | undefined {
+    _stateEventsToMembers(stateEvents: ClientEventWithoutRoomID[]): Map<string, RoomMember> | undefined {
         let members: Map<string, RoomMember> | undefined;
         for (const event of stateEvents) {
-            if (event.type === MEMBER_EVENT_TYPE) {
-                const member = RoomMember.fromMemberEvent(this._roomId, event);
+            if (event.type === RoomEventType.Member) {
+                let memberEvent = event as MemberStateEvent;
+                const member = RoomMember.fromMemberEvent(this._roomId, memberEvent);
                 if (member) {
                     if (!members) {
                         members = new Map();
@@ -102,14 +105,14 @@ export class MemberSync {
     }
 
     // TODO: timelineEvents: TimelineEvent[] seems like it would make more sense but TimelineEvent doesn't have state_key
-    _timelineEventsToMembers(timelineEvents: StateEvent[]): Map<string, RoomMember> | undefined {
+    _timelineEventsToMembers(timelineEvents: ClientEventWithoutRoomID[]): Map<string, RoomMember> | undefined {
         let members: Map<string, RoomMember> | undefined;
         // iterate backwards to only add the last member in the timeline
         for (let i = timelineEvents.length - 1; i >= 0; i--) {
             const e = timelineEvents[i];
             const userId = e.state_key;
-            if (e.type === MEMBER_EVENT_TYPE && !members?.has(userId)) {
-                const member = RoomMember.fromMemberEvent(this._roomId, e);
+            if (e.type === RoomEventType.Member && userId && !members?.has(userId)) {
+                const member = RoomMember.fromMemberEvent(this._roomId, e as MemberStateEvent);
                 if (member) {
                     if (!members) {
                         members = new Map();
@@ -121,7 +124,7 @@ export class MemberSync {
         return members;
     }
 
-    async lookupMemberAtEvent(userId: string, event: StateEvent, txn: Transaction): Promise<RoomMember | undefined> {
+    async lookupMemberAtEvent(userId: string, event: ClientEventWithoutRoomID, txn: Transaction): Promise<RoomMember | undefined> {
         let member;
         if (this._timelineEvents) {
             member = this._findPrecedingMemberEventInTimeline(userId, event);
@@ -175,7 +178,7 @@ export class MemberSync {
 
     // try to find the first member event before the given event,
     // so we respect historical display names within the chunk of timeline
-    _findPrecedingMemberEventInTimeline(userId: string, event: StateEvent): RoomMember | undefined {
+    _findPrecedingMemberEventInTimeline(userId: string, event: ClientEventWithoutRoomID): RoomMember | undefined {
         let eventIndex = -1;
         for (let i = this._timelineEvents.length - 1; i >= 0; i--) {
             const e = this._timelineEvents[i];
@@ -186,8 +189,8 @@ export class MemberSync {
         }
         for (let i = eventIndex - 1; i >= 0; i--) {
             const e = this._timelineEvents[i];
-            if (e.type === MEMBER_EVENT_TYPE && e.state_key === userId) {
-                const member = RoomMember.fromMemberEvent(this._roomId, e);
+            if (e.type === RoomEventType.Member && e.state_key === userId) {
+                const member = RoomMember.fromMemberEvent(this._roomId, e as MemberStateEvent);
                 if (member) {
                     return member;
                 }

@@ -17,7 +17,8 @@ limitations under the License.
 import {EventEmitter} from "../../utils/EventEmitter";
 import {SummaryData, processStateEvent} from "./RoomSummary";
 import {Heroes} from "./members/Heroes";
-import {MemberChange, RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "./members/RoomMember";
+import {MemberChange, RoomMember} from "./members/RoomMember";
+import {RoomEventType} from "../net/types/roomEvents";
 
 export class Invite extends EventEmitter {
     constructor({roomId, user, hsApi, mediaRepository, emitCollectionRemove, emitCollectionUpdate, platform}) {
@@ -211,7 +212,7 @@ export class Invite extends EventEmitter {
     }
 
     async _createHeroes(inviteState, log) {
-        const members = inviteState.filter(e => e.type === MEMBER_EVENT_TYPE);
+        const members = inviteState.filter(e => e.type === RoomEventType.Member);
         const otherMembers = members.filter(e => e.state_key !== this._user.id);
         const memberChanges = otherMembers.reduce((map, e) => {
             const member = RoomMember.fromMemberEvent(this.id, e);
@@ -231,11 +232,11 @@ export class Invite extends EventEmitter {
     }
 
     _getMyInvite(inviteState) {
-        return inviteState.find(e => e.type === MEMBER_EVENT_TYPE && e.state_key === this._user.id);
+        return inviteState.find(e => e.type === RoomEventType.Member && e.state_key === this._user.id);
     }
 
     _getInviter(myInvite, inviteState) {
-        const inviterMemberEvent = inviteState.find(e => e.type === MEMBER_EVENT_TYPE && e.state_key === myInvite.sender);
+        const inviterMemberEvent = inviteState.find(e => e.type === RoomEventType.Member && e.state_key === myInvite.sender);
         if (inviterMemberEvent) {
             return RoomMember.fromMemberEvent(this.id, inviterMemberEvent);
         }
