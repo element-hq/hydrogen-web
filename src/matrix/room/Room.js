@@ -314,8 +314,8 @@ export class Room extends BaseRoom {
                         const updateCallback = entry => verifiedEntries.push(entry);
                         newlyVerifiedDecryption.applyToEntries(newEntries, updateCallback);
                         newlyVerifiedDecryption.applyToEntries(updatedEntries, updateCallback);
-                        // TODO: update _observedEvents here as well?
                         this._timeline?.replaceEntries(verifiedEntries);
+                        this._observedEvents?.updateEvents(verifiedEntries);
                     });
                     promises.push(promise);
                 }
