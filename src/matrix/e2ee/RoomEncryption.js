@@ -557,15 +557,17 @@ class BatchDecryptionResult {
         this._roomEncryption = roomEncryption;
     }
 
-    applyToEntries(entries) {
+    applyToEntries(entries, callback = undefined) {
         for (const entry of entries) {
             const result = this.results.get(entry.id);
             if (result) {
                 entry.setDecryptionResult(result);
+                callback?.(entry);
             } else {
                 const error = this.errors.get(entry.id);
                 if (error) {
                     entry.setDecryptionError(error);
+                    callback?.(entry);
                 }
             }
         }
@@ -575,6 +577,15 @@ class BatchDecryptionResult {
      *  @returns {BatchDecryptionResult} a new batch result with the results for which we now found a device */
     verifyKnownSenders(txn) {
         return this._roomEncryption._verifyDecryptionResults(Array.from(this.results.values()), txn);
+    }
+
+    get hasUnverifiedSenders() {
+        for (const r of this.results.values()) {
+            if (r.isVerificationUnknown) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Verify any decryption results for which we could not find a device when
