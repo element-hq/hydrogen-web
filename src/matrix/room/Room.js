@@ -129,7 +129,7 @@ export class Room extends BaseRoom {
             log.set("decryptionResults", decryption.results.size);
             log.set("decryptionErrors", decryption.errors.size);
             if (this._isTimelineOpen) {
-                await decryption.verifySenders(txn);
+                await decryption.verifyKnownSenders(txn);
             }
             decryption.applyToEntries(newEntries);
             if (retryEntries?.length) {

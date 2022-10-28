@@ -47,10 +47,6 @@ export class DecryptionResult {
         this.device = device;
     }
 
-    setRoomNotTrackedYet(): void {
-        this.roomTracked = false;
-    }
-
     get isVerified(): boolean {
         if (this.device) {
             const comesFromDevice = this.device.ed25519Key === this.claimedEd25519Key;
@@ -62,15 +58,12 @@ export class DecryptionResult {
     get isUnverified(): boolean {
         if (this.device) {
             return !this.isVerified;
-        } else if (this.isVerificationUnknown) {
-            return false;
         } else {
             return true;
         }
     }
 
     get isVerificationUnknown(): boolean {
-        // verification is unknown if we haven't yet fetched the devices for the room
-        return !this.device && !this.roomTracked;
+        return !this.device;
     }
 }

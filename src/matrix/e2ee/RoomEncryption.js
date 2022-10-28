@@ -208,16 +208,19 @@ export class RoomEncryption {
         });
     }
 
-    async _verifyDecryptionResult(result, txn) {
-        let device = this._senderDeviceCache.get(result.senderCurve25519Key);
-        if (!device) {
-            device = await this._deviceTracker.getDeviceByCurve25519Key(result.senderCurve25519Key, txn);
-            this._senderDeviceCache.set(result.senderCurve25519Key, device);
-        }
-        if (device) {
-            result.setDevice(device);
-        } else if (!this._room.isTrackingMembers) {
-            result.setRoomNotTrackedYet();
+    async _verifyDecryptionResults(results, txn) {
+        await Promise.all(results.map(async result => {
+            let device = this._senderDeviceCache.get(result.senderCurve25519Key);
+            if (!device) {
+                device = await this._deviceTracker.getDeviceByCurve25519Key(result.senderCurve25519Key, txn);
+                this._senderDeviceCache.set(result.senderCurve25519Key, device);
+            }
+            if (device) {
+                result.setDevice(device);
+            }
+        }));
+    }
+
         }
     }
 
@@ -545,10 +548,10 @@ class BatchDecryptionResult {
         }
     }
 
-    verifySenders(txn) {
-        return Promise.all(Array.from(this.results.values()).map(result => {
-            return this._roomEncryption._verifyDecryptionResult(result, txn);
-        }));
+    /** Verify the decryption results by looking for the corresponding device in local persistance
+     *  @returns {BatchDecryptionResult} a new batch result with the results for which we now found a device */
+    verifyKnownSenders(txn) {
+        return this._roomEncryption._verifyDecryptionResults(Array.from(this.results.values()), txn);
     }
 }
 

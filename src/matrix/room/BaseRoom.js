@@ -154,7 +154,7 @@ export class BaseRoom extends EventEmitter {
             try {
                 decryption = await changes.write(writeTxn, log);
                 if (isTimelineOpen) {
-                    await decryption.verifySenders(writeTxn);
+                    await decryption.verifyKnownSenders(writeTxn);
                 }
             } catch (err) {
                 writeTxn.abort();
