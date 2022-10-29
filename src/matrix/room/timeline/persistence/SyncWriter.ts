@@ -134,7 +134,7 @@ export class SyncWriter {
      * @return {EventKey} the new event key to start writing events at
      */
      async _ensureLiveFragment(
-        currentKey: EventKey,
+        currentKey: EventKey | undefined,
         entries: Array<BaseEntry>,
         timeline: Timeline,
         txn: Transaction,
@@ -185,7 +185,7 @@ export class SyncWriter {
         const updatedEntries: EventEntry[] = [];
         if (timelineEvents?.length && timeline) {
             // only create a fragment when we will really write an event
-            currentKey = await this._ensureLiveFragment(currentKey!, entries, timeline, txn, log);
+            currentKey = await this._ensureLiveFragment(currentKey, entries, timeline, txn, log);
             log.set("timelineEvents", timelineEvents.length);
             let timelineStateEventCount = 0;
             for(const event of timelineEvents) {
