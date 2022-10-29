@@ -166,7 +166,7 @@ export class SyncWriter {
         for (const event of stateEvents) {
             // member events are written prior by MemberWriter
             if (event.type !== RoomEventType.Member) {
-                txn.roomState.set(this._roomId, event  as MemberStateEvent);
+                txn.roomState.set(this._roomId, event as StateEvent);
                 nonMemberStateEvents += 1;
             }
         }
