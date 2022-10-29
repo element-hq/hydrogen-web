@@ -213,7 +213,7 @@ export class SyncWriter {
                 // member events are written prior by MemberWriter.
                 if (typeof event.state_key === "string" && event.type !== RoomEventType.Member) {
                     timelineStateEventCount += 1;
-                    txn.roomState.set(this._roomId, event as MemberStateEvent);
+                    txn.roomState.set(this._roomId, event as StateEvent);
                 }
             }
             log.set("timelineStateEventCount", timelineStateEventCount);
