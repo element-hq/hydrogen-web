@@ -70,7 +70,7 @@ export class RoomView extends TemplateView {
                 )]),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
-                        new TimelineView(timelineViewModel, this._viewClassForTile) :
+                        new TimelineView(timelineViewModel, { viewClassForTile: this._viewClassForTile }) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
                 t.mapView(vm => vm.composerViewModel,
