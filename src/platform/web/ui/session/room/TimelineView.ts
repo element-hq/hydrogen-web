@@ -57,6 +57,10 @@ function findFirstNodeIndexAtOrBelow(tiles: HTMLElement, top: number, startIndex
     return 0;
 }
 
+interface TimelineViewOpts {
+    viewClassForTile: ViewClassForEntryFn
+    stickToBottom: boolean
+}
 export class TimelineView extends TemplateView<TimelineViewModel> {
 
     private anchoredNode?: HTMLElement;
@@ -64,9 +68,16 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     private stickToBottom: boolean = true;
     private tilesView?: TilesListView;
     private resizeObserver?: ResizeObserver;
+    private viewClassForTile: ViewClassForEntryFn;
 
-    constructor(vm: TimelineViewModel, private readonly viewClassForTile: ViewClassForEntryFn) {
+    constructor(vm: TimelineViewModel, {
+        viewClassForTile,
+        stickToBottom = true
+    }: TimelineViewOpts) {
         super(vm);
+
+        this.viewClassForTile = viewClassForTile;
+        this.stickToBottom = stickToBottom;
     }
 
     render(t: Builder<TimelineViewModel>, vm: TimelineViewModel) {

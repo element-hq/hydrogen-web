@@ -89,7 +89,7 @@ async function main() {
             navigation,
         });
         await vm.load();
-        const view = new TimelineView(vm.timelineViewModel, viewClassForTile);
+        const view = new TimelineView(vm.timelineViewModel, { viewClassForTile });
         app.appendChild(view.mount());
     }
 }
