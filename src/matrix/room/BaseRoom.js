@@ -168,7 +168,7 @@ export class BaseRoom extends EventEmitter {
             }
             if (isTimelineOpen && decryption.hasUnverifiedSenders) {
                 // verify missing senders async and update timeline once done so we don't delay rendering with network requests
-                log.wrapDetached("fetch unknown senders keys", async () => {
+                log.wrapDetached("fetch unknown senders keys", async log => {
                     const newlyVerifiedDecryption = await decryption.fetchAndVerifyRemainingSenders(this._hsApi, log);
                     const verifiedEntries = [];
                     newlyVerifiedDecryption.applyToEntries(entries, entry => verifiedEntries.push(entry));
