@@ -37,6 +37,10 @@ export class SimpleTile extends ViewModel {
         return false;
     }
 
+    get isHighlighted() {
+        return false;
+    }
+
     get hasDateSeparator() {
         return false;
     }

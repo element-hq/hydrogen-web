@@ -22,6 +22,7 @@ export class EventEntry extends BaseEventEntry {
     constructor(eventEntry, fragmentIdComparer) {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
+        this._isHighlighted = false;
         this._decryptionError = null;
         this._decryptionResult = null;
     }
@@ -94,6 +95,14 @@ export class EventEntry extends BaseEventEntry {
 
     get id() {
         return this._eventEntry.event.event_id;
+    }
+
+    get isHighlighted() {
+        return this._isHighlighted;
+    }
+
+    setIsHighlighted(newValue) {
+        this._isHighlighted = newValue;
     }
 
     setDecryptionResult(result) {

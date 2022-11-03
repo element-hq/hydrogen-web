@@ -96,6 +96,13 @@ export class TimelineViewModel extends ViewModel {
         }
     }
 
+    setEventHighlight(eventId, newHighlightValue) {
+        const eventEntry = this._timeline.getByEventId(eventId);
+        if(eventEntry) {
+            eventEntry.setIsHighlighted(newHighlightValue);
+        }
+    }
+
     get tiles() {
         return this._tiles;
     }

@@ -43,6 +43,12 @@ limitations under the License.
     /* TODO: check whether this is needed for .media to maintain aspect ratio (on IE11) like the 100% above */
     /* width: 100%; */
     box-sizing: border-box;
+    border-radius: 4px;
+}
+
+.Timeline_message.highlighted,
+.AnnouncementView.highlighted {
+    background-color: #ffff8a;
 }
 
 .Timeline_message:not(.continuation) {
@@ -79,7 +85,6 @@ limitations under the License.
 .Timeline_message:hover:not(.disabled), .Timeline_message.selected, .Timeline_message.menuOpen {
     /* needs transparency support */
     background-color: rgba(141, 151, 165, 0.1);
-    border-radius: 4px;
 }
 
 .Timeline_message:hover > .Timeline_messageOptions,

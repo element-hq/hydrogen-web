@@ -42,14 +42,9 @@ export interface TimelineViewModel extends IObservableValue {
     setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
 }
 
-function top(node: HTMLElement): number {
-    return node.offsetTop;
-}
-
 function bottom(node: HTMLElement): number {
     return node.offsetTop + node.clientHeight;
 }
-
 
 function findFirstNodeIndexAtOrBelow(tiles: HTMLElement, top: number, startIndex: number = (tiles.children.length - 1)): number {
     for (var i = startIndex; i >= 0; i--) {
@@ -62,39 +57,16 @@ function findFirstNodeIndexAtOrBelow(tiles: HTMLElement, top: number, startIndex
     return 0;
 }
 
-type AnchorPosition = "bottom" | "top";
-
-interface TimelineViewOpts {
-    viewClassForTile: ViewClassForEntryFn
-    initialAnchorEventId?: string
-    stickToBottom?: boolean
-    anchorPosition?: AnchorPosition
-}
-
 export class TimelineView extends TemplateView<TimelineViewModel> {
 
-    private initialAnchorEventId?: string;
     private anchoredNode?: HTMLElement;
-    private anchoredOffset: number = 0;
-    private anchorPosition: AnchorPosition = 'bottom';
+    private anchoredBottom: number = 0;
     private stickToBottom: boolean = true;
     private tilesView?: TilesListView;
     private resizeObserver?: ResizeObserver;
-    private viewClassForTile: ViewClassForEntryFn;
 
-    constructor(vm: TimelineViewModel, {
-        viewClassForTile,
-        initialAnchorEventId,
-        stickToBottom = true,
-        // TODO: This should default to 'bottom'
-        anchorPosition= 'top',
-    }: TimelineViewOpts) {
+    constructor(vm: TimelineViewModel, private readonly viewClassForTile: ViewClassForEntryFn) {
         super(vm);
-
-        this.viewClassForTile = viewClassForTile;
-        this.stickToBottom = stickToBottom;
-        this.anchorPosition = anchorPosition;
-        this.initialAnchorEventId = initialAnchorEventId;
     }
 
     render(t: Builder<TimelineViewModel>, vm: TimelineViewModel) {
@@ -152,19 +124,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     }
 
     private restoreScrollPosition() {
-        console.log('restoreScrollPosition', new Error().stack);
-        const {scrollNode, tilesNode, initialAnchorEventId} = this;
-
-        // If there is an initial eventId to anchor to, set this once to scroll to first.
-        // We have to handle this here after render when the HTML nodes are available.
-        if (initialAnchorEventId) {
-            const eventTile = tilesNode.querySelector(`[data-event-id="${initialAnchorEventId}"]`);
-            if (eventTile) {
-                this.anchoredNode = eventTile as HTMLElement;
-            }
-            // Clear this out after we set the `anchoredNode` once
-            this.initialAnchorEventId = undefined;
-        }
+        const {scrollNode, tilesNode} = this;
 
         const missingTilesHeight = scrollNode.clientHeight - tilesNode.clientHeight;
         if (missingTilesHeight > 0) {
@@ -177,19 +137,18 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             if (this.stickToBottom) {
                 scrollNode.scrollTop = scrollNode.scrollHeight;
             } else if (this.anchoredNode) {
-                const offsetFunc = this.anchorPosition === 'bottom' ? bottom : top;
-                const newAnchoredOffset = offsetFunc(this.anchoredNode!);
-                if (newAnchoredOffset !== this.anchoredOffset) {
-                    const offsetDiff = newAnchoredOffset - this.anchoredOffset;
+                const newAnchoredBottom = bottom(this.anchoredNode!);
+                if (newAnchoredBottom !== this.anchoredBottom) {
+                    const bottomDiff = newAnchoredBottom - this.anchoredBottom;
                     // scrollBy tends to create less scroll jumps than reassigning scrollTop as it does
                     // not depend on reading scrollTop, which might be out of date as some platforms
                     // run scrolling off the main thread.
                     if (typeof scrollNode.scrollBy === "function") {
-                        scrollNode.scrollBy(0, offsetDiff);
+                        scrollNode.scrollBy(0, bottomDiff);
                     } else {
-                        scrollNode.scrollTop = scrollNode.scrollTop + offsetDiff;
+                        scrollNode.scrollTop = scrollNode.scrollTop + bottomDiff;
                     }
-                    this.anchoredOffset = newAnchoredOffset;
+                    this.anchoredBottom = newAnchoredBottom;
                 }
             }
             // TODO: should we be updating the visible range here as well as the range might have changed even though
@@ -210,8 +169,7 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             const viewportBottom = scrollTop + clientHeight;
             const anchoredNodeIndex = findFirstNodeIndexAtOrBelow(tilesNode, viewportBottom);
             this.anchoredNode = tilesNode.childNodes[anchoredNodeIndex] as HTMLElement;
-            const offsetFunc = this.anchorPosition === 'bottom' ? bottom : top;
-            this.anchoredOffset = offsetFunc(this.anchoredNode!);
+            this.anchoredBottom = bottom(this.anchoredNode!);
             bottomNodeIndex = anchoredNodeIndex;
         }
         let topNodeIndex = findFirstNodeIndexAtOrBelow(tilesNode, scrollTop, bottomNodeIndex);

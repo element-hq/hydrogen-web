@@ -49,6 +49,7 @@ export class BaseMessageView extends TemplateView {
                 unverified: vm.isUnverified,
                 disabled: !this._interactive,
                 continuation: vm => vm.isContinuation,
+                "highlighted": vm => vm.isHighlighted,
             },
             'data-event-id': vm.eventId
         }, children);

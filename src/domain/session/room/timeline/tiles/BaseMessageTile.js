@@ -98,6 +98,10 @@ export class BaseMessageTile extends SimpleTile {
         return this._isContinuation;
     }
 
+    get isHighlighted() {
+        return this._entry.isHighlighted;
+    }
+
     get isUnverified() {
         return this._entry.isUnverified;
     }
