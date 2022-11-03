@@ -222,7 +222,7 @@ export class RoomEncryption {
     }
 
     /** fetches the devices that are not yet known locally from the homeserver to verify the sender of this message. */
-    _fetchKeyAndVerifyDecryptionResults(results, hsApi, log) {
+    async _fetchKeyAndVerifyDecryptionResults(results, hsApi, log) {
         const resultsWithoutDevice = results.filter(r => r.isVerificationUnknown);
         if (resultsWithoutDevice.length) {
             return log.wrap("fetch unverified senders", async log => {
