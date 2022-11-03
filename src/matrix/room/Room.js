@@ -303,7 +303,7 @@ export class Room extends BaseRoom {
         const shouldFetchUnverifiedSenders = this._isTimelineOpen && decryption?.hasUnverifiedSenders;
         // only log rooms where we actually do something
         if (shouldFlushKeys || shouldFetchUnverifiedSenders) {
-            log.wrap({l: "room", id: this.id}, async log => {
+            await log.wrap({l: "room", id: this.id}, async log => {
                 const promises = [];
                 if (shouldFlushKeys) {
                     promises.push(this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log));
