@@ -47,6 +47,7 @@ export class TimelineViewModel extends ViewModel {
         this._requestedEndTile = null;
         this._requestScheduled = false;
         this._showJumpDown = false;
+        this._eventIdHighlighted = null;
     }
 
     /** if this._tiles is empty, call this with undefined for both startTile and endTile */
@@ -98,9 +99,19 @@ export class TimelineViewModel extends ViewModel {
 
     setEventHighlight(eventId, newHighlightValue) {
         const eventEntry = this._timeline.getByEventId(eventId);
-        if(eventEntry) {
+        if (eventEntry) {
             eventEntry.setIsHighlighted(newHighlightValue);
+
+            // If a new highlight, emit a change so we can scroll to this new highlight
+            if (newHighlightValue) {
+                this._eventIdHighlighted = eventId;
+                this.emitChange('eventIdHighlighted');
+            }
         }
+    }
+
+    get eventIdHighlighted() {
+        return this._eventIdHighlighted;
     }
 
     get tiles() {

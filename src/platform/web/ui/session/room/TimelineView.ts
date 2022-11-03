@@ -91,6 +91,17 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
             })
         ]);
 
+        t.mapSideEffect(vm => vm.eventIdHighlighted, (eventIdHighlighted) => {
+            if (eventIdHighlighted) {
+                // assume this view will be mounted in the parent DOM straight away
+                requestAnimationFrame(() => {
+                    this.scrollToEventId(eventIdHighlighted, {
+                        block: 'center'
+                    });
+                });
+            }
+        });
+
         if (typeof ResizeObserver === "function") {
             this.resizeObserver = new ResizeObserver(() => {
                 this.restoreScrollPosition();
@@ -174,6 +185,20 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
         }
         let topNodeIndex = findFirstNodeIndexAtOrBelow(tilesNode, scrollTop, bottomNodeIndex);
         this.updateVisibleRange(topNodeIndex, bottomNodeIndex);
+    }
+
+    private scrollToEventId(eventId: string, scrollIntoViewOptions?: object) {
+        const {tilesNode} = this;
+        const eventEl = [...tilesNode.childNodes].find((node: HTMLElement) => {
+            return node.matches(`[data-event-id="${eventId}"]`);
+        })  as HTMLElement;
+
+        if (eventEl) {
+            eventEl.scrollIntoView(scrollIntoViewOptions);
+            this.stickToBottom = false;
+        }
+
+        return !!eventEl;
     }
 
     private updateVisibleRange(startIndex: number, endIndex: number) {
