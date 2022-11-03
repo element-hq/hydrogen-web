@@ -66,12 +66,14 @@ type AnchorPosition = "bottom" | "top";
 
 interface TimelineViewOpts {
     viewClassForTile: ViewClassForEntryFn
-    stickToBottom: boolean
-    anchorPosition: AnchorPosition
+    initialAnchorEventId?: string
+    stickToBottom?: boolean
+    anchorPosition?: AnchorPosition
 }
 
 export class TimelineView extends TemplateView<TimelineViewModel> {
 
+    private initialAnchorEventId?: string;
     private anchoredNode?: HTMLElement;
     private anchoredOffset: number = 0;
     private anchorPosition: AnchorPosition = 'bottom';
@@ -82,15 +84,17 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
 
     constructor(vm: TimelineViewModel, {
         viewClassForTile,
+        initialAnchorEventId,
         stickToBottom = true,
         // TODO: This should default to 'bottom'
-        anchorPosition= 'top'
+        anchorPosition= 'top',
     }: TimelineViewOpts) {
         super(vm);
 
         this.viewClassForTile = viewClassForTile;
         this.stickToBottom = stickToBottom;
         this.anchorPosition = anchorPosition;
+        this.initialAnchorEventId = initialAnchorEventId;
     }
 
     render(t: Builder<TimelineViewModel>, vm: TimelineViewModel) {
@@ -149,7 +153,18 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
 
     private restoreScrollPosition() {
         console.log('restoreScrollPosition', new Error().stack);
-        const {scrollNode, tilesNode} = this;
+        const {scrollNode, tilesNode, initialAnchorEventId} = this;
+
+        // If there is an initial eventId to anchor to, set this once to scroll to first.
+        // We have to handle this here after render when the HTML nodes are available.
+        if (initialAnchorEventId) {
+            const eventTile = tilesNode.querySelector(`[data-event-id="${initialAnchorEventId}"]`);
+            if (eventTile) {
+                this.anchoredNode = eventTile as HTMLElement;
+            }
+            // Clear this out after we set the `anchoredNode` once
+            this.initialAnchorEventId = undefined;
+        }
 
         const missingTilesHeight = scrollNode.clientHeight - tilesNode.clientHeight;
         if (missingTilesHeight > 0) {
