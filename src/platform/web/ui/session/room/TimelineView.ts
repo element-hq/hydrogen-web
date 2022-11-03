@@ -39,6 +39,7 @@ export type ViewClassForEntryFn = (tile: SimpleTile) => TileViewConstructor;
 export interface TimelineViewModel extends IObservableValue {
     showJumpDown: boolean;
     tiles: ObservableList<SimpleTile>;
+    eventIdHighlighted: string;
     setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
 }
 
