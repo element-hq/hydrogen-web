@@ -46,11 +46,6 @@ limitations under the License.
     border-radius: 4px;
 }
 
-.Timeline_message.highlighted,
-.AnnouncementView.highlighted {
-    background-color: #ffff8a;
-}
-
 .Timeline_message:not(.continuation) {
     margin-top: 4px;
 }
@@ -80,6 +75,17 @@ limitations under the License.
         margin-top: 0 !important;
         align-self: center;
     }
+}
+
+.Timeline_message.highlighted,
+.AnnouncementView.highlighted {
+    background-color: #ffff8a;
+}
+
+/* Prevent messages nested in a reply from being highlighted */
+.ReplyPreviewView .Timeline_message.highlighted,
+.ReplyPreviewView .AnnouncementView.highlighted {
+    background-color: transparent;
 }
 
 .Timeline_message:hover:not(.disabled), .Timeline_message.selected, .Timeline_message.menuOpen {
