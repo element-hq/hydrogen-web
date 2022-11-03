@@ -309,15 +309,16 @@ export class Room extends BaseRoom {
                     promises.push(this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log));
                 }
                 if (shouldFetchUnverifiedSenders) {
-                    const promise = (async () => {
+                    const promise = log.wrap("verify senders", (async log => {
                         const newlyVerifiedDecryption = await decryption.fetchAndVerifyRemainingSenders(this._hsApi, log);
                         const verifiedEntries = [];
                         const updateCallback = entry => verifiedEntries.push(entry);
                         newlyVerifiedDecryption.applyToEntries(newEntries, updateCallback);
                         newlyVerifiedDecryption.applyToEntries(updatedEntries, updateCallback);
+                        log.set("verifiedEntries", verifiedEntries.length);
                         this._timeline?.replaceEntries(verifiedEntries);
                         this._observedEvents?.updateEvents(verifiedEntries);
-                    });
+                    }));
                     promises.push(promise);
                 }
                 await Promise.all(promises);
