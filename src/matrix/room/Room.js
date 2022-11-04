@@ -124,12 +124,13 @@ export class Room extends BaseRoom {
         const {entries: newEntries, updatedEntries, newLiveKey, memberChanges} =
             await log.wrap("syncWriter", log => this._syncWriter.writeSync(
                 roomResponse, isRejoin, summaryChanges.hasFetchedMembers, txn, log), log.level.Detail);
+        let decryption;
         if (decryptChanges) {
-            const decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
+            decryption = await log.wrap("decryptChanges", log => decryptChanges.write(txn, log));
             log.set("decryptionResults", decryption.results.size);
             log.set("decryptionErrors", decryption.errors.size);
             if (this._isTimelineOpen) {
-                await decryption.verifySenders(txn);
+                await decryption.verifyKnownSenders(txn);
             }
             decryption.applyToEntries(newEntries);
             if (retryEntries?.length) {
@@ -189,6 +190,7 @@ export class Room extends BaseRoom {
             heroChanges,
             powerLevelsEvent,
             encryptionChanges,
+            decryption
         };
     }
 
@@ -291,19 +293,36 @@ export class Room extends BaseRoom {
         }
     }
 
-    needsAfterSyncCompleted({encryptionChanges}) {
-        return encryptionChanges?.shouldFlush;
-    }
-
     /**
      * Only called if the result of writeSync had `needsAfterSyncCompleted` set.
      * Can be used to do longer running operations that resulted from the last sync,
      * like network operations.
      */
-    async afterSyncCompleted(changes, log) {
-        log.set("id", this.id);
-        if (this._roomEncryption) {
-            await this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log);
+    async afterSyncCompleted({encryptionChanges, decryption, newEntries, updatedEntries}, log) {
+        const shouldFlushKeys = encryptionChanges?.shouldFlush;
+        const shouldFetchUnverifiedSenders = this._isTimelineOpen && decryption?.hasUnverifiedSenders;
+        // only log rooms where we actually do something
+        if (shouldFlushKeys || shouldFetchUnverifiedSenders) {
+            await log.wrap({l: "room", id: this.id}, async log => {
+                const promises = [];
+                if (shouldFlushKeys) {
+                    promises.push(this._roomEncryption.flushPendingRoomKeyShares(this._hsApi, null, log));
+                }
+                if (shouldFetchUnverifiedSenders) {
+                    const promise = log.wrap("verify senders", (async log => {
+                        const newlyVerifiedDecryption = await decryption.fetchAndVerifyRemainingSenders(this._hsApi, log);
+                        const verifiedEntries = [];
+                        const updateCallback = entry => verifiedEntries.push(entry);
+                        newlyVerifiedDecryption.applyToEntries(newEntries, updateCallback);
+                        newlyVerifiedDecryption.applyToEntries(updatedEntries, updateCallback);
+                        log.set("verifiedEntries", verifiedEntries.length);
+                        this._timeline?.replaceEntries(verifiedEntries);
+                        this._observedEvents?.updateEvents(verifiedEntries);
+                    }));
+                    promises.push(promise);
+                }
+                await Promise.all(promises);
+            });
         }
     }
 
