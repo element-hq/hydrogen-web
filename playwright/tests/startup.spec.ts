@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2022 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,17 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {test} from '@playwright/test';
 
-export class SSOLoginHelper{
-    private _homeserver: string;
-
-    constructor(homeserver: string) {
-        this._homeserver = homeserver;
-    }
-
-    get homeserver(): string { return this._homeserver; }
-
-    createSSORedirectURL(returnURL: string): string {
-        return `${this._homeserver}/_matrix/client/r0/login/sso/redirect?redirectUrl=${encodeURIComponent(returnURL)}`;
-    }
-}
+test("App has no startup errors that prevent UI render", async ({ page }) => {
+    await page.goto("/");
+    await page.getByText("Log In", { exact: true }).waitFor();
+});

@@ -86,7 +86,9 @@ export class Heroes {
             this._members.delete(userId);
         }
         for (const member of updatedHeroMembers) {
-            this._members.set(member.userId, member);
+            if (!removedUserIds.includes(member.userId)) {
+                this._members.set(member.userId, member);
+            }
         }
         const sortedMembers = Array.from(this._members.values()).sort((a, b) => a.name.localeCompare(b.name));
         this._roomName = calculateRoomName(sortedMembers, summaryData, log);
