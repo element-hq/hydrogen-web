@@ -78,11 +78,15 @@ export class StorageFactory {
         return new Storage(db, this._idbFactory, this._IDBKeyRange, hasWebkitEarlyCloseTxnBug, this._localStorage, log.logger);
     }
 
-    delete(sessionId: string): Promise<IDBDatabase> {
+    async delete(sessionId: string): Promise<void> {
         const databaseName = sessionName(sessionId);
-        clearKeysFromLocalStorage(this._localStorage, databaseName);
-        const req = this._idbFactory.deleteDatabase(databaseName);
-        return reqAsPromise(req);
+        try {
+            clearKeysFromLocalStorage(this._localStorage, databaseName);
+        } catch (e) {}
+        try {
+            const req = this._idbFactory.deleteDatabase(databaseName);
+            await reqAsPromise(req);
+        } catch (e) {}
     }
 
     async export(sessionId: string, log: ILogItem): Promise<Export> {
