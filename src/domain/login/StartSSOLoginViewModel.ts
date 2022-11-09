@@ -42,7 +42,7 @@ export class StartSSOLoginViewModel extends ViewModel{
 
     async startSSOLogin(): Promise<void> {
         await this.platform.settingsStorage.setString("sso_ongoing_login_homeserver", this._sso!.homeserver);
-        const link = this._sso!.createSSORedirectURL(this.urlCreator.createSSOCallbackURL());
+        const link = this._sso!.createSSORedirectURL(this.urlRouter.createSSOCallbackURL());
         this.platform.openUrl(link);
     }
 }

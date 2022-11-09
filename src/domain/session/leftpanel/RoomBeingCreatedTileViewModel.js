@@ -23,7 +23,7 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
         super(options);
         const {roomBeingCreated} = options;
         this._roomBeingCreated = roomBeingCreated;
-        this._url = this.urlCreator.openRoomActionUrl(this._roomBeingCreated.id);
+        this._url = this.urlRouter.openRoomActionUrl(this._roomBeingCreated.id);
     }
 
     get busy() { return !this._roomBeingCreated.error; }
@@ -59,9 +59,9 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
 export function tests() {
     return {
         "test compare with names": assert => {
-            const urlCreator = {openRoomActionUrl() { return "";}}
-            const vm1 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "A", id: "1"}, urlCreator});
-            const vm2 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "B", id: "2"}, urlCreator});
+            const urlRouter = {openRoomActionUrl() { return "";}}
+            const vm1 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "A", id: "1"}, urlRouter});
+            const vm2 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "B", id: "2"}, urlRouter});
             assert(vm1.compare(vm2) < 0);
             assert(vm2.compare(vm1) > 0);
             assert.equal(vm1.compare(vm1), 0);

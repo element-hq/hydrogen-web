@@ -43,7 +43,7 @@ export class RoomViewModel extends ViewModel {
             this._recreateComposerOnPowerLevelChange();
         }
         this._clearUnreadTimout = null;
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
     }
 
     async load() {
