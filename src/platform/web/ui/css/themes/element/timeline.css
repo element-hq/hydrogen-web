@@ -77,17 +77,6 @@ limitations under the License.
     }
 }
 
-.Timeline_message.highlighted,
-.AnnouncementView.highlighted {
-    background-color: #ffff8a;
-}
-
-/* Prevent messages nested in a reply from being highlighted */
-.ReplyPreviewView .Timeline_message.highlighted,
-.ReplyPreviewView .AnnouncementView.highlighted {
-    background-color: transparent;
-}
-
 .Timeline_message:hover:not(.disabled), .Timeline_message.selected, .Timeline_message.menuOpen {
     /* needs transparency support */
     background-color: rgba(141, 151, 165, 0.1);
@@ -97,6 +86,24 @@ limitations under the License.
 .Timeline_message.menuOpen > .Timeline_messageOptions {
     display: block;
     user-select: none;
+}
+
+.Timeline_message.highlighted,
+.AnnouncementView.highlighted {
+    background-color: #ffff8a;
+}
+
+.Timeline_message.highlighted:hover:not(.disabled),
+.AnnouncementView.highlighted:hover,
+.Timeline_message.highlighted.selected:hover
+.Timeline_message.highlighted.menuOpen:hover {
+    background-color: #e0f4ff;
+}
+
+/* Prevent messages nested in a reply from being highlighted */
+.ReplyPreviewView .Timeline_message.highlighted,
+.ReplyPreviewView .AnnouncementView.highlighted {
+    background-color: transparent;
 }
 
 .Timeline_messageAvatar {
