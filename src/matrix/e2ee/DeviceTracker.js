@@ -343,6 +343,7 @@ export class DeviceTracker {
 
     /**
      * Gives all the device identities for a room that is already tracked.
+     * Can be used to decide which users to share keys with.
      * Assumes room is already tracked. Call `trackRoom` first if unsure.
      * @param  {String} roomId [description]
      * @return {[type]}        [description]
@@ -359,41 +360,67 @@ export class DeviceTracker {
         
         // So, this will also contain non-joined memberships
         const userIds = await txn.roomMembers.getAllUserIds(roomId);
-
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+        // TODO: check here if userIds is safe? yes it is
+        return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
     }
 
+    /** 
+     * Can be used to decide which users to share keys with.
+     * Assumes room is already tracked. Call `trackRoom` first if unsure.
+     */
     async devicesForRoomMembers(roomId, userIds, hsApi, log) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+        return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
+    }
     }
 
     /**
-     * @param  {string} roomId  [description]
-     * @param  {Array<string>} userIds a set of user ids to try and find the identity for. Will be check to belong to roomId.
+     * Gets all the device identities with which keys should be shared for a set of users in a tracked room.
+     * If any userIdentities are outdated, it will fetch them from the homeserver.
+     * @param  {string} roomId the id of the tracked room to filter users by.
+     * @param  {Array<string>} userIds a set of user ids to try and find the identity for.
      * @param  {Transaction} userIdentityTxn to read the user identities
      * @param  {HomeServerApi} hsApi
-     * @return {Array<DeviceIdentity>}
+     * @return {Array<DeviceIdentity>} all devices identities for the given users we should share keys with.
      */
-    async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi, log) {
+    async _devicesForUserIdsInTrackedRoom(roomId, userIds, userIdentityTxn, hsApi, log) {
         const allMemberIdentities = await Promise.all(userIds.map(userId => userIdentityTxn.userIdentities.get(userId)));
         const identities = allMemberIdentities.filter(identity => {
-            // identity will be missing for any userIds that don't have 
-            // membership join in any of your encrypted rooms
+            // we use roomIds to decide with whom we should share keys for a given room,
+            // taking into account the membership and room history visibility.
+            // so filter out anyone who we shouldn't share keys with.
+            // Given we assume the room is tracked,
+            // also exclude any userId which doesn't have a userIdentity yet.
             return identity && identity.roomIds.includes(roomId);
         });
         const upToDateIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE);
-        const outdatedIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED);
+        const outdatedUserIds = identities
+            .filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED)
+            .map(i => i.userId);
+        let devices = await this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
+        // filter out our own device as we should never share keys with it.
+        devices = devices.filter(device => {
+            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
+            return !isOwnDevice;
+        });
+        return devices;
+    }
+
+    /** Gets the device identites for a set of user identities that
+     * are known to be up to date, and a set of userIds that are known
+     * to be absent from our store our outdated. The outdated user ids
+     * will have their keys fetched from the homeserver. */
+    async _devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log) {
         log.set("uptodate", upToDateIdentities.length);
-        log.set("outdated", outdatedIdentities.length);
+        log.set("outdated", outdatedUserIds.length);
         let queriedDevices;
-        if (outdatedIdentities.length) {
+        if (outdatedUserIds.length) {
             // TODO: ignore the race between /sync and /keys/query for now,
             // where users could get marked as outdated or added/removed from the room while
             // querying keys
-            queriedDevices = await this._queryKeys(outdatedIdentities.map(i => i.userId), hsApi, log);
+            queriedDevices = await this._queryKeys(outdatedUserIds, hsApi, log);
         }
 
         const deviceTxn = await this._storage.readTxn([
@@ -406,12 +433,7 @@ export class DeviceTracker {
         if (queriedDevices && queriedDevices.length) {
             flattenedDevices = flattenedDevices.concat(queriedDevices);
         }
-        // filter out our own device
-        const devices = flattenedDevices.filter(device => {
-            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
-            return !isOwnDevice;
-        });
-        return devices;
+        return flattenedDevices;
     }
 
     async getDeviceByCurve25519Key(curve25519Key, txn) {
