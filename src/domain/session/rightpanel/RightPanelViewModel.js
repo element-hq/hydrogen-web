@@ -64,8 +64,8 @@ export class RightPanelViewModel extends ViewModel {
         this._hookUpdaterToSegment("member", MemberDetailsViewModel, () => this._getMemberDetailsArguments(),
             () => {
                 // If we fail to create the member details panel, fallback to memberlist
-                const url = `${this.urlCreator.urlUntilSegment("room")}/members`;
-                this.urlCreator.pushUrl(url);
+                const url = `${this.urlRouter.urlUntilSegment("room")}/members`;
+                this.urlRouter.pushUrl(url);
             }
         );
     }

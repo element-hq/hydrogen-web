@@ -41,7 +41,7 @@ export async function main(platform) {
             platform,
             // the only public interface of the router is to create urls,
             // so we call it that in the view models
-            urlCreator: urlRouter,
+            urlRouter: urlRouter,
             navigation,
         });
         await vm.load();

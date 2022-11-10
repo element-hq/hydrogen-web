@@ -43,7 +43,7 @@ export class LogoutViewModel extends ViewModel<SegmentType, Options> {
     }
 
     get cancelUrl(): string | undefined {
-        return this.urlCreator.urlForSegment("session", true);
+        return this.urlRouter.urlForSegment("session", true);
     }
 
     async logout(): Promise<void> {

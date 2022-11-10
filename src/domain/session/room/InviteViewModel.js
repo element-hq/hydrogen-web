@@ -26,7 +26,7 @@ export class InviteViewModel extends ViewModel {
         this._mediaRepository = mediaRepository;
         this._onInviteChange = this._onInviteChange.bind(this);
         this._error = null;
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
         this._invite.on("change", this._onInviteChange);
         this._inviter = null;
         if (this._invite.inviter) {

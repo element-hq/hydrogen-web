@@ -33,7 +33,7 @@ import type {IURLRouter} from "./navigation/URLRouter";
 export type Options<T extends object = SegmentType> = {
     platform: Platform;
     logger: ILogger;
-    urlCreator: IURLRouter<T>;
+    urlRouter: IURLRouter<T>;
     navigation: Navigation<T>;
     emitChange?: (params: any) => void;
 }
@@ -137,8 +137,8 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
         return this.platform.logger;
     }
 
-    get urlCreator(): IURLRouter<N> {
-        return this._options.urlCreator;
+    get urlRouter(): IURLRouter<N> {
+        return this._options.urlRouter;
     }
 
     get navigation(): Navigation<N> {
