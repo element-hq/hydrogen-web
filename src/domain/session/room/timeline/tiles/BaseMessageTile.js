@@ -75,7 +75,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get avatarTitle() {
-        return this.displayName;
+        return this.sender;
     }
 
     get date() {
