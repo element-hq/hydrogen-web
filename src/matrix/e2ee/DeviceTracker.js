@@ -21,13 +21,17 @@ import {RoomMember} from "../room/members/RoomMember.js";
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
 
+function createUserIdentity(userId, initialRoomId = undefined) {
+    return {
+        userId: userId,
+        roomIds: initialRoomId ? [initialRoomId] : [],
+        deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
+    };
+}
+
 function addRoomToIdentity(identity, userId, roomId) {
     if (!identity) {
-        identity = {
-            userId: userId,
-            roomIds: [roomId],
-            deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
-        };
+        identity = createUserIdentity(userId, roomId);
         return identity;
     } else {
         if (!identity.roomIds.includes(roomId)) {
@@ -272,7 +276,15 @@ export class DeviceTracker {
             txn.deviceIdentities.set(deviceIdentity);
         }
         // mark user identities as up to date
-        const identity = await txn.userIdentities.get(userId);
+        let identity = await txn.userIdentities.get(userId);
+        if (!identity) {
+            // create the identity if it doesn't exist, which can happen if
+            // we request devices before tracking the room.
+            // IMPORTANT here that the identity gets created without any roomId!
+            // if we claim that we share and e2ee room with the user without having
+            // checked, we could share keys with that user without them being in the room
+            identity = createUserIdentity(userId);
+        }
         identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
         txn.userIdentities.set(identity);
 
