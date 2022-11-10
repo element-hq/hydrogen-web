@@ -27,6 +27,7 @@ limitations under the License.
  */
 
 import type {DeviceIdentity} from "../storage/idb/stores/DeviceIdentityStore";
+import type {TimelineEvent} from "../storage/types";
 
 type DecryptedEvent = {
     type?: string,
@@ -35,20 +36,16 @@ type DecryptedEvent = {
 
 export class DecryptionResult {
     private device?: DeviceIdentity;
-    private roomTracked: boolean = true;
 
     constructor(
         public readonly event: DecryptedEvent,
         public readonly senderCurve25519Key: string,
-        public readonly claimedEd25519Key: string
+        public readonly claimedEd25519Key: string,
+        public readonly encryptedEvent?: TimelineEvent
     ) {}
 
     setDevice(device: DeviceIdentity): void {
         this.device = device;
-    }
-
-    setRoomNotTrackedYet(): void {
-        this.roomTracked = false;
     }
 
     get isVerified(): boolean {
@@ -62,15 +59,12 @@ export class DecryptionResult {
     get isUnverified(): boolean {
         if (this.device) {
             return !this.isVerified;
-        } else if (this.isVerificationUnknown) {
-            return false;
         } else {
             return true;
         }
     }
 
     get isVerificationUnknown(): boolean {
-        // verification is unknown if we haven't yet fetched the devices for the room
-        return !this.device && !this.roomTracked;
+        return !this.device;
     }
 }

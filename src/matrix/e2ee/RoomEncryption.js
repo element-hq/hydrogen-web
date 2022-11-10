@@ -208,17 +208,44 @@ export class RoomEncryption {
         });
     }
 
-    async _verifyDecryptionResult(result, txn) {
-        let device = this._senderDeviceCache.get(result.senderCurve25519Key);
-        if (!device) {
-            device = await this._deviceTracker.getDeviceByCurve25519Key(result.senderCurve25519Key, txn);
-            this._senderDeviceCache.set(result.senderCurve25519Key, device);
+    async _verifyDecryptionResults(results, txn) {
+        await Promise.all(results.map(async result => {
+            let device = this._senderDeviceCache.get(result.senderCurve25519Key);
+            if (!device) {
+                device = await this._deviceTracker.getDeviceByCurve25519Key(result.senderCurve25519Key, txn);
+                this._senderDeviceCache.set(result.senderCurve25519Key, device);
+            }
+            if (device) {
+                result.setDevice(device);
+            }
+        }));
+    }
+
+    /** fetches the devices that are not yet known locally from the homeserver to verify the sender of this message. */
+    async _fetchKeyAndVerifyDecryptionResults(results, hsApi, log) {
+        const resultsWithoutDevice = results.filter(r => r.isVerificationUnknown);
+        if (resultsWithoutDevice.length) {
+            return log.wrap("fetch unverified senders", async log => {
+                const sendersWithoutDevice = Array.from(resultsWithoutDevice.reduce((senders, r) => {
+                    return senders.add(r.encryptedEvent.sender);
+                }, new Set()));
+                log.set("senders", sendersWithoutDevice);
+                // Fetch the devices, ignore return value, and just reuse
+                // _verifyDecryptionResults method so we only have one impl how to verify.
+                // Use devicesForUsers rather than devicesForRoomMembers as the room might not be tracked yet
+                await this._deviceTracker.devicesForUsers(sendersWithoutDevice, hsApi, log);
+                // now that we've fetched the missing devices, try verifying the results again
+                const txn = await this._storage.readTxn([this._storage.storeNames.deviceIdentities]);
+                await this._verifyDecryptionResults(resultsWithoutDevice, txn);
+                const resultsWithFoundDevice = resultsWithoutDevice.filter(r => !r.isVerificationUnknown);
+                const resultsToEventIdMap = resultsWithFoundDevice.reduce((map, r) => {
+                    map.set(r.encryptedEvent.event_id, r);
+                    return map;
+                }, new Map());
+                return new BatchDecryptionResult(resultsToEventIdMap, new Map(), this);
+            });
         }
-        if (device) {
-            result.setDevice(device);
-        } else if (!this._room.isTrackingMembers) {
-            result.setRoomNotTrackedYet();
-        }
+        return new BatchDecryptionResult(new Map(), new Map(), this);
     }
 
     async _requestMissingSessionFromBackup(senderKey, sessionId, log) {
@@ -531,24 +558,42 @@ class BatchDecryptionResult {
         this._roomEncryption = roomEncryption;
     }
 
-    applyToEntries(entries) {
+    applyToEntries(entries, callback = undefined) {
         for (const entry of entries) {
             const result = this.results.get(entry.id);
             if (result) {
                 entry.setDecryptionResult(result);
+                callback?.(entry);
             } else {
                 const error = this.errors.get(entry.id);
                 if (error) {
                     entry.setDecryptionError(error);
+                    callback?.(entry);
                 }
             }
         }
     }
 
-    verifySenders(txn) {
-        return Promise.all(Array.from(this.results.values()).map(result => {
-            return this._roomEncryption._verifyDecryptionResult(result, txn);
-        }));
+    /** Verify the decryption results by looking for the corresponding device in local persistance
+     *  @returns {BatchDecryptionResult} a new batch result with the results for which we now found a device */
+    verifyKnownSenders(txn) {
+        return this._roomEncryption._verifyDecryptionResults(Array.from(this.results.values()), txn);
+    }
+
+    get hasUnverifiedSenders() {
+        for (const r of this.results.values()) {
+            if (r.isVerificationUnknown) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Verify any decryption results for which we could not find a device when
+     *  calling `verifyKnownSenders` prior, by fetching them from the homeserver.
+     *  @returns {Promise<BatchDecryptionResult>} the results for which we found a device */
+    fetchAndVerifyRemainingSenders(hsApi, log) {
+        return this._roomEncryption._fetchKeyAndVerifyDecryptionResults(Array.from(this.results.values()), hsApi, log);
     }
 }
 
@@ -556,7 +601,6 @@ import {createMockStorage} from "../../mocks/Storage";
 import {Clock as MockClock} from "../../mocks/Clock";
 import {poll} from "../../mocks/poll";
 import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
-import {ConsoleLogger} from "../../logging/ConsoleLogger";
 import {HomeServer as MockHomeServer} from "../../mocks/HomeServer.js";
 
 export function tests() {
@@ -665,7 +709,7 @@ export function tests() {
             const storage = await createMockStorage();
             let isMemberChangesCalled = false;
             const deviceTracker = {
-                async writeMemberChanges(room, memberChanges, historyVisibility, txn) {
+                async writeMemberChanges(room, memberChanges, historyVisibility) {
                     assert.equal(historyVisibility, "invited");
                     isMemberChangesCalled = true;
                     return {removed: [], added: []};

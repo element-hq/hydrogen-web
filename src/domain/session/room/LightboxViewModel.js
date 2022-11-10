@@ -23,7 +23,7 @@ export class LightboxViewModel extends ViewModel {
         this._eventId = options.eventId || options.eventEntry.id;
         this._unencryptedImageUrl = null;
         this._decryptedImage = null;
-        this._closeUrl = this.urlCreator.urlUntilSegment("room");
+        this._closeUrl = this.urlRouter.urlUntilSegment("room");
         this._date = null;
         this._subscribeToEvent(options.room, options.eventId);
     }

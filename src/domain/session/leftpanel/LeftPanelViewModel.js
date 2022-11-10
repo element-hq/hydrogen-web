@@ -32,8 +32,8 @@ export class LeftPanelViewModel extends ViewModel {
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
-        this._closeUrl = this.urlCreator.urlForSegment("session");
-        this._settingsUrl = this.urlCreator.urlForSegment("settings");
+        this._closeUrl = this.urlRouter.urlForSegment("session");
+        this._settingsUrl = this.urlRouter.urlForSegment("settings");
     }
 
     _mapTileViewModels(roomsBeingCreated, invites, rooms) {

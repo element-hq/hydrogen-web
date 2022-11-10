@@ -83,14 +83,14 @@ export class RootViewModel extends ViewModel {
                 }
             }
         } else if (loginToken) {
-            this.urlCreator.normalizeUrl();
+            this.urlRouter.normalizeUrl();
             if (this.activeSection !== "login") {
                 this._showLogin(loginToken);
             }
         }
         else {
             try {
-                if (!(shouldRestoreLastUrl && this.urlCreator.tryRestoreLastUrl())) {
+                if (!(shouldRestoreLastUrl && this.urlRouter.tryRestoreLastUrl())) {
                     const sessionInfos = await this.platform.sessionInfoStorage.getAll();
                     if (sessionInfos.length === 0) {
                         this.navigation.push("login");

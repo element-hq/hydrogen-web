@@ -30,7 +30,7 @@ if (loginOptions.sso) {
     // store the homeserver for when we get redirected back after the sso flow
     platform.settingsStorage.setString("sso_homeserver", loginOptions.homeserver);
     // create the redirect url
-    const callbackUrl = urlCreator.createSSOCallbackURL(); // will just return the document url without any fragment
+    const callbackUrl = urlRouter.createSSOCallbackURL(); // will just return the document url without any fragment
     const redirectUrl = sso.createRedirectUrl(callbackUrl, provider);
     // and open it
     platform.openURL(redirectUrl);

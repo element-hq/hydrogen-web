@@ -47,10 +47,8 @@ function timelineIsEmpty(roomResponse) {
  * const changes = await room.writeSync(roomResponse, isInitialSync, preparation, syncTxn);
  * // applies and emits changes once syncTxn is committed
  * room.afterSync(changes);
- * if (room.needsAfterSyncCompleted(changes)) {
- *     // can do network requests
- *     await room.afterSyncCompleted(changes);
- * }
+ * // can do network requests
+ * await room.afterSyncCompleted(changes);
  * ```
  */
 export class Sync {
@@ -160,16 +158,12 @@ export class Sync {
         const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
-                await log.wrap("session", log => this._session.afterSyncCompleted(sessionChanges, isCatchupSync, log), log.level.Detail);
+                await log.wrap("session", log => this._session.afterSyncCompleted(sessionChanges, isCatchupSync, log));
             } catch (err) {} // error is logged, but don't fail sessionPromise
         })();
-
-        const roomsNeedingAfterSyncCompleted = roomStates.filter(rs => {
-            return rs.room.needsAfterSyncCompleted(rs.changes);
-        });
-        const roomsPromises = roomsNeedingAfterSyncCompleted.map(async rs => {
+        const roomsPromises = roomStates.map(async rs => {
             try {
-                await log.wrap("room", log => rs.room.afterSyncCompleted(rs.changes, log), log.level.Detail);
+                await rs.room.afterSyncCompleted(rs.changes, log);
             } catch (err) {} // error is logged, but don't fail roomsPromises
         });
         // run everything in parallel,
