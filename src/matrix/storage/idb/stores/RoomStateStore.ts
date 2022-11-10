@@ -43,9 +43,9 @@ export class RoomStateStore {
 
     getAllForType(roomId: string, type: string): Promise<RoomStateEntry[]> {
         const range = this._roomStateStore.IDBKeyRange.bound(
-            encodeKey(roomId, type, MIN_UNICODE),
+            encodeKey(roomId, type, ""),
             encodeKey(roomId, type, MAX_UNICODE),
-            true,
+            false,
             true
         );
         return this._roomStateStore.selectAll(range);
