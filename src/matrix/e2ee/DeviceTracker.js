@@ -120,6 +120,7 @@ export class DeviceTracker {
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.roomSummary,
             this._storage.storeNames.userIdentities,
+            this._storage.storeNames.deviceIdentities, // to remove all devices in _removeRoomFromUserIdentity
         ]);
         try {
             let isTrackingChanges;
@@ -127,9 +128,13 @@ export class DeviceTracker {
                 isTrackingChanges = room.writeIsTrackingMembers(true, txn);
                 const members = Array.from(memberList.members.values());
                 log.set("members", members.length);
+                // TODO: should we remove any userIdentities we should not share the key with??
+                // e.g. as an extra security measure if we had a mistake in other code?
                 await Promise.all(members.map(async member => {
                     if (shouldShareKey(member.membership, historyVisibility)) {
                         await this._addRoomToUserIdentity(member.roomId, member.userId, txn);
+                    } else {
+                        await this._removeRoomFromUserIdentity(member.roomId, member.userId, txn);
                     }
                 }));
             } catch (err) {
