@@ -202,6 +202,9 @@ export class DeviceTracker {
     async _queryKeys(userIds, hsApi, log) {
         // TODO: we need to handle the race here between /sync and /keys/query just like we need to do for the member list ...
         // there are multiple requests going out for /keys/query though and only one for /members
+        // So, while doing /keys/query, writeDeviceChanges should add userIds marked as outdated to a list
+        // when /keys/query returns, we should check that list and requery if we queried for a given user.
+        // and then remove the list.
 
         const deviceKeyResponse = await hsApi.queryKeys({
             "timeout": 10000,
