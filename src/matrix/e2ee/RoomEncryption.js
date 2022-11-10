@@ -230,9 +230,10 @@ export class RoomEncryption {
                     return senders.add(r.encryptedEvent.sender);
                 }, new Set()));
                 log.set("senders", sendersWithoutDevice);
-                // fetch the devices, ignore return value,
-                // and just reuse _verifyDecryptionResults method so we only have one impl how to verify
-                await this._deviceTracker.devicesForRoomMembers(this._room.id, sendersWithoutDevice, hsApi, log);
+                // Fetch the devices, ignore return value, and just reuse
+                // _verifyDecryptionResults method so we only have one impl how to verify.
+                // Use devicesForUsers rather than devicesForRoomMembers as the room might not be tracked yet
+                await this._deviceTracker.devicesForUsers(sendersWithoutDevice, hsApi, log);
                 // now that we've fetched the missing devices, try verifying the results again
                 const txn = await this._storage.readTxn([this._storage.storeNames.deviceIdentities]);
                 await this._verifyDecryptionResults(resultsWithoutDevice, txn);

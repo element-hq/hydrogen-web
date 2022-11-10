@@ -374,6 +374,29 @@ export class DeviceTracker {
         ]);
         return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
     }
+
+    /** 
+     * Cannot be used to decide which users to share keys with.
+     * Does not assume membership to any room or whether any room is tracked.
+     */
+    async devicesForUsers(userIds, hsApi, log) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.userIdentities,
+        ]);
+
+        const upToDateIdentities = [];
+        const outdatedUserIds = [];
+        await Promise.all(userIds.map(async userId => {
+            const i = await txn.userIdentities.get(userId);
+            if (i && i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE) {
+                upToDateIdentities.push(i);
+            } else if (!i || i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED) {
+                // allow fetching for userIdentities we don't know about yet,
+                // as we don't assume the room is tracked here.
+                outdatedUserIds.push(userId);
+            }
+        }));
+        return this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
     }
 
     /**
@@ -773,5 +796,35 @@ export function tests() {
             const txn2 = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual((await txn2.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld", "!def:hs.tld"]);
         },
+        "devicesForUsers fetches users even though they aren't in any tracked room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const hsApi = createQueryKeysHSApiMock();
+            const devices = await tracker.devicesForUsers(["@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            assert.equal(devices.length, 1);
+            assert.equal(devices[0].curve25519Key, "curve25519:@bob:hs.tld:device1:key");
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
+        },
+        "devicesForUsers doesn't add any roomId when creating userIdentity": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const hsApi = createQueryKeysHSApiMock();
+            await tracker.devicesForUsers(["@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
+        }
     }
 }
