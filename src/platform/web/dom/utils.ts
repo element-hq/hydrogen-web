@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function domEventAsPromise(element, successEvent): Promise<void> {
+export function domEventAsPromise(element: HTMLElement, successEvent: string): Promise<void> {
     return new Promise((resolve, reject) => {
         let detach;
         const handleError = evt => {
