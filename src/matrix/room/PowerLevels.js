@@ -66,10 +66,11 @@ export class PowerLevels {
 
     /** @param {string} action either "invite", "kick", "ban" or "redact". */
     _getActionLevel(action) {
-        const level = this._plEvent?.content[action];
+        const level = this._plEvent?.content?.[action];
         if (typeof level === "number") {
             return level;
         } else {
+            // TODO: Why does this default to 50?
             return 50;
         }
     }

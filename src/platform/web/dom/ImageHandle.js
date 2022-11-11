@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BlobHandle} from "./BlobHandle.js";
-import {domEventAsPromise} from "./utils.js";
+import {domEventAsPromise} from "./utils";
 
 export class ImageHandle {
     static async fromBlob(blob) {
