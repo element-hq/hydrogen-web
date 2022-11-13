@@ -20,7 +20,7 @@ export {RoomStatus} from "./matrix/room/common";
 export {PowerLevels} from "./matrix/room/PowerLevels.js";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index";
-export {RootViewModel} from "./domain/RootViewModel.js";
+export {RootViewModel} from "./domain/RootViewModel";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";

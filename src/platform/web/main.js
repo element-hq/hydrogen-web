@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
-import {RootViewModel} from "../../domain/RootViewModel.js";
+import {RootViewModel} from "../../domain/RootViewModel";
 import {createNavigation, createRouter} from "../../domain/navigation/index";
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
