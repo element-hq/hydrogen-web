@@ -65,7 +65,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
         } else {
             void this._recreateComposerOnPowerLevelChange();
         }
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
     }
 
     async load(): Promise<void> {

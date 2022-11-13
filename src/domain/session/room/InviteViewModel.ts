@@ -44,7 +44,7 @@ export class InviteViewModel extends ViewModel implements IGridItemViewModel {
         this._invite = invite;
         this._mediaRepository = mediaRepository;
         this._onInviteChange = this._onInviteChange.bind(this);
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
         this._invite.on("change", this._onInviteChange);
         if (this._invite.inviter) {
             this._inviter = new RoomMemberViewModel(this._invite.inviter, mediaRepository, this.platform);

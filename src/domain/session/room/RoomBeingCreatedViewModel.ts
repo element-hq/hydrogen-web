@@ -38,7 +38,7 @@ export class RoomBeingCreatedViewModel extends ViewModel implements IGridItemVie
         this._roomBeingCreated = roomBeingCreated;
         this._mediaRepository = mediaRepository;
         this._onRoomChange = this._onRoomChange.bind(this);
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
         this._roomBeingCreated.on("change", this._onRoomChange);
     }
 

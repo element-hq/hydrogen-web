@@ -36,7 +36,7 @@ export class LightboxViewModel extends ViewModel {
     constructor(options: Options) {
         super(options);
         this._eventId = options.eventId;
-        this._closeUrl = this.urlCreator.urlUntilSegment("room");
+        this._closeUrl = this.urlRouter.urlUntilSegment("room");
         this._eventEntry = null;
         this._subscribeToEvent(options.room, options.eventId);
     }

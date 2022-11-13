@@ -34,7 +34,7 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
         super(options);
         const {roomBeingCreated} = options;
         this._roomBeingCreated = roomBeingCreated;
-        this._url = this.urlCreator.openRoomActionUrl(this._roomBeingCreated.id);
+        this._url = this.urlRouter.openRoomActionUrl(this._roomBeingCreated.id);
     }
 
     get busy(): boolean { return !this._roomBeingCreated.error; }
@@ -75,14 +75,14 @@ export function tests() {
         "test compare with names": (assert): void => {
             const vm1 = new RoomBeingCreatedTileViewModel({
                 roomBeingCreated: { name: "A", id: "1" } as RoomBeingCreated,
-                urlCreator: TestURLRouter,
+                urlRouter: TestURLRouter,
                 platform: {} as Platform,
                 logger: {} as ILogger,
                 navigation: new Navigation(() => true),
             });
             const vm2 = new RoomBeingCreatedTileViewModel({
                 roomBeingCreated: { name: "B", id: "2" } as RoomBeingCreated,
-                urlCreator: TestURLRouter,
+                urlRouter: TestURLRouter,
                 platform: {} as Platform,
                 logger: {} as ILogger,
                 navigation: new Navigation(() => true),

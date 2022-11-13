@@ -30,7 +30,7 @@ export class InviteTileViewModel extends BaseTileViewModel {
         super(options);
         const {invite} = options;
         this._invite = invite;
-        this._url = this.urlCreator.openRoomActionUrl(this._invite.id);
+        this._url = this.urlRouter.openRoomActionUrl(this._invite.id);
     }
 
     get busy(): boolean { return this._invite.accepting || this._invite.rejecting; }
@@ -66,14 +66,14 @@ export function tests() {
         "test compare with timestamp": (assert): void => {
             const vm1 = new InviteTileViewModel({
                 invite: { timestamp: 500, id: "1" },
-                urlCreator: TestURLRouter,
+                urlRouter: TestURLRouter,
                 platform: undefined,
                 logger: nullLogger,
                 navigation: new Navigation(() => true),
             });
             const vm2 = new InviteTileViewModel({
                 invite: { timestamp: 250, id: "2" },
-                urlCreator: TestURLRouter,
+                urlRouter: TestURLRouter,
                 platform: undefined,
                 logger: nullLogger,
                 navigation: new Navigation(() => true),

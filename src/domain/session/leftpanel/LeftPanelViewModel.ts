@@ -45,10 +45,10 @@ export class LeftPanelViewModel extends ViewModel<
     >;
     private _tileViewModelsFilterMap: ApplyMap<string, BaseTileViewModel>;
     private _tileViewModels: SortedMapList<string, BaseTileViewModel>;
-    private _closeUrl?: string = this.urlCreator.urlForSegment("session");
-    private _settingsUrl?: string = this.urlCreator.urlForSegment("settings");
+    private _closeUrl?: string = this.urlRouter.urlForSegment("session");
+    private _settingsUrl?: string = this.urlRouter.urlForSegment("settings");
     private _createRoomUrl?: string =
-        this.urlCreator.urlForSegment("create-room");
+        this.urlRouter.urlForSegment("create-room");
     gridEnabled: boolean;
 
     constructor(options: LOptions) {
@@ -64,8 +64,8 @@ export class LeftPanelViewModel extends ViewModel<
             (a, b) => a.compare(b)
         );
         this._setupNavigation();
-        this._closeUrl = this.urlCreator.urlForSegment("session");
-        this._settingsUrl = this.urlCreator.urlForSegment("settings");
+        this._closeUrl = this.urlRouter.urlForSegment("session");
+        this._settingsUrl = this.urlRouter.urlForSegment("settings");
     }
 
     _mapTileViewModels(

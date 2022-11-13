@@ -58,7 +58,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get memberPanelLink() {
-        return `${this.urlCreator.urlUntilSegment("room")}/member/${this.sender}`;
+        return `${this.urlRouter.urlUntilSegment("room")}/member/${this.sender}`;
     }
 
     // Avatar view model contract
@@ -75,7 +75,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get avatarTitle() {
-        return this.displayName;
+        return this.sender;
     }
 
     get date() {

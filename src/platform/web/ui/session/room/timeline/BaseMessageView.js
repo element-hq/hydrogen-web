@@ -46,7 +46,7 @@ export class BaseMessageView extends TemplateView {
                 "Timeline_message": true,
                 own: vm.isOwn,
                 unsent: vm.isUnsent,
-                unverified: vm.isUnverified,
+                unverified: vm => vm.isUnverified,
                 disabled: !this._interactive,
                 continuation: vm => vm.isContinuation,
             },
