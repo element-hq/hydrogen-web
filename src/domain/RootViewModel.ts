@@ -21,19 +21,20 @@ import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
 import {ForcedLogoutViewModel} from "./ForcedLogoutViewModel";
 import {SessionPickerViewModel} from "./SessionPickerViewModel";
-import {ViewModel} from "./ViewModel";
+import {ViewModel, Options as ViewModelOptions} from "./ViewModel";
 
 export class RootViewModel extends ViewModel {
-    constructor(options) {
+    private _error?: any;
+    private _sessionPickerViewModel?: SessionPickerViewModel;
+    private _sessionLoadViewModel?: SessionLoadViewModel;
+    private _loginViewModel?: LoginViewModel;
+    private _logoutViewModel?: LogoutViewModel;
+    private _forcedLogoutViewModel?: ForcedLogoutViewModel;
+    private _sessionViewModel?: SessionViewModel;
+    private _pendingClient?: Client;
+
+    constructor(options: ViewModelOptions) {
         super(options);
-        this._error = null;
-        this._sessionPickerViewModel = null;
-        this._sessionLoadViewModel = null;
-        this._loginViewModel = null;
-        this._logoutViewModel = null;
-        this._forcedLogoutViewModel = null;
-        this._sessionViewModel = null;
-        this._pendingClient = null;
     }
 
     async load() {
@@ -44,7 +45,7 @@ export class RootViewModel extends ViewModel {
         this._applyNavigation(true);
     }
 
-    async _applyNavigation(shouldRestoreLastUrl) {
+    async _applyNavigation(shouldRestoreLastUrl: boolean = false) {
         const isLogin = this.navigation.path.get("login");
         const logoutSessionId = this.navigation.path.get("logout")?.value;
         const isForcedLogout = this.navigation.path.get("forced")?.value;
@@ -71,13 +72,13 @@ export class RootViewModel extends ViewModel {
                 // see _showLogin for where _pendingClient comes from
                 if (this._pendingClient && this._pendingClient.sessionId === sessionId) {
                     const client = this._pendingClient;
-                    this._pendingClient = null;
+                    this._pendingClient = undefined;
                     this._showSession(client);
                 } else {
                     // this should never happen, but we want to be sure not to leak it
                     if (this._pendingClient) {
                         this._pendingClient.dispose();
-                        this._pendingClient = null;
+                        this._pendingClient = undefined;
                     }
                     this._showSessionLoader(sessionId);
                 }
@@ -108,7 +109,7 @@ export class RootViewModel extends ViewModel {
 
     async _showPicker() {
         this._setSection(() => {
-            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions());
+            this._sessionPickerViewModel = new SessionPickerViewModel(this.childOptions({}));
         });
         try {
             await this._sessionPickerViewModel.load();
@@ -117,9 +118,10 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(loginToken) {
+    _showLogin(loginToken?: string) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
+                ...this.options,
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
                 ready: client => {
                     // we don't want to load the session container again,
@@ -138,26 +140,26 @@ export class RootViewModel extends ViewModel {
         });
     }
 
-    _showLogout(sessionId) {
+    _showLogout(sessionId: string) {
         this._setSection(() => {
             this._logoutViewModel = new LogoutViewModel(this.childOptions({sessionId}));
         });
     }
 
-    _showForcedLogout(sessionId) {
+    _showForcedLogout(sessionId: string) {
         this._setSection(() => {
             this._forcedLogoutViewModel = new ForcedLogoutViewModel(this.childOptions({sessionId}));
         });
     }
 
-    _showSession(client) {
+    _showSession(client: Client) {
         this._setSection(() => {
             this._sessionViewModel = new SessionViewModel(this.childOptions({client}));
             this._sessionViewModel.start();
         });
     }
 
-    _showSessionLoader(sessionId) {
+    _showSessionLoader(sessionId: string) {
         const client = new Client(this.platform);
         client.startWithExistingSession(sessionId);
         this._setSection(() => {
@@ -189,9 +191,9 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _setSection(setter) {
+    _setSection(setter: VoidFunction) {
         // clear all members the activeSection depends on
-        this._error = null;
+        this._error = undefined;
         this._sessionPickerViewModel = this.disposeTracked(this._sessionPickerViewModel);
         this._sessionLoadViewModel = this.disposeTracked(this._sessionLoadViewModel);
         this._loginViewModel = this.disposeTracked(this._loginViewModel);
@@ -209,11 +211,11 @@ export class RootViewModel extends ViewModel {
         this.emitChange("activeSection");
     }
 
-    get error() { return this._error; }
-    get sessionViewModel() { return this._sessionViewModel; }
-    get loginViewModel() { return this._loginViewModel; }
-    get logoutViewModel() { return this._logoutViewModel; }
-    get forcedLogoutViewModel() { return this._forcedLogoutViewModel; }
-    get sessionPickerViewModel() { return this._sessionPickerViewModel; }
-    get sessionLoadViewModel() { return this._sessionLoadViewModel; }
+    get error(): any { return this._error; }
+    get sessionViewModel(): SessionViewModel | undefined { return this._sessionViewModel; }
+    get loginViewModel(): LoginViewModel | undefined { return this._loginViewModel; }
+    get logoutViewModel(): LogoutViewModel | undefined { return this._logoutViewModel; }
+    get forcedLogoutViewModel(): ForcedLogoutViewModel | undefined { return this._forcedLogoutViewModel; }
+    get sessionPickerViewModel(): SessionPickerViewModel | undefined { return this._sessionPickerViewModel; }
+    get sessionLoadViewModel(): SessionLoadViewModel | undefined { return this._sessionLoadViewModel; }
 }
