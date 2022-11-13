@@ -42,7 +42,7 @@ type Options = {
 } & ViewModelOptions;
 
 export class RoomViewModel extends ViewModel implements IGridItemViewModel {
-    private _client: Client;
+    private _client?: Client;
     private _room: Room;
     private _tileClassForEntry: TileClassForEntryFn;
     private _composerVM?: InternalViewModel;
@@ -222,7 +222,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
 
     async _processCommandJoin(roomName: string): Promise<void> {
         try {
-            const session = this._client.session;
+            const session = this._client?.session;
             const roomId = await joinRoom(roomName, session);
             this.navigation.push("room", roomId);
         } catch (err) {

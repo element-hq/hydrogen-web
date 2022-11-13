@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Client} from "../../matrix/Client";
+import {Client, LoginFailure, LoginOptions} from "../../matrix/Client";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
 import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
 import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
@@ -34,7 +34,7 @@ export type Options = {
 export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _ready: ReadyFn;
     private _loginToken?: string;
-    private _client: Client;
+    private _client?: Client;
     private _loginOptions?: LoginOptions;
     private _passwordLoginViewModel?: PasswordLoginViewModel;
     private _startSSOLoginViewModel?: StartSSOLoginViewModel;
@@ -110,7 +110,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
             this._completeSSOLoginViewModel = this.track(new CompleteSSOLoginViewModel(
                 this.childOptions(
                     {
-                        client: this._client,
+                        client: this._client!,
                         attemptLogin: (loginMethod: TokenLoginMethod) => this.attemptLogin(loginMethod),
                         loginToken: this._loginToken
                     })));
@@ -149,22 +149,21 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this.emitChange("isBusy");
     }
 
-    async attemptLogin(loginMethod: ILoginMethod): Promise<null> {
+    async attemptLogin(loginMethod: ILoginMethod): Promise<LoginFailure | undefined> {
         this._setBusy(true);
-        void this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
-        const loadStatus = this._client.loadStatus;
-        const handle = loadStatus.waitFor((status: LoadStatus) => status !== LoadStatus.Login);
-        await handle.promise;
+        void this._client?.startWithLogin(loginMethod, {inspectAccountSetup: true});
+        const loadStatus = this._client?.loadStatus;
+        const handle = loadStatus?.waitFor((status: LoadStatus) => status !== LoadStatus.Login);
+        await handle?.promise;
         this._setBusy(false);
-        const status = loadStatus.get();
+        const status = loadStatus?.get();
         if (status === LoadStatus.LoginFailed) {
-            return this._client.loginFailure;
+            return this._client?.loginFailure;
         }
         this._hideHomeserver = true;
         this.emitChange("hideHomeserver");
         this._disposeViewModels();
         void this._createLoadViewModel();
-        return null;
     }
 
     private _createLoadViewModel(): void {
@@ -173,9 +172,9 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._loadViewModel = this.track(
             new SessionLoadViewModel(
                 this.childOptions({
-                    ready: (client) => {
+                    ready: (client: Client) => {
                         // make sure we don't delete the session in dispose when navigating away
-                        this._client = null;
+                        this._client = undefined;
                         this._ready(client);
                     },
                     client: this._client,
@@ -244,10 +243,10 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);
         try {
-            const queryOperation = this._client.queryLogin(this._homeserver);
-            this._abortQueryOperation = this.track(() => queryOperation.abort());
+            const queryOperation = this._client?.queryLogin(this._homeserver);
+            this._abortQueryOperation = this.track(() => queryOperation?.abort());
             this.emitChange("isFetchingLoginOptions");
-            this._loginOptions = await queryOperation.result;
+            this._loginOptions = await queryOperation?.result;
             this.emitChange("resolvedHomeserver");
         }
         catch (e) {
@@ -283,11 +282,3 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 }
 
 type ReadyFn = (client: Client) => void;
-
-// TODO: move to Client.js when its converted to typescript.
-export type LoginOptions = {
-    homeserver: string;
-    password?: (username: string, password: string) => PasswordLoginMethod;
-    sso?: SSOLoginHelper;
-    token?: (loginToken: string) => TokenLoginMethod;
-};

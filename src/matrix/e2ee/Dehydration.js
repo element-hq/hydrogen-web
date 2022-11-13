@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-const DEHYDRATION_LIBOLM_PICKLE_ALGORITHM = "org.matrix.msc2697.v1.olm.libolm_pickle"; 
+const DEHYDRATION_LIBOLM_PICKLE_ALGORITHM = "org.matrix.msc2697.v1.olm.libolm_pickle";
 import {KeyDescription} from "../ssss/common";
 import {keyFromCredentialAndDescription} from "../ssss/index";
 
@@ -47,7 +47,7 @@ export async function uploadAccountAsDehydratedDevice(account, hsApi, key, devic
     return deviceId;
 }
 
-class EncryptedDehydratedDevice {
+export class EncryptedDehydratedDevice {
     constructor(dehydratedDevice, olm, platform) {
         this._dehydratedDevice = dehydratedDevice;
         this._olm = olm;

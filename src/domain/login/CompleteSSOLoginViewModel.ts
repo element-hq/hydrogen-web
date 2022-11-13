@@ -21,14 +21,14 @@ import { Client } from "../../matrix/Client";
 
 type Options = {
     client: Client;
-    attemptLogin: (loginMethod: TokenLoginMethod) => Promise<null>;
+    attemptLogin: (loginMethod: TokenLoginMethod) => Promise<LoginFailure | undefined>;
     loginToken: string;
 } & BaseOptions
 
 export class CompleteSSOLoginViewModel extends ViewModel {
     private _loginToken: string;
     private _client: Client;
-    private _attemptLogin: (loginMethod: TokenLoginMethod) => Promise<null>;
+    private _attemptLogin: (loginMethod: TokenLoginMethod) => Promise<LoginFailure | undefined>;
     private _errorMessage = "";
 
     constructor(options: Options) {

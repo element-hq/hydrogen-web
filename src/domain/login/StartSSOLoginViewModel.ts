@@ -16,7 +16,7 @@ limitations under the License.
 
 import type {SSOLoginHelper} from "../../matrix/login";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import type {LoginOptions} from "./LoginViewModel";
+import type {LoginOptions} from "../../matrix/Client";
 
 
 type Options = {

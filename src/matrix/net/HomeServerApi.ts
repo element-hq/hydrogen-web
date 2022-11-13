@@ -31,9 +31,9 @@ const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
 type Options = {
     homeserver: string;
-    accessToken: string;
+    accessToken?: string;
     request: RequestFunction;
-    reconnector: Reconnector;
+    reconnector?: Reconnector;
 };
 
 type BaseRequestOptions = {
@@ -46,9 +46,9 @@ type BaseRequestOptions = {
 
 export class HomeServerApi {
     private readonly _homeserver: string;
-    private readonly _accessToken: string;
+    private readonly _accessToken?: string;
     private readonly _requestFn: RequestFunction;
-    private readonly _reconnector: Reconnector;
+    private readonly _reconnector?: Reconnector;
 
     constructor({homeserver, accessToken, request, reconnector}: Options) {
         // store these both in a closure somehow so it's harder to get at in case of XSS?
@@ -97,7 +97,7 @@ export class HomeServerApi {
                 // but spinning up the reconnector in this case is ok,
                 // as all code ran on session and sync start should be reentrant
                 if (err.name === "ConnectionError") {
-                    void this._reconnector.onRequestFailed(this);
+                    void this._reconnector?.onRequestFailed(this);
                 }
             });
         }

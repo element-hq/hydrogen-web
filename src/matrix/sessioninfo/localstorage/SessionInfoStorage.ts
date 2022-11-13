@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-interface ISessionInfo {
+export interface ISessionInfo {
     id: string;
     deviceId: string;
     userId: string;
@@ -80,5 +80,5 @@ export class SessionInfoStorage implements ISessionInfoStorage {
         sessions = sessions.filter(s => s.id !== sessionId);
         localStorage.setItem(this._name, JSON.stringify(sessions));
     }
-    
+
 }

@@ -119,9 +119,9 @@ export class SessionViewModel extends ViewModel {
     }
 
     _setupForcedLogoutOnAccessTokenInvalidation() {
-        this.track(this.client.sync.status.subscribe(status => {
+        this.track(this.client.sync!.status.subscribe(status => {
             if (status === SyncStatus.Stopped) {
-                const error = this.client.sync.error;
+                const error = this.client.sync!.error;
                 if (error?.errcode === "M_UNKNOWN_TOKEN") {
                     // Access token is no longer valid, so force the user to log out
                     const segments = [
@@ -135,7 +135,7 @@ export class SessionViewModel extends ViewModel {
         }));
     }
 
-    get id(): string {
+    get id(): string | undefined{
         return this.client.sessionId;
     }
 

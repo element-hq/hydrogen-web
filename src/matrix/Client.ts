@@ -15,10 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createEnum} from "../utils/enum";
+import "@matrix-org/olm";
 import {lookupHomeserver} from "./well-known";
-import {AbortableOperation} from "../utils/AbortableOperation";
-import {ObservableValue} from "../observable/ObservableValue";
+import {AbortableOperation, IAbortable} from "../utils/AbortableOperation";
+import {IWaitHandle, ObservableValue} from "../observable/ObservableValue";
 import {HomeServerApi} from "./net/HomeServerApi";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
@@ -30,55 +30,72 @@ import {PasswordLoginMethod} from "./login/PasswordLoginMethod";
 import {TokenLoginMethod} from "./login/TokenLoginMethod";
 import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration";
-import {Registration} from "./registration/Registration";
+import {FlowSelector, Registration} from "./registration/Registration";
+import {Platform} from "../lib";
+import type {OlmWorker} from "./e2ee/OlmWorker";
+import type {Storage} from "./storage/idb/Storage";
+import type {ILogItem} from "../logging/types";
+import type {ILoginMethod} from "./login";
+import type {SubscriptionHandle} from "../observable/BaseObservable";
+import type {EncryptedDehydratedDevice} from "./e2ee/Dehydration";
+import type {IHomeServerRequest} from "./net/HomeServerRequest";
+import type {ISessionInfo} from "./sessioninfo/localstorage/SessionInfoStorage";
 
-export const LoadStatus = createEnum(
-    "NotLoading",
-    "Login",
-    "LoginFailed",
-    "QueryAccount", // check for dehydrated device after login
-    "AccountSetup", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
-    "Loading",
-    "SessionSetup", // upload e2ee keys, ...
-    "Migrating",    // not used atm, but would fit here
-    "FirstSync",
-    "Error",
-    "Ready",
-);
+export enum LoadStatus {
+    NotLoading = "NotLoading",
+    Login = "Login",
+    LoginFailed = "LoginFailed",
+    QueryAccount = "QueryAccount", // check for dehydrated device after login
+    AccountSetup = "AccountSetup", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
+    Loading = "Loading",
+    SessionSetup = "SessionSetup", // upload e2ee keys, ...
+    Migrating = "Migrating",    // not used atm, but would fit here
+    FirstSync = "FirstSync",
+    Error = "Error",
+    Ready = "Ready",
+}
 
-export const LoginFailure = createEnum(
-    "Connection",
-    "Credentials",
-    "Unknown",
-);
+export enum LoginFailure {
+    Connection = "Connection",
+    Credentials = "Credentials",
+    Unknown = "Unknown",
+}
 
 export class Client {
-    constructor(platform) {
+    private _platform: Platform;
+    private _sessionStartedByReconnector: boolean;
+    private _status: ObservableValue<LoadStatus>;
+    private _olmPromise: Promise<typeof window.Olm | null>
+    private _workerPromise: Promise<OlmWorker | undefined>;
+    private _error?: any;
+    private _loginFailure?: LoginFailure;
+    private _reconnector?: Reconnector;
+    private _session?: Session;
+    private _sync?: Sync;
+    private _sessionId?: string;
+    private _storage?: Storage;
+    private _requestScheduler?: RequestScheduler;
+    private _accountSetup?: AccountSetup;
+    private _reconnectSubscription?: SubscriptionHandle;
+    private _waitForFirstSyncHandle?: IWaitHandle<SyncStatus>;
+
+    constructor(platform: Platform) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
-        this._error = null;
-        this._loginFailure = null;
-        this._reconnector = null;
-        this._session = null;
-        this._sync = null;
-        this._sessionId = null;
-        this._storage = null;
-        this._requestScheduler = null;
         this._olmPromise = platform.loadOlm();
         this._workerPromise = platform.loadOlmWorker();
-        this._accountSetup = undefined;
     }
 
-    createNewSessionId() {
+    createNewSessionId(): string {
         return (Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)).toString();
     }
 
-    get sessionId() {
+    get sessionId(): string | undefined {
         return this._sessionId;
     }
 
-    async startWithExistingSession(sessionId) {
+    async startWithExistingSession(sessionId: string) {
         if (this._status.get() !== LoadStatus.NotLoading) {
             return;
         }
@@ -86,11 +103,11 @@ export class Client {
         await this._platform.logger.run("load session", async log => {
             log.set("id", sessionId);
             try {
-                const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
+                const sessionInfo: ISessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
                 if (!sessionInfo) {
                     throw new Error("Invalid session id: " + sessionId);
                 }
-                await this._loadSessionInfo(sessionInfo, null, log);
+                await this._loadSessionInfo(sessionInfo, undefined, log);
                 log.set("status", this._status.get());
             } catch (err) {
                 log.catch(err);
@@ -100,15 +117,15 @@ export class Client {
         });
     }
 
-    // TODO: When converted to typescript this should return the same type
-    // as this._loginOptions is in LoginViewModel.ts (LoginOptions).
-    _parseLoginOptions(options, homeserver) {
+    // TODO: options should become the return type of
+    // hsApi.getLoginFlows().response() once that endpoint is typed.
+    _parseLoginOptions(options: { flows: any; }, homeserver: string): LoginOptions {
         /*
         Take server response and return new object which has two props password and sso which
         implements LoginMethod
         */
         const flows = options.flows;
-        const result = {homeserver};
+        const result: LoginOptions = {homeserver};
         for (const flow of flows) {
             if (flow.type === "m.login.password") {
                 result.password = (username, password) => new PasswordLoginMethod({homeserver, username, password});
@@ -123,24 +140,31 @@ export class Client {
         return result;
     }
 
-    queryLogin(homeserver) {
+    queryLogin(homeserver: string): AbortableOperation<Promise<LoginOptions>, void> {
         return new AbortableOperation(async setAbortable => {
             homeserver = await lookupHomeserver(homeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
             const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
-            const response = await setAbortable(hsApi.getLoginFlows()).response();
+            const response = await (setAbortable(await hsApi.getLoginFlows()) as IHomeServerRequest).response();
             return this._parseLoginOptions(response, homeserver);
         });
     }
 
-    async startRegistration(homeserver, username, password, initialDeviceDisplayName, flowSelector) {
+    async startRegistration(
+        homeserver: string,
+        username: string | null,
+        password: string,
+        initialDeviceDisplayName: string,
+        flowSelector: FlowSelector,
+    ): Promise<Registration> {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
         const registration = new Registration(homeserver, hsApi, {
             username,
             password,
             initialDeviceDisplayName,
+            inhibitLogin: false,
         },
         flowSelector);
         return registration;
@@ -156,7 +180,12 @@ export class Client {
         });
     }
 
-    async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
+    async startWithLogin(
+        loginMethod: ILoginMethod,
+        { inspectAccountSetup }: { inspectAccountSetup: boolean } = {
+            inspectAccountSetup: false,
+        }
+    ) {
         const currentStatus = this._status.get();
         if (currentStatus !== LoadStatus.LoginFailed &&
             currentStatus !== LoadStatus.NotLoading &&
@@ -199,10 +228,10 @@ export class Client {
         });
     }
 
-    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}: PartialISessionInfo, inspectAccountSetup: boolean, log: ILogItem) {
         const id = this.createNewSessionId();
         const lastUsed = this._platform.clock.now();
-        const sessionInfo = {
+        const sessionInfo: ISessionInfo = {
             id,
             deviceId,
             userId,
@@ -234,7 +263,7 @@ export class Client {
         }
     }
 
-    async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {
+    async _loadSessionInfo(sessionInfo: ISessionInfo, dehydratedDevice: any | undefined, log: ILogItem) {
         log.set("appVersion", this._platform.version);
         const clock = this._platform.clock;
         this._sessionStartedByReconnector = false;
@@ -288,18 +317,18 @@ export class Client {
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
 
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
+        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage!, session: this._session, logger: this._platform.logger});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
                 this._platform.logger.runDetached("reconnect", async log => {
                     // needs to happen before sync and session or it would abort all requests
-                    this._requestScheduler.start();
-                    this._sync.start();
+                    this._requestScheduler?.start();
+                    this._sync?.start();
                     this._sessionStartedByReconnector = true;
                     const d = dehydratedDevice;
                     dehydratedDevice = undefined;
-                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, d, log));
+                    await log.wrap("session start", log => this._session.start(this._reconnector?.lastVersionsResponse, d, log));
                 });
             }
         });
@@ -326,21 +355,21 @@ export class Client {
     }
 
     async _waitForFirstSync() {
-        this._sync.start();
+        this._sync?.start();
         this._status.set(LoadStatus.FirstSync);
         // only transition into Ready once the first sync has succeeded
-        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
+        this._waitForFirstSyncHandle = this._sync?.status.waitFor(s => {
             if (s === SyncStatus.Stopped) {
                 // keep waiting if there is a ConnectionError
                 // as the reconnector above will call
                 // sync.start again to retry in this case
-                return this._sync.error?.name !== "ConnectionError";
+                return this._sync?.error?.name !== "ConnectionError";
             }
             return s === SyncStatus.Syncing;
         });
         try {
-            await this._waitForFirstSyncHandle.promise;
-            if (this._sync.status.get() === SyncStatus.Stopped && this._sync.error) {
+            await this._waitForFirstSyncHandle?.promise;
+            if (this._sync?.status.get() === SyncStatus.Stopped && this._sync.error) {
                 throw this._sync.error;
             }
         } catch (err) {
@@ -350,11 +379,11 @@ export class Client {
             }
             throw err;
         } finally {
-            this._waitForFirstSyncHandle = null;
+            this._waitForFirstSyncHandle = undefined;
         }
     }
 
-    _inspectAccountAfterLogin(sessionInfo, log) {
+    _inspectAccountAfterLogin(sessionInfo: ISessionInfo, log: ILogItem) {
         return log.wrap("inspectAccount", async log => {
             this._status.set(LoadStatus.QueryAccount);
             const hsApi = new HomeServerApi({
@@ -363,7 +392,7 @@ export class Client {
                 request: this._platform.request,
             });
             const olm = await this._olmPromise;
-            let encryptedDehydratedDevice;
+            let encryptedDehydratedDevice: EncryptedDehydratedDevice;
             try {
                 encryptedDehydratedDevice = await getDehydratedDevice(hsApi, olm, this._platform, log);
             } catch (err) {
@@ -380,47 +409,47 @@ export class Client {
                 this._status.set(LoadStatus.AccountSetup);
                 await promiseStageFinish;
                 const dehydratedDevice = this._accountSetup?._dehydratedDevice;
-                this._accountSetup = null;
+                this._accountSetup = undefined;
                 return dehydratedDevice;
             }
         });
     }
 
-    get accountSetup() {
+    get accountSetup(): AccountSetup | undefined {
         return this._accountSetup;
     }
 
-    get loadStatus() {
+    get loadStatus(): ObservableValue<LoadStatus> {
         return this._status;
     }
 
-    get loadError() {
+    get loadError(): any {
         return this._error;
     }
 
-    get loginFailure() {
+    get loginFailure(): LoginFailure | undefined {
         return this._loginFailure;
     }
 
     /** only set at loadStatus InitialSync, CatchupSync or Ready */
-    get sync() {
+    get sync(): Sync | undefined {
         return this._sync;
     }
 
     /** only set at loadStatus InitialSync, CatchupSync or Ready */
-    get session() {
+    get session(): Session | undefined {
         return this._session;
     }
 
-    get reconnector() {
+    get reconnector(): Reconnector | undefined {
         return this._reconnector;
     }
 
-    get _isDisposed() {
+    get _isDisposed(): boolean {
         return !this._reconnector;
     }
 
-    startLogout(sessionId) {
+    startLogout(sessionId: string) {
         return this._platform.logger.run("logout", async log => {
             this._sessionId = sessionId;
             log.set("id", this._sessionId);
@@ -440,7 +469,7 @@ export class Client {
         });
     }
 
-    startForcedLogout(sessionId) {
+    startForcedLogout(sessionId: string | undefined) {
         return this._platform.logger.run("forced-logout", async log => {
             this._sessionId = sessionId;
             log.set("id", this._sessionId);
@@ -451,32 +480,32 @@ export class Client {
     dispose() {
         if (this._reconnectSubscription) {
             this._reconnectSubscription();
-            this._reconnectSubscription = null;
+            this._reconnectSubscription = undefined;
         }
-        this._reconnector = null;
+        this._reconnector = undefined;
         if (this._requestScheduler) {
             this._requestScheduler.stop();
-            this._requestScheduler = null;
+            this._requestScheduler = undefined;
         }
         if (this._sync) {
             this._sync.stop();
-            this._sync = null;
+            this._sync = undefined;
         }
         if (this._session) {
             this._session.dispose();
-            this._session = null;
+            this._session = undefined;
         }
         if (this._waitForFirstSyncHandle) {
             this._waitForFirstSyncHandle.dispose();
-            this._waitForFirstSyncHandle = null;
+            this._waitForFirstSyncHandle = undefined;
         }
         if (this._storage) {
             this._storage.close();
-            this._storage = null;
+            this._storage = undefined;
         }
     }
 
-    async deleteSession(log) {
+    async deleteSession(log?: ILogItem) {
         if (this._sessionId) {
             // need to dispose first, so the storage is closed,
             // and also first sync finishing won't call Session.start anymore,
@@ -485,33 +514,51 @@ export class Client {
             // if one fails, don't block the other from trying
             // also, run in parallel
             await Promise.all([
-                log.wrap("storageFactory", () => this._platform.storageFactory.delete(this._sessionId)),
-                log.wrap("sessionInfoStorage", () => this._platform.sessionInfoStorage.delete(this._sessionId)),
+                log?.wrap("storageFactory", () => this._platform.storageFactory.delete(this._sessionId)),
+                log?.wrap("sessionInfoStorage", () => this._platform.sessionInfoStorage.delete(this._sessionId)),
             ]);
-            this._sessionId = null;
+            this._sessionId = undefined;
         }
     }
 
     _resetStatus() {
         this._status.set(LoadStatus.NotLoading);
-        this._error = null;
-        this._loginFailure = null;
+        this._error = undefined;
+        this._loginFailure = undefined;
     }
 }
 
 class AccountSetup {
-    constructor(encryptedDehydratedDevice, finishStage) {
+    _encryptedDehydratedDevice: EncryptedDehydratedDevice;
+    _dehydratedDevice?: any;
+    _finishStage: any;
+
+    constructor(encryptedDehydratedDevice: EncryptedDehydratedDevice, finishStage: any) {
         this._encryptedDehydratedDevice = encryptedDehydratedDevice;
         this._dehydratedDevice = undefined;
         this._finishStage = finishStage;
     }
 
-    get encryptedDehydratedDevice() {
+    get encryptedDehydratedDevice(): any | undefined {
         return this._encryptedDehydratedDevice;
     }
 
-    finish(dehydratedDevice) {
+    finish(dehydratedDevice: any) {
         this._dehydratedDevice = dehydratedDevice;
         this._finishStage();
     }
+}
+
+export type LoginOptions = {
+    homeserver: string;
+    password?: (username: string, password: string) => PasswordLoginMethod;
+    sso?: SSOLoginHelper;
+    token?: (loginToken: string) => TokenLoginMethod;
+};
+
+type PartialISessionInfo = {
+    deviceId: string;
+    userId: string;
+    accessToken: string;
+    homeserver: string;
 }
