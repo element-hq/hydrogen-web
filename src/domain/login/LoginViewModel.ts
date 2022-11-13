@@ -25,7 +25,7 @@ import {SegmentType} from "../navigation/index";
 
 import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
 
-type Options = {
+export type Options = {
     defaultHomeserver: string;
     ready: ReadyFn;
     loginToken?: string;
