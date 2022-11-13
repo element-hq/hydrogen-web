@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {LoginFailure} from "../../matrix/Client.js";
+import {LoginFailure} from "../../matrix/Client";
 import type {PasswordLoginMethod} from "../../matrix/login";
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import type {LoginOptions} from "./LoginViewModel";
+import {LoginOptions} from "../../matrix/Client";
 
 type Options = {
     loginOptions: LoginOptions | undefined;
-    attemptLogin: (loginMethod: PasswordLoginMethod) => Promise<null>;
+    attemptLogin: (loginMethod: PasswordLoginMethod) => Promise<LoginFailure | undefined>;
 } & BaseOptions
 
 export class PasswordLoginViewModel extends ViewModel {
     private _loginOptions?: LoginOptions;
-    private _attemptLogin: (loginMethod: PasswordLoginMethod) => Promise<null>;
+    private _attemptLogin: (loginMethod: PasswordLoginMethod) => Promise<LoginFailure | undefined>;
     private _isBusy = false;
     private _errorMessage = "";
 

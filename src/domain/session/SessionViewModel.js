@@ -121,7 +121,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     get id() {
-        return this._client.sessionId;
+        return this.client.sessionId;
     }
 
     start() {

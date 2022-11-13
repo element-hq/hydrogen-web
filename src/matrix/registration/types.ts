@@ -19,7 +19,7 @@ export type AccountDetails = {
     password: string;
     initialDeviceDisplayName: string;
     inhibitLogin: boolean;
-} 
+}
 
 export type RegistrationResponse = RegistrationResponseMoreDataNeeded | RegistrationResponseSuccess;
 
@@ -29,7 +29,7 @@ export type RegistrationResponseMoreDataNeeded = {
     params: Record<string, any>;
     session: string;
     status: 401;
-} 
+}
 
 export type RegistrationResponseSuccess = {
     user_id: string;
@@ -58,5 +58,5 @@ export type AuthenticationData = {
 
 // contains additional data needed to complete a stage, eg: link to privacy policy
 export type RegistrationParams = {
-    [key: string]: any;   
+    [key: string]: any;
 }

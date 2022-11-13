@@ -29,7 +29,7 @@ import type {
     RegistrationParams,
 } from "./types";
 
-type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
+export type FlowSelector = (flows: RegistrationFlow[]) => RegistrationFlow | void;
 
 export class Registration {
     private readonly _hsApi: HomeServerApi;

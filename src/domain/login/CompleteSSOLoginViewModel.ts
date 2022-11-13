@@ -15,20 +15,20 @@ limitations under the License.
 */
 
 import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import {LoginFailure} from "../../matrix/Client.js";
+import {LoginFailure} from "../../matrix/Client";
 import type {TokenLoginMethod} from "../../matrix/login";
-import { Client } from "../../matrix/Client.js";
+import { Client } from "../../matrix/Client";
 
 type Options = {
     client: Client;
-    attemptLogin: (loginMethod: TokenLoginMethod) => Promise<null>;
+    attemptLogin: (loginMethod: TokenLoginMethod) => Promise<LoginFailure | undefined>;
     loginToken: string;
 } & BaseOptions
 
 export class CompleteSSOLoginViewModel extends ViewModel {
     private _loginToken: string;
     private _client: Client;
-    private _attemptLogin: (loginMethod: TokenLoginMethod) => Promise<null>;
+    private _attemptLogin: (loginMethod: TokenLoginMethod) => Promise<LoginFailure | undefined>;
     private _errorMessage = "";
 
     constructor(options: Options) {
