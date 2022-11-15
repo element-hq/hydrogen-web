@@ -39,6 +39,8 @@ You can run Hydrogen locally by the following commands in the terminal:
 
 Now point your browser to `http://localhost:3000`. If you prefer, you can also [use docker](doc/docker.md).
 
+PS: You need nodejs, running yarn on top of any other js platform is not supported.
+
 # FAQ
 
 Some frequently asked questions are answered [here](doc/FAQ.md).
