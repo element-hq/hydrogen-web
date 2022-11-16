@@ -54,7 +54,7 @@ type Avatar = {
     name: string;
 }
 
-type Options = {
+export type Options = {
     type: RoomType;
     isEncrypted?: boolean;
     isFederationDisabled?: boolean;

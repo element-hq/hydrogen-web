@@ -381,7 +381,7 @@ export class SendQueue {
                 txnId: makeTxnId(),
                 needsEncryption,
                 needsUpload: !!attachments,
-                remoteId: null
+                remoteId: undefined
             }, attachments);
             pendingEventsStore.add(pendingEvent.data);
         } catch (err) {

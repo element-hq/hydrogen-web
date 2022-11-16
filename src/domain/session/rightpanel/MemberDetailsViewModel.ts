@@ -111,7 +111,8 @@ export class MemberDetailsViewModel extends ViewModel {
         if (!roomId) {
             const roomBeingCreated = await this._session.createRoom({
                 type: RoomType.DirectMessage,
-                invites: [this.userId]
+                invites: [this.userId],
+                loadProfiles: false,
             });
             roomId = roomBeingCreated.id;
         }

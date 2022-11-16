@@ -17,7 +17,7 @@ limitations under the License.
 
 import {Room} from "./room/Room";
 import {ArchivedRoom} from "./room/ArchivedRoom";
-import {RoomStatus} from "./room/common";
+import {RoomStatus, RoomType} from "./room/common";
 import {RoomBeingCreated} from "./room/RoomBeingCreated";
 import {Invite} from "./room/Invite";
 import {Pusher} from "./push/Pusher";
@@ -42,25 +42,82 @@ import {
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
     removeKey as ssssRemoveKey,
-    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
+    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey,
+    KeyType,
 } from "./ssss/index";
+import type {Key as SSSSKey} from "./ssss/common";
 import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
+import type {Utility} from "@matrix-org/olm";
+import type {Storage} from "./storage/idb/Storage";
+import type {HomeServerApi} from "./net/HomeServerApi";
+import type {OlmWorker} from "./e2ee/OlmWorker";
+import type {Platform} from "../lib";
+import type {MediaRepository} from "./net/MediaRepository";
+import type {ILogItem} from "../logging/types";
+import type {PendingEventData} from "./room/sending/PendingEvent";
+import type {Transaction} from "./storage/idb/Transaction";
+import type {SyncPreparation} from "./DeviceMessageHandler";
+import type {VersionResponse} from "./net/types/response";
+import type {PendingEntry} from "./storage/idb/stores/PendingEventStore";
+import type {Options as RoomBeingCreatedOptions} from "./room/RoomBeingCreated"
+import type {SyncResponse} from "./net/types/sync";
+import type {ILock} from "../utils/Lock";
+import type {ArchivedRoomSyncProcessState, InviteSyncProcessState, RoomSyncProcessState} from "./Sync";
+
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
 
+type Options = {
+    storage: Storage;
+    hsApi: HomeServerApi;
+    sessionInfo: SessionInfo;
+    olm: typeof window.Olm | null;
+    olmWorker?: OlmWorker;
+    platform: Platform;
+    mediaRepository: MediaRepository;
+}
+
 export class Session {
-    // sessionInfo contains deviceId, userId and homeserver
-    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
+    needsKeyBackup: ObservableValue<boolean>;
+    private _platform: Platform;
+    private _storage: Storage;
+    private _hsApi: HomeServerApi;
+    private _mediaRepository: MediaRepository;
+    private _syncInfo?: any;
+    private _sessionInfo: SessionInfo;
+    private _olm: typeof window.Olm | null;
+    private _olmWorker?: OlmWorker;
+    private _olmUtil?: Utility;
+    private _user: User;
+    private _deviceMessageHandler: DeviceMessageHandler;
+    private _rooms?: ObservableMap<string, Room>;
+    private _invites: ObservableMap<string, Invite>;
+    private _roomsBeingCreated: ObservableMap<string, RoomBeingCreated>;
+    private _activeArchivedRooms: Map<string, ArchivedRoom>;
+    private _roomUpdateCallback: (room: Room, params: any) => boolean | undefined;
+    private _inviteUpdateCallback: (invite: Invite, params: any) => boolean;
+    private _roomsBeingCreatedUpdateCallback: (rbc: RoomBeingCreated, params: any) => void;
+    private _e2eeAccount?: E2EEAccount;
+    private _deviceTracker?: DeviceTracker;
+    private _olmEncryption?: OlmEncryption;
+    private _keyLoader?: MegOlmKeyLoader;
+    private _megolmEncryption: MegOlmEncryption;
+    private _megolmDecryption?: MegOlmDecryption;
+    private _getSyncToken: () => string | undefined;
+    private _keyBackup: ObservableValue<KeyBackup | undefined | null>;
+    private _observedRoomStatus: Map<string, RetainedObservableValue<number | RoomStatus>>;
+
+
+    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}: Options) {
         this._platform = platform;
         this._storage = storage;
         this._hsApi = hsApi;
         this._mediaRepository = mediaRepository;
-        this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
-        this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
+        this._roomUpdateCallback = (room, params) => this._rooms?.update(room.id, params);
         this._activeArchivedRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
@@ -75,13 +132,6 @@ export class Session {
         this._user = new User(sessionInfo.userId);
         this._deviceMessageHandler = new DeviceMessageHandler({storage});
         this._olm = olm;
-        this._olmUtil = null;
-        this._e2eeAccount = null;
-        this._deviceTracker = null;
-        this._olmEncryption = null;
-        this._keyLoader = null;
-        this._megolmEncryption = null;
-        this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._keyBackup = new ObservableValue(undefined);
@@ -102,27 +152,27 @@ export class Session {
         this.needsKeyBackup = new ObservableValue(false);
     }
 
-    get fingerprintKey() {
+    get fingerprintKey(): string | undefined {
         return this._e2eeAccount?.identityKeys.ed25519;
     }
 
-    get hasSecretStorageKey() {
-        return this._hasSecretStorageKey;
-    }
-
-    get deviceId() {
+    get deviceId(): string {
         return this._sessionInfo.deviceId;
     }
 
-    get userId() {
+    get userId(): string {
         return this._sessionInfo.userId;
     }
 
     // called once this._e2eeAccount is assigned
     _setupEncryption() {
+        if (this._olm === null || !this._olmUtil || !this._storage) {
+            throw new Error("could not setup encryption")
+        }
+
         // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account
         // and can create RoomEncryption objects and handle encrypted to_device messages and device list changes.
-        const senderKeyLock = new LockMap();
+        const senderKeyLock = new LockMap<string>();
         const olmDecryption = new OlmDecryption(
             this._e2eeAccount,
             PICKLE_KEY,
@@ -155,7 +205,16 @@ export class Session {
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
     }
 
-    _createRoomEncryption(room, encryptionParams) {
+    // TODO: encryptionParams is the response type of the "m.room.encryption" event
+    // https://spec.matrix.org/v1.4/client-server-api/#mroomencryption
+    _createRoomEncryption(
+        room: Room,
+        encryptionParams: {
+            algorithm: "m.megolm.v1.aes-sha2";
+            rotation_period_ms?: number;
+            rotation_period_msgs?: number;
+        }
+    ) {
         // TODO: this will actually happen when users start using the e2ee version for the first time
 
         // this should never happen because either a session was already synced once
@@ -197,13 +256,13 @@ export class Session {
      * @param  {string} credential either the passphrase or the recovery key, depending on the type
      * @return {Promise} resolves or rejects after having tried to enable secret storage
      */
-    enableSecretStorage(type, credential, log = undefined) {
-        return this._platform.logger.wrapOrRun(log, "enable secret storage", async log => {
+    enableSecretStorage(type: KeyType, credential: string, log: ILogItem | undefined = undefined): Promise<SSSSKey> {
+        return this._platform.logger.wrapOrRun(log, "enable secret storage", async (log: ILogItem) => {
             if (!this._olm) {
                 throw new Error("olm required");
             }
             if (this._keyBackup.get()) {
-                this._keyBackup.get().dispose();
+                this._keyBackup.get()?.dispose();
                 this._keyBackup.set(null);
             }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
@@ -215,7 +274,7 @@ export class Session {
                 // only after having read a secret, write the key
                 // as we only find out if it was good if the MAC verification succeeds
                 await this._writeSSSSKey(key, log);
-                this._keyBackup.get().flush(log);
+                this._keyBackup.get()?.flush(log);
                 return key;
             } else {
                 throw new Error("Could not read key backup with the given key");
@@ -223,7 +282,7 @@ export class Session {
         });
     }
 
-    async _writeSSSSKey(key, log) {
+    async _writeSSSSKey(key: SSSSKey, log?: ILogItem) {
         // we're going to write the 4S key, and also the backup version.
         // this way, we can detect when we enter a key for a new backup version
         // and mark all inbound sessions to be backed up again
@@ -238,11 +297,11 @@ export class Session {
         ]);
         try {
             const previousBackupVersion = await ssssWriteKey(key, backupVersion, writeTxn);
-            log.set("previousBackupVersion", previousBackupVersion);
-            log.set("backupVersion", backupVersion);
+            log?.set("previousBackupVersion", previousBackupVersion);
+            log?.set("backupVersion", backupVersion);
             if (!!previousBackupVersion && previousBackupVersion !== backupVersion) {
                 const amountMarked = await keyBackup.markAllForBackup(writeTxn);
-                log.set("amountMarkedForBackup", amountMarked);
+                log?.set("amountMarkedForBackup", amountMarked);
             }
         } catch (err) {
             writeTxn.abort();
@@ -262,20 +321,21 @@ export class Session {
             throw err;
         }
         await writeTxn.complete();
-        if (this._keyBackup.get()) {
-            for (const room of this._rooms.values()) {
+        if (this._keyBackup.get() && this._rooms) {
+            for (const [_, room] of this._rooms) {
                 if (room.isEncrypted) {
                     room.enableKeyBackup(undefined);
                 }
             }
-            this._keyBackup.get().dispose();
+            this._keyBackup.get()?.dispose();
             this._keyBackup.set(null);
         }
     }
 
-    _createKeyBackup(ssssKey, txn, log) {
+    _createKeyBackup(ssssKey: SSSSKey, txn: Transaction, log: ILogItem): Promise<boolean> {
         return log.wrap("enable key backup", async log => {
             try {
+                if (this._olm === null || !this._keyLoader) throw new Error("could not create key backup")
                 const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
                 const keyBackup = await KeyBackup.fromSecretStorage(
                     this._platform,
@@ -286,8 +346,8 @@ export class Session {
                     this._storage,
                     txn
                 );
-                if (keyBackup) {
-                    for (const room of this._rooms.values()) {
+                if (keyBackup && this._rooms) {
+                    for (const [_, room] of this._rooms) {
                         if (room.isEncrypted) {
                             room.enableKeyBackup(keyBackup);
                         }
@@ -303,20 +363,20 @@ export class Session {
     }
 
     /**
-     * @type {ObservableValue<KeyBackup | undefined | null}
+     * @return
      *  - `undefined` means, we're not done with catchup sync yet and haven't checked yet if key backup is configured
      *  - `null` means we've checked and key backup hasn't been configured correctly or at all.
      */
-    get keyBackup() {
+    get keyBackup(): ObservableValue<KeyBackup | undefined | null> {
         return this._keyBackup;
     }
 
-    get hasIdentity() {
+    get hasIdentity(): boolean {
         return !!this._e2eeAccount;
     }
 
     /** @internal */
-    async createIdentity(log) {
+    async createIdentity(log: ILogItem) {
         if (this._olm) {
             if (!this._e2eeAccount) {
                 this._e2eeAccount = await this._createNewAccount(this._sessionInfo.deviceId, this._storage);
@@ -329,7 +389,7 @@ export class Session {
     }
 
     /** @internal */
-    async dehydrateIdentity(dehydratedDevice, log) {
+    async dehydrateIdentity(dehydratedDevice: any | undefined, log: ILogItem) {
         log.set("deviceId", dehydratedDevice.deviceId);
         if (!this._olm) {
             log.set("no_olm", true);
@@ -362,7 +422,7 @@ export class Session {
         return true;
     }
 
-    _createNewAccount(deviceId, storage = undefined) {
+    _createNewAccount(deviceId: string, storage?: Storage): E2EEAccount {
         // storage is optional and if omitted the account won't be persisted (useful for dehydrating devices)
         return E2EEAccount.create({
             hsApi: this._hsApi,
@@ -375,7 +435,7 @@ export class Session {
         });
     }
 
-    setupDehydratedDevice(key, log = null) {
+    setupDehydratedDevice(key: any, log?: ILogItem) {
         return this._platform.logger.wrapOrRun(log, "setupDehydratedDevice", async log => {
             const dehydrationAccount = await this._createNewAccount("temp-device-id");
             try {
@@ -390,7 +450,7 @@ export class Session {
     }
 
     /** @internal */
-    async load(log) {
+    async load(log?: ILogItem) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.session,
             this._storage.storeNames.roomSummary,
@@ -414,7 +474,7 @@ export class Session {
                 txn
             });
             if (this._e2eeAccount) {
-                log.set("keys", this._e2eeAccount.identityKeys);
+                log?.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
             }
         }
@@ -423,20 +483,20 @@ export class Session {
         const invites = await txn.invites.getAll();
         const inviteLoadPromise = Promise.all(invites.map(async inviteData => {
             const invite = this.createInvite(inviteData.roomId);
-            log.wrap("invite", log => invite.load(inviteData, log));
+            if (log) { log.wrap("invite", log => invite.load(inviteData, log)); } else { invite.load(inviteData, log) };
             this._invites.add(invite.id, invite);
         }));
         // load rooms
         const roomSummaries = await txn.roomSummary.getAll();
         const roomLoadPromise = Promise.all(roomSummaries.map(async summary => {
             const room = this.createJoinedRoom(summary.roomId, pendingEventsByRoomId.get(summary.roomId));
-            await log.wrap("room", log => room.load(summary, txn, log));
-            this._rooms.add(room.id, room);
+            if (log) { await log.wrap("room", log => room.load(summary, txn, log)); } else { room.load(summary, txn, log) }
+            this._rooms?.add(room.id, room);
         }));
         // load invites and rooms in parallel
         await Promise.all([inviteLoadPromise, roomLoadPromise]);
         for (const [roomId, invite] of this.invites) {
-            const room = this.rooms.get(roomId);
+            const room = this.rooms?.get(roomId);
             if (room) {
                 room.setInvite(invite);
             }
@@ -452,8 +512,10 @@ export class Session {
         this._megolmDecryption = undefined;
         this._e2eeAccount?.dispose();
         this._e2eeAccount = undefined;
-        for (const room of this._rooms.values()) {
-            room.dispose();
+        if (this._rooms) {
+            for (const [_, room] of this._rooms) {
+                room.dispose();
+            }
         }
         this._rooms = undefined;
     }
@@ -464,7 +526,7 @@ export class Session {
      *                                      and useful to store so we can later tell what capabilities
      *                                      our homeserver has.
      */
-    async start(lastVersionResponse, dehydratedDevice, log) {
+    async start(lastVersionResponse: VersionResponse | undefined, dehydratedDevice: any | undefined, log: ILogItem) {
         if (lastVersionResponse) {
             // store /versions response
             const txn = await this._storage.readWriteTxn([
@@ -510,17 +572,19 @@ export class Session {
         const operations = await opsTxn.operations.getAll();
         const operationsByScope = groupBy(operations, o => o.scope);
 
-        for (const room of this._rooms.values()) {
-            let roomOperationsByType;
-            const roomOperations = operationsByScope.get(room.id);
-            if (roomOperations) {
-                roomOperationsByType = groupBy(roomOperations, r => r.type);
+        if (this._rooms) {
+            for (const [_, room] of this._rooms) {
+                let roomOperationsByType;
+                const roomOperations = operationsByScope.get(room.id);
+                if (roomOperations) {
+                    roomOperationsByType = groupBy(roomOperations, r => r.type);
+                }
+                room.start(roomOperationsByType, log);
             }
-            room.start(roomOperationsByType, log);
         }
     }
 
-    async _getPendingEventsByRoom(txn) {
+    async _getPendingEventsByRoom(txn: Transaction): Promise<Map<string, [PendingEntry]>> {
         const pendingEvents = await txn.pendingEvents.getAll();
         return pendingEvents.reduce((groups, pe) => {
             const group = groups.get(pe.roomId);
@@ -530,20 +594,23 @@ export class Session {
                 groups.set(pe.roomId, [pe]);
             }
             return groups;
-        }, new Map());
+        }, new Map<string, [PendingEntry]>());
     }
 
-    get rooms() {
+    get rooms(): ObservableMap<string, Room> {
+        if (!this._rooms) throw new Error("session is missing rooms")
         return this._rooms;
     }
 
-    findDirectMessageForUserId(userId) {
-        for (const [,room] of this._rooms) {
-            if (room.isDirectMessageForUserId(userId)) {
-                return room;
+    findDirectMessageForUserId(userId: string): Room | Invite | undefined {
+        if (this._rooms) {
+            for (const [_ ,room] of this._rooms) {
+                if (room.isDirectMessageForUserId(userId)) {
+                    return room;
+                }
             }
         }
-        for (const [,invite] of this._invites) {
+        for (const [_ ,invite] of this._invites) {
             if (invite.isDirectMessageForUserId(userId)) {
                 return invite;
             }
@@ -551,7 +618,7 @@ export class Session {
     }
 
     /** @internal */
-    createJoinedRoom(roomId, pendingEvents) {
+    createJoinedRoom(roomId: string, pendingEvents?: PendingEventData[]): Room {
         return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
@@ -567,7 +634,7 @@ export class Session {
     }
 
     /** @internal */
-    _createArchivedRoom(roomId) {
+    _createArchivedRoom(roomId: string): ArchivedRoom {
         const room = new ArchivedRoom({
             roomId,
             getSyncToken: this._getSyncToken,
@@ -585,12 +652,12 @@ export class Session {
         return room;
     }
 
-    get invites() {
+    get invites(): ObservableMap<string, Invite> {
         return this._invites;
     }
 
     /** @internal */
-    createInvite(roomId) {
+    createInvite(roomId: string): Invite {
         return new Invite({
             roomId,
             hsApi: this._hsApi,
@@ -601,12 +668,12 @@ export class Session {
         });
     }
 
-    get roomsBeingCreated() {
+    get roomsBeingCreated(): ObservableMap<string, RoomBeingCreated> {
         return this._roomsBeingCreated;
     }
 
-    createRoom(options) {
-        let roomBeingCreated;
+    createRoom(options: RoomBeingCreatedOptions & {loadProfiles: boolean}): RoomBeingCreated {
+        let roomBeingCreated: RoomBeingCreated | undefined = undefined;
         this._platform.logger.runDetached("create room", async log => {
             const id = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
             roomBeingCreated = new RoomBeingCreated(
@@ -622,38 +689,32 @@ export class Session {
             // we should now know the roomId, check if the room was synced before we received
             // the room id. Replace the room being created with the synced room.
             if (roomBeingCreated.roomId) {
-                if (this.rooms.get(roomBeingCreated.roomId)) {
+                if (this._rooms?.get(roomBeingCreated.roomId)) {
                     this._tryReplaceRoomBeingCreated(roomBeingCreated.roomId, log);
                 }
                 await roomBeingCreated.adjustDirectMessageMapIfNeeded(this._user, this._storage, this._hsApi, log);
             }
         });
-        return roomBeingCreated;
+        // It's always assigned in runDetached, typescript just needs some help here.
+        return roomBeingCreated as unknown as RoomBeingCreated;
     }
 
-    async obtainSyncLock(syncResponse) {
+    async obtainSyncLock(syncResponse: SyncResponse): Promise<ILock | undefined> {
         const toDeviceEvents = syncResponse.to_device?.events;
         if (Array.isArray(toDeviceEvents) && toDeviceEvents.length) {
             return await this._deviceMessageHandler.obtainSyncLock(toDeviceEvents);
         }
     }
 
-    async prepareSync(syncResponse, lock, txn, log) {
+    async prepareSync(syncResponse: SyncResponse, lock: ILock | undefined, txn: Transaction, log: ILogItem) {
         const toDeviceEvents = syncResponse.to_device?.events;
         if (Array.isArray(toDeviceEvents) && toDeviceEvents.length) {
             return await log.wrap("deviceMsgs", log => this._deviceMessageHandler.prepareSync(toDeviceEvents, lock, txn, log));
         }
     }
 
-    /**
-     * @internal
-     * @return {SessionWriteSyncChanges} (find it in Sync.ts)
-     */
-    async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
-        const changes = {
-            syncInfo: null,
-            e2eeAccountChanges: null
-        };
+    async writeSync(syncResponse: SyncResponse, syncFilterId: number, preparation: SyncPreparation | undefined, txn: Transaction, log: ILogItem): Promise<Changes> {
+        const changes: Changes = {};
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
             const syncInfo = {token: syncToken, filterId: syncFilterId};
@@ -668,8 +729,8 @@ export class Session {
         }
 
         const deviceLists = syncResponse.device_lists;
-        if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists.changed.length) {
-            await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
+        if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists!.changed.length) {
+            await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists!.changed, txn, log));
         }
 
         if (preparation) {
@@ -679,7 +740,7 @@ export class Session {
         // store account data
         const accountData = syncResponse["account_data"];
         if (Array.isArray(accountData?.events)) {
-            for (const event of accountData.events) {
+            for (const event of accountData!.events) {
                 if (typeof event.type === "string") {
                     txn.accountData.set(event);
                 }
@@ -689,18 +750,18 @@ export class Session {
     }
 
     /** @internal */
-    afterSync({syncInfo, e2eeAccountChanges}) {
-        if (syncInfo) {
+    afterSync(changes: Partial<Changes> | undefined) {
+        if (changes?.syncInfo) {
             // sync transaction succeeded, modify object state now
-            this._syncInfo = syncInfo;
+            this._syncInfo = changes.syncInfo;
         }
-        if (this._e2eeAccount) {
-            this._e2eeAccount.afterSync(e2eeAccountChanges);
+        if (this._e2eeAccount && changes) {
+            this._e2eeAccount.afterSync(changes.e2eeAccountChanges);
         }
     }
 
     /** @internal */
-    async afterSyncCompleted(changes, isCatchupSync, log) {
+    async afterSyncCompleted(changes: Changes | undefined, isCatchupSync: boolean, log: ILogItem) {
         // we don't start uploading one-time keys until we've caught up with
         // to-device messages, to help us avoid throwing away one-time-keys that we
         // are about to receive messages for
@@ -711,12 +772,12 @@ export class Session {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
             }
         }
-        if (changes.hasNewRoomKeys) {
+        if (changes?.hasNewRoomKeys) {
             this._keyBackup.get()?.flush(log);
         }
     }
 
-    _tryReplaceRoomBeingCreated(roomId, log) {
+    _tryReplaceRoomBeingCreated(roomId: string, log: ILogItem) {
         for (const [,roomBeingCreated] of this._roomsBeingCreated) {
             if (roomBeingCreated.roomId === roomId) {
                 const observableStatus = this._observedRoomStatus.get(roomBeingCreated.id);
@@ -733,14 +794,14 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
+    applyRoomCollectionChangesAfterSync(inviteStates: InviteSyncProcessState[], roomStates: RoomSyncProcessState[], archivedRoomStates: ArchivedRoomSyncProcessState[], log: ILogItem) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
-                this._rooms.add(rs.id, rs.room);
+                this._rooms?.add(rs.id, rs.room);
                 this._tryReplaceRoomBeingCreated(rs.id, log);
             } else if (rs.shouldRemove) {
-                this._rooms.remove(rs.id);
+                this._rooms?.remove(rs.id);
             }
         }
         for (const is of inviteStates) {
@@ -779,7 +840,7 @@ export class Session {
         }
     }
 
-    _forgetArchivedRoom(roomId) {
+    _forgetArchivedRoom(roomId: string) {
         const statusObservable = this._observedRoomStatus.get(roomId);
         if (statusObservable) {
             statusObservable.set((statusObservable.get() | RoomStatus.Archived) ^ RoomStatus.Archived);
@@ -787,24 +848,24 @@ export class Session {
     }
 
     /** @internal */
-    get syncToken() {
+    get syncToken(): any {
         return this._syncInfo?.token;
     }
 
     /** @internal */
-    get syncFilterId() {
+    get syncFilterId(): any {
         return this._syncInfo?.filterId;
     }
 
-    get user() {
+    get user(): User {
         return this._user;
     }
 
-    get mediaRepository() {
+    get mediaRepository(): MediaRepository {
         return this._mediaRepository;
     }
 
-    enablePushNotifications(enable) {
+    enablePushNotifications(enable: boolean) {
         if (enable) {
             return this._enablePush();
         } else {
@@ -812,7 +873,7 @@ export class Session {
         }
     }
 
-    async _enablePush() {
+    async _enablePush(): Promise<boolean> {
         return this._platform.logger.run("enablePush", async log => {
             const defaultPayload = Pusher.createDefaultPayload(this._sessionInfo.id);
             const pusher = await this._platform.notificationService.enablePush(Pusher, defaultPayload);
@@ -831,7 +892,7 @@ export class Session {
     }
 
 
-    async _disablePush() {
+    async _disablePush(): Promise<boolean> {
         return this._platform.logger.run("disablePush", async log => {
             await this._platform.notificationService.disablePush();
             const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
@@ -849,7 +910,7 @@ export class Session {
         });
     }
 
-    async arePushNotificationsEnabled() {
+    async arePushNotificationsEnabled(): Promise<boolean> {
         if (!await this._platform.notificationService.isPushEnabled()) {
             return false;
         }
@@ -858,7 +919,7 @@ export class Session {
         return !!pusherData;
     }
 
-    async checkPusherEnabledOnHomeserver() {
+    async checkPusherEnabledOnHomeserver(): Promise<boolean> {
         const readTxn = await this._storage.readTxn([this._storage.storeNames.session]);
         const pusherData = await readTxn.session.get(PUSHER_KEY);
         if (!pusherData) {
@@ -870,12 +931,12 @@ export class Session {
         return serverPushers.some(p => p.equals(myPusher));
     }
 
-    async getRoomStatus(roomId) {
+    async getRoomStatus(roomId: string): Promise<RoomStatus> {
         const isBeingCreated = !!this._roomsBeingCreated.get(roomId);
         if (isBeingCreated) {
             return RoomStatus.BeingCreated;
         }
-        const isJoined = !!this._rooms.get(roomId);
+        const isJoined = !!this._rooms?.get(roomId);
         if (isJoined) {
             return RoomStatus.Joined;
         } else {
@@ -894,7 +955,7 @@ export class Session {
         }
     }
 
-    async observeRoomStatus(roomId) {
+    async observeRoomStatus(roomId: string): Promise<RetainedObservableValue<number | RoomStatus>> {
         let observable = this._observedRoomStatus.get(roomId);
         if (!observable) {
             const status = await this.getRoomStatus(roomId);
@@ -914,7 +975,7 @@ export class Session {
 
     @internal
     */
-    createOrGetArchivedRoomForSync(roomId) {
+    createOrGetArchivedRoomForSync(roomId: string): ArchivedRoom {
         let archivedRoom = this._activeArchivedRooms.get(roomId);
         if (archivedRoom) {
             archivedRoom.retain();
@@ -924,7 +985,7 @@ export class Session {
         return archivedRoom;
     }
 
-    loadArchivedRoom(roomId, log = null) {
+    loadArchivedRoom(roomId: string, log?: ILogItem): ArchivedRoom | undefined {
         return this._platform.logger.wrapOrRun(log, "loadArchivedRoom", async log => {
             log.set("id", roomId);
             const activeArchivedRoom = this._activeArchivedRooms.get(roomId);
@@ -945,7 +1006,7 @@ export class Session {
         });
     }
 
-    joinRoom(roomIdOrAlias, log = null) {
+    joinRoom(roomIdOrAlias: string, log?: ILogItem): string {
         return this._platform.logger.wrapOrRun(log, "joinRoom", async log => {
             const body = await this._hsApi.joinIdOrAlias(roomIdOrAlias, {log}).response();
             return body.room_id;
@@ -988,7 +1049,7 @@ export function tests() {
         "session data is not modified until after sync": async (assert) => {
             const session = new Session({storage: createStorageMock({
                 sync: {token: "a", filterId: 5}
-            }), sessionInfo: {userId: ""}});
+            })  as unknown as Storage, sessionInfo: {userId: ""} as SessionInfo} as Options);
             await session.load();
             let syncSet = false;
             const syncTxn = {
@@ -1002,7 +1063,7 @@ export function tests() {
                     }
                 }
             };
-            const newSessionData = await session.writeSync({next_batch: "b"}, 6, null, syncTxn, {});
+            const newSessionData = await session.writeSync({next_batch: "b"}, 6, undefined, syncTxn as Transaction, {} as ILogItem);
             assert(syncSet);
             assert.equal(session.syncToken, "a");
             assert.equal(session.syncFilterId, 5);
@@ -1011,4 +1072,19 @@ export function tests() {
             assert.equal(session.syncFilterId, 6);
         }
     }
+}
+
+type SyncInfo = {token: string, filterId: number};
+
+export type Changes = {
+    syncInfo?: SyncInfo,
+    e2eeAccountChanges?: number
+    hasNewRoomKeys?: boolean
+};
+
+type SessionInfo = {
+    id: string;
+    deviceId: string;
+    userId: string;
+    homeserver: string;
 }

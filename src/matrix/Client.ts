@@ -300,7 +300,7 @@ export class Client {
             platform: this._platform,
         });
         this._session = new Session({
-            storage: this._storage,
+            storage: this._storage!,
             sessionInfo: filteredSessionInfo,
             hsApi: this._requestScheduler.hsApi,
             olm,
@@ -310,14 +310,14 @@ export class Client {
         });
         await this._session.load(log);
         if (dehydratedDevice) {
-            await log.wrap("dehydrateIdentity", log => this._session.dehydrateIdentity(dehydratedDevice, log));
-            await this._session.setupDehydratedDevice(dehydratedDevice.key, log);
-        } else if (!this._session.hasIdentity) {
+            await log.wrap("dehydrateIdentity", log => this.session.dehydrateIdentity(dehydratedDevice, log));
+            await this.session.setupDehydratedDevice(dehydratedDevice.key, log);
+        } else if (!this.session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
-            await log.wrap("createIdentity", log => this._session.createIdentity(log));
+            await log.wrap("createIdentity", log => this.session.createIdentity(log));
         }
 
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage!, session: this._session, logger: this._platform.logger});
+        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage!, session: this.session, logger: this._platform.logger});
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
@@ -328,7 +328,7 @@ export class Client {
                     this._sessionStartedByReconnector = true;
                     const d = dehydratedDevice;
                     dehydratedDevice = undefined;
-                    await log.wrap("session start", log => this._session.start(this._reconnector?.lastVersionsResponse, d, log));
+                    await log.wrap("session start", log => this.session.start(this._reconnector?.lastVersionsResponse, d, log));
                 });
             }
         });
@@ -350,7 +350,7 @@ export class Client {
             const d = dehydratedDevice;
             dehydratedDevice = undefined;
             // log as ref as we don't want to await it
-            await log.wrap("session start", log => this._session.start(lastVersionsResponse, d, log));
+            await log.wrap("session start", log => this.session.start(lastVersionsResponse, d, log));
         }
     }
 
@@ -437,7 +437,8 @@ export class Client {
     }
 
     /** only set at loadStatus InitialSync, CatchupSync or Ready */
-    get session(): Session | undefined {
+    get session(): Session {
+        if (!this._session) throw new Error("client is missing session")
         return this._session;
     }
 

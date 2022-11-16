@@ -229,7 +229,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     _createRoomViewModelInstance(roomId: string): RoomViewModel | undefined {
-        const room = this.client.session.rooms.get(roomId);
+        const room = this.client.session.rooms?.get(roomId);
         if (room) {
             const roomVM = new RoomViewModel(this.childOptions({room}));
             void roomVM.load();
@@ -347,7 +347,7 @@ export class SessionViewModel extends ViewModel {
 
     _roomFromNavigation(): Room | undefined {
         const roomId = this.navigation.path.get("room")?.value;
-        const room = this.client.session.rooms.get(roomId);
+        const room = this.client.session.rooms?.get(roomId);
         return room;
     }
 

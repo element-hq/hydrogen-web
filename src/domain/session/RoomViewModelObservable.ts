@@ -69,6 +69,7 @@ export class RoomViewModelObservable extends ObservableValue<IGridItemViewModel 
             if (status & RoomStatus.BeingCreated) {
                 const {session} = this._sessionViewModel.client;
                 const roomBeingCreated = session.roomsBeingCreated.get(this.id);
+                if (!roomBeingCreated || !roomBeingCreated.roomId) throw new Error("missing or incomplete roomBeingCreated")
                 this._sessionViewModel.notifyRoomReplaced(roomBeingCreated.id, roomBeingCreated.roomId);
             } else {
                 throw new Error("Don't know how to replace a room with this status: " + (status ^ RoomStatus.Replaced));

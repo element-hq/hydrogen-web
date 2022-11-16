@@ -38,7 +38,7 @@ export enum SendStatus {
 const unencryptedContentFields = [ "m.relates_to" ];
 
 export type PendingEventData = PendingEntry & {
-    remoteId: string | null;
+    remoteId?: string;
     encryptedEventType?: string;
     encryptedContent?: EncryptedContent
 };
@@ -77,7 +77,7 @@ export class PendingEvent {
     get queueIndex(): number { return this._data.queueIndex; }
     get eventType(): string { return this._data.eventType; }
     get txnId(): string | undefined { return this._data.txnId; }
-    get remoteId(): string | null { return this._data.remoteId; }
+    get remoteId(): string | undefined { return this._data.remoteId; }
     get content(): Content { return this._data.content; }
     get relatedTxnId(): string | undefined { return this._data.relatedTxnId; }
     get relatedEventId(): string | undefined {

@@ -23,6 +23,7 @@ import type {Transaction} from "../../storage/idb/Transaction";
 import type {RoomKeyMessage} from "../../storage/idb/stores/OperationStore";
 import type {OutboundGroupSession} from "@matrix-org/olm";
 import type {Content} from "../../storage/types";
+import type {Storage} from "../../storage/idb/Storage";
 
 type Config = {
     pickleKey: string;
@@ -108,7 +109,7 @@ export class Encryption {
 
     async _readOrCreateSession(
         session: OutboundGroupSession,
-        sessionEntry: { session: any; createdAt: any },
+        sessionEntry: { session: any; createdAt: any } | undefined,
         roomId: string,
         encryptionParams: Content,
         txn: Transaction
@@ -164,7 +165,7 @@ export class Encryption {
                 roomKeyMessage = await this._readOrCreateSession(session, sessionEntry, roomId, encryptionParams, txn);
                 encryptedContent = this._encryptContent(roomId, session, type, content);
                 // update timestamp when a new session is created
-                const createdAt = roomKeyMessage ? this._now() : sessionEntry.createdAt;
+                const createdAt = roomKeyMessage ? this._now() : sessionEntry!.createdAt;
                 this._writeSession(createdAt, session, roomId, txn);
 
             } catch (err) {

@@ -25,7 +25,7 @@ import type {ILogger, ILogItem} from "../logging/types";
 import type {HomeServerApi} from "./net/HomeServerApi";
 import type {IHomeServerRequest} from "./net/HomeServerRequest";
 import type {JoinedRoom, LeftRoom, InvitedRoom, Rooms, SyncResponse} from "./net/types/sync";
-import type {Session} from "./Session";
+import type {Session, Changes} from "./Session";
 import type {Storage} from "./storage/idb/Storage";
 import type {ILock} from "../utils/Lock";
 import type {SyncPreparation} from "./DeviceMessageHandler";
@@ -122,7 +122,7 @@ export class Sync {
         // if syncToken is falsy, it will first do an initial sync ...
         while(this._status.get() !== SyncStatus.Stopped) {
             let roomStates: RoomSyncProcessState[];
-            let sessionChanges: SessionWriteSyncChanges | undefined;
+            let sessionChanges: Changes | undefined;
             let wasCatchupOrInitial = this._status.get() === SyncStatus.CatchupSync || this._status.get() === SyncStatus.InitialSync;
             await this._logger.run("sync", async log => {
                 log.set("token", syncToken);
@@ -186,7 +186,7 @@ export class Sync {
         }
     }
 
-    async _runAfterSyncCompleted(sessionChanges: SessionWriteSyncChanges | undefined, roomStates: RoomSyncProcessState[], log: ILogItem): Promise<void> {
+    async _runAfterSyncCompleted(sessionChanges: Changes | undefined, roomStates: RoomSyncProcessState[], log: ILogItem): Promise<void> {
         const isCatchupSync = this._status.get() === SyncStatus.CatchupSync;
         const sessionPromise = (async () => {
             try {
@@ -212,7 +212,7 @@ export class Sync {
       ): Promise<{
         syncToken: string;
         roomStates: RoomSyncProcessState[];
-        sessionChanges?: SessionWriteSyncChanges;
+        sessionChanges?: Changes;
         hadToDeviceMessages: boolean;
       }> {
         let {syncFilterId} = this._session;
@@ -282,7 +282,7 @@ export class Sync {
             for (const roomId of newKeysByRoom.keys()) {
                 const isRoomInResponse = response.rooms?.join && hasOwnProperty.call(response.rooms.join, roomId);
                 if (!isRoomInResponse) {
-                    let room = this._session.rooms.get(roomId);
+                    let room = this._session.rooms?.get(roomId);
                     if (room) {
                         roomStates.push(new RoomSyncProcessState(room, false, {}, room.membership));
                     }
@@ -313,7 +313,7 @@ export class Sync {
         roomStates: RoomSyncProcessState[],
         archivedRoomStates: ArchivedRoomSyncProcessState[],
         response: SyncResponse,
-        syncFilterId: Session,
+        syncFilterId: number,
         isInitialSync: boolean,
         log: ILogItem,
       ): Promise<void> {
@@ -353,7 +353,7 @@ export class Sync {
         archivedRoomStates: ArchivedRoomSyncProcessState[],
         log: ILogItem
       ): void {
-        log.wrap("session", log => this._session.afterSync(sessionState.changes, log), log.level.Detail);
+        log.wrap("session", log => this._session.afterSync(sessionState.changes), log.level.Detail);
         for(let ars of archivedRoomStates) {
             log.wrap("archivedRoom", log => {
                 ars.archivedRoom.afterSync(ars.changes, log);
@@ -439,7 +439,7 @@ export class Sync {
 
     _createRoomSyncState(roomId: string, roomResponse: JoinedRoom | LeftRoom, membership: "join" | "leave", isInitialSync: boolean): RoomSyncProcessState | undefined {
         let isNewRoom = false;
-        let room = this._session.rooms.get(roomId);
+        let room = this._session.rooms?.get(roomId);
         // create room only either on new join,
         // or for an archived room during initial sync,
         // where we create the summaryChanges with a joined
@@ -522,7 +522,7 @@ export class Sync {
 class SessionSyncProcessState {
     lock?: ILock;
     preparation?: SyncPreparation;
-    changes?: SessionWriteSyncChanges;
+    changes: Changes;
 
     dispose() {
         this.lock?.release();
@@ -561,7 +561,7 @@ type RoomEncryptionWriteSyncChanges = {
     historyVisibility: HistoryVisibility;
 }
 
-class RoomSyncProcessState {
+export class RoomSyncProcessState {
     /**
      * @param {Object} roomResponse - a matrix Joined Room type or matrix Left Room type
      */
@@ -597,7 +597,7 @@ class RoomSyncProcessState {
 }
 
 
-class ArchivedRoomSyncProcessState {
+export class ArchivedRoomSyncProcessState {
     archivedRoom: ArchivedRoom;
     roomState: RoomSyncProcessState | undefined;
     roomResponse: JoinedRoom | LeftRoom;
@@ -651,7 +651,7 @@ type InviteWriteSyncChanges =
   | { removed: true; membership: "join" | "leave" | "invite" }
   | { inviteData: InviteData; inviter?: MemberData };
 
-class InviteSyncProcessState {
+export class InviteSyncProcessState {
     invite: Invite;
     isNewInvite: boolean;
     roomResponse: InvitedRoom | undefined;
@@ -678,10 +678,3 @@ class InviteSyncProcessState {
     }
 }
 
-// TODO: move this to src/matrix/Session.js once that's
-// converted to typescript.
-type SessionWriteSyncChanges = {
-    syncInfo?: {token: string, filterId: number},
-    e2eeAccountChanges?: number
-    hasNewRoomKeys?: boolean
-};

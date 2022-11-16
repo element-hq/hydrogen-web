@@ -160,6 +160,10 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
     get id(): string { return this._room.id; }
     get timelineViewModel(): TimelineViewModel { return this._timelineVM; }
     get isEncrypted(): boolean { return this._room.isEncrypted; }
+    private get client(): Client {
+        if (!this._client) throw new Error("missing client")
+        return this._client
+    }
 
     get error(): string {
         if (this._timelineError) {
@@ -222,7 +226,7 @@ export class RoomViewModel extends ViewModel implements IGridItemViewModel {
 
     async _processCommandJoin(roomName: string): Promise<void> {
         try {
-            const session = this._client?.session;
+            const session = this.client.session;
             const roomId = await joinRoom(roomName, session);
             this.navigation.push("room", roomId);
         } catch (err) {

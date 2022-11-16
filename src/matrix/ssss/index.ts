@@ -50,8 +50,8 @@ async function readDefaultKeyDescription(storage: Storage): Promise<KeyDescripti
     return new KeyDescription(id, keyAccountData.content as KeyDescriptionData);
 }
 
-export async function writeKey(key: Key, keyBackupVersion: number, txn: Transaction): Promise<number | undefined> {
-    const existingVersion: number | undefined = await txn.session.get(BACKUPVERSION_KEY);
+export async function writeKey(key: Key, keyBackupVersion: string, txn: Transaction): Promise<string | undefined> {
+    const existingVersion: string | undefined = await txn.session.get(BACKUPVERSION_KEY);
     txn.session.set(BACKUPVERSION_KEY, keyBackupVersion);
     txn.session.set(SSSS_KEY, {id: key.id, binaryKey: key.binaryKey});
     return existingVersion;

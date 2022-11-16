@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ViewModel, Options as BaseOptions} from "../ViewModel";
 import {SegmentType} from "../navigation/index";
-import type {Session} from "../../matrix/Session.js";
+import type {Session} from "../../matrix/Session";
 import {joinRoom} from "../../matrix/room/joinRoom";
 
 type Options = BaseOptions & {
@@ -55,7 +55,7 @@ export class JoinRoomViewModel extends ViewModel<SegmentType, Options> {
     get status(): string | undefined {
         if (this._error) {
             return this._error.message;
-        } 
+        }
         else if(this._joinInProgress){
             return "Joining room";
         }
