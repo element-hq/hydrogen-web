@@ -46,7 +46,7 @@ export class SimpleTile extends ViewModel {
     _updateDateSeparator(prev) {
         let hasDateSeparator;
         if (prev instanceof SimpleTile) {
-            if (prev && prev._date) {
+            if (prev && prev._date && this._date) {
                 hasDateSeparator = prev._date.getFullYear() !== this._date.getFullYear() ||
                     prev._date.getMonth() !== this._date.getMonth() ||
                     prev._date.getDate() !== this._date.getDate();
