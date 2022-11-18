@@ -15,13 +15,13 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
+import {TileShape} from "./ITile";
 import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
 
 export class BaseMessageTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
-        this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
         this._replyTile = null;
@@ -78,6 +78,7 @@ export class BaseMessageTile extends SimpleTile {
         return this.sender;
     }
 
+    // TODO: remove?
     get date() {
         return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
     }

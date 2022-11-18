@@ -16,6 +16,7 @@ limitations under the License.
 
 import {BaseObservableList} from "../../../../observable/list/BaseObservableList";
 import {sortedIndex} from "../../../../utils/sortedIndex";
+import {TileShape} from "./tiles/ITile";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
 // for now, tileClassForEntry should be stable in whether it returns a tile or not.
@@ -51,12 +52,14 @@ export class TilesCollection extends BaseObservableList {
     }
 
     _populateTiles() {
+        this._silent = true;
         this._tiles = [];
         let currentTile = null;
         for (let entry of this._entries) {
             if (!currentTile || !currentTile.tryIncludeEntry(entry)) {
                 currentTile = this._createTile(entry);
                 if (currentTile) {
+                    console.log("adding initial tile", currentTile.shape, currentTile.eventId, "at", this._tiles.length);
                     this._tiles.push(currentTile);
                 }
             }
@@ -72,11 +75,20 @@ export class TilesCollection extends BaseObservableList {
         if (prevTile) {
             prevTile.updateNextSibling(null);
         }
+        // add date headers here
+        for (let idx = 0; idx < this._tiles.length; idx += 1) {
+            const tile = this._tiles[idx];
+            if (tile.needsDateSeparator) {
+                this._addTileAt(idx, tile.createDateSeparator(), true);
+                idx += 1; // tile's index moved one up, don't process it again
+            }
+        }
         // now everything is wired up,
         // allow tiles to emit updates
         for (const tile of this._tiles) {
             tile.setUpdateEmit(this._emitSpontanousUpdate);
         }
+        this._silent = false;
     }
 
     _findTileIdx(entry) {
@@ -130,23 +142,59 @@ export class TilesCollection extends BaseObservableList {
 
         const newTile = this._createTile(entry);
         if (newTile) {
-            if (prevTile) {
-                prevTile.updateNextSibling(newTile);
-                // this emits an update while the add hasn't been emitted yet
-                newTile.updatePreviousSibling(prevTile);
-            }
-            if (nextTile) {
-                newTile.updateNextSibling(nextTile);
-                nextTile.updatePreviousSibling(newTile);
-            }
-            this._tiles.splice(tileIdx, 0, newTile);
-            this.emitAdd(tileIdx, newTile);
-            // add event is emitted, now the tile
-            // can emit updates
-            newTile.setUpdateEmit(this._emitSpontanousUpdate);
+            console.log("adding tile", newTile.shape, newTile.eventId, "at", tileIdx);
+            this._addTileAt(tileIdx, newTile);
+            this._evaluateDateHeaderAtIdx(tileIdx);
         }
         // find position by sort key
         // ask siblings to be included? both? yes, twice: a (insert c here) b, ask a(c), if yes ask b(a), else ask b(c)? if yes then b(a)?
+    }
+
+    _evaluateDateHeaderAtIdx(tileIdx) {
+        //console.log("_evaluateDateHeaderAtIdx", tileIdx);
+        // consider the two adjacent tiles where the previous sibling changed:
+        // the new tile and the next tile
+        for (let i = 0; i < 5; i += 1) {
+            const idx = Math.max(tileIdx + i - 2, 0);
+            const tile = this._tiles[idx];
+            const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
+            const hasDateSeparator = prevTile?.shape === TileShape.DateHeader;
+            if (tile.needsDateSeparator) {
+                if (hasDateSeparator) {
+                    // TODO: replace this by return UpdateAction from updateNextSibling
+                    // and do this in onAdd
+                    //console.log("    update", idx - 1, prevTile?.shape, prevTile?.eventId);
+                    this.emitUpdate(idx - 1, prevTile, "date");
+                } else {
+                    //console.log("    add", idx, tile.shape, tile.eventId);
+                    tileIdx += 1;
+                    this._addTileAt(idx, tile.createDateSeparator());
+                }
+                // TODO must be looking at the wrong index to find the old date separator??
+            } else if (hasDateSeparator) {
+                // this is never triggered because needsDateSeparator is not cleared
+                // when loading more items because we don't do anything once the
+                // direct sibling is a DateTile
+                //console.log("    remove", idx -1, prevTile?.shape, prevTile?.eventId);
+                this._removeTile(idx - 1, prevTile);
+            }
+        }
+    }
+
+    _addTileAt(idx, newTile, silent = false) {
+        const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
+        const nextTile = this._tiles[idx];
+        prevTile?.updateNextSibling(newTile);
+        newTile.updatePreviousSibling(prevTile);
+        newTile.updateNextSibling(nextTile);
+        nextTile?.updatePreviousSibling(newTile);
+        this._tiles.splice(idx, 0, newTile);
+        if (!silent) {
+            this.emitAdd(idx, newTile);
+        }
+        // add event is emitted, now the tile
+        // can emit updates
+        newTile.setUpdateEmit(this._emitSpontanousUpdate);
     }
 
     onUpdate(index, entry, params) {
