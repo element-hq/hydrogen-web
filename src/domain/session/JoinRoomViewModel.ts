@@ -27,10 +27,12 @@ export class JoinRoomViewModel extends ViewModel<SegmentType, Options> {
     private _session: Session;
     private _joinInProgress: boolean = false;
     private _error: Error | undefined;
+    private _closeUrl: string
 
     constructor(options: Readonly<Options>) {
         super(options);
         this._session = options.session;
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
     }
 
     async join(roomId: string): Promise<void> {
@@ -47,6 +49,8 @@ export class JoinRoomViewModel extends ViewModel<SegmentType, Options> {
             this.emitChange("error");
         }
     }
+
+    get closeUrl() { return this._closeUrl; }
 
     get joinInProgress(): boolean {
         return this._joinInProgress;

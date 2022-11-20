@@ -29,7 +29,11 @@ export class JoinRoomView extends TemplateView<JoinRoomViewModel> {
         });
         return t.main({className: "middle"}, 
             t.div({className: "JoinRoomView centered-column"}, [
-                t.h2("Join room"),
+                t.div({className: "middle-header"}, [
+                    t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
+                    t.h2("Join room")
+
+                ]),
                 t.form({className: "JoinRoomView_detailsForm form", onSubmit: evt => this.onSubmit(evt,  input.value)}, [
                     t.div({className: "vertical-layout"}, [
                         t.div({className: "stretch form-row text"}, [

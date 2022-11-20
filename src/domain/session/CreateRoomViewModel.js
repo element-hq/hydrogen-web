@@ -33,8 +33,10 @@ export class CreateRoomViewModel extends ViewModel {
         this._avatarScaledBlob = undefined;
         this._avatarFileName = undefined;
         this._avatarInfo = undefined;
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
     }
 
+    get closeUrl() { return this._closeUrl; }
     get isPublic() { return this._isPublic; }
     get isEncrypted() { return this._isEncrypted; }
     get canCreate() { return !!this._name; }
