@@ -17,6 +17,7 @@ import type {Options} from "../../../../ViewModel";
 export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
     private _emitUpdate?: EmitUpdateFn;
     private _dateString?: string;
+    private _machineReadableString?: string;
     
     constructor(private _firstTileInDay: ITile<BaseEventEntry>, options: Options) {
         super(options);
@@ -46,11 +47,18 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
         return this.compareEntry(tile.upperEntry);
     }
 
-    get date(): string {
+    get relativeDate(): string {
         if (!this._dateString) {
             this._dateString = this.timeFormatter.formatRelativeDate(new Date(this.refEntry.timestamp));
         }
         return this._dateString;
+    }
+
+    get machineReadableDate(): string {
+        if (!this._machineReadableString) {
+            this._machineReadableString =  this.timeFormatter.formatMachineReadableDate(new Date(this.refEntry.timestamp));
+        }
+        return this._machineReadableString;
     }
 
     get shape(): TileShape {
@@ -131,8 +139,9 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
         this._firstTileInDay = next;
         const prevDateString = this._dateString;
         this._dateString = undefined;
-        if (prevDateString && prevDateString !== this.date) {
-            this._emitUpdate?.(this, "date");
+        this._machineReadableString = undefined;
+        if (prevDateString && prevDateString !== this.relativeDate) {
+            this._emitUpdate?.(this, "relativeDate");
         }
     }
 

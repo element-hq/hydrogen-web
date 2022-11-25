@@ -46,4 +46,5 @@ export type File = {
 
 export interface ITimeFormatter {
     formatRelativeDate(date: Date): string;
+    formatMachineReadableDate(date: Date): string;
 }

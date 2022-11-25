@@ -48,6 +48,9 @@ export class TimeFormatter implements ITimeFormatter {
             day: 'numeric'
         });
     }
+    formatMachineReadableDate(date: Date): string {
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;    
+    }
 
     formatRelativeDate(date: Date): string {
         let daysDiff = Math.floor((date.getTime() - this.todayMidnight.getTime()) / TimeScope.Day);
