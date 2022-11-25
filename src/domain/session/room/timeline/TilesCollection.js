@@ -16,6 +16,7 @@ limitations under the License.
 
 import {BaseObservableList} from "../../../../observable/list/BaseObservableList";
 import {sortedIndex} from "../../../../utils/sortedIndex";
+import {TileShape} from "./tiles/ITile";
 
 // maps 1..n entries to 0..1 tile. Entries are what is stored in the timeline, either an event or fragmentboundary
 // for now, tileClassForEntry should be stable in whether it returns a tile or not.
@@ -51,6 +52,7 @@ export class TilesCollection extends BaseObservableList {
     }
 
     _populateTiles() {
+        this._silent = true;
         this._tiles = [];
         let currentTile = null;
         for (let entry of this._entries) {
@@ -72,11 +74,20 @@ export class TilesCollection extends BaseObservableList {
         if (prevTile) {
             prevTile.updateNextSibling(null);
         }
+        // add date headers here
+        for (let idx = 0; idx < this._tiles.length; idx += 1) {
+            const tile = this._tiles[idx];
+            if (tile.needsDateSeparator) {
+                this._addTileAt(idx, tile.createDateSeparator(), true);
+                idx += 1; // tile's index moved one up, don't process it again
+            }
+        }
         // now everything is wired up,
         // allow tiles to emit updates
         for (const tile of this._tiles) {
             tile.setUpdateEmit(this._emitSpontanousUpdate);
         }
+        this._silent = false;
     }
 
     _findTileIdx(entry) {
@@ -130,23 +141,55 @@ export class TilesCollection extends BaseObservableList {
 
         const newTile = this._createTile(entry);
         if (newTile) {
-            if (prevTile) {
-                prevTile.updateNextSibling(newTile);
-                // this emits an update while the add hasn't been emitted yet
-                newTile.updatePreviousSibling(prevTile);
-            }
-            if (nextTile) {
-                newTile.updateNextSibling(nextTile);
-                nextTile.updatePreviousSibling(newTile);
-            }
-            this._tiles.splice(tileIdx, 0, newTile);
-            this.emitAdd(tileIdx, newTile);
-            // add event is emitted, now the tile
-            // can emit updates
-            newTile.setUpdateEmit(this._emitSpontanousUpdate);
+            this._addTileAt(tileIdx, newTile);
+            this._evaluateDateHeaderAtIdx(tileIdx);
         }
         // find position by sort key
         // ask siblings to be included? both? yes, twice: a (insert c here) b, ask a(c), if yes ask b(a), else ask b(c)? if yes then b(a)?
+    }
+
+    _evaluateDateHeaderAtIdx(tileIdx) {
+        // consider two tiles after the inserted tile, because
+        // the first of the two tiles may be a DateTile in which case,
+        // we remove it after looking at the needsDateSeparator prop of the
+        // next next tile
+        for (let i = 0; i < 3; i += 1) {
+            const idx = tileIdx + i;
+            if (idx >= this._tiles.length) {
+                break;
+            }
+            const tile = this._tiles[idx];
+            const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
+            const hasDateSeparator = prevTile?.shape === TileShape.DateHeader;
+            if (tile.needsDateSeparator && !hasDateSeparator) {
+                // adding a tile shift all the indices we need to consider
+                // especially given we consider removals for the tile that
+                // comes after a datetile
+                tileIdx += 1;
+                this._addTileAt(idx, tile.createDateSeparator());
+            } else if (!tile.needsDateSeparator && hasDateSeparator) {
+                // this is never triggered because needsDateSeparator is not cleared
+                // when loading more items because we don't do anything once the
+                // direct sibling is a DateTile
+                this._removeTile(idx - 1, prevTile);
+            }
+        }
+    }
+
+    _addTileAt(idx, newTile, silent = false) {
+        const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
+        const nextTile = this._tiles[idx];
+        prevTile?.updateNextSibling(newTile);
+        newTile.updatePreviousSibling(prevTile);
+        newTile.updateNextSibling(nextTile);
+        nextTile?.updatePreviousSibling(newTile);
+        this._tiles.splice(idx, 0, newTile);
+        if (!silent) {
+            this.emitAdd(idx, newTile);
+        }
+        // add event is emitted, now the tile
+        // can emit updates
+        newTile.setUpdateEmit(this._emitSpontanousUpdate);
     }
 
     onUpdate(index, entry, params) {
@@ -210,11 +253,16 @@ export class TilesCollection extends BaseObservableList {
         this.emitRemove(tileIdx, tile);
         prevTile?.updateNextSibling(nextTile);
         nextTile?.updatePreviousSibling(prevTile);
+
+        if (prevTile && prevTile.shape === TileShape.DateHeader && (!nextTile || !nextTile.needsDateSeparator)) {
+            this._removeTile(tileIdx - 1, prevTile);
+        }
     }
 
     // would also be called when unloading a part of the timeline
     onRemove(index, entry) {
         const tileIdx = this._findTileIdx(entry);
+        
         const tile = this._findTileAtIdx(entry, tileIdx);
         if (tile) {
             const removeTile = tile.removeEntry(entry);
@@ -268,6 +316,7 @@ export function tests() {
         constructor(entry) {
             this.entry = entry;
             this.update = null;
+            this.needsDateSeparator = false;
         }
         setUpdateEmit(update) {
             this.update = update;
@@ -295,6 +344,34 @@ export function tests() {
         }
 
         dispose() {}
+    }
+
+    class DateHeaderTile extends TestTile {
+        get shape() { return TileShape.DateHeader; }
+        updateNextSibling(next) {
+            this.next = next;
+        }
+        updatePreviousSibling(prev) {
+            this.next?.updatePreviousSibling(prev);
+        }
+        compareEntry(b) {
+            // important that date tiles as sorted before their next item, but after their previous sibling
+            return this.next.compareEntry(b) - 0.5;
+        }
+    }
+
+    class MessageNeedingDateHeaderTile extends TestTile {
+        get shape() { return TileShape.Message; }
+
+        createDateSeparator() {
+            return new DateHeaderTile(this.entry);
+        }
+        updatePreviousSibling(prev) {
+            if (prev?.shape !== TileShape.DateHeader) {
+                // 1 day is 10 
+                this.needsDateSeparator = !prev || Math.floor(prev.entry.n / 10) !== Math.floor(this.entry.n / 10);
+            }
+        }
     }
 
     return {
@@ -355,6 +432,73 @@ export function tests() {
             });
             entries.remove(1);
             assert.deepEqual(events, ["remove", "update"]);
+        },
+        "date tile is added when needed when populating": assert => {
+            const entries = new ObservableArray([{n: 15}]);
+            const tileOptions = {
+                tileClassForEntry: () => MessageNeedingDateHeaderTile,
+            };
+            const tiles = new TilesCollection(entries, tileOptions);
+            tiles.subscribe({});
+            const tilesArray = Array.from(tiles);
+            assert.equal(tilesArray.length, 2);
+            assert.equal(tilesArray[0].shape, TileShape.DateHeader);
+            assert.equal(tilesArray[1].shape, TileShape.Message);
+        },
+        "date header is added when receiving addition": assert => {
+            const entries = new ObservableArray([{n: 15}]);
+            const tileOptions = {
+                tileClassForEntry: () => MessageNeedingDateHeaderTile,
+            };
+            const tiles = new TilesCollection(entries, tileOptions);
+            tiles.subscribe({
+                onAdd() {},
+                onRemove() {}
+            });
+            entries.insert(0, {n: 5});
+            const tilesArray = Array.from(tiles);
+            assert.equal(tilesArray[0].shape, TileShape.DateHeader);
+            assert.equal(tilesArray[1].shape, TileShape.Message);
+            assert.equal(tilesArray[2].shape, TileShape.DateHeader);
+            assert.equal(tilesArray[3].shape, TileShape.Message);
+            assert.equal(tilesArray.length, 4);
+        },
+        "date header is removed and added when loading more messages for the same day": assert => {
+            const entries = new ObservableArray([{n: 15}]);
+            const tileOptions = {
+                tileClassForEntry: () => MessageNeedingDateHeaderTile,
+            };
+            const tiles = new TilesCollection(entries, tileOptions);
+            tiles.subscribe({
+                onAdd() {},
+                onRemove() {}
+            });
+            entries.insert(0, {n: 12});
+            const tilesArray = Array.from(tiles);
+            assert.equal(tilesArray[0].shape, TileShape.DateHeader);
+            assert.equal(tilesArray[1].shape, TileShape.Message);
+            assert.equal(tilesArray[2].shape, TileShape.Message);
+            assert.equal(tilesArray.length, 3);
+        },
+        "date header is removed at the end of the timeline": assert => {
+            const entries = new ObservableArray([{n: 5}, {n: 15}]);
+            const tileOptions = {
+                tileClassForEntry: () => MessageNeedingDateHeaderTile,
+            };
+            const tiles = new TilesCollection(entries, tileOptions);
+            let removals = 0;
+            tiles.subscribe({
+                onAdd() {},
+                onRemove() {
+                    removals += 1;
+                }
+            });
+            entries.remove(1);
+            const tilesArray = Array.from(tiles);
+            assert.equal(tilesArray[0].shape, TileShape.DateHeader);
+            assert.equal(tilesArray[1].shape, TileShape.Message);
+            assert.equal(tilesArray.length, 2);
+            assert.equal(removals, 2);
         }
     }
 }

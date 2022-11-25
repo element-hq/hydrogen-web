@@ -14,19 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseMessageView} from "./BaseMessageView.js";
+import {TemplateView} from "../../../general/TemplateView";
+import {spinner} from "../../../common.js";
+import type {DateTile} from "../../../../../../domain/session/room/timeline/tiles/DateTile";
 
-export class FileView extends BaseMessageView {
-    renderMessageBody(t, vm) {
-        const children = [];
-        if (vm.isPending) {
-            children.push(vm => vm.label);
-        } else {
-            children.push(
-                t.button({className: "link", onClick: () => vm.download()}, vm => vm.label),
-                t.time(vm.time)
-            );
-        }
-        return t.p({className: "Timeline_messageBody statusMessage"}, children);
+export class DateHeaderView extends TemplateView<DateTile> {
+    // ignore other argument
+    constructor(vm) {
+        super(vm);
     }
+
+    render(t, vm) {
+        return t.h2({className: "DateHeader"}, t.time({dateTime: vm.machineReadableDate}, vm.relativeDate));
+    }
+
+    /* This is called by the parent ListView, which just has 1 listener for the whole list */
+    onClick() {}
 }

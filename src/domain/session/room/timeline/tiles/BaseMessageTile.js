@@ -21,7 +21,6 @@ import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../
 export class BaseMessageTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
-        this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
         this._replyTile = null;
@@ -78,12 +77,8 @@ export class BaseMessageTile extends SimpleTile {
         return this.sender;
     }
 
-    get date() {
-        return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
-    }
-
     get time() {
-        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
+        return this._date && this.timeFormatter.formatTime(this._date);
     }
 
     get isOwn() {

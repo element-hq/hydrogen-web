@@ -19,6 +19,7 @@ import {UpdateAction} from "../UpdateAction.js";
 import {ConnectionError} from "../../../../../matrix/error.js";
 import {ConnectionStatus} from "../../../../../matrix/net/Reconnector";
 
+// TODO: should this become an ITile and SimpleTile become EventTile?
 export class GapTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
@@ -27,6 +28,10 @@ export class GapTile extends SimpleTile {
         this._isAtTop = true;
         this._siblingChanged = false;
         this._showSpinner = false;
+    }
+
+    get needsDateSeparator() {
+        return false;
     }
 
     async fill() {

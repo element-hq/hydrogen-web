@@ -15,13 +15,17 @@ limitations under the License.
 */
 
 import {UpdateAction} from "../UpdateAction.js";
+import {TileShape} from "./ITile";
 import {ViewModel} from "../../../../ViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
+import {DateTile} from "./DateTile";
 
 export class SimpleTile extends ViewModel {
     constructor(entry, options) {
         super(options);
         this._entry = entry;
+        this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : undefined;
+        this._needsDateSeparator = false;
         this._emitUpdate = undefined;
     }
     // view model props for all subclasses
@@ -37,8 +41,22 @@ export class SimpleTile extends ViewModel {
         return false;
     }
 
-    get hasDateSeparator() {
-        return false;
+    get needsDateSeparator() {
+        return this._needsDateSeparator;
+    }
+
+    createDateSeparator() {
+        return new DateTile(this, this.childOptions({}));
+    }
+
+    _updateDateSeparator(prev) {
+        if (prev && prev._date && this._date) {
+            this._needsDateSeparator = prev._date.getFullYear() !== this._date.getFullYear() ||
+                prev._date.getMonth() !== this._date.getMonth() ||
+                prev._date.getDate() !== this._date.getDate();
+        } else {
+            this._needsDateSeparator = !!this._date;
+        }
     }
 
     get id() {
@@ -123,8 +141,10 @@ export class SimpleTile extends ViewModel {
         return false;
     }
     // let item know it has a new sibling
-    updatePreviousSibling(/*prev*/) {
-
+    updatePreviousSibling(prev) {
+        if (prev?.shape !== TileShape.DateHeader) {
+            this._updateDateSeparator(prev);
+        }
     }
 
     // let item know it has a new sibling
@@ -158,5 +178,67 @@ export class SimpleTile extends ViewModel {
 
     get _ownMember() {
         return this._options.timeline.me;
+    }
+}
+
+import { EventEntry } from "../../../../../matrix/room/timeline/entries/EventEntry.js";
+
+export function tests() {
+    return {
+        "needsDateSeparator is false when previous sibling is for same date": assert => {
+            const fridayEntry = new EventEntry({
+                event: {
+                    origin_server_ts: 1669376446222,
+                    type: "m.room.message",
+                    content: {}
+                }
+            }, undefined);
+            const thursdayEntry = new EventEntry({
+                event: {
+                    origin_server_ts: fridayEntry.timestamp - (60 * 60 * 8 * 1000),
+                    type: "m.room.message",
+                    content: {}
+                }
+            }, undefined);
+            const fridayTile = new SimpleTile(fridayEntry, {});
+            const thursdayTile = new SimpleTile(thursdayEntry, {});
+            assert.equal(fridayTile.needsDateSeparator, false);
+            fridayTile.updatePreviousSibling(thursdayTile);
+            assert.equal(fridayTile.needsDateSeparator, false);
+        },
+        "needsDateSeparator is true when previous sibling is for different date": assert => {
+            const fridayEntry = new EventEntry({
+                event: {
+                    origin_server_ts: 1669376446222,
+                    type: "m.room.message",
+                    content: {}
+                }
+            }, undefined);
+            const thursdayEntry = new EventEntry({
+                event: {
+                    origin_server_ts: fridayEntry.timestamp - (60 * 60 * 24 * 1000),
+                    type: "m.room.message",
+                    content: {}
+                }
+            }, undefined);
+            const fridayTile = new SimpleTile(fridayEntry, {});
+            const thursdayTile = new SimpleTile(thursdayEntry, {});
+            assert.equal(fridayTile.needsDateSeparator, false);
+            fridayTile.updatePreviousSibling(thursdayTile);
+            assert.equal(fridayTile.needsDateSeparator, true);
+        },
+        "needsDateSeparator is true when previous sibling is undefined": assert => {
+            const fridayEntry = new EventEntry({
+                event: {
+                    origin_server_ts: 1669376446222,
+                    type: "m.room.message",
+                    content: {}
+                }
+            }, undefined);
+            const fridayTile = new SimpleTile(fridayEntry, {});
+            assert.equal(fridayTile.needsDateSeparator, false);
+            fridayTile.updatePreviousSibling(undefined);
+            assert.equal(fridayTile.needsDateSeparator, true);
+        },
     }
 }
