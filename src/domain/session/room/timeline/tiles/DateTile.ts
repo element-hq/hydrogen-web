@@ -127,9 +127,14 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
 
     // let item know it has a new sibling
     updateNextSibling(next: ITile<BaseEntry> | undefined): UpdateAction {
-        // TODO: next can be undefined when a pending event is removed
-        // TODO: we need a way to remove this date header
-        this._firstTileInDay = next!;
+        if(!next) {
+            // If we are the DateTile for the last tile in the timeline,
+            // and that tile gets removed, next would be undefined
+            // and this DateTile would be removed as well,
+            // so do nothing
+            return;
+        }
+        this._firstTileInDay = next;
         const prevDateString = this._dateString;
         this._dateString = undefined;
         if (prevDateString && prevDateString !== this.date) {

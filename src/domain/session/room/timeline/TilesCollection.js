@@ -255,6 +255,10 @@ export class TilesCollection extends BaseObservableList {
         this.emitRemove(tileIdx, tile);
         prevTile?.updateNextSibling(nextTile);
         nextTile?.updatePreviousSibling(prevTile);
+
+        if (prevTile && prevTile.shape === TileShape.DateHeader && (!nextTile || !nextTile.needsDateSeparator)) {
+            this._removeTile(tileIdx - 1, prevTile);
+        }
     }
 
     // would also be called when unloading a part of the timeline
