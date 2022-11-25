@@ -80,6 +80,7 @@ Currently supported operations are:
 | -------- | -------- | -------- |
 | darker     | percentage | color |
 | lighter     | percentage | color |
+| alpha     | alpha percentage | color |
 
 ## Aliases
 It is possible give aliases to variables in the `theme.css` file:

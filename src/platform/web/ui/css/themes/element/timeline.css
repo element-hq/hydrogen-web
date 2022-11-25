@@ -364,7 +364,7 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageReactions button.active {
-    background-color: var(--background-color-secondary);
+    background-color: var(--accent-color--alpha-11);
     border-color: var(--accent-color);
 }
 
