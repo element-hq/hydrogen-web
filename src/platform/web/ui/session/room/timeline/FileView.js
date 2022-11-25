@@ -24,7 +24,7 @@ export class FileView extends BaseMessageView {
         } else {
             children.push(
                 t.button({className: "link", onClick: () => vm.download()}, vm => vm.label),
-                t.time(vm.date + " " + vm.time)
+                t.time(vm.time)
             );
         }
         return t.p({className: "Timeline_messageBody statusMessage"}, children);

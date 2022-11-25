@@ -78,11 +78,6 @@ export class BaseMessageTile extends SimpleTile {
         return this.sender;
     }
 
-    // TODO: remove?
-    get date() {
-        return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
-    }
-
     get time() {
         return this._date && this.timeFormatter.formatTime(this._date);
     }
