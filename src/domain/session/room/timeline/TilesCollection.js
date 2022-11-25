@@ -153,7 +153,7 @@ export class TilesCollection extends BaseObservableList {
         // the first of the two tiles may be a DateTile in which case,
         // we remove it after looking at the needsDateSeparator prop of the
         // next next tile
-        for (let i = 0; i < 2; i += 1) {
+        for (let i = 0; i < 3; i += 1) {
             const idx = tileIdx + i;
             if (idx >= this._tiles.length) {
                 break;
