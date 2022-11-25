@@ -154,8 +154,14 @@ export class TilesCollection extends BaseObservableList {
         //console.log("_evaluateDateHeaderAtIdx", tileIdx);
         // consider the two adjacent tiles where the previous sibling changed:
         // the new tile and the next tile
-        for (let i = 0; i < 5; i += 1) {
-            const idx = Math.max(tileIdx + i - 2, 0);
+        for (let i = -2; i < 3; i += 1) {
+            const idx = tileIdx + i;
+            if (idx < 0) {
+                continue;
+            }
+            if (idx >= this._tiles.length) {
+                break;
+            }
             const tile = this._tiles[idx];
             const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
             const hasDateSeparator = prevTile?.shape === TileShape.DateHeader;
