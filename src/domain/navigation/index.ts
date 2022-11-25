@@ -147,7 +147,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
                 segments.push(new Segment("empty-grid-tile", selectedIndex));
             }
         } else if (type === "open-room") {
-            const roomId = iterator.next().value;
+            const roomId = decodeURIComponent(iterator.next().value);
             if (!roomId) { break; }
             const rooms = currentNavPath.get("rooms");
             if (rooms) {
@@ -176,7 +176,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
         } else if (type === "details" || type === "members") {
             pushRightPanelSegment(segments, type);
         } else if (type === "member") {
-            const userId = iterator.next().value;
+            const userId = decodeURIComponent(iterator.next().value);
             if (!userId) { break; }
             pushRightPanelSegment(segments, type, userId);
         } else if (type.includes("loginToken")) {
@@ -185,7 +185,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             segments.push(new Segment("sso", loginToken));
         } else {
             // might be undefined, which will be turned into true by Segment 
-            const value = iterator.next().value;
+            const value = decodeURIComponent(iterator.next().value);
             segments.push(new Segment(type, value));
         }
     }
@@ -196,19 +196,20 @@ export function stringifyPath(path: Path<SegmentType>): string {
     let urlPath = "";
     let prevSegment: Segment<SegmentType> | undefined;
     for (const segment of path.segments) {
+        const encodedSegmentValue = encodeSegmentValue(segment.value);
         switch (segment.type) {
             case "rooms":
-                urlPath += `/rooms/${segment.value.join(",")}`;
+                urlPath += `/rooms/${(encodedSegmentValue as string[]).join(",")}`;
                 break;
             case "empty-grid-tile":
-                urlPath += `/${segment.value}`;
+                urlPath += `/${encodedSegmentValue}`;
                 break;
             case "room":
                 if (prevSegment?.type === "rooms") {
                     const index = prevSegment.value.indexOf(segment.value);
                     urlPath += `/${index}`;
                 } else {
-                    urlPath += `/${segment.type}/${segment.value}`;
+                    urlPath += `/${segment.type}/${encodedSegmentValue}`;
                 }
                 break;
             case "right-panel":
@@ -217,13 +218,26 @@ export function stringifyPath(path: Path<SegmentType>): string {
                 continue;
             default:
                 urlPath += `/${segment.type}`;
-                if (segment.value && segment.value !== true) {
-                    urlPath += `/${segment.value}`;
+                if (encodedSegmentValue && encodedSegmentValue !== true) {
+                    urlPath += `/${encodedSegmentValue}`;
                 }
         }
         prevSegment = segment;
     }
     return urlPath;
+}
+
+function encodeSegmentValue(value: SegmentType[keyof SegmentType]) {
+    if (typeof value === "boolean") {
+        // Nothing to encode for boolean
+        return value;
+    }
+    else if (Array.isArray(value)) {
+        return value.map(v => encodeURIComponent(v));
+    }
+    else {
+        return encodeURIComponent(value);
+    }
 }
 
 export function tests() {
