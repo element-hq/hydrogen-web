@@ -151,7 +151,6 @@ export class TilesCollection extends BaseObservableList {
     }
 
     _evaluateDateHeaderAtIdx(tileIdx) {
-        //console.log("_evaluateDateHeaderAtIdx", tileIdx);
         // consider two tiles after the inserted tile, because
         // the first of the two tiles may be a DateTile in which case,
         // we remove it after looking at the needsDateSeparator prop of the
@@ -167,25 +166,16 @@ export class TilesCollection extends BaseObservableList {
             const tile = this._tiles[idx];
             const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
             const hasDateSeparator = prevTile?.shape === TileShape.DateHeader;
-            if (tile.needsDateSeparator) {
-                if (hasDateSeparator) {
-                    // TODO: replace this by return UpdateAction from updateNextSibling
-                    // and do this in onAdd
-                    //console.log("    update", idx - 1, prevTile?.shape, prevTile?.eventId);
-                    this.emitUpdate(idx - 1, prevTile, "date");
-                } else {
-                    //console.log("    add", idx, tile.shape, tile.eventId);
+            if (tile.needsDateSeparator && !hasDateSeparator) {
                     // adding a tile shift all the indices we need to consider
                     // especially given we consider removals for the tile that
                     // comes after a datetile
                     tileIdx += 1;
                     this._addTileAt(idx, tile.createDateSeparator());
-                }
-            } else if (hasDateSeparator) {
+            } else if (!tile.needsDateSeparator && hasDateSeparator) {
                 // this is never triggered because needsDateSeparator is not cleared
                 // when loading more items because we don't do anything once the
                 // direct sibling is a DateTile
-                //console.log("    remove", idx -1, prevTile?.shape, prevTile?.eventId);
                 this._removeTile(idx - 1, prevTile);
             }
         }

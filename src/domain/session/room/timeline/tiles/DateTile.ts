@@ -130,8 +130,11 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
         // TODO: next can be undefined when a pending event is removed
         // TODO: we need a way to remove this date header
         this._firstTileInDay = next!;
+        const prevDateString = this._dateString;
         this._dateString = undefined;
-        // TODO: do we need to reevaluate our date here and emit an update?
+        if (prevDateString && prevDateString !== this.date) {
+            this._emitUpdate?.(this, "date");
+        }
     }
 
     notifyVisible(): void {
