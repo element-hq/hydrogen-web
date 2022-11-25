@@ -205,7 +205,7 @@ export function stringifyPath(path: Path<SegmentType>): string {
         const encodedSegmentValue = encodeSegmentValue(segment.value);
         switch (segment.type) {
             case "rooms":
-                urlPath += `/rooms/${(encodedSegmentValue as string[]).join(",")}`;
+                urlPath += `/rooms/${encodedSegmentValue}`;
                 break;
             case "empty-grid-tile":
                 urlPath += `/${encodedSegmentValue}`;
@@ -224,7 +224,7 @@ export function stringifyPath(path: Path<SegmentType>): string {
                 continue;
             default:
                 urlPath += `/${segment.type}`;
-                if (encodedSegmentValue && encodedSegmentValue !== true) {
+                if (encodedSegmentValue) {
                     urlPath += `/${encodedSegmentValue}`;
                 }
         }
@@ -233,13 +233,13 @@ export function stringifyPath(path: Path<SegmentType>): string {
     return urlPath;
 }
 
-function encodeSegmentValue(value: SegmentType[keyof SegmentType]) {
-    if (typeof value === "boolean") {
+function encodeSegmentValue(value: SegmentType[keyof SegmentType]): string {
+    if (value === true) {
         // Nothing to encode for boolean
-        return value;
+        return "";
     }
     else if (Array.isArray(value)) {
-        return value.map(v => encodeURIComponent(v));
+        return value.map(v => encodeURIComponent(v)).join(",");
     }
     else {
         return encodeURIComponent(value);
