@@ -84,7 +84,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get time() {
-        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
+        return this._date && this.timeFormatter.formatTime(this._date);
     }
 
     get isOwn() {

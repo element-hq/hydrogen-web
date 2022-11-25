@@ -29,6 +29,7 @@ export class TimeFormatter implements ITimeFormatter {
     private weekdayFormatter: Intl.DateTimeFormat;
     private currentYearFormatter: Intl.DateTimeFormat;
     private otherYearFormatter: Intl.DateTimeFormat;
+    private timeFormatter: Intl.DateTimeFormat;
 
     constructor(private clock: Clock) {
         // don't use the clock time here as the DOM relative formatters don't support setting the reference date anyway
@@ -47,7 +48,13 @@ export class TimeFormatter implements ITimeFormatter {
             month: 'long',
             day: 'numeric'
         });
+        this.timeFormatter = new Intl.DateTimeFormat(undefined, {hour: "numeric", minute: "2-digit"});
     }
+    
+    formatTime(date: Date): string {
+        return this.timeFormatter.format(date);
+    }
+
     formatMachineReadableDate(date: Date): string {
         return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;    
     }
