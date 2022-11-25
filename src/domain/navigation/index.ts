@@ -147,8 +147,9 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
                 segments.push(new Segment("empty-grid-tile", selectedIndex));
             }
         } else if (type === "open-room") {
-            const roomId = decodeURIComponent(iterator.next().value);
+            let roomId = iterator.next().value;
             if (!roomId) { break; }
+            roomId = decodeURIComponent(roomId);
             const rooms = currentNavPath.get("rooms");
             if (rooms) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
@@ -176,8 +177,9 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
         } else if (type === "details" || type === "members") {
             pushRightPanelSegment(segments, type);
         } else if (type === "member") {
-            const userId = decodeURIComponent(iterator.next().value);
+            let userId = iterator.next().value;
             if (!userId) { break; }
+            userId = decodeURIComponent(userId);
             pushRightPanelSegment(segments, type, userId);
         } else if (type.includes("loginToken")) {
             // Special case for SSO-login with query parameter loginToken=<token>
