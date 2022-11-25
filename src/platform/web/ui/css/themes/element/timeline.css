@@ -424,9 +424,20 @@ only loads when the top comes into view*/
 }
 
 .DateHeader {
-    color: var(--light-text-color);
     font-weight: bold;
-    padding: 12px 4px;
-    text-align: center;
     font-size: 1.5rem;
+    position: sticky;
+    top: 5px;
 }
+
+.DateHeader time {
+    margin: 0 auto;
+    padding: 12px 4px;
+    width: 250px;
+    padding: 12px;
+    display: block;
+    color: var(--light-text-color);
+    background-color: var(--background-color-primary);
+    border-radius: 8px;
+    text-align: center;
+  }
