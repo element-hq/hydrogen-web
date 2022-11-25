@@ -25,7 +25,7 @@ export class DateHeaderView extends TemplateView<DateTile> {
     }
 
     render(t, vm) {
-        return t.div({className: "DateHeader"}, t.div(vm.date));
+        return t.div({className: "DateHeader"}, t.time(vm.date));
     }
 
     /* This is called by the parent ListView, which just has 1 listener for the whole list */

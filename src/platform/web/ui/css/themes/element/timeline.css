@@ -422,3 +422,10 @@ only loads when the top comes into view*/
 .GapView.isAtTop {
     padding: 52px 20px 12px 20px;
 }
+
+.DateHeader {
+    color: var(--light-text-color);
+    font-weight: bold;
+    padding: 12px 4px;
+    text-align: center;
+}
