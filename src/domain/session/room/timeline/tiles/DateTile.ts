@@ -150,3 +150,29 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
 
     }
 }
+
+import { EventEntry } from "../../../../../matrix/room/timeline/entries/EventEntry.js";
+import { SimpleTile } from "./SimpleTile";
+
+export function tests() {
+    return {
+        "date tile sorts before reference tile": assert => {
+            const a = new SimpleTile(new EventEntry({
+                event: {},
+                eventIndex: 2,
+                fragmentId: 1
+            }, undefined), {});
+            const b = new SimpleTile(new EventEntry({
+                event: {},
+                eventIndex: 3,
+                fragmentId: 1
+            }, undefined), {});
+            const d = new DateTile(b, {} as any);
+            const tiles = [d, b, a];
+            tiles.sort((a, b) => a.compare(b));
+            assert.equal(tiles[0], a);
+            assert.equal(tiles[1], d);
+            assert.equal(tiles[2], b);
+        }
+    }
+}
