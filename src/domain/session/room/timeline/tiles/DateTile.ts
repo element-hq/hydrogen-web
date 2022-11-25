@@ -119,6 +119,9 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
 
     // let item know it has a new sibling
     updatePreviousSibling(prev: ITile<BaseEntry> | undefined): void {
+        // forward the sibling update to our next tile, so it is informed
+        // about it's previous sibling beyond the date header (which is it's direct previous sibling)
+        // so it can recalculate whether it still needs a date header
         this._firstTileInDay.updatePreviousSibling(prev);
     }
 

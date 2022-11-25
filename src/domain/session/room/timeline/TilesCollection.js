@@ -152,9 +152,11 @@ export class TilesCollection extends BaseObservableList {
 
     _evaluateDateHeaderAtIdx(tileIdx) {
         //console.log("_evaluateDateHeaderAtIdx", tileIdx);
-        // consider the two adjacent tiles where the previous sibling changed:
-        // the new tile and the next tile
-        for (let i = -2; i < 3; i += 1) {
+        // consider two tiles after the inserted tile, because
+        // the first of the two tiles may be a DateTile in which case,
+        // we remove it after looking at the needsDateSeparator prop of the
+        // next next tile
+        for (let i = 0; i < 2; i += 1) {
             const idx = tileIdx + i;
             if (idx < 0) {
                 continue;
@@ -173,10 +175,12 @@ export class TilesCollection extends BaseObservableList {
                     this.emitUpdate(idx - 1, prevTile, "date");
                 } else {
                     //console.log("    add", idx, tile.shape, tile.eventId);
+                    // adding a tile shift all the indices we need to consider
+                    // especially given we consider removals for the tile that
+                    // comes after a datetile
                     tileIdx += 1;
                     this._addTileAt(idx, tile.createDateSeparator());
                 }
-                // TODO must be looking at the wrong index to find the old date separator??
             } else if (hasDateSeparator) {
                 // this is never triggered because needsDateSeparator is not cleared
                 // when loading more items because we don't do anything once the
