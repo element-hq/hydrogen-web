@@ -185,7 +185,11 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             segments.push(new Segment("sso", loginToken));
         } else {
             // might be undefined, which will be turned into true by Segment 
-            const value = iterator.next().value;
+            let value = iterator.next().value;
+            if (value) {
+                // decode only if value isn't undefined!
+                value = decodeURIComponent(value)
+            }
             segments.push(new Segment(type, value));
         }
     }
