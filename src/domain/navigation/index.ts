@@ -137,7 +137,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
         if (type === "rooms") {
             const roomsValue = iterator.next().value;
             if (roomsValue === undefined) { break; }
-            const roomIds = roomsValue.split(",");
+            const roomIds = roomsValue.split(",").map(id => decodeURIComponent(id));
             segments.push(new Segment(type, roomIds));
             const selectedIndex = parseInt(iterator.next().value || "0", 10);
             const roomId = roomIds[selectedIndex];
@@ -147,8 +147,9 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
                 segments.push(new Segment("empty-grid-tile", selectedIndex));
             }
         } else if (type === "open-room") {
-            const roomId = iterator.next().value;
+            let roomId = iterator.next().value;
             if (!roomId) { break; }
+            roomId = decodeURIComponent(roomId);
             const rooms = currentNavPath.get("rooms");
             if (rooms) {
                 segments.push(roomsSegmentWithRoom(rooms, roomId, currentNavPath));
@@ -176,8 +177,9 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
         } else if (type === "details" || type === "members") {
             pushRightPanelSegment(segments, type);
         } else if (type === "member") {
-            const userId = iterator.next().value;
+            let userId = iterator.next().value;
             if (!userId) { break; }
+            userId = decodeURIComponent(userId);
             pushRightPanelSegment(segments, type, userId);
         } else if (type.includes("loginToken")) {
             // Special case for SSO-login with query parameter loginToken=<token>
@@ -185,7 +187,11 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             segments.push(new Segment("sso", loginToken));
         } else {
             // might be undefined, which will be turned into true by Segment 
-            const value = iterator.next().value;
+            let value = iterator.next().value;
+            if (value) {
+                // decode only if value isn't undefined!
+                value = decodeURIComponent(value)
+            }
             segments.push(new Segment(type, value));
         }
     }
@@ -196,19 +202,20 @@ export function stringifyPath(path: Path<SegmentType>): string {
     let urlPath = "";
     let prevSegment: Segment<SegmentType> | undefined;
     for (const segment of path.segments) {
+        const encodedSegmentValue = encodeSegmentValue(segment.value);
         switch (segment.type) {
             case "rooms":
-                urlPath += `/rooms/${segment.value.join(",")}`;
+                urlPath += `/rooms/${encodedSegmentValue}`;
                 break;
             case "empty-grid-tile":
-                urlPath += `/${segment.value}`;
+                urlPath += `/${encodedSegmentValue}`;
                 break;
             case "room":
                 if (prevSegment?.type === "rooms") {
                     const index = prevSegment.value.indexOf(segment.value);
                     urlPath += `/${index}`;
                 } else {
-                    urlPath += `/${segment.type}/${segment.value}`;
+                    urlPath += `/${segment.type}/${encodedSegmentValue}`;
                 }
                 break;
             case "right-panel":
@@ -217,13 +224,26 @@ export function stringifyPath(path: Path<SegmentType>): string {
                 continue;
             default:
                 urlPath += `/${segment.type}`;
-                if (segment.value && segment.value !== true) {
-                    urlPath += `/${segment.value}`;
+                if (encodedSegmentValue) {
+                    urlPath += `/${encodedSegmentValue}`;
                 }
         }
         prevSegment = segment;
     }
     return urlPath;
+}
+
+function encodeSegmentValue(value: SegmentType[keyof SegmentType]): string {
+    if (value === true) {
+        // Nothing to encode for boolean
+        return "";
+    }
+    else if (Array.isArray(value)) {
+        return value.map(v => encodeURIComponent(v)).join(",");
+    }
+    else {
+        return encodeURIComponent(value);
+    }
 }
 
 export function tests() {
