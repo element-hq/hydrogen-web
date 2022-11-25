@@ -137,7 +137,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
         if (type === "rooms") {
             const roomsValue = iterator.next().value;
             if (roomsValue === undefined) { break; }
-            const roomIds = decodeURIComponent(roomsValue).split(",");
+            const roomIds = roomsValue.split(",").map(id => decodeURIComponent(id));
             segments.push(new Segment(type, roomIds));
             const selectedIndex = parseInt(iterator.next().value || "0", 10);
             const roomId = roomIds[selectedIndex];
