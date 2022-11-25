@@ -48,13 +48,7 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
 
     get date(): string {
         if (!this._dateString) {
-            const date = new Date(this.refEntry.timestamp);
-            this._dateString = date.toLocaleDateString({}, {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            this._dateString = this.timeFormatter.formatRelativeDate(new Date(this.refEntry.timestamp));
         }
         return this._dateString;
     }

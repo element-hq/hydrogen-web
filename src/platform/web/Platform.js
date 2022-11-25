@@ -39,6 +39,7 @@ import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
 import {ThemeLoader} from "./theming/ThemeLoader";
+import {TimeFormatter} from "./dom/TimeFormatter";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -139,6 +140,7 @@ export class Platform {
         this._createLogger(options?.development);
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
+        this.timeFormatter = new TimeFormatter();
         this._serviceWorkerHandler = null;
         if (assetPaths.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();

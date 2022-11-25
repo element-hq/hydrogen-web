@@ -29,6 +29,7 @@ import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {SegmentType} from "./navigation/index";
 import type {IURLRouter} from "./navigation/URLRouter";
+import type { ITimeFormatter } from "../platform/types/types";
 
 export type Options<T extends object = SegmentType> = {
     platform: Platform;
@@ -144,5 +145,9 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
     get navigation(): Navigation<N> {
         // typescript needs a little help here
         return this._options.navigation as unknown as Navigation<N>;
+    }
+
+    get timeFormatter(): ITimeFormatter {
+        return this._options.platform.timeFormatter;
     }
 }

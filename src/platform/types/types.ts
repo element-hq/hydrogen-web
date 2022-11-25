@@ -16,7 +16,7 @@ limitations under the License.
 
 import type {RequestResult} from "../web/dom/request/fetch.js";
 import type {RequestBody} from "../../matrix/net/common";
-import type {ILogItem} from "../../logging/types";
+import type { BaseObservableValue } from "../../observable/ObservableValue";
 
 export interface IRequestOptions {
     uploadProgress?: (loadedBytes: number) => void;
@@ -42,4 +42,8 @@ export interface IBlobHandle {
 export type File = {
     readonly name: string;
     readonly blob: IBlobHandle;
+}
+
+export interface ITimeFormatter {
+    formatRelativeDate(date: Date): string;
 }
