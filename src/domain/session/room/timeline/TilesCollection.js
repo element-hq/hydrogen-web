@@ -157,9 +157,6 @@ export class TilesCollection extends BaseObservableList {
         // next next tile
         for (let i = 0; i < 2; i += 1) {
             const idx = tileIdx + i;
-            if (idx < 0) {
-                continue;
-            }
             if (idx >= this._tiles.length) {
                 break;
             }
@@ -167,11 +164,11 @@ export class TilesCollection extends BaseObservableList {
             const prevTile = idx > 0 ? this._tiles[idx - 1] : undefined;
             const hasDateSeparator = prevTile?.shape === TileShape.DateHeader;
             if (tile.needsDateSeparator && !hasDateSeparator) {
-                    // adding a tile shift all the indices we need to consider
-                    // especially given we consider removals for the tile that
-                    // comes after a datetile
-                    tileIdx += 1;
-                    this._addTileAt(idx, tile.createDateSeparator());
+                // adding a tile shift all the indices we need to consider
+                // especially given we consider removals for the tile that
+                // comes after a datetile
+                tileIdx += 1;
+                this._addTileAt(idx, tile.createDateSeparator());
             } else if (!tile.needsDateSeparator && hasDateSeparator) {
                 // this is never triggered because needsDateSeparator is not cleared
                 // when loading more items because we don't do anything once the
