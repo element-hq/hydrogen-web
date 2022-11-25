@@ -56,7 +56,7 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
 
     get machineReadableDate(): string {
         if (!this._machineReadableString) {
-            this._machineReadableString =  this.timeFormatter.formatMachineReadableDate(new Date(this.refEntry.timestamp));
+            this._machineReadableString = this.timeFormatter.formatMachineReadableDate(new Date(this.refEntry.timestamp));
         }
         return this._machineReadableString;
     }

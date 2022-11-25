@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
-import {TileShape} from "./ITile";
 import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
 

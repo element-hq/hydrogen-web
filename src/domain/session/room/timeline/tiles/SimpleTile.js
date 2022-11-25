@@ -51,7 +51,6 @@ export class SimpleTile extends ViewModel {
 
     _updateDateSeparator(prev) {
         if (prev && prev._date && this._date) {
-            const neededDateSeparator = this._needsDateSeparator;
             this._needsDateSeparator = prev._date.getFullYear() !== this._date.getFullYear() ||
                 prev._date.getMonth() !== this._date.getMonth() ||
                 prev._date.getDate() !== this._date.getDate();
