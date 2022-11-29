@@ -378,6 +378,24 @@ export class HomeServerApi {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
     }
 
+    roomAccountData(ownUserId: string, roomId: string, type: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(
+            `/user/${encodeURIComponent(ownUserId)}/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
+            undefined,
+            undefined,
+            options
+        );
+    }
+
+    setRoomAccountData(ownUserId: string, roomId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(
+            `/user/${encodeURIComponent(ownUserId)}/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
+            {},
+            content,
+            options
+        );
+    }
+
     getTurnServer(options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/voip/turnServer`, undefined, undefined, options);
     }
