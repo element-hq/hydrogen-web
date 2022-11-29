@@ -155,6 +155,10 @@ export class HomeServerApi {
     send(roomId: string, eventType: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
     }
+    
+    event(roomId: string, eventId: string , options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`, undefined, undefined, options);
+    }
 
     redact(roomId: string, eventId: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txnId)}`, {}, content, options);
@@ -372,6 +376,24 @@ export class HomeServerApi {
     
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
+    }
+
+    roomAccountData(ownUserId: string, roomId: string, type: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(
+            `/user/${encodeURIComponent(ownUserId)}/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
+            undefined,
+            undefined,
+            options
+        );
+    }
+
+    setRoomAccountData(ownUserId: string, roomId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(
+            `/user/${encodeURIComponent(ownUserId)}/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
+            {},
+            content,
+            options
+        );
     }
 
     getTurnServer(options?: BaseRequestOptions): IHomeServerRequest {
