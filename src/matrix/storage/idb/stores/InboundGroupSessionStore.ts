@@ -28,16 +28,25 @@ export enum KeySource {
     Outbound
 }
 
-export interface InboundGroupSessionEntry {
+type InboundGroupSessionEntryBase = {
     roomId: string;
     senderKey: string;
     sessionId: string;
-    session?: string;
-    claimedKeys?: { [algorithm : string] : string };
-    eventIds?: string[];
-    backup: BackupStatus,
-    source: KeySource
 }
+
+export type InboundGroupSessionEntryWithKey = InboundGroupSessionEntryBase & {
+    session: string;
+    claimedKeys: { [algorithm : string] : string };
+    backup: BackupStatus,
+    source: KeySource,
+}
+
+// used to keep track of which event ids can be decrypted with this key as we encounter them before the key is received
+export type InboundGroupSessionEntryWithEventIds = InboundGroupSessionEntryBase & {
+    eventIds: string[];
+}
+
+type InboundGroupSessionEntry = InboundGroupSessionEntryWithKey | InboundGroupSessionEntryWithEventIds;
 
 type InboundGroupSessionStorageEntry = InboundGroupSessionEntry & { key: string };
 

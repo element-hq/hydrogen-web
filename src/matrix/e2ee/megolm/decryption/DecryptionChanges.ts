@@ -15,35 +15,32 @@ limitations under the License.
 */
 
 import {DecryptionError} from "../../common.js";
+import type {DecryptionResult} from "../../DecryptionResult";
+import type {Transaction} from "../../../storage/idb/Transaction";
+import type {ReplayDetectionEntry} from "./ReplayDetectionEntry";
 
 export class DecryptionChanges {
-    constructor(roomId, results, errors, replayEntries) {
-        this._roomId = roomId;
-        this._results = results;
-        this._errors = errors;
-        this._replayEntries = replayEntries;
-    }
+    constructor(
+        private readonly roomId: string, 
+        private readonly results: Map<string, DecryptionResult>, 
+        private readonly errors: Map<string, Error>, 
+        private readonly replayEntries: ReplayDetectionEntry[]
+    ) {}
 
     /**
-     * @type MegolmBatchDecryptionResult
-     * @property {Map<string, DecryptionResult>} results a map of event id to decryption result
-     * @property {Map<string, Error>} errors event id -> errors
-     * 
      * Handle replay attack detection, and return result
-     * @param  {[type]} txn [description]
-     * @return {MegolmBatchDecryptionResult}
      */
-    async write(txn) {
-        await Promise.all(this._replayEntries.map(async replayEntry => {
+    async write(txn: Transaction): Promise<{results: Map<string, DecryptionResult>, errors: Map<string, Error>}> {
+        await Promise.all(this.replayEntries.map(async replayEntry => {
             try {
-                this._handleReplayAttack(this._roomId, replayEntry, txn);
+                await this._handleReplayAttack(this.roomId, replayEntry, txn);
             } catch (err) {
-                this._errors.set(replayEntry.eventId, err);
+                this.errors.set(replayEntry.eventId, err);
             }
         }));
         return {
-            results: this._results,
-            errors: this._errors
+            results: this.results,
+            errors: this.errors
         };
     }
 
@@ -51,7 +48,7 @@ export class DecryptionChanges {
     // if we redecrypted the same message twice and showed it again
     // then it could be a malicious server admin replaying the word “yes”
     // to make you respond to a msg you didn’t say “yes” to, or something
-    async _handleReplayAttack(roomId, replayEntry, txn) {
+    async _handleReplayAttack(roomId: string, replayEntry: ReplayDetectionEntry, txn: Transaction): Promise<void> {
         const {messageIndex, sessionId, eventId, timestamp} = replayEntry;
         const decryption = await txn.groupSessionDecryptions.get(roomId, sessionId, messageIndex);
 
@@ -60,7 +57,7 @@ export class DecryptionChanges {
             const decryptedEventIsBad = decryption.timestamp < timestamp;
             const badEventId = decryptedEventIsBad ? eventId : decryption.eventId;
             // discard result
-            this._results.delete(eventId);
+            this.results.delete(eventId);
 
             throw new DecryptionError("MEGOLM_REPLAYED_INDEX", event, {
                 messageIndex,

@@ -37,7 +37,7 @@ export class Decryption {
         this.olmWorker = olmWorker;
     }
 
-    async addMissingKeyEventIds(roomId, senderKey, sessionId, eventIds, txn) {
+    async addMissingKeyEventIds(roomId: string, senderKey: string, sessionId: string, eventIds: string[], txn: Transaction) {
         let sessionEntry = await txn.inboundGroupSessions.get(roomId, senderKey, sessionId);
         // we never want to overwrite an existing key
         if (sessionEntry?.session) {
@@ -79,7 +79,7 @@ export class Decryption {
      * @return {DecryptionPreparation}
      */
     async prepareDecryptAll(roomId: string, events: TimelineEvent[], newKeys: IncomingRoomKey[] | undefined, txn: Transaction) {
-        const errors = new Map();
+        const errors: Map<string, Error> = new Map();
         const validEvents: TimelineEvent[] = [];
 
         for (const event of events) {
