@@ -24,9 +24,9 @@ export class CreateRoomView extends TemplateView {
         return t.main({className: "CreateRoomView middle"}, [
             t.div({className: "CreateRoomView_header middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Cancel room creation`}),
+                t.h2("Create room"),
             ]),
             t.div({className: "CreateRoomView_body centered-column"}, [
-                t.h2("Create room"),
                 //t.div({className: "RoomView_error"}, vm => vm.error),
                 t.form({className: "CreateRoomView_detailsForm form", onChange: evt => this.onFormChange(evt), onSubmit: evt => this.onSubmit(evt)}, [
                     t.div({className: "vertical-layout"}, [
