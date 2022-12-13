@@ -149,7 +149,7 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
     }
 
     createSSOCallbackURL(): string {
-        return window.location.origin;
+        return window.location.href;
     }
 
     normalizeUrl(): void {
