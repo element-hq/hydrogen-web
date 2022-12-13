@@ -27,7 +27,10 @@ export class JoinRoomView extends TemplateView<JoinRoomViewModel> {
             placeholder: vm.i18n`Enter a room id or alias`,
             disabled: vm => vm.joinInProgress,
         });
-        return t.main({className: "JoinRoomView middle"},
+        return t.main({className: "JoinRoomView middle"}, [
+            t.div({className: "JoinRoomView_header middle-header"}, [
+                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Cancel room join`}),
+            ]),
             t.div({className: "JoinRoomView_body centered-column"}, [
                 t.h2("Join room"),
                 t.form({className: "JoinRoomView_detailsForm form", onSubmit: evt => this.onSubmit(evt,  input.value)}, [
@@ -52,7 +55,7 @@ export class JoinRoomView extends TemplateView<JoinRoomViewModel> {
                     })
                 ])
             ])
-        );
+        ]);
     }
 
     onSubmit(evt, id) {
