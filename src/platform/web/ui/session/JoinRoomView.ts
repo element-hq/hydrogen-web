@@ -30,9 +30,9 @@ export class JoinRoomView extends TemplateView<JoinRoomViewModel> {
         return t.main({className: "JoinRoomView middle"}, [
             t.div({className: "JoinRoomView_header middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Cancel room join`}),
+                t.h2("Join room"),
             ]),
             t.div({className: "JoinRoomView_body centered-column"}, [
-                t.h2("Join room"),
                 t.form({className: "JoinRoomView_detailsForm form", onSubmit: evt => this.onSubmit(evt,  input.value)}, [
                     t.div({className: "vertical-layout"}, [
                         t.div({className: "stretch form-row text"}, [
