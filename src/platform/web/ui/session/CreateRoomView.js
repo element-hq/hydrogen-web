@@ -21,8 +21,8 @@ import {StaticView} from "../general/StaticView";
 
 export class CreateRoomView extends TemplateView {
     render(t, vm) {
-        return t.main({className: "middle"}, 
-            t.div({className: "CreateRoomView centered-column"}, [
+        return t.main({className: "CreateRoomView middle"},
+            t.div({className: "CreateRoomView_body centered-column"}, [
                 t.h2("Create room"),
                 //t.div({className: "RoomView_error"}, vm => vm.error),
                 t.form({className: "CreateRoomView_detailsForm form", onChange: evt => this.onFormChange(evt), onSubmit: evt => this.onSubmit(evt)}, [

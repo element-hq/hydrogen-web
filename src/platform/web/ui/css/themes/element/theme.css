@@ -1180,7 +1180,7 @@ button.RoomDetailsView_row::after {
     gap: 12px;
 }
 
-.CreateRoomView, .JoinRoomView, .RoomBeingCreated_error {
+.CreateRoomView_body, .JoinRoomView, .RoomBeingCreated_error {
     max-width: 400px;
 }
 
