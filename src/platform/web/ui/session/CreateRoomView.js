@@ -21,7 +21,10 @@ import {StaticView} from "../general/StaticView";
 
 export class CreateRoomView extends TemplateView {
     render(t, vm) {
-        return t.main({className: "CreateRoomView middle"},
+        return t.main({className: "CreateRoomView middle"}, [
+            t.div({className: "CreateRoomView_header middle-header"}, [
+                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Cancel room creation`}),
+            ]),
             t.div({className: "CreateRoomView_body centered-column"}, [
                 t.h2("Create room"),
                 //t.div({className: "RoomView_error"}, vm => vm.error),
@@ -96,7 +99,7 @@ export class CreateRoomView extends TemplateView {
                     ]),
                 ])
             ])
-        );
+        ]);
     }
 
     onFormChange(evt) {

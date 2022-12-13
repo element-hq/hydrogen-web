@@ -33,6 +33,7 @@ export class CreateRoomViewModel extends ViewModel {
         this._avatarScaledBlob = undefined;
         this._avatarFileName = undefined;
         this._avatarInfo = undefined;
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
     }
 
     get isPublic() { return this._isPublic; }
@@ -45,6 +46,7 @@ export class CreateRoomViewModel extends ViewModel {
     get hasAvatar() { return !!this._avatarScaledBlob; }
     get isFederationDisabled() { return this._isFederationDisabled; }
     get isAdvancedShown() { return this._isAdvancedShown; }
+    get closeUrl() { return this._closeUrl; }
 
     setName(name) {
         this._name = name;
