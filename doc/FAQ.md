@@ -10,6 +10,9 @@ TorBrowser ships a crippled IndexedDB implementation and will not work. At some 
 
 It used work in pre-webkit Edge, to have it work on Windows Phone, but that support has probably bit-rotted as it isn't tested anymore.
 
+The following browser extensions are known to break Hydrogen
+ - uBlock Origin (seems to block the service worker script)
+
 ## Is there a way to run the app as a desktop app?
 
 You can install Hydrogen as a PWA using Chrome/Chromium on any platform or Edge on Windows. Gnome Web/Ephiphany also allows to "Install site as web application". There is no Electron build of Hydrogen, and there will likely be none in the near future, as Electron complicates the release process considerably. Once Hydrogen is more mature and feature complete, we might reconsider and use [Tauri](https://tauri.studio) if there are compelling use cases not possible with PWAs. For now though, we want to keep development and releasing fast and nimble ;)
