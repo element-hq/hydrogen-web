@@ -11,7 +11,7 @@ TorBrowser ships a crippled IndexedDB implementation and will not work. At some 
 It used work in pre-webkit Edge, to have it work on Windows Phone, but that support has probably bit-rotted as it isn't tested anymore.
 
 The following browser extensions are known to break Hydrogen
- - uBlock Origin (seems to block the service worker script)
+ - uBlock Origin (Some custom filters seem to block the service worker script)
 
 ## Is there a way to run the app as a desktop app?
 
