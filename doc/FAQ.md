@@ -12,7 +12,7 @@ It used work in pre-webkit Edge, to have it work on Windows Phone, but that supp
 
 The following browser extensions are known to break Hydrogen
  - uBlock Origin (Some custom filters seem to block the service worker script)
-     - Try locating the filter that is blocking the service worker script in the uBlock Origin logger, and disabling that filter. Otherwise, the easiest solution is to disable uBlock Origin for the Hydrogen site. It is possible to re-enable it after logging in, but it may possibly break again when there is an update.
+     - Try locating the filter that is blocking the service worker script in the uBlock Origin logger, and disabling that filter. Otherwise, the easiest solution is to disable uBlock Origin for the Hydrogen site (by opening the uBlock Origin popup and clicking the large power button symbol). It is possible to re-enable it after logging in, but it may possibly break again when there is an update.
 
 ## Is there a way to run the app as a desktop app?
 
