@@ -15,10 +15,13 @@ limitations under the License.
 */
 
 function normalizeHomeserver(homeserver) {
+    if ( !homeserver.startsWith('http://') && !homeserver.startsWith('https://') ) {
+        homeserver = 'https://' + homeserver;
+    }
     try {
         return new URL(homeserver).origin;
     } catch (err) {
-        return new URL(`https://${homeserver}`).origin;
+        return '';
     }
 }
 
