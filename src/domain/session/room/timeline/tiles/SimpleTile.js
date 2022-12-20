@@ -110,8 +110,16 @@ export class SimpleTile extends ViewModel {
         return this._entry;
     }
 
+    get comparisonIsNotCommutative() {
+        return false;
+    }
+
     compare(tile) {
-        return this.upperEntry.compare(tile.upperEntry);
+        if (tile.comparisonIsNotCommutative) {
+            return -tile.compare(this);
+        } else {
+            return this.upperEntry.compare(tile.upperEntry);
+        }
     }
 
     compareEntry(entry) {
