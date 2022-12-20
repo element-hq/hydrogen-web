@@ -119,6 +119,14 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
         return false;
     }
 
+    /**
+     * This tile needs to do the comparison between tiles, as it uses the entry
+     * from another tile to determine its sorting order.
+     * */
+    get comparisonIsNotCommutative(): boolean {
+        return true;
+    }
+
     // let item know it has a new sibling
     updatePreviousSibling(prev: ITile<BaseEntry> | undefined): void {
         // forward the sibling update to our next tile, so it is informed

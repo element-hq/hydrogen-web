@@ -61,7 +61,6 @@ export class TimeFormatter implements ITimeFormatter {
 
     formatRelativeDate(date: Date): string {
         let daysDiff = Math.floor((date.getTime() - this.todayMidnight.getTime()) / TimeScope.Day);
-        console.log("formatRelativeDate daysDiff", daysDiff, date);
         if (daysDiff >= -1 && daysDiff <= 1) {
             // Tomorrow, Today, Yesterday
             return capitalizeFirstLetter(this.relativeDayFormatter.format(daysDiff, "day"));
