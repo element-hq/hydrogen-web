@@ -54,3 +54,17 @@ export async function lookupHomeserver(homeserver, request) {
     }
     return homeserver;
 }
+
+export function tests() {
+    return {
+        "normalizing homeserver": assert => {
+            assert.equal(normalizeHomeserver('matrix.org'), 'https://matrix.org');
+            assert.equal(normalizeHomeserver('matrix.org:8008'), 'https://matrix.org:8008');
+            assert.equal(normalizeHomeserver('https://matrix.org'), 'https://matrix.org');
+            assert.equal(normalizeHomeserver('https://matrix.org:8008'), 'https://matrix.org:8008');
+            assert.equal(normalizeHomeserver('localhost'), 'https://localhost');
+            assert.equal(normalizeHomeserver('http:// invalid'), '');
+            assert.equal(normalizeHomeserver('inv alid'), '');
+        },
+    }
+}
