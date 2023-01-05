@@ -6,6 +6,10 @@ We could do top to bottom gradients in default avatars to make them look a bit c
 
 Can take ideas/adopt from OOCSS and SMACSS.
 
+## Documentation
+
+Whether we use OOCSS, SMACSS or BEM, we should write a tool that uses a JS parser (acorn?) to find all css classes used in the view code by looking for a `{className: "..."}` pattern. E.g. if using BEM, use all the found classes to construct a doc with a section for every block, with therein all elements and modifiers.
+
 ### Root
  - maybe we should not assume `body` is the root, but rather a `.brawl` class. The root is where we'd set root level css variables, fonts?, etc. Should we scope all css to this root class? That could get painful with just vanilla css. We could use something like https://github.com/domwashburn/postcss-parent-selector to only do this at build time. Other useful plugin for postcss: https://github.com/postcss/postcss-selector-parser
 
