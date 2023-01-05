@@ -45,7 +45,7 @@ export interface ITile<E extends BaseEntry = BaseEntry> extends IDisposable {
     // as SimpleTile only has one entry, the tile should be removed
     removeEntry(entry: BaseEntry): boolean
     // SimpleTile can only contain 1 entry
-    tryIncludeEntry(): boolean;
+    tryIncludeEntry(entry: BaseEntry): boolean;
     // let item know it has a new sibling
     updatePreviousSibling(prev: ITile<BaseEntry> | undefined): void;
     // let item know it has a new sibling
