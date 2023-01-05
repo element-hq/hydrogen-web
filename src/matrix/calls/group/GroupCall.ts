@@ -544,7 +544,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             callInfo["m.devices"].push({
                 ["device_id"]: this.options.ownDeviceId,
                 ["session_id"]: this.options.sessionId,
-                ["m.expires_ts"]: now + CALL_MEMBER_VALIDITY_PERIOD_MS,
+                ["expires_ts"]: now + CALL_MEMBER_VALIDITY_PERIOD_MS,
                 feeds: [{purpose: "m.usermedia"}]
             });
         }

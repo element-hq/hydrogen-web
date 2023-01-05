@@ -408,7 +408,7 @@ export class Member {
 }
 
 export function memberExpiresAt(callDeviceMembership: CallDeviceMembership): number | undefined {
-    const expiresAt = callDeviceMembership["m.expires_ts"];
+    const expiresAt = callDeviceMembership["expires_ts"];
     if (Number.isSafeInteger(expiresAt)) {
         return expiresAt;
     }
