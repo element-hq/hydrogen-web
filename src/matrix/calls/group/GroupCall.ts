@@ -216,8 +216,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         // you might be muted because you don't have a track or because
         // you actively chosen to mute
         // (which we want to respect in the future when you add a track)
+        muteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
         joinedData.localMuteSettings = muteSettings;
-        joinedData.localMuteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
         if (!prevMuteSettings.equals(muteSettings)) {
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMuted(joinedData.localMuteSettings);
