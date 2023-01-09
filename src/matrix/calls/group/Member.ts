@@ -19,6 +19,7 @@ import {makeTxnId, makeId} from "../../common";
 import {EventType, CallErrorCode} from "../callEventTypes";
 import {formatToDeviceMessagesPayload} from "../../common";
 import {sortedIndex} from "../../../utils/sortedIndex";
+import { ErrorBoundary } from "../../../utils/ErrorBoundary";
 
 import type {MuteSettings} from "../common";
 import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
@@ -94,6 +95,9 @@ class MemberConnection {
 export class Member {
     private connection?: MemberConnection;
     private expireTimeout?: Timeout;
+    private errorBoundary = new ErrorBoundary(err => {
+        this.options.emitUpdate(this, "error");
+    });
 
     constructor(
         public member: RoomMember,
@@ -102,6 +106,10 @@ export class Member {
         updateMemberLog: ILogItem
     ) {
         this._renewExpireTimeout(updateMemberLog);
+    }
+
+    get error(): Error | undefined {
+        return this.errorBoundary.error;
     }
 
     private _renewExpireTimeout(log: ILogItem) {
@@ -166,23 +174,26 @@ export class Member {
 
     /** @internal */
     connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, turnServer: BaseObservableValue<RTCIceServer>, memberLogItem: ILogItem): ILogItem | undefined {
-        if (this.connection) {
-            return;
-        }
-        // Safari can't send a MediaStream to multiple sources, so clone it
-        const connection = new MemberConnection(
-            localMedia.clone(),
-            localMuteSettings,
-            turnServer,
-            memberLogItem
-        );
-        this.connection = connection;
-        let connectLogItem;
-        connection.logItem.wrap("connect", async log => {
-            connectLogItem = log;
-            await this.callIfNeeded(log);
+        return this.errorBoundary.try(() => {
+            if (this.connection) {
+                return;
+            }
+            // Safari can't send a MediaStream to multiple sources, so clone it
+            const connection = new MemberConnection(
+                localMedia.clone(),
+                localMuteSettings,
+                turnServer,
+                memberLogItem
+            );
+            this.connection = connection;
+            let connectLogItem: ILogItem | undefined;
+            connection.logItem.wrap("connect", async log => {
+                connectLogItem = log;
+                await this.callIfNeeded(log);
+            });
+            throw new Error("connect failed!");
+            return connectLogItem;
         });
-        return connectLogItem;
     }
 
     private callIfNeeded(log: ILogItem): Promise<void> {
@@ -211,30 +222,34 @@ export class Member {
 
     /** @internal */
     disconnect(hangup: boolean): ILogItem | undefined {
-        const {connection} = this;
-        if (!connection) {
-            return;
-        }
-        let disconnectLogItem;
-        // if if not sending the hangup, still log disconnect
-        connection.logItem.wrap("disconnect", async log => {
-            disconnectLogItem = log;
-            if (hangup && connection.peerCall) {
-                await connection.peerCall.hangup(CallErrorCode.UserHangup, log);
+        return this.errorBoundary.try(() => {
+            const {connection} = this;
+            if (!connection) {
+                return;
             }
+            let disconnectLogItem;
+            // if if not sending the hangup, still log disconnect
+            connection.logItem.wrap("disconnect", async log => {
+                disconnectLogItem = log;
+                if (hangup && connection.peerCall) {
+                    await connection.peerCall.hangup(CallErrorCode.UserHangup, log);
+                }
+            });
+            connection.dispose();
+            this.connection = undefined;
+            return disconnectLogItem;
         });
-        connection.dispose();
-        this.connection = undefined;
-        return disconnectLogItem;
     }
 
     /** @internal */
     updateCallInfo(callDeviceMembership: CallDeviceMembership, causeItem: ILogItem) {
-        this.callDeviceMembership = callDeviceMembership;
-        this._renewExpireTimeout(causeItem);
-        if (this.connection) {
-            this.connection.logItem.refDetached(causeItem);
-        }
+        this.errorBoundary.try(() => {
+            this.callDeviceMembership = callDeviceMembership;
+            this._renewExpireTimeout(causeItem);
+            if (this.connection) {
+                this.connection.logItem.refDetached(causeItem);
+            }
+        });
     }
     
     /** @internal */
@@ -308,49 +323,51 @@ export class Member {
 
     /** @internal */
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void {
-        const {connection} = this;
-        if (connection) {
-            const destSessionId = message.content.dest_session_id;
-            if (destSessionId !== this.options.sessionId) {
-                const logItem = connection.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
-                syncLog.refDetached(logItem);
-                return;
-            }
-            // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it 
-            let action = IncomingMessageAction.Handle;
-            if (connection.peerCall) {
-                action = connection.peerCall.getMessageAction(message);
-                // deal with glare and replacing the call before creating new calls
-                if (action === IncomingMessageAction.InviteGlare) {
-                    const {shouldReplace, log} = connection.peerCall.handleInviteGlare(message, this.deviceId, connection.logItem);
-                    if (log) {
-                        syncLog.refDetached(log);
-                    }
-                    if (shouldReplace) {
-                        connection.peerCall = undefined;
-                        action = IncomingMessageAction.Handle;
-                    }
+        this.errorBoundary.try(() => {
+            const {connection} = this;
+            if (connection) {
+                const destSessionId = message.content.dest_session_id;
+                if (destSessionId !== this.options.sessionId) {
+                    const logItem = connection.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
+                    syncLog.refDetached(logItem);
+                    return;
                 }
-            }
-            if (message.type === EventType.Invite && !connection.peerCall) {
-                connection.peerCall = this._createPeerCall(message.content.call_id);
-            }
-            if (action === IncomingMessageAction.Handle) {
-                const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
-                connection.queuedSignallingMessages.splice(idx, 0, message);
+                // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it 
+                let action = IncomingMessageAction.Handle;
                 if (connection.peerCall) {
-                    const hasNewMessageBeenDequeued = this.dequeueSignallingMessages(connection, connection.peerCall, message, syncLog);
-                    if (!hasNewMessageBeenDequeued) {
-                        syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
+                    action = connection.peerCall.getMessageAction(message);
+                    // deal with glare and replacing the call before creating new calls
+                    if (action === IncomingMessageAction.InviteGlare) {
+                        const {shouldReplace, log} = connection.peerCall.handleInviteGlare(message, this.deviceId, connection.logItem);
+                        if (log) {
+                            syncLog.refDetached(log);
+                        }
+                        if (shouldReplace) {
+                            connection.peerCall = undefined;
+                            action = IncomingMessageAction.Handle;
+                        }
                     }
                 }
-            } else if (action === IncomingMessageAction.Ignore && connection.peerCall) {
-                const logItem = connection.logItem.log({l: "ignoring to_device event with wrong call_id", callId: message.content.call_id, type: message.type});
-                syncLog.refDetached(logItem);
+                if (message.type === EventType.Invite && !connection.peerCall) {
+                    connection.peerCall = this._createPeerCall(message.content.call_id);
+                }
+                if (action === IncomingMessageAction.Handle) {
+                    const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
+                    connection.queuedSignallingMessages.splice(idx, 0, message);
+                    if (connection.peerCall) {
+                        const hasNewMessageBeenDequeued = this.dequeueSignallingMessages(connection, connection.peerCall, message, syncLog);
+                        if (!hasNewMessageBeenDequeued) {
+                            syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
+                        }
+                    }
+                } else if (action === IncomingMessageAction.Ignore && connection.peerCall) {
+                    const logItem = connection.logItem.log({l: "ignoring to_device event with wrong call_id", callId: message.content.call_id, type: message.type});
+                    syncLog.refDetached(logItem);
+                }
+            } else {
+                syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
             }
-        } else {
-            syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
-        }
+        });
     }
 
     private dequeueSignallingMessages(connection: MemberConnection, peerCall: PeerCall, newMessage: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): boolean {
@@ -373,19 +390,23 @@ export class Member {
 
     /** @internal */
     async setMedia(localMedia: LocalMedia, previousMedia: LocalMedia): Promise<void> {
-        const {connection} = this;
-        if (connection) {
-            connection.localMedia = localMedia.replaceClone(connection.localMedia, previousMedia);
-            await connection.peerCall?.setMedia(connection.localMedia, connection.logItem);
-        }
+        return this.errorBoundary.try(async () => {
+            const {connection} = this;
+            if (connection) {
+                connection.localMedia = localMedia.replaceClone(connection.localMedia, previousMedia);
+                await connection.peerCall?.setMedia(connection.localMedia, connection.logItem);
+            }
+        });
     }
 
     async setMuted(muteSettings: MuteSettings): Promise<void> {
-        const {connection} = this;
-        if (connection) {
-            connection.localMuteSettings = muteSettings;
-            await connection.peerCall?.setMuted(muteSettings, connection.logItem);
-        }
+        return this.errorBoundary.try(async () => {
+            const {connection} = this;
+            if (connection) {
+                connection.localMuteSettings = muteSettings;
+                await connection.peerCall?.setMuted(muteSettings, connection.logItem);
+            }
+        });
     }
 
     private _createPeerCall(callId: string): PeerCall {
