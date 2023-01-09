@@ -276,7 +276,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         });
     }
 
-    terminate(log?: ILogItem): Promise<void> {
+    private terminate(log?: ILogItem): Promise<void> {
         return this.options.logger.wrapOrRun(log, {l: "terminate call", t: CALL_LOG_TYPE}, async log => {
             if (this._state === GroupCallState.Fledgling) {
                 return;
