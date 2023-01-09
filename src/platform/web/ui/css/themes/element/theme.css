@@ -959,9 +959,16 @@ button.link {
     margin: 0;
 }
 
-.UnknownRoomView_body {
+.UnknownRoomView_container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.UnknownRoomView_body {
+    height: 100%;
     text-align: center;
     padding: 16px;
     box-sizing: border-box;
