@@ -218,10 +218,20 @@ export class SessionViewModel extends ViewModel {
         return null;
     }
 
-    _createUnknownRoomViewModel(roomIdOrAlias) {
+    async _createUnknownRoomViewModel(roomIdOrAlias) {
+        let roomId;
+        if ( roomIdOrAlias[0] !== "!" ) {
+            let response = await this._client._requestScheduler.hsApi.resolveRoomAlias(roomIdOrAlias).response();
+            roomId = response.room_id;
+        } else {
+            roomId = roomIdOrAlias;
+        }
+        const peekable = await this._client.session.canPeekInRoom(roomId);
+
         return new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
             session: this._client.session,
+            peekable: peekable
         }));
     }
 

@@ -19,11 +19,16 @@ import {ViewModel} from "../../ViewModel";
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {roomIdOrAlias, session} = options;
+        const {roomIdOrAlias, session, peekable} = options;
         this._session = session;
         this.roomIdOrAlias = roomIdOrAlias;
+        this._peekable = peekable;
         this._error = null;
         this._busy = false;
+    }
+
+    get peekable() {
+        return this._peekable;
     }
 
     get error() {
@@ -53,6 +58,6 @@ export class UnknownRoomViewModel extends ViewModel {
     }
 
     get kind() {
-        return "unknown";
+        return this._peekable ? "peekable" : "unknown";
     }
 }

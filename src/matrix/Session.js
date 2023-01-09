@@ -948,6 +948,13 @@ export class Session {
             return body.room_id;
         });
     }
+
+    canPeekInRoom(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "canPeekInRoom", async log => {
+            const body = await this._hsApi.state(roomId, 'm.room.history_visibility', '', {log}).response();
+            return body.history_visibility === 'world_readable';
+        });
+    }
 }
 
 export function tests() {
