@@ -25,22 +25,22 @@ export class ErrorBoundary {
      * Executes callback() and then runs errorCallback() on error.
      * This will never throw but instead return `errorValue` if an error occured.
      */
-    try<T>(callback: () => T): T | typeof ErrorValue;
-    try<T>(callback: () => Promise<T>): Promise<T | typeof ErrorValue> | typeof ErrorValue {
+    try<T, E>(callback: () => T, errorValue?: E): T | typeof errorValue;
+    try<T, E>(callback: () => Promise<T>, errorValue?: E): Promise<T | typeof errorValue> | typeof errorValue {
         try {
-            let result: T | Promise<T | typeof ErrorValue> = callback();
+            let result: T | Promise<T | typeof errorValue> = callback();
             if (result instanceof Promise) {
                 result = result.catch(err => {
                     this._error = err;
                     this.errorCallback(err);
-                    return ErrorValue;
+                    return errorValue;
                 });
             }
             return result;
         } catch (err) {
             this._error = err;
             this.errorCallback(err);
-            return ErrorValue;
+            return errorValue;
         }
     }
 
@@ -56,9 +56,9 @@ export function tests() {
             const boundary = new ErrorBoundary(() => emitted = true);
             const result = boundary.try(() => {
                 throw new Error("fail!");
-            });
+            }, 0);
             assert(emitted);
-            assert.strictEqual(result, ErrorValue);
+            assert.strictEqual(result, 0);
         },
         "return value of callback is forwarded": assert => {
             let emitted = false;
@@ -74,9 +74,9 @@ export function tests() {
             const boundary = new ErrorBoundary(() => emitted = true);
             const result = await boundary.try(async () => {
                 throw new Error("fail!");
-            });
+            }, 0);
             assert(emitted);
-            assert.strictEqual(result, ErrorValue);
+            assert.strictEqual(result, 0);
         }
     }
 }
