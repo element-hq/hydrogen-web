@@ -74,9 +74,14 @@ export class CallTile extends SimpleTile {
 
     async join() {
         if (this.canJoin) {
-            const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
-            const localMedia = new LocalMedia().withUserMedia(stream);
-            await this._call.join(localMedia);
+            try {
+                const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
+                const localMedia = new LocalMedia().withUserMedia(stream);
+                await this._call.join(localMedia);
+            } catch (err) {
+                this._error = err;
+                this.emitChange("error");
+            }
         }
     }
 

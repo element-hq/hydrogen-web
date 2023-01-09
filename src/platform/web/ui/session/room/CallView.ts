@@ -43,7 +43,10 @@ export class CallView extends TemplateView<CallViewModel> {
                     "CallView_unmutedCamera": vm => !vm.isCameraMuted,
                 }, onClick: disableTargetCallback(() => vm.toggleCamera())}),
                 t.button({className: "CallView_hangup", onClick: disableTargetCallback(() => vm.hangup())}),
-            ])
+            ]),
+            t.if(vm => !!vm.error, t => {
+                return t.div({className: "CallView_error"}, vm => vm.error);
+            })
         ]);
     }
 
@@ -112,6 +115,9 @@ class StreamView extends TemplateView<IStreamViewModel> {
                     microphoneMuted: vm => vm.isMicrophoneMuted && !vm.isCameraMuted,
                     cameraMuted: vm => vm.isCameraMuted,
                 }
+            }),
+            t.if(vm => !!vm.error, t => {
+                return t.div({className: "StreamView_error"}, vm => vm.error);
             })
         ]);
     }

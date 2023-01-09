@@ -39,7 +39,11 @@ export class CallViewModel extends ViewModel<Options> {
 
     constructor(options: Options) {
         super(options);
-        const ownMemberViewModelMap = new ObservableValueMap("self", new EventObservableValue(this.call, "change"))
+        const callObservable = new EventObservableValue(this.call, "change");
+        this.track(callObservable.subscribe(() => {
+            this.emitChange();
+        }));
+        const ownMemberViewModelMap = new ObservableValueMap("self", callObservable)
             .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, emitChange})), () => {});
         this.memberViewModels = this.call.members
             .filterValues(member => member.isConnected)
@@ -77,6 +81,10 @@ export class CallViewModel extends ViewModel<Options> {
 
     get id(): string {
         return this.call.id;
+    }
+
+    get error(): string | undefined {
+        return this.call.error?.message;
     }
 
     private get call(): GroupCall {
@@ -133,6 +141,10 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
         this.track(this.memberObservable!.subscribe(() => {
             this.emitChange(undefined);
         }));
+    }
+
+    get error(): string | undefined {
+        return undefined;
     }
 
     get stream(): Stream | undefined {
@@ -195,6 +207,10 @@ export class CallMemberViewModel extends ViewModel<MemberOptions> implements ISt
         return this.member.remoteMedia?.userMedia;
     }
 
+    get error(): string | undefined {
+        return this.member.error?.message;
+    }
+
     private get member(): Member {
         return this.getOption("member");
     }
@@ -242,4 +258,5 @@ export interface IStreamViewModel extends AvatarSource, ViewModel {
     get stream(): Stream | undefined;
     get isCameraMuted(): boolean;
     get isMicrophoneMuted(): boolean;
+    get error(): string | undefined;
 }
