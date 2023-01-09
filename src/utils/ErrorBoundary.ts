@@ -14,25 +14,69 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue, BaseObservableValue} from "../observable/ObservableValue";
+export const ErrorValue = Symbol("ErrorBoundary:Error");
 
 export class ErrorBoundary {
+    private _error?: Error;
+
     constructor(private readonly errorCallback: (Error) => void) {}
 
-    try<T>(callback: () => T): T | undefined;
-    try<T>(callback: () => Promise<T>): Promise<T | undefined> | undefined {
+    /**
+     * Executes callback() and then runs errorCallback() on error.
+     * This will never throw but instead return `errorValue` if an error occured.
+     */
+    try<T>(callback: () => T): T | typeof ErrorValue;
+    try<T>(callback: () => Promise<T>): Promise<T | typeof ErrorValue> | typeof ErrorValue {
         try {
-            let result: T | Promise<T | undefined> = callback();
+            let result: T | Promise<T | typeof ErrorValue> = callback();
             if (result instanceof Promise) {
                 result = result.catch(err => {
+                    this._error = err;
                     this.errorCallback(err);
-                    return undefined;
+                    return ErrorValue;
                 });
             }
             return result;
         } catch (err) {
+            this._error = err;
             this.errorCallback(err);
-            return undefined;
+            return ErrorValue;
+        }
+    }
+
+    get error(): Error | undefined {
+        return this._error;
+    }
+}
+
+export function tests() {
+    return {
+        "catches sync error": assert => {
+            let emitted = false;
+            const boundary = new ErrorBoundary(() => emitted = true);
+            const result = boundary.try(() => {
+                throw new Error("fail!");
+            });
+            assert(emitted);
+            assert.strictEqual(result, ErrorValue);
+        },
+        "return value of callback is forwarded": assert => {
+            let emitted = false;
+            const boundary = new ErrorBoundary(() => emitted = true);
+            const result = boundary.try(() => {
+                return "hello";
+            });
+            assert(!emitted);
+            assert.strictEqual(result, "hello");
+        },
+        "catches async error": async assert => {
+            let emitted = false;
+            const boundary = new ErrorBoundary(() => emitted = true);
+            const result = await boundary.try(async () => {
+                throw new Error("fail!");
+            });
+            assert(emitted);
+            assert.strictEqual(result, ErrorValue);
         }
     }
 }
