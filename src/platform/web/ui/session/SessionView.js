@@ -31,6 +31,7 @@ import {RightPanelView} from "./rightpanel/RightPanelView.js";
 import {viewClassForTile} from "./room/common";
 import {JoinRoomView} from "./JoinRoomView";
 import {ToastCollectionView} from "./toast/ToastCollectionView";
+import {PeekableRoomView} from "./room/PeekableRoomView";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
@@ -60,6 +61,8 @@ export class SessionView extends TemplateView {
                         return new RoomView(vm.currentRoomViewModel, viewClassForTile);
                     } else if (vm.currentRoomViewModel.kind === "roomBeingCreated") {
                         return new RoomBeingCreatedView(vm.currentRoomViewModel);
+                    } else if (vm.currentRoomViewModel.kind === "peekable") {
+                        return new PeekableRoomView(vm.currentRoomViewModel, viewClassForTile);
                     } else {
                         return new UnknownRoomView(vm.currentRoomViewModel);
                     }
