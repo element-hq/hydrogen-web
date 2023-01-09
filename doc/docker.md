@@ -39,7 +39,7 @@ In this repository, create a Docker image:
 docker build -t hydrogen .
 ```
 
-Or, pull the docker image from GitLab:
+Or, pull the docker image from GitHub Container Registry:
 
 ```
 docker pull ghcr.io/vector-im/hydrogen-web
