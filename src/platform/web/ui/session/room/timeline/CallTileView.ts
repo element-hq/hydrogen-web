@@ -14,17 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView";
+import {Builder, TemplateView} from "../../../general/TemplateView";
 import type {CallTile} from "../../../../../../domain/session/room/timeline/tiles/CallTile";
+import {ErrorView} from "../../../general/ErrorView";
 
 export class CallTileView extends TemplateView<CallTile> {
-    render(t, vm) {
+    render(t: Builder<CallTile>, vm: CallTile) {
         return t.li(
-            {className: "AnnouncementView"},
-            t.div([
-                vm => vm.label,
-                t.button({className: "CallTileView_join", hidden: vm => !vm.canJoin}, "Join"),
-                t.button({className: "CallTileView_leave", hidden: vm => !vm.canLeave}, "Leave")
+            {className: "CallTileView AnnouncementView"},
+            t.div(
+            [
+                t.if(vm => vm.errorViewModel, t => {
+                    return t.div({className: "CallTileView_error"}, t.view(new ErrorView(vm.errorViewModel, {inline: true})));
+                }),
+                t.div([
+                    vm => vm.label,
+                    t.button({className: "CallTileView_join", hidden: vm => !vm.canJoin}, "Join"),
+                    t.button({className: "CallTileView_leave", hidden: vm => !vm.canLeave}, "Leave")
+                ])
             ])
         );
     }
