@@ -19,6 +19,7 @@ limitations under the License.
 @import url('inter.css');
 @import url('timeline.css');
 @import url('call.css');
+@import url('error.css');
 
 :root {
     font-size: 10px;
