@@ -23,6 +23,7 @@ import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
+import { ErrorViewModel } from "../../ErrorViewModel";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
@@ -36,8 +37,7 @@ export class RoomViewModel extends ViewModel {
         this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
         this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
-        this._timelineError = null;
-        this._sendError = null;
+        this._errorViewModel = null;
         this._composerVM = null;
         if (room.isArchived) {
             this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
@@ -73,6 +73,14 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
+    _reportError(error) {
+        this._errorViewModel = new ErrorViewModel(this.childOptions({error, onClose: () => {
+            this._errorViewModel = null;
+            this.emitChange("errorViewModel");
+        }}));
+        this.emitChange("errorViewModel");
+    }
+
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
@@ -88,10 +96,8 @@ export class RoomViewModel extends ViewModel {
                 timeline,
             })));
             this.emitChange("timelineViewModel");
-        } catch (err) {
-            console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
-            this._timelineError = err;
-            this.emitChange("error");
+        } catch (error) {
+            this._reportError(error);
         }
         this._clearUnreadAfterDelay();
     }
@@ -143,14 +149,8 @@ export class RoomViewModel extends ViewModel {
     get timelineViewModel() { return this._timelineVM; }
     get isEncrypted() { return this._room.isEncrypted; }
 
-    get error() {
-        if (this._timelineError) {
-            return `Something went wrong loading the timeline: ${this._timelineError.message}`;
-        }
-        if (this._sendError) {
-            return `Something went wrong sending your message: ${this._sendError.message}`;
-        }
-        return "";
+    get errorViewModel() {
+        return this._errorViewModel;
     }
 
     get avatarLetter() {
@@ -215,11 +215,8 @@ export class RoomViewModel extends ViewModel {
                 } else {
                     await this._room.sendEvent("m.room.message", {msgtype, body: message});
                 }
-            } catch (err) {
-                console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
-                this._sendError = err;
-                this._timelineError = null;
-                this.emitChange("error");
+            } catch (error) {
+                this._reportError(error);
                 return false;
             }
             return true;
@@ -289,10 +286,8 @@ export class RoomViewModel extends ViewModel {
             attachments["info.thumbnail_url"] = 
                 this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments);
-        } catch (err) {
-            this._sendError = err;
-            this.emitChange("error");
-            console.error(err.stack);
+        } catch (error) {
+            this._reportError(error);
         }
     }
 
@@ -331,10 +326,8 @@ export class RoomViewModel extends ViewModel {
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
             await this._room.sendEvent("m.room.message", content, attachments);
-        } catch (err) {
-            this._sendError = err;
-            this.emitChange("error");
-            console.error(err.stack);
+        } catch (error) {
+            this._reportError(error);
         }
     }
 
@@ -364,15 +357,28 @@ export class RoomViewModel extends ViewModel {
     }
 
     async startCall() {
+        let localMedia;
         try {
-            const session = this.getOption("session");
             const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
-            const localMedia = new LocalMedia().withUserMedia(stream);
+            localMedia = new LocalMedia().withUserMedia(stream);
+        } catch (err) {
+            this._reportError(new Error(`Could not get local audio and/or video stream: ${err.message}`));
+            return;
+        }
+        const session = this.getOption("session");
+        let call;
+        try {
             // this will set the callViewModel above as a call will be added to callHandler.calls
-            const call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
+            call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
+        } catch (err) {
+            this._reportError(new Error(`Could not create call: ${err.message}`));
+            return;
+        }
+        try {
             await call.join(localMedia);
         } catch (err) {
-            console.error(err.stack);
+            this._reportError(new Error(`Could not join call: ${err.message}`));
+            return;
         }
     }
 }

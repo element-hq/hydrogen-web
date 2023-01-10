@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";
+import {TemplateView} from "../../general/TemplateView";    
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
 import {TimelineView} from "./TimelineView";
@@ -24,6 +24,7 @@ import {MessageComposer} from "./MessageComposer.js";
 import {RoomArchivedView} from "./RoomArchivedView.js";
 import {AvatarView} from "../../AvatarView.js";
 import {CallView} from "./CallView";
+import { ErrorView } from "../../general/ErrorView";
 
 export class RoomView extends TemplateView {
     constructor(vm, viewClassForTile) {
@@ -53,7 +54,7 @@ export class RoomView extends TemplateView {
                 })
             ]),
             t.div({className: "RoomView_body"}, [
-                t.div({className: "RoomView_error"}, vm => vm.error),
+                t.if(vm => vm.errorViewModel, t => t.div({className: "RoomView_error"}, t.view(new ErrorView(vm.errorViewModel)))),
                 t.mapView(vm => vm.callViewModel, callViewModel => callViewModel ? new CallView(callViewModel) : null),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
