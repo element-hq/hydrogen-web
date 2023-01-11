@@ -33,7 +33,8 @@ export const schema: MigrationFunc[] = [
     backupAndRestoreE2EEAccountToLocalStorage,
     clearAllStores,
     addInboundSessionBackupIndex,
-    migrateBackupStatus
+    migrateBackupStatus,
+    createPeekableRoomSummaryStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -268,4 +269,9 @@ async function migrateBackupStatus(db: IDBDatabase, txn: IDBTransaction, localSt
     });
     log.set("countWithoutSession", countWithoutSession);
     log.set("countWithSession", countWithSession);
+}
+
+// v17
+function createPeekableRoomSummaryStore(db: IDBDatabase): void {
+    db.createObjectStore("peekableRoomSummary", {keyPath: "summary.roomId"});
 }

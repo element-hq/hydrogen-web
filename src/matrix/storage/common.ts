@@ -19,6 +19,7 @@ export enum StoreNames {
     roomState = "roomState",
     roomSummary = "roomSummary",
     archivedRoomSummary = "archivedRoomSummary",
+    peekableRoomSummary = "peekableRoomSummary",
     invites = "invites",
     roomMembers = "roomMembers",
     timelineEvents = "timelineEvents",

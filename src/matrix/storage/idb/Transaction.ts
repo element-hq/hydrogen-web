@@ -108,6 +108,10 @@ export class Transaction {
         return this._store(StoreNames.archivedRoomSummary, idbStore => new RoomSummaryStore(idbStore));
     }
 
+    get peekableRoomSummary(): RoomSummaryStore {
+        return this._store(StoreNames.peekableRoomSummary, idbStore => new RoomSummaryStore(idbStore));
+    }
+
     get invites(): InviteStore {
         return this._store(StoreNames.invites, idbStore => new InviteStore(idbStore));
     }

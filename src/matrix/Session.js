@@ -46,6 +46,7 @@ import {
 } from "./ssss/index";
 import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
+import {PeekableRoom} from "./room/PeekableRoom";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -62,6 +63,7 @@ export class Session {
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._activeArchivedRooms = new Map();
+        this._peekableRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._roomsBeingCreatedUpdateCallback = (rbc, params) => {
@@ -585,6 +587,24 @@ export class Session {
         return room;
     }
 
+    /** @internal */
+    _createPeekableRoom(roomId) {
+        const room = new PeekableRoom({
+            roomId,
+            getSyncToken: this._getSyncToken,
+            storage: this._storage,
+            emitCollectionChange: this._roomUpdateCallback,
+            hsApi: this._hsApi,
+            mediaRepository: this._mediaRepository,
+            undefined, // pendingEvents,
+            user: this._user,
+            createRoomEncryption: this._createRoomEncryption,
+            platform: this._platform
+        });
+        this._peekableRooms.set(roomId, room);
+        return room;
+    }
+
     get invites() {
         return this._invites;
     }
@@ -941,6 +961,30 @@ export class Session {
             }
         });
     }
+
+    loadPeekableRoom(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "loadPeekableRoom", async log => {
+            log.set("id", roomId);
+            const room = this._peekableRooms.get(roomId);
+            console.log('activePeekableRoom',room);
+            if (room) {
+                room.retain();
+                return room;
+            }
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.peekableRoomSummary,
+                this._storage.storeNames.roomMembers,
+            ]);
+            const summary = await txn.peekableRoomSummary.get(roomId);
+            console.log('summary for peekable room',summary);
+            if (summary) {
+                const room = this._createPeekableRoom(roomId);
+                await room.load(summary, txn, log);
+                return room;
+            }
+        });
+    }
+
 
     joinRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "joinRoom", async log => {
