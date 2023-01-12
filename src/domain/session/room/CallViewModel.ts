@@ -40,14 +40,19 @@ export class CallViewModel extends ViewModel<Options> {
     constructor(options: Options) {
         super(options);
         const callObservable = new EventObservableValue(this.call, "change");
-        this.track(callObservable.subscribe(() => {
-            this.emitChange();
-        }));
+        this.track(callObservable.subscribe(() => this.onUpdate()));
         const ownMemberViewModelMap = new ObservableValueMap("self", callObservable)
             .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, emitChange})), () => {});
         this.memberViewModels = this.call.members
             .filterValues(member => member.isConnected)
-            .mapValues(member => new CallMemberViewModel(this.childOptions({member, mediaRepository: this.getOption("room").mediaRepository})))
+            .mapValues(
+                (member, emitChange) => new CallMemberViewModel(this.childOptions({
+                    member,
+                    emitChange,
+                    mediaRepository: this.getOption("room").mediaRepository
+                })),
+                (vm: CallMemberViewModel) => vm.onUpdate(),
+            )
             .join(ownMemberViewModelMap)
             .sortValues((a, b) => a.compare(b));
         this.track(this.memberViewModels.subscribe({
@@ -89,6 +94,9 @@ export class CallViewModel extends ViewModel<Options> {
 
     private get call(): GroupCall {
         return this.getOption("call");
+    }
+
+    private onUpdate() {
     }
 
     async hangup() {
@@ -241,6 +249,8 @@ export class CallMemberViewModel extends ViewModel<MemberOptions> implements ISt
         return this.member.member.name;
     }
 
+    onUpdate() {
+    }
     compare(other: OwnMemberViewModel | CallMemberViewModel): number {
         if (other instanceof OwnMemberViewModel) {
             return -other.compare(this);
