@@ -44,6 +44,12 @@ export type Options = Omit<GroupCallOptions, "emitUpdate" | "createTimeout" | "t
     clock: Clock
 };
 
+type BufferedMessage = {
+    message: SignallingMessage<MGroupCallBase>;
+    userId: string;
+    deviceId: string;
+}
+
 function getRoomMemberKey(roomId: string, userId: string): string {
     return JSON.stringify(roomId)+`,`+JSON.stringify(userId);
 }
@@ -51,6 +57,7 @@ function getRoomMemberKey(roomId: string, userId: string): string {
 export class CallHandler implements RoomStateHandler {
     // group calls by call id
     private readonly _calls: ObservableMap<string, GroupCall> = new ObservableMap<string, GroupCall>();
+    private _bufferedDeviceMessages = new Map<string, Set<BufferedMessage>>();
     // map of `"roomId","userId"` to set of conf_id's they are in
     private roomMemberToCallIds: Map<string, Set<string>> = new Map();
     private groupCallOptions: GroupCallOptions;
@@ -190,6 +197,17 @@ export class CallHandler implements RoomStateHandler {
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, log: ILogItem) {
         // TODO: buffer messages for calls we haven't received the state event for yet?
         const call = this._calls.get(message.content.conf_id);
+        if (!call) {
+            const id = message.content.conf_id;
+            const set = this._bufferedDeviceMessages.get(id);
+            const buffer = { message, userId, deviceId };
+            if (set) {
+                set.add(buffer);
+            }
+            else {
+                this._bufferedDeviceMessages.set(id, new Set([buffer]));
+            }
+        }
         call?.handleDeviceMessage(message, userId, deviceId, log);
     }
 
@@ -212,6 +230,18 @@ export class CallHandler implements RoomStateHandler {
                 timestamp: event.origin_server_ts,
                 roomId: roomId
             });
+        }
+        this.applyBufferedMessagesToCall(call, log);
+    }
+
+    private applyBufferedMessagesToCall(call: GroupCall, log: ILogItem) {
+        const id = call.id;
+        const buffers = this._bufferedDeviceMessages.get(id);
+        if (buffers) {
+            for (const buffer of buffers) {
+                const { message, userId, deviceId } = buffer;
+                call.handleDeviceMessage(message, userId, deviceId, log);
+            }
         }
     }
 
