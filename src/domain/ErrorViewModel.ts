@@ -29,6 +29,10 @@ export class ErrorViewModel extends ViewModel<Options> {
         return this.getOption("error")?.message;
     }
 
+    get error(): Error {
+        return this.getOption("error");
+    }
+
     close() {
         this.getOption("onClose")();
     }

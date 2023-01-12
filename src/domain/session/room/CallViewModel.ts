@@ -20,6 +20,7 @@ import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/co
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {EventObservableValue} from "../../../observable/value/EventObservableValue";
 import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
+import { ErrorViewModel } from "../../ErrorViewModel";
 import type {Room} from "../../../matrix/room/Room";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
@@ -28,14 +29,17 @@ import type {BaseObservableList} from "../../../observable/list/BaseObservableLi
 import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
 import type {Stream} from "../../../platform/types/MediaDevices";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
+import type { Session } from "../../../matrix/Session";
 
 type Options = BaseOptions & {
     call: GroupCall,
     room: Room,
+    session: Session
 };
 
 export class CallViewModel extends ViewModel<Options> {
     public readonly memberViewModels: BaseObservableList<IStreamViewModel>;
+    private _errorViewModel?: ErrorViewModel;
 
     constructor(options: Options) {
         super(options);
@@ -88,8 +92,8 @@ export class CallViewModel extends ViewModel<Options> {
         return this.call.id;
     }
 
-    get error(): string | undefined {
-        return this.call.error?.message;
+    get errorViewModel(): ErrorViewModel | undefined {
+        return this._errorViewModel;
     }
 
     private get call(): GroupCall {
@@ -97,11 +101,18 @@ export class CallViewModel extends ViewModel<Options> {
     }
 
     private onUpdate() {
+        if (this.call.error) {
+            this._reportError(this.call.error);
+        }
     }
 
     async hangup() {
-        if (this.call.hasJoined) {
-            await this.call.leave();
+        try {
+            if (this.call.hasJoined) {
+                await this.call.leave();
+            }
+        } catch (err) {
+            this._reportError(err);
         }
     }
 
@@ -125,13 +136,27 @@ export class CallViewModel extends ViewModel<Options> {
             // unmute but no track?
             if (muteSettings.microphone && !getStreamAudioTrack(localMedia.userMedia)) {
                 const stream = await this.platform.mediaDevices.getMediaTracks(true, !muteSettings.camera);
-                console.log("got tracks", Array.from(stream.getTracks()).map((t: MediaStreamTrack) => { return {kind: t.kind, id: t.id};}))
                 await this.call.setMedia(localMedia.withUserMedia(stream));
             } else {
                 await this.call.setMuted(muteSettings.toggleMicrophone());
             }
             this.emitChange();
         }
+    }
+
+    private _reportError(error: Error) {
+        if (this._errorViewModel?.error === error) {
+            return;
+        }
+        this.disposeTracked(this._errorViewModel);
+        this._errorViewModel = new ErrorViewModel(this.childOptions({
+            error,
+            onClose: () => {
+                this._errorViewModel = this.disposeTracked(this._errorViewModel);
+                this.emitChange("errorViewModel");
+            }
+        }));
+        this.emitChange("errorViewModel");
     }
 }
 
@@ -151,7 +176,7 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
         }));
     }
 
-    get error(): string | undefined {
+    get errorViewModel(): ErrorViewModel | undefined {
         return undefined;
     }
 
@@ -207,20 +232,23 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
 
 type MemberOptions = BaseOptions & {
     member: Member,
-    mediaRepository: MediaRepository
+    mediaRepository: MediaRepository,
+    session: Session
 };
 
 export class CallMemberViewModel extends ViewModel<MemberOptions> implements IStreamViewModel {
+    private _errorViewModel?: ErrorViewModel;
+
     get stream(): Stream | undefined {
         return this.member.remoteMedia?.userMedia;
     }
 
-    get error(): string | undefined {
-        return this.member.error?.message;
-    }
-
     private get member(): Member {
         return this.getOption("member");
+    }
+
+    get errorViewModel(): ErrorViewModel | undefined {
+        return this._errorViewModel;
     }
 
     get isCameraMuted(): boolean {
@@ -250,7 +278,23 @@ export class CallMemberViewModel extends ViewModel<MemberOptions> implements ISt
     }
 
     onUpdate() {
+        this.mapMemberSyncErrorIfNeeded();
     }
+
+    private mapMemberSyncErrorIfNeeded() {
+        if (this.member.error && (!this._errorViewModel || this._errorViewModel.error !== this.member.error)) {
+            this.disposeTracked(this._errorViewModel);
+            this._errorViewModel = this.track(new ErrorViewModel(this.childOptions({
+                error: this.member.error,
+                onClose: () => {
+                    this._errorViewModel = this.disposeTracked(this._errorViewModel);
+                    this.emitChange("errorViewModel");
+                },
+            })));
+            this.emitChange("errorViewModel");
+        }
+    }
+
     compare(other: OwnMemberViewModel | CallMemberViewModel): number {
         if (other instanceof OwnMemberViewModel) {
             return -other.compare(this);
@@ -268,5 +312,5 @@ export interface IStreamViewModel extends AvatarSource, ViewModel {
     get stream(): Stream | undefined;
     get isCameraMuted(): boolean;
     get isMicrophoneMuted(): boolean;
-    get error(): string | undefined;
+    get errorViewModel(): ErrorViewModel | undefined;
 }
