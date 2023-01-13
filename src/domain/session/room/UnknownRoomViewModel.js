@@ -75,10 +75,8 @@ export class UnknownRoomViewModel extends ViewModel {
     }
 
     async peek() {
-        // this._room.on("change", this._onRoomChange);
         try {
             this._room = await this._session.loadPeekableRoom(this.roomIdOrAlias);
-            // this._room = session._createArchivedRoom(roomIdOrAlias);
             console.log( 'room instance', this._room );
 
             const timeline = await this._room.openTimeline();
@@ -99,6 +97,5 @@ export class UnknownRoomViewModel extends ViewModel {
             this._timelineError = err;
             this.emitChange("error");
         }
-        // this._clearUnreadAfterDelay();
     }
 }
