@@ -15,7 +15,7 @@
     border-radius: 8px;
     padding: 12px;
     display: flex;
-    gap: 4px;
+    gap: 8px;
 }
 
 .ErrorView_message {
@@ -24,6 +24,7 @@
     margin: 0px;
     word-break: break-all;
     word-break: break-word;
+    align-self: center;
 }
 
 .ErrorView_submit {
