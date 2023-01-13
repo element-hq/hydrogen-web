@@ -28,7 +28,8 @@ export class ErrorView extends TemplateView<ErrorViewModel> {
     override render(t: Builder<ErrorViewModel>, vm: ErrorViewModel): ViewNode {
         const submitLogsButton = t.button({
             className: "ErrorView_submit",
-            onClick: disableTargetCallback(async () => {
+            onClick: disableTargetCallback(async evt => {
+                evt.stopPropagation();
                 if (await vm.submitLogs()) {
                     alert("Logs submitted!");
                 } else {
@@ -38,7 +39,10 @@ export class ErrorView extends TemplateView<ErrorViewModel> {
         }, "Submit logs");
         const closeButton = t.button({
             className: "ErrorView_close",
-            onClick: () => vm.close(),
+            onClick: evt => {
+                evt.stopPropagation();
+                vm.close();
+            },
             title: "Dismiss error"
         });
         return t.div({
