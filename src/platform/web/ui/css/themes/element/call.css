@@ -68,11 +68,12 @@ limitations under the License.
 }
 
 .StreamView_error {
-    color: red;
-    font-weight: bold;
     align-self: start;
     justify-self: center;
-    margin: 16px;
+    /** Chrome (v100) requires this to make the buttons clickable
+     * where they overlap with the video element, even though
+     * the buttons come later in the DOM. */
+    z-index: 1;
 }
 
 .StreamView_muteStatus {
