@@ -20,7 +20,7 @@ import {ComposerViewModel} from "./ComposerViewModel.js"
 import {CallViewModel} from "./CallViewModel"
 import {PickMapObservableValue} from "../../../observable/value/PickMapObservableValue";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
-import {ViewModel} from "../../ViewModel";
+import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {imageToInfo} from "../common.js";
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 import { ErrorViewModel } from "../../ErrorViewModel";
@@ -28,7 +28,7 @@ import { ErrorViewModel } from "../../ErrorViewModel";
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
 
-export class RoomViewModel extends ViewModel {
+export class RoomViewModel extends ErrorReportViewModel {
     constructor(options) {
         super(options);
         const {room, tileClassForEntry} = options;
@@ -37,7 +37,6 @@ export class RoomViewModel extends ViewModel {
         this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
         this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
-        this._errorViewModel = null;
         this._composerVM = null;
         if (room.isArchived) {
             this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
@@ -73,14 +72,6 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    _reportError(error) {
-        this._errorViewModel = new ErrorViewModel(this.childOptions({error, onClose: () => {
-            this._errorViewModel = null;
-            this.emitChange("errorViewModel");
-        }}));
-        this.emitChange("errorViewModel");
-    }
-
     async load() {
         this._room.on("change", this._onRoomChange);
         try {
@@ -97,7 +88,7 @@ export class RoomViewModel extends ViewModel {
             })));
             this.emitChange("timelineViewModel");
         } catch (error) {
-            this._reportError(error);
+            this.reportError(error);
         }
         this._clearUnreadAfterDelay();
     }
@@ -216,7 +207,7 @@ export class RoomViewModel extends ViewModel {
                     await this._room.sendEvent("m.room.message", {msgtype, body: message});
                 }
             } catch (error) {
-                this._reportError(error);
+                this.reportError(error);
                 return false;
             }
             return true;
@@ -287,7 +278,7 @@ export class RoomViewModel extends ViewModel {
                 this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments);
         } catch (error) {
-            this._reportError(error);
+            this.reportError(error);
         }
     }
 
@@ -327,7 +318,7 @@ export class RoomViewModel extends ViewModel {
             }
             await this._room.sendEvent("m.room.message", content, attachments);
         } catch (error) {
-            this._reportError(error);
+            this.reportError(error);
         }
     }
 
@@ -362,7 +353,7 @@ export class RoomViewModel extends ViewModel {
             const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
             localMedia = new LocalMedia().withUserMedia(stream);
         } catch (err) {
-            this._reportError(new Error(`Could not get local audio and/or video stream: ${err.message}`));
+            this.reportError(new Error(`Could not get local audio and/or video stream: ${err.message}`));
             return;
         }
         const session = this.getOption("session");
@@ -371,13 +362,13 @@ export class RoomViewModel extends ViewModel {
             // this will set the callViewModel above as a call will be added to callHandler.calls
             call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
         } catch (err) {
-            this._reportError(new Error(`Could not create call: ${err.message}`));
+            this.reportError(new Error(`Could not create call: ${err.message}`));
             return;
         }
         try {
             await call.join(localMedia);
         } catch (err) {
-            this._reportError(new Error(`Could not join call: ${err.message}`));
+            this.reportError(new Error(`Could not join call: ${err.message}`));
             return;
         }
     }

@@ -1,0 +1,62 @@
+/*
+Copyright 2023 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+import { ViewModel } from "./ViewModel";
+import type { Options as BaseOptions } from "./ViewModel";
+import type { Session } from "../matrix/Session";
+import { ErrorViewModel } from "./ErrorViewModel";
+import type { LogCallback, LabelOrValues } from "../logging/types";
+
+export type Options = BaseOptions & {
+    session: Session
+};
+
+/** Base class for view models that need to report errors to the UI. */
+export class ErrorReportViewModel<O extends Options = Options> extends ViewModel<O> {
+    private _errorViewModel?: ErrorViewModel;
+
+    get errorViewModel(): ErrorViewModel | undefined {
+        return this._errorViewModel;
+    }
+
+    protected reportError(error: Error) {
+        if (this._errorViewModel?.error === error) {
+            return;
+        }
+        this.disposeTracked(this._errorViewModel);
+        this._errorViewModel = this.track(new ErrorViewModel(this.childOptions({
+            error,
+            onClose: () => {
+                this._errorViewModel = this.disposeTracked(this._errorViewModel);
+                this.emitChange("errorViewModel");
+            }
+        })));
+        this.emitChange("errorViewModel");
+    }
+
+    protected logAndCatch<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, errorValue: T = undefined as unknown as T): T {
+        try {
+            const result = this.logger.run(labelOrValues, callback);
+            if (result instanceof Promise) {
+                result.catch(err => this.reportError(err));
+            }
+            return result;
+        } catch (err) {
+            this.reportError(err);
+            return errorValue;
+        }
+    }
+}

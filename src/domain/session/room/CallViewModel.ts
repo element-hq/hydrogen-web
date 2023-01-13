@@ -15,7 +15,8 @@ limitations under the License.
 */
 
 import {AvatarSource} from "../../AvatarSource";
-import {ViewModel, Options as BaseOptions} from "../../ViewModel";
+import type  {ViewModel} from "../../ViewModel";
+import {ErrorReportViewModel, Options as BaseOptions} from "../../ErrorReportViewModel";
 import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {EventObservableValue} from "../../../observable/value/EventObservableValue";
@@ -34,12 +35,10 @@ import type { Session } from "../../../matrix/Session";
 type Options = BaseOptions & {
     call: GroupCall,
     room: Room,
-    session: Session
 };
 
-export class CallViewModel extends ViewModel<Options> {
+export class CallViewModel extends ErrorReportViewModel<Options> {
     public readonly memberViewModels: BaseObservableList<IStreamViewModel>;
-    private _errorViewModel?: ErrorViewModel;
 
     constructor(options: Options) {
         super(options);
@@ -92,75 +91,58 @@ export class CallViewModel extends ViewModel<Options> {
         return this.call.id;
     }
 
-    get errorViewModel(): ErrorViewModel | undefined {
-        return this._errorViewModel;
-    }
-
     private get call(): GroupCall {
         return this.getOption("call");
     }
 
     private onUpdate() {
         if (this.call.error) {
-            this._reportError(this.call.error);
+            this.reportError(this.call.error);
         }
     }
 
     async hangup() {
-        try {
+        this.logAndCatch("Call.hangup", async log => {
             if (this.call.hasJoined) {
                 await this.call.leave();
             }
-        } catch (err) {
-            this._reportError(err);
-        }
+        });
     }
 
     async toggleCamera() {
-        const {localMedia, muteSettings} = this.call;
-        if (muteSettings && localMedia) {
-            // unmute but no track?
-            if (muteSettings.camera && !getStreamVideoTrack(localMedia.userMedia)) {
-                const stream = await this.platform.mediaDevices.getMediaTracks(!muteSettings.microphone, true);
-                await this.call.setMedia(localMedia.withUserMedia(stream));
-            } else {
-                await this.call.setMuted(muteSettings.toggleCamera());
+        this.logAndCatch("Call.toggleCamera", async log => {
+            const {localMedia, muteSettings} = this.call;
+            if (muteSettings && localMedia) {
+                // unmute but no track?
+                if (muteSettings.camera && !getStreamVideoTrack(localMedia.userMedia)) {
+                    const stream = await this.platform.mediaDevices.getMediaTracks(!muteSettings.microphone, true);
+                    await this.call.setMedia(localMedia.withUserMedia(stream));
+                } else {
+                    await this.call.setMuted(muteSettings.toggleCamera());
+                }
+                this.emitChange();
             }
-            this.emitChange();
-        }
+        });
     }
 
     async toggleMicrophone() {
-        const {localMedia, muteSettings} = this.call;
-        if (muteSettings && localMedia) {
-            // unmute but no track?
-            if (muteSettings.microphone && !getStreamAudioTrack(localMedia.userMedia)) {
-                const stream = await this.platform.mediaDevices.getMediaTracks(true, !muteSettings.camera);
-                await this.call.setMedia(localMedia.withUserMedia(stream));
-            } else {
-                await this.call.setMuted(muteSettings.toggleMicrophone());
+        this.logAndCatch("Call.toggleMicrophone", async log => {
+            const {localMedia, muteSettings} = this.call;
+            if (muteSettings && localMedia) {
+                // unmute but no track?
+                if (muteSettings.microphone && !getStreamAudioTrack(localMedia.userMedia)) {
+                    const stream = await this.platform.mediaDevices.getMediaTracks(true, !muteSettings.camera);
+                    await this.call.setMedia(localMedia.withUserMedia(stream));
+                } else {
+                    await this.call.setMuted(muteSettings.toggleMicrophone());
+                }
+                this.emitChange();
             }
-            this.emitChange();
-        }
-    }
-
-    private _reportError(error: Error) {
-        if (this._errorViewModel?.error === error) {
-            return;
-        }
-        this.disposeTracked(this._errorViewModel);
-        this._errorViewModel = new ErrorViewModel(this.childOptions({
-            error,
-            onClose: () => {
-                this._errorViewModel = this.disposeTracked(this._errorViewModel);
-                this.emitChange("errorViewModel");
-            }
-        }));
-        this.emitChange("errorViewModel");
+        });
     }
 }
 
-class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel {
+class OwnMemberViewModel extends ErrorReportViewModel<Options> implements IStreamViewModel {
     private memberObservable: undefined | BaseObservableValue<RoomMember>;
     
     constructor(options: Options) {
@@ -233,22 +215,15 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
 type MemberOptions = BaseOptions & {
     member: Member,
     mediaRepository: MediaRepository,
-    session: Session
 };
 
-export class CallMemberViewModel extends ViewModel<MemberOptions> implements IStreamViewModel {
-    private _errorViewModel?: ErrorViewModel;
-
+export class CallMemberViewModel extends ErrorReportViewModel<MemberOptions> implements IStreamViewModel {
     get stream(): Stream | undefined {
         return this.member.remoteMedia?.userMedia;
     }
 
     private get member(): Member {
         return this.getOption("member");
-    }
-
-    get errorViewModel(): ErrorViewModel | undefined {
-        return this._errorViewModel;
     }
 
     get isCameraMuted(): boolean {
@@ -282,16 +257,8 @@ export class CallMemberViewModel extends ViewModel<MemberOptions> implements ISt
     }
 
     private mapMemberSyncErrorIfNeeded() {
-        if (this.member.error && (!this._errorViewModel || this._errorViewModel.error !== this.member.error)) {
-            this.disposeTracked(this._errorViewModel);
-            this._errorViewModel = this.track(new ErrorViewModel(this.childOptions({
-                error: this.member.error,
-                onClose: () => {
-                    this._errorViewModel = this.disposeTracked(this._errorViewModel);
-                    this.emitChange("errorViewModel");
-                },
-            })));
-            this.emitChange("errorViewModel");
+        if (this.member.error) {
+            this.reportError(this.member.error);
         }
     }
 

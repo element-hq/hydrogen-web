@@ -28,7 +28,6 @@ export class CallTile extends SimpleTile {
         const calls = this.getOption("session").callHandler.calls;
         this._call = calls.get(this._entry.stateKey);
         this._callSubscription = undefined;
-        this._errorViewModel = undefined;
         if (this._call) {
             this._callSubscription = this._call.disposableOn("change", () => {
                 // unsubscribe when terminated
@@ -61,10 +60,6 @@ export class CallTile extends SimpleTile {
         return this._call && this._call.hasJoined;
     }
 
-    get errorViewModel() {
-        return this._errorViewModel;
-    }
-
     get label() {
         if (this._call) {
             if (this._call.hasJoined) {
@@ -78,38 +73,26 @@ export class CallTile extends SimpleTile {
     }
 
     async join() {
-        if (this.canJoin) {
-            try {
+        await this.logAndCatch("Call.join", async log => {
+            if (this.canJoin) {
                 const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
                 const localMedia = new LocalMedia().withUserMedia(stream);
                 await this._call.join(localMedia);
-            } catch (error) {
-                this._reportError(error);
             }
-        }
+        });
     }
 
     async leave() {
-        if (this.canLeave) {
-            try {
-                this._call.leave();
-            } catch (err) {
-                this._reportError(err);
+        await this.logAndCatch("Call.leave", async log => {
+            if (this.canLeave) {
+                await this._call.leave();
             }
-        }
+        });
     }
 
     dispose() {
         if (this._callSubscription) {
             this._callSubscription = this._callSubscription();
         }
-    }
-
-    _reportError(error) {
-        this._errorViewModel = new ErrorViewModel(this.childOptions({error, onClose: () => {
-            this._errorViewModel = undefined;
-            this.emitChange("errorViewModel");    
-        }}));
-        this.emitChange("errorViewModel");
     }
 }

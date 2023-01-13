@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 import {UpdateAction} from "../UpdateAction.js";
-import {ViewModel} from "../../../../ViewModel";
+import {ErrorReportViewModel} from "../../../../ErrorReportViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 
-export class SimpleTile extends ViewModel {
+export class SimpleTile extends ErrorReportViewModel {
     constructor(entry, options) {
         super(options);
         this._entry = entry;
