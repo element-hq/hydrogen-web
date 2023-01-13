@@ -21,6 +21,7 @@ import {CallViewModel} from "./CallViewModel"
 import {PickMapObservableValue} from "../../../observable/value/PickMapObservableValue";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ErrorReportViewModel} from "../../ErrorReportViewModel";
+import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 import { ErrorViewModel } from "../../ErrorViewModel";
