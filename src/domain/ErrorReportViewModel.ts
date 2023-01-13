@@ -49,9 +49,12 @@ export class ErrorReportViewModel<O extends Options = Options> extends ViewModel
 
     protected logAndCatch<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, errorValue: T = undefined as unknown as T): T {
         try {
-            const result = this.logger.run(labelOrValues, callback);
+            let result = this.logger.run(labelOrValues, callback);
             if (result instanceof Promise) {
-                result.catch(err => this.reportError(err));
+                result = result.catch(err => {
+                    this.reportError(err);
+                    return errorValue;
+                }) as unknown as T;
             }
             return result;
         } catch (err) {
