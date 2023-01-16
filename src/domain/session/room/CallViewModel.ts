@@ -136,7 +136,7 @@ class OwnMemberViewModel extends ViewModel<Options> implements IStreamViewModel 
     }
 
     get stream(): Stream | undefined {
-        return this.call.localMedia?.userMediaPreview;
+        return this.call.localPreviewMedia?.userMedia;
     }
 
     private get call(): GroupCall {
