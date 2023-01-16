@@ -200,6 +200,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if ((this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) && this.joinedData) {
             const oldMedia = this.joinedData.localMedia;
             this.joinedData.localMedia = localMedia;
+            this.localPreviewMedia?.dispose();
+            this.joinedData.localPreviewMedia = localMedia.asPreview();
             // reflect the fact we gained or lost local tracks in the local mute settings
             // and update the track info so PeerCall can use it to send up to date metadata,
             this.joinedData.localMuteSettings.updateTrackInfo(localMedia.userMedia);
