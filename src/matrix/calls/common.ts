@@ -27,7 +27,7 @@ export function getStreamVideoTrack(stream: Stream | undefined): Track | undefin
 }
 
 export function mute(localMedia: LocalMedia, localMuteSettings: MuteSettings, log: ILogItem) {
-        return log.wrap("setMuted", log => {
+        return log.wrap("mute", log => {
             log.set("cameraMuted", localMuteSettings.camera);
             log.set("microphoneMuted", localMuteSettings.microphone);
 
