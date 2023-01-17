@@ -21,7 +21,7 @@ import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/co
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {EventObservableValue} from "../../../observable/value/EventObservableValue";
 import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
-import { ErrorViewModel } from "../../ErrorViewModel";
+import {ErrorViewModel} from "../../ErrorViewModel";
 import type {Room} from "../../../matrix/room/Room";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
