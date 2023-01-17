@@ -162,45 +162,48 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.errorBoundary.error;
     }
 
-    async join(localMedia: LocalMedia): Promise<void> {
-        if (this._state !== GroupCallState.Created || this.joinedData) {
-            return;
-        }
-        const logItem = this.options.logger.child({
-            l: "answer call",
-            t: CALL_LOG_TYPE,
-            id: this.id,
-            ownSessionId: this.options.sessionId
-        });
-        const turnServer = await this.options.turnServerSource.getSettings(logItem);
-        const membersLogItem = logItem.child("member connections");
-        const localMuteSettings = new MuteSettings();
-        localMuteSettings.updateTrackInfo(localMedia.userMedia);
-        const localPreviewMedia = localMedia.asPreview();
-        const joinedData = new JoinedData(
-            logItem,
-            membersLogItem,
-            localMedia,
-            localPreviewMedia,
-            localMuteSettings,
-            turnServer
-        );
-        this.joinedData = joinedData;
-        await joinedData.logItem.wrap("join", async log => {
-            this._state = GroupCallState.Joining;
-            this.emitChange();
-            await log.wrap("update member state", async log => {
-                const memberContent = await this._createMemberPayload(true);
-                log.set("payload", memberContent);
-                // send m.call.member state event
-                const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
-                await request.response();
-                this.emitChange();
-            });
-            // send invite to all members that are < my userId
-            for (const [,member] of this._members) {
-                this.connectToMember(member, joinedData, log);
+    join(localMedia: LocalMedia, log?: ILogItem): Promise<void> {
+        return this.options.logger.wrapOrRun(log, "Call.join", async joinLog => {
+            if (this._state !== GroupCallState.Created || this.joinedData) {
+                return;
             }
+            const logItem = this.options.logger.child({
+                l: "Call.connection",
+                t: CALL_LOG_TYPE,
+                id: this.id,
+                ownSessionId: this.options.sessionId
+            });
+            const turnServer = await this.options.turnServerSource.getSettings(logItem);
+            const membersLogItem = logItem.child("member connections");
+            const localMuteSettings = new MuteSettings();
+            localMuteSettings.updateTrackInfo(localMedia.userMedia);
+            const localPreviewMedia = localMedia.asPreview();
+            const joinedData = new JoinedData(
+                logItem,
+                membersLogItem,
+                localMedia,
+                localPreviewMedia,
+                localMuteSettings,
+                turnServer
+            );
+            this.joinedData = joinedData;
+            await joinedData.logItem.wrap("join", async log => {
+                joinLog.refDetached(log);
+                this._state = GroupCallState.Joining;
+                this.emitChange();
+                await log.wrap("update member state", async log => {
+                    const memberContent = await this._createMemberPayload(true);
+                    log.set("payload", memberContent);
+                    // send m.call.member state event
+                    const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
+                    await request.response();
+                    this.emitChange();
+                });
+                // send invite to all members that are < my userId
+                for (const [,member] of this._members) {
+                    this.connectToMember(member, joinedData, log);
+                }
+            });
         });
     }
 
@@ -263,12 +266,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this._state === GroupCallState.Joining || this._state === GroupCallState.Joined;
     }
 
-    async leave(): Promise<void> {
-        const {joinedData} = this;
-        if (!joinedData) {
-            return;
-        }
-        await joinedData.logItem.wrap("leave", async log => {
+    async leave(log?: ILogItem): Promise<void> {
+        await this.options.logger.wrapOrRun(log, "Call.leave", async log => {
+            const {joinedData} = this;
+            if (!joinedData) {
+                return;
+            }
             try {
                 joinedData.renewMembershipTimeout?.dispose();
                 joinedData.renewMembershipTimeout = undefined;
@@ -310,8 +313,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(type: "m.video" | "m.voice", log?: ILogItem): Promise<void> {
-        return this.options.logger.wrapOrRun(log, {l: "create call", t: CALL_LOG_TYPE}, async log => {
+    create(type: "m.video" | "m.voice", log: ILogItem): Promise<void> {
+        return log.wrap({l: "create call", t: CALL_LOG_TYPE}, async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
             }

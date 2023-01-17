@@ -24,7 +24,6 @@ import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
-import {ErrorViewModel} from "../../ErrorViewModel";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
@@ -74,7 +73,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     async load() {
-        this.logAndCatch("Room.load", async log => {
+        this.logAndCatch("RoomViewModel.load", async log => {
             this._room.on("change", this._onRoomChange);
             const timeline = await this._room.openTimeline(log);
             this._tileOptions = this.childOptions({
@@ -99,7 +98,7 @@ export class RoomViewModel extends ErrorReportViewModel {
         this._clearUnreadTimout = this.clock.createTimeout(2000);
         try {
             await this._clearUnreadTimout.elapsed();
-            await this._room.clearUnread();
+            await this._room.clearUnread(log);
             this._clearUnreadTimout = null;
         } catch (err) {
             if (err.name === "AbortError") {
@@ -111,7 +110,9 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     focus() {
-        this._clearUnreadAfterDelay();
+        this.logAndCatch("RoomViewModel.focus", async log => {
+            this._clearUnreadAfterDelay(log);
+        });
     }
 
     dispose() {
@@ -191,7 +192,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
     
     _sendMessage(message, replyingTo) {
-        return this.logAndCatch("sendMessage", async log => {
+        return this.logAndCatch("RoomViewModel.sendMessage", async log => {
             let success = false;
             if (!this._room.isArchived && message) {
                 let msgtype = "m.text";
@@ -214,7 +215,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     _pickAndSendFile() {
-        return this.logAndCatch("sendFile", async log => {
+        return this.logAndCatch("RoomViewModel.sendFile", async log => {
             const file = await this.platform.openFile();
             if (!file) {
                 log.set("cancelled", true);
@@ -235,7 +236,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     _pickAndSendVideo() {
-        return this.logAndCatch("sendVideo", async log => {
+        return this.logAndCatch("RoomViewModel.sendVideo", async log => {
             if (!this.platform.hasReadPixelPermission()) {
                 throw new Error("Please allow canvas image data access, so we can scale your images down.");
             }
@@ -277,7 +278,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     async _pickAndSendPicture() {
-        this.logAndCatch("sendPicture", async log => {
+        this.logAndCatch("RoomViewModel.sendPicture", async log => {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
                 return;
@@ -341,7 +342,8 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     startCall() {
-        return this.logAndCatch("startCall", async log => {
+        return this.logAndCatch("RoomViewModel.startCall", async log => {
+            log.set("roomId", this._room.id);
             let localMedia;
             try {
                 const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
@@ -353,12 +355,18 @@ export class RoomViewModel extends ErrorReportViewModel {
             let call;
             try {
                 // this will set the callViewModel above as a call will be added to callHandler.calls
-                call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
+                call = await session.callHandler.createCall(
+                    this._room.id,
+                    "m.video",
+                    "A call " + Math.round(this.platform.random() * 100),
+                    undefined,
+                    log
+                );
             } catch (err) {
                 throw new Error(`Could not create call: ${err.message}`);
             }
             try {
-                await call.join(localMedia);
+                await call.join(localMedia, log);
             } catch (err) {
                 throw new Error(`Could not join call: ${err.message}`);
             }

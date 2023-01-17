@@ -102,9 +102,9 @@ export class CallViewModel extends ErrorReportViewModel<Options> {
     }
 
     async hangup() {
-        this.logAndCatch("Call.hangup", async log => {
+        this.logAndCatch("CallViewModel.hangup", async log => {
             if (this.call.hasJoined) {
-                await this.call.leave();
+                await this.call.leave(log);
             }
         });
     }
