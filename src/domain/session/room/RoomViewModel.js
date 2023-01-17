@@ -74,9 +74,9 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     async load() {
-        this._room.on("change", this._onRoomChange);
-        try {
-            const timeline = await this._room.openTimeline();
+        this.logAndCatch("Room.load", async log => {
+            this._room.on("change", this._onRoomChange);
+            const timeline = await this._room.openTimeline(log);
             this._tileOptions = this.childOptions({
                 session: this.getOption("session"),
                 roomVM: this,
@@ -88,13 +88,11 @@ export class RoomViewModel extends ErrorReportViewModel {
                 timeline,
             })));
             this.emitChange("timelineViewModel");
-        } catch (error) {
-            this.reportError(error);
-        }
-        this._clearUnreadAfterDelay();
+            await this._clearUnreadAfterDelay(log);
+        });
     }
 
-    async _clearUnreadAfterDelay() {
+    async _clearUnreadAfterDelay(log) {
         if (this._room.isArchived || this._clearUnreadTimout) {
             return;
         }
@@ -104,7 +102,9 @@ export class RoomViewModel extends ErrorReportViewModel {
             await this._room.clearUnread();
             this._clearUnreadTimout = null;
         } catch (err) {
-            if (err.name !== "AbortError") {
+            if (err.name === "AbortError") {
+                log.set("clearUnreadCancelled", true);
+            } else {
                 throw err;
             }
         }
@@ -190,62 +190,61 @@ export class RoomViewModel extends ErrorReportViewModel {
         }
     }
     
-    async _sendMessage(message, replyingTo) {
-        if (!this._room.isArchived && message) {
-            try {
+    _sendMessage(message, replyingTo) {
+        return this.logAndCatch("sendMessage", async log => {
+            let success = false;
+            if (!this._room.isArchived && message) {
                 let msgtype = "m.text";
                 if (message.startsWith("/me ")) {
                     message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
                 if (replyingTo) {
+                    log.set("replyingTo", replyingTo.eventId);
+                    // TODO: reply should not send? it should just return the content for the reply and we send it ourselves
                     await replyingTo.reply(msgtype, message);
                 } else {
-                    await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                    await this._room.sendEvent("m.room.message", {msgtype, body: message}, undefined, log);
                 }
-            } catch (error) {
-                this.reportError(error);
-                return false;
+                success = true;
             }
-            return true;
-        }
-        return false;
+            log.set("success", success);
+            return success;
+        }, false);
     }
 
-    async _pickAndSendFile() {
-        try {
+    _pickAndSendFile() {
+        return this.logAndCatch("sendFile", async log => {
             const file = await this.platform.openFile();
             if (!file) {
+                log.set("cancelled", true);
                 return;
             }
-            return this._sendFile(file);
-        } catch (err) {
-            console.error(err);
-        }
+            return this._sendFile(file, log);
+        });
     }
 
-    async _sendFile(file) {
+    async _sendFile(file, log) {
         const content = {
             body: file.name,
             msgtype: "m.file"
         };
         await this._room.sendEvent("m.room.message", content, {
             "url": this._room.createAttachment(file.blob, file.name)
-        });
+        }, log);
     }
 
-    async _pickAndSendVideo() {
-        try {
+    _pickAndSendVideo() {
+        return this.logAndCatch("sendVideo", async log => {
             if (!this.platform.hasReadPixelPermission()) {
-                alert("Please allow canvas image data access, so we can scale your images down.");
-                return;
+                throw new Error("Please allow canvas image data access, so we can scale your images down.");
             }
             const file = await this.platform.openFile("video/*");
             if (!file) {
                 return;
             }
             if (!file.blob.mimeType.startsWith("video/")) {
-                return this._sendFile(file);
+                return this._sendFile(file, log);
             }
             let video;
             try {
@@ -273,24 +272,23 @@ export class RoomViewModel extends ErrorReportViewModel {
             content.info.thumbnail_info = imageToInfo(thumbnail);
             attachments["info.thumbnail_url"] = 
                 this._room.createAttachment(thumbnail.blob, file.name);
-            await this._room.sendEvent("m.room.message", content, attachments);
-        } catch (error) {
-            this.reportError(error);
-        }
+            await this._room.sendEvent("m.room.message", content, attachments, log);
+        });
     }
 
     async _pickAndSendPicture() {
-        try {
+        this.logAndCatch("sendPicture", async log => {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
                 return;
             }
             const file = await this.platform.openFile("image/*");
             if (!file) {
+                log.set("cancelled", true);
                 return;
             }
             if (!file.blob.mimeType.startsWith("image/")) {
-                return this._sendFile(file);
+                return this._sendFile(file, log);
             }
             let image = await this.platform.loadImage(file.blob);
             const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
@@ -313,10 +311,8 @@ export class RoomViewModel extends ErrorReportViewModel {
                 attachments["info.thumbnail_url"] = 
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
-            await this._room.sendEvent("m.room.message", content, attachments);
-        } catch (error) {
-            this.reportError(error);
-        }
+            await this._room.sendEvent("m.room.message", content, attachments, log);
+        });
     }
 
     get room() {
@@ -344,30 +340,29 @@ export class RoomViewModel extends ErrorReportViewModel {
         }
     }
 
-    async startCall() {
-        let localMedia;
-        try {
-            const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
-            localMedia = new LocalMedia().withUserMedia(stream);
-        } catch (err) {
-            this.reportError(new Error(`Could not get local audio and/or video stream: ${err.message}`));
-            return;
-        }
-        const session = this.getOption("session");
-        let call;
-        try {
-            // this will set the callViewModel above as a call will be added to callHandler.calls
-            call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
-        } catch (err) {
-            this.reportError(new Error(`Could not create call: ${err.message}`));
-            return;
-        }
-        try {
-            await call.join(localMedia);
-        } catch (err) {
-            this.reportError(new Error(`Could not join call: ${err.message}`));
-            return;
-        }
+    startCall() {
+        return this.logAndCatch("startCall", async log => {
+            let localMedia;
+            try {
+                const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
+                localMedia = new LocalMedia().withUserMedia(stream);
+            } catch (err) {
+                throw new Error(`Could not get local audio and/or video stream: ${err.message}`);
+            }
+            const session = this.getOption("session");
+            let call;
+            try {
+                // this will set the callViewModel above as a call will be added to callHandler.calls
+                call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
+            } catch (err) {
+                throw new Error(`Could not create call: ${err.message}`);
+            }
+            try {
+                await call.join(localMedia);
+            } catch (err) {
+                throw new Error(`Could not join call: ${err.message}`);
+            }
+        });
     }
 }
 
