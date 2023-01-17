@@ -24,7 +24,7 @@ import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
-import { ErrorViewModel } from "../../ErrorViewModel";
+import {ErrorViewModel} from "../../ErrorViewModel";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
