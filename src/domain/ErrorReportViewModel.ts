@@ -32,6 +32,10 @@ export class ErrorReportViewModel<O extends Options = Options> extends ViewModel
         return this._errorViewModel;
     }
 
+    /** Typically you'd want to use `logAndCatch` when implementing a view model method.
+     * Use `reportError` when showing errors on your model that were set by
+     * background processes using `ErrorBoundary` or you have some other
+     * special low-level need to write your try/catch yourself. */
     protected reportError(error: Error) {
         if (this._errorViewModel?.error === error) {
             return;
@@ -47,6 +51,9 @@ export class ErrorReportViewModel<O extends Options = Options> extends ViewModel
         this.emitChange("errorViewModel");
     }
 
+    /** Combines logging and error reporting in one method.
+     * Wrap the implementation of public view model methods
+     * with this to ensure errors are logged and reported.*/
     protected logAndCatch<T>(labelOrValues: LabelOrValues, callback: LogCallback<T>, errorValue: T = undefined as unknown as T): T {
         try {
             let result = this.logger.run(labelOrValues, callback);
