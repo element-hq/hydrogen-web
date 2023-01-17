@@ -141,10 +141,6 @@ export class RoomViewModel extends ErrorReportViewModel {
     get timelineViewModel() { return this._timelineVM; }
     get isEncrypted() { return this._room.isEncrypted; }
 
-    get errorViewModel() {
-        return this._errorViewModel;
-    }
-
     get avatarLetter() {
         return avatarInitials(this.name);
     }
