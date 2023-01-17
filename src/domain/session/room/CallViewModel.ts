@@ -30,7 +30,7 @@ import type {BaseObservableList} from "../../../observable/list/BaseObservableLi
 import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
 import type {Stream} from "../../../platform/types/MediaDevices";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
-import type { Session } from "../../../matrix/Session";
+import type {Session} from "../../../matrix/Session";
 
 type Options = BaseOptions & {
     call: GroupCall,
