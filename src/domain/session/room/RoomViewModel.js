@@ -200,13 +200,14 @@ export class RoomViewModel extends ErrorReportViewModel {
                     message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
+                let content;
                 if (replyingTo) {
                     log.set("replyingTo", replyingTo.eventId);
-                    // TODO: reply should not send? it should just return the content for the reply and we send it ourselves
-                    await replyingTo.reply(msgtype, message);
+                    content = await replyingTo.createReplyContent(msgtype, message);
                 } else {
-                    await this._room.sendEvent("m.room.message", {msgtype, body: message}, undefined, log);
+                    content = {msgtype, body: message};
                 }
+                await this._room.sendEvent("m.room.message", content, undefined, log);
                 success = true;
             }
             log.set("success", success);
