@@ -39,11 +39,11 @@ In this repository, create a Docker image:
 docker build -t hydrogen .
 ```
 
-Or, pull the docker image from GitLab:
+Or, pull the docker image from GitHub Container Registry:
 
 ```
-docker pull registry.gitlab.com/jcgruenhage/hydrogen-web
-docker tag registry.gitlab.com/jcgruenhage/hydrogen-web hydrogen
+docker pull ghcr.io/vector-im/hydrogen-web
+docker tag ghcr.io/vector-im/hydrogen-web hydrogen
 ```
 
 ### Start container image
