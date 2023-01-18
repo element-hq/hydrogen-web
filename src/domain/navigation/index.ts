@@ -239,6 +239,10 @@ export function stringifyPath(path: Path<SegmentType>): string {
     let urlPath = "";
     let prevSegment: Segment<SegmentType> | undefined;
     for (const segment of path.segments) {
+        if (segment.type === "oidc-callback" || segment.type === "oidc-error") {
+            // Do not put these segments in URL
+            continue;
+        }
         const encodedSegmentValue = encodeSegmentValue(segment.value);
         switch (segment.type) {
             case "rooms":
@@ -257,10 +261,6 @@ export function stringifyPath(path: Path<SegmentType>): string {
                 break;
             case "right-panel":
             case "sso":
-            case "oidc-callback":
-            case "oidc-error":
-                // Do not put these segments in URL
-                continue;
             default:
                 urlPath += `/${segment.type}`;
                 if (encodedSegmentValue) {
@@ -272,7 +272,8 @@ export function stringifyPath(path: Path<SegmentType>): string {
     return urlPath;
 }
 
-function encodeSegmentValue(value: SegmentType[keyof SegmentType]): string {
+// We exclude the OIDC segment types as they are never encoded
+function encodeSegmentValue(value: Exclude<SegmentType[keyof SegmentType], { state: string }>): string {
     if (value === true) {
         // Nothing to encode for boolean
         return "";
