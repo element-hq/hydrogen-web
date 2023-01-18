@@ -261,6 +261,8 @@ export function stringifyPath(path: Path<SegmentType>): string {
                 break;
             case "right-panel":
             case "sso":
+                // Do not put these segments in URL
+                continue;
             default:
                 urlPath += `/${segment.type}`;
                 if (encodedSegmentValue) {
