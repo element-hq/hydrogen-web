@@ -366,7 +366,7 @@ export class Platform {
     }
 
     get description() {
-        return navigator.userAgent ?? "<unknown>";
+        return "web-" + (navigator.userAgent ?? "<unknown>");
     }
 
     dispose() {
