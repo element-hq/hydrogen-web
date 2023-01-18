@@ -205,7 +205,7 @@ export class Client {
                 }
 
                 if (loginData.expires_in) {
-                    sessionInfo.accessTokenExpiresAt = clock.now() + loginData.expires_in * 1000;
+                    sessionInfo.expiresIn = loginData.expires_in;
                 }
 
                 if (loginData.oidc_issuer) {
@@ -213,8 +213,6 @@ export class Client {
                     sessionInfo.oidcClientId = loginData.oidc_client_id;
                     sessionInfo.accountManagementUrl = loginData.oidc_account_management_url;
                 }
-
-                log.set("id", sessionId);
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -233,28 +231,51 @@ export class Client {
                 }
                 return;
             }
-            let dehydratedDevice;
-            if (inspectAccountSetup) {
-                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
-                if (dehydratedDevice) {
-                    sessionInfo.deviceId = dehydratedDevice.deviceId;
-                }
-            }
-            await this._platform.sessionInfoStorage.add(sessionInfo);            
-            // loading the session can only lead to
-            // LoadStatus.Error in case of an error,
-            // so separate try/catch
-            try {
-                await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
-                log.set("status", this._status.get());
-            } catch (err) {
-                log.catch(err);
-                // free olm Account that might be contained
-                dehydratedDevice?.dispose();
-                this._error = err;
-                this._status.set(LoadStatus.Error);
-            }
+            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, log);
         });
+    }
+
+    async _createSessionAfterAuth({deviceId, userId, accessToken, refreshToken, homeserver, expiresIn, oidcIssuer, oidcClientId, accountManagementUrl}, inspectAccountSetup, log) {
+        const id = this.createNewSessionId();
+        const lastUsed = this._platform.clock.now();
+        const sessionInfo = {
+            id,
+            deviceId,
+            userId,
+            homeServer: homeserver, // deprecate this over time
+            homeserver,
+            accessToken,
+            lastUsed,
+            refreshToken,
+            oidcIssuer,
+            oidcClientId,
+            accountManagementUrl,
+        };
+        if (expiresIn) {
+            sessionInfo.accessTokenExpiresAt = lastUsed + expiresIn * 1000;
+        }
+        let dehydratedDevice;
+        if (inspectAccountSetup) {
+            dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+            if (dehydratedDevice) {
+                sessionInfo.deviceId = dehydratedDevice.deviceId;
+            }
+        }
+        log.set("id", id);
+        await this._platform.sessionInfoStorage.add(sessionInfo);
+        // loading the session can only lead to
+        // LoadStatus.Error in case of an error,
+        // so separate try/catch
+        try {
+            await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
+            log.set("status", this._status.get());
+        } catch (err) {
+            log.catch(err);
+            // free olm Account that might be contained
+            dehydratedDevice?.dispose();
+            this._error = err;
+            this._status.set(LoadStatus.Error);
+        }
     }
 
     async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {

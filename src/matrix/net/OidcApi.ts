@@ -78,16 +78,16 @@ export class OidcApi<N extends object = SegmentType> {
     _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
-    _urlCreator: IURLRouter<N>;
+    _urlRouter: IURLRouter<N>;
     _metadataPromise: Promise<any>;
     _registrationPromise: Promise<any>;
 
-    constructor({ issuer, request, encoding, crypto, urlCreator, clientId }) {
+    constructor({ issuer, request, encoding, crypto, urlRouter, clientId }) {
         this._issuer = issuer;
         this._requestFn = request;
         this._encoding = encoding;
         this._crypto = crypto;
-        this._urlCreator = urlCreator;
+        this._urlRouter = urlRouter;
 
         if (clientId) {
             this._registrationPromise = Promise.resolve({ client_id: clientId });
@@ -97,13 +97,13 @@ export class OidcApi<N extends object = SegmentType> {
     get clientMetadata() {
         return {
             client_name: "Hydrogen Web",
-            logo_uri: this._urlCreator.absoluteUrlForAsset("icon.png"),
-            client_uri: this._urlCreator.absoluteAppUrl(),
+            logo_uri: this._urlRouter.absoluteUrlForAsset("icon.png"),
+            client_uri: this._urlRouter.absoluteAppUrl(),
             tos_uri: "https://element.io/terms-of-service",
             policy_uri: "https://element.io/privacy",
             response_types: ["code"],
             grant_types: ["authorization_code", "refresh_token"],
-            redirect_uris: [this._urlCreator.createOIDCRedirectURL()],
+            redirect_uris: [this._urlRouter.createOIDCRedirectURL()],
             id_token_signed_response_alg: "RS256",
             token_endpoint_auth_method: "none",
         };

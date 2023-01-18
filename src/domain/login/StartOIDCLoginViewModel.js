@@ -29,7 +29,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
             request: this.platform.request,
             encoding: this.platform.encoding,
             crypto: this.platform.crypto,
-            urlCreator: this.urlCreator,
+            urlRouter: this.urlRouter,
         });
     }
 
@@ -60,7 +60,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
         const deviceScope = this._api.generateDeviceScope();
         const p = this._api.generateParams({
             scope: `openid urn:matrix:org.matrix.msc2967.client:api:* ${deviceScope}`,
-            redirectUri: this.urlCreator.createOIDCRedirectURL(),
+            redirectUri: this.urlRouter.createOIDCRedirectURL(),
         });
         const clientId = await this._api.clientId();
         await Promise.all([
