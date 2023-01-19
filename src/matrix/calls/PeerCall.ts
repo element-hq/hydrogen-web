@@ -20,7 +20,7 @@ import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {Disposables, Disposable, IDisposable} from "../../utils/Disposables";
 import {WebRTC, PeerConnection, Transceiver, TransceiverDirection, Sender, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";
 import {MediaDevices, Track, TrackKind, Stream, StreamTrackEvent} from "../../platform/types/MediaDevices";
-import {getStreamVideoTrack, getStreamAudioTrack, MuteSettings} from "./common";
+import {getStreamVideoTrack, getStreamAudioTrack, MuteSettings, mute} from "./common";
 import {
     SDPStreamMetadataKey,
     SDPStreamMetadataPurpose,
@@ -266,14 +266,7 @@ export class PeerCall implements IDisposable {
             log.set("microphoneMuted", localMuteSettings.microphone);
 
             if (this.localMedia) {
-                const userMediaAudio = getStreamAudioTrack(this.localMedia.userMedia);
-                if (userMediaAudio) {
-                    this.muteTrack(userMediaAudio, this.localMuteSettings.microphone, log);
-                }
-                const userMediaVideo = getStreamVideoTrack(this.localMedia.userMedia);
-                if (userMediaVideo) {
-                    this.muteTrack(userMediaVideo, this.localMuteSettings.camera, log);
-                }
+                mute(this.localMedia, localMuteSettings, log);
                 const content: MCallSDPStreamMetadataChanged<MCallBase> = {
                     call_id: this.callId,
                     version: 1,
@@ -287,22 +280,6 @@ export class PeerCall implements IDisposable {
     hangup(errorCode: CallErrorCode, log: ILogItem): Promise<void> {
         return log.wrap("hangup", log => {
             return this._hangup(errorCode, log);
-        });
-    }
-
-    private muteTrack(track: Track, muted: boolean, log: ILogItem): void {
-        log.wrap({l: "track", kind: track.kind, id: track.id}, log => {
-            const enabled = !muted;
-            log.set("enabled", enabled);
-            const transceiver = this.findTransceiverForTrack(track);
-            if (transceiver) {
-                if (transceiver.sender.track) {
-                    transceiver.sender.track.enabled = enabled;
-                }
-                log.set("fromDirection", transceiver.direction);
-                // enableSenderOnTransceiver(transceiver, enabled);
-                log.set("toDirection", transceiver.direction);
-            }
         });
     }
 

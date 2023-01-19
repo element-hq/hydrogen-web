@@ -17,7 +17,7 @@ limitations under the License.
 import {ObservableMap} from "../../../observable/map/ObservableMap";
 import {Member, isMemberExpired, memberExpiresAt} from "./Member";
 import {LocalMedia} from "../LocalMedia";
-import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS} from "../common";
+import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS, mute} from "../common";
 import {MemberChange, RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {EventType, CallIntent} from "../callEventTypes";
@@ -72,12 +72,14 @@ class JoinedData {
         public readonly logItem: ILogItem,
         public readonly membersLogItem: ILogItem,
         public localMedia: LocalMedia,
+        public localPreviewMedia: LocalMedia,
         public localMuteSettings: MuteSettings,
         public readonly turnServer: BaseObservableValue<RTCIceServer>
     ) {}
 
     dispose() {
         this.localMedia.dispose();
+        this.localPreviewMedia.dispose();
         this.logItem.finish();
         this.renewMembershipTimeout?.dispose();
     }
@@ -125,6 +127,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     get localMedia(): LocalMedia | undefined { return this.joinedData?.localMedia; }
+    get localPreviewMedia(): LocalMedia | undefined { return this.joinedData?.localPreviewMedia; }
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get isTerminated(): boolean {
@@ -165,10 +168,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
         const membersLogItem = logItem.child("member connections");
         const localMuteSettings = new MuteSettings();
         localMuteSettings.updateTrackInfo(localMedia.userMedia);
+        const localPreviewMedia = localMedia.asPreview();
         const joinedData = new JoinedData(
             logItem,
             membersLogItem,
             localMedia,
+            localPreviewMedia,
             localMuteSettings,
             turnServer
         );
@@ -195,6 +200,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if ((this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) && this.joinedData) {
             const oldMedia = this.joinedData.localMedia;
             this.joinedData.localMedia = localMedia;
+            this.joinedData.localPreviewMedia?.dispose();
+            this.joinedData.localPreviewMedia = localMedia.asPreview();
             // reflect the fact we gained or lost local tracks in the local mute settings
             // and update the track info so PeerCall can use it to send up to date metadata,
             this.joinedData.localMuteSettings.updateTrackInfo(localMedia.userMedia);
@@ -219,6 +226,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
         muteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
         joinedData.localMuteSettings = muteSettings;
         if (!prevMuteSettings.equals(muteSettings)) {
+            // Mute our copies of LocalMedias;
+            // otherwise the camera lights will still be on.
+            if (this.localPreviewMedia) {
+                mute(this.localPreviewMedia, muteSettings, this.joinedData!.logItem);
+            }
+            if (this.localMedia) {
+                mute(this.localMedia, muteSettings, this.joinedData!.logItem);
+            }
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMuted(joinedData.localMuteSettings);
             }));

@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {ILogItem} from "../../logging/types";
 import type {Track, Stream} from "../../platform/types/MediaDevices";
+import {LocalMedia} from "./LocalMedia";
 
 export function getStreamAudioTrack(stream: Stream | undefined): Track | undefined {
     return stream?.getAudioTracks()[0];
@@ -22,6 +24,29 @@ export function getStreamAudioTrack(stream: Stream | undefined): Track | undefin
 
 export function getStreamVideoTrack(stream: Stream | undefined): Track | undefined {
     return stream?.getVideoTracks()[0];
+}
+
+export function mute(localMedia: LocalMedia, localMuteSettings: MuteSettings, log: ILogItem) {
+        return log.wrap("mute", log => {
+            log.set("cameraMuted", localMuteSettings.camera);
+            log.set("microphoneMuted", localMuteSettings.microphone);
+
+            // Mute audio
+            const userMediaAudio = getStreamAudioTrack(localMedia.userMedia);
+            if (userMediaAudio) {
+                const enabled = !localMuteSettings.microphone;
+                log.set("microphone enabled", enabled);
+                userMediaAudio.enabled = enabled;
+            }
+
+            // Mute video
+            const userMediaVideo = getStreamVideoTrack(localMedia.userMedia);
+            if (userMediaVideo) {
+                const enabled = !localMuteSettings.camera;
+                log.set("camera enabled", enabled);
+                userMediaVideo.enabled = enabled;
+            }
+        });
 }
 
 export class MuteSettings {
