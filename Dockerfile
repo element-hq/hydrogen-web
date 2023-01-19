@@ -1,4 +1,4 @@
-FROM docker.io/node:alpine as builder
+FROM --platform=${BUILDPLATFORM} docker.io/node:alpine as builder
 RUN apk add --no-cache git python3 build-base
 
 WORKDIR /app
@@ -10,7 +10,7 @@ RUN yarn install
 COPY . /app
 RUN yarn build
 
-FROM docker.io/nginx:alpine
+FROM --platform=${BUILDPLATFORM} docker.io/nginx:alpine
 
 # Copy the dynamic config script
 COPY ./docker/dynamic-config.sh /docker-entrypoint.d/99-dynamic-config.sh
