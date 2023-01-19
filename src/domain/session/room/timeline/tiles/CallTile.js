@@ -16,7 +16,6 @@ limitations under the License.
 
 import {SimpleTile} from "./SimpleTile.js";
 import {LocalMedia} from "../../../../../matrix/calls/LocalMedia";
-
 // TODO: timeline entries for state events with the same state key and type
 // should also update previous entries in the timeline, so we can update the name of the call, whether it is terminated, etc ...
 
@@ -73,17 +72,21 @@ export class CallTile extends SimpleTile {
     }
 
     async join() {
-        if (this.canJoin) {
-            const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
-            const localMedia = new LocalMedia().withUserMedia(stream);
-            await this._call.join(localMedia);
-        }
+        await this.logAndCatch("CallTile.join", async log => {
+            if (this.canJoin) {
+                const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
+                const localMedia = new LocalMedia().withUserMedia(stream);
+                await this._call.join(localMedia, log);
+            }
+        });
     }
 
     async leave() {
-        if (this.canLeave) {
-            this._call.leave();
-        }
+        await this.logAndCatch("CallTile.leave", async log => {
+            if (this.canLeave) {
+                await this._call.leave(log);
+            }
+        });
     }
 
     dispose() {

@@ -20,6 +20,7 @@ import {ComposerViewModel} from "./ComposerViewModel.js"
 import {CallViewModel} from "./CallViewModel"
 import {PickMapObservableValue} from "../../../observable/value/PickMapObservableValue";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
+import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {ViewModel} from "../../ViewModel";
 import {imageToInfo} from "../common.js";
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
@@ -27,7 +28,7 @@ import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
 
-export class RoomViewModel extends ViewModel {
+export class RoomViewModel extends ErrorReportViewModel {
     constructor(options) {
         super(options);
         const {room, tileClassForEntry} = options;
@@ -36,8 +37,6 @@ export class RoomViewModel extends ViewModel {
         this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
         this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
-        this._timelineError = null;
-        this._sendError = null;
         this._composerVM = null;
         if (room.isArchived) {
             this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
@@ -74,9 +73,9 @@ export class RoomViewModel extends ViewModel {
     }
 
     async load() {
-        this._room.on("change", this._onRoomChange);
-        try {
-            const timeline = await this._room.openTimeline();
+        this.logAndCatch("RoomViewModel.load", async log => {
+            this._room.on("change", this._onRoomChange);
+            const timeline = await this._room.openTimeline(log);
             this._tileOptions = this.childOptions({
                 session: this.getOption("session"),
                 roomVM: this,
@@ -88,32 +87,32 @@ export class RoomViewModel extends ViewModel {
                 timeline,
             })));
             this.emitChange("timelineViewModel");
-        } catch (err) {
-            console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
-            this._timelineError = err;
-            this.emitChange("error");
-        }
-        this._clearUnreadAfterDelay();
+            await this._clearUnreadAfterDelay(log);
+        });
     }
 
-    async _clearUnreadAfterDelay() {
+    async _clearUnreadAfterDelay(log) {
         if (this._room.isArchived || this._clearUnreadTimout) {
             return;
         }
         this._clearUnreadTimout = this.clock.createTimeout(2000);
         try {
             await this._clearUnreadTimout.elapsed();
-            await this._room.clearUnread();
+            await this._room.clearUnread(log);
             this._clearUnreadTimout = null;
         } catch (err) {
-            if (err.name !== "AbortError") {
+            if (err.name === "AbortError") {
+                log.set("clearUnreadCancelled", true);
+            } else {
                 throw err;
             }
         }
     }
 
     focus() {
-        this._clearUnreadAfterDelay();
+        this.logAndCatch("RoomViewModel.focus", async log => {
+            this._clearUnreadAfterDelay(log);
+        });
     }
 
     dispose() {
@@ -142,16 +141,6 @@ export class RoomViewModel extends ViewModel {
     get id() { return this._room.id; }
     get timelineViewModel() { return this._timelineVM; }
     get isEncrypted() { return this._room.isEncrypted; }
-
-    get error() {
-        if (this._timelineError) {
-            return `Something went wrong loading the timeline: ${this._timelineError.message}`;
-        }
-        if (this._sendError) {
-            return `Something went wrong sending your message: ${this._sendError.message}`;
-        }
-        return "";
-    }
 
     get avatarLetter() {
         return avatarInitials(this.name);
@@ -202,65 +191,62 @@ export class RoomViewModel extends ViewModel {
         }
     }
     
-    async _sendMessage(message, replyingTo) {
-        if (!this._room.isArchived && message) {
-            try {
+    _sendMessage(message, replyingTo) {
+        return this.logAndCatch("RoomViewModel.sendMessage", async log => {
+            let success = false;
+            if (!this._room.isArchived && message) {
                 let msgtype = "m.text";
                 if (message.startsWith("/me ")) {
                     message = message.substr(4).trim();
                     msgtype = "m.emote";
                 }
+                let content;
                 if (replyingTo) {
-                    await replyingTo.reply(msgtype, message);
+                    log.set("replyingTo", replyingTo.eventId);
+                    content = await replyingTo.createReplyContent(msgtype, message);
                 } else {
-                    await this._room.sendEvent("m.room.message", {msgtype, body: message});
+                    content = {msgtype, body: message};
                 }
-            } catch (err) {
-                console.error(`room.sendMessage(): ${err.message}:\n${err.stack}`);
-                this._sendError = err;
-                this._timelineError = null;
-                this.emitChange("error");
-                return false;
+                await this._room.sendEvent("m.room.message", content, undefined, log);
+                success = true;
             }
-            return true;
-        }
-        return false;
+            log.set("success", success);
+            return success;
+        }, false);
     }
 
-    async _pickAndSendFile() {
-        try {
+    _pickAndSendFile() {
+        return this.logAndCatch("RoomViewModel.sendFile", async log => {
             const file = await this.platform.openFile();
             if (!file) {
+                log.set("cancelled", true);
                 return;
             }
-            return this._sendFile(file);
-        } catch (err) {
-            console.error(err);
-        }
+            return this._sendFile(file, log);
+        });
     }
 
-    async _sendFile(file) {
+    async _sendFile(file, log) {
         const content = {
             body: file.name,
             msgtype: "m.file"
         };
         await this._room.sendEvent("m.room.message", content, {
             "url": this._room.createAttachment(file.blob, file.name)
-        });
+        }, log);
     }
 
-    async _pickAndSendVideo() {
-        try {
+    _pickAndSendVideo() {
+        return this.logAndCatch("RoomViewModel.sendVideo", async log => {
             if (!this.platform.hasReadPixelPermission()) {
-                alert("Please allow canvas image data access, so we can scale your images down.");
-                return;
+                throw new Error("Please allow canvas image data access, so we can scale your images down.");
             }
             const file = await this.platform.openFile("video/*");
             if (!file) {
                 return;
             }
             if (!file.blob.mimeType.startsWith("video/")) {
-                return this._sendFile(file);
+                return this._sendFile(file, log);
             }
             let video;
             try {
@@ -288,26 +274,23 @@ export class RoomViewModel extends ViewModel {
             content.info.thumbnail_info = imageToInfo(thumbnail);
             attachments["info.thumbnail_url"] = 
                 this._room.createAttachment(thumbnail.blob, file.name);
-            await this._room.sendEvent("m.room.message", content, attachments);
-        } catch (err) {
-            this._sendError = err;
-            this.emitChange("error");
-            console.error(err.stack);
-        }
+            await this._room.sendEvent("m.room.message", content, attachments, log);
+        });
     }
 
     async _pickAndSendPicture() {
-        try {
+        this.logAndCatch("RoomViewModel.sendPicture", async log => {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
                 return;
             }
             const file = await this.platform.openFile("image/*");
             if (!file) {
+                log.set("cancelled", true);
                 return;
             }
             if (!file.blob.mimeType.startsWith("image/")) {
-                return this._sendFile(file);
+                return this._sendFile(file, log);
             }
             let image = await this.platform.loadImage(file.blob);
             const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
@@ -330,12 +313,8 @@ export class RoomViewModel extends ViewModel {
                 attachments["info.thumbnail_url"] = 
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
-            await this._room.sendEvent("m.room.message", content, attachments);
-        } catch (err) {
-            this._sendError = err;
-            this.emitChange("error");
-            console.error(err.stack);
-        }
+            await this._room.sendEvent("m.room.message", content, attachments, log);
+        });
     }
 
     get room() {
@@ -363,17 +342,36 @@ export class RoomViewModel extends ViewModel {
         }
     }
 
-    async startCall() {
-        try {
+    startCall() {
+        return this.logAndCatch("RoomViewModel.startCall", async log => {
+            log.set("roomId", this._room.id);
+            let localMedia;
+            try {
+                const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
+                localMedia = new LocalMedia().withUserMedia(stream);
+            } catch (err) {
+                throw new Error(`Could not get local audio and/or video stream: ${err.message}`);
+            }
             const session = this.getOption("session");
-            const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
-            const localMedia = new LocalMedia().withUserMedia(stream);
-            // this will set the callViewModel above as a call will be added to callHandler.calls
-            const call = await session.callHandler.createCall(this._room.id, "m.video", "A call " + Math.round(this.platform.random() * 100));
-            await call.join(localMedia);
-        } catch (err) {
-            console.error(err.stack);
-        }
+            let call;
+            try {
+                // this will set the callViewModel above as a call will be added to callHandler.calls
+                call = await session.callHandler.createCall(
+                    this._room.id,
+                    "m.video",
+                    "A call " + Math.round(this.platform.random() * 100),
+                    undefined,
+                    log
+                );
+            } catch (err) {
+                throw new Error(`Could not create call: ${err.message}`);
+            }
+            try {
+                await call.join(localMedia, log);
+            } catch (err) {
+                throw new Error(`Could not join call: ${err.message}`);
+            }
+        });
     }
 }
 

@@ -65,16 +65,26 @@ export class CallHandler implements RoomStateHandler {
         });
     }
 
-    async loadCalls(intent: CallIntent = CallIntent.Ring) {
-        const txn = await this._getLoadTxn();
-        const callEntries = await txn.calls.getByIntent(intent);
-        this._loadCallEntries(callEntries, txn);
+    loadCalls(intent?: CallIntent, log?: ILogItem) {
+        return this.options.logger.wrapOrRun(log, "CallHandler.loadCalls", async log => {
+            if (!intent) {
+                intent = CallIntent.Ring;
+            }
+            log.set("intent", intent);
+            const txn = await this._getLoadTxn();
+            const callEntries = await txn.calls.getByIntent(intent);
+            await this._loadCallEntries(callEntries, txn, log);
+        });
     }
 
-    async loadCallsForRoom(intent: CallIntent, roomId: string) {
-        const txn = await this._getLoadTxn();
-        const callEntries = await txn.calls.getByIntentAndRoom(intent, roomId);
-        this._loadCallEntries(callEntries, txn);
+    loadCallsForRoom(intent: CallIntent, roomId: string, log?: ILogItem) {
+        return this.options.logger.wrapOrRun(log, "CallHandler.loadCallsForRoom", async log => {
+            log.set("intent", intent);
+            log.set("roomId", roomId);
+            const txn = await this._getLoadTxn();
+            const callEntries = await txn.calls.getByIntentAndRoom(intent, roomId);
+            await this._loadCallEntries(callEntries, txn, log);
+        });
     }
 
     private async _getLoadTxn(): Promise<Transaction> {
@@ -86,68 +96,71 @@ export class CallHandler implements RoomStateHandler {
         return txn;
     }
 
-    private async _loadCallEntries(callEntries: CallEntry[], txn: Transaction): Promise<void> {
-        return this.options.logger.run({l: "loading calls", t: CALL_LOG_TYPE}, async log => {
-            log.set("entries", callEntries.length);
-            await Promise.all(callEntries.map(async callEntry => {
-                if (this._calls.get(callEntry.callId)) {
-                    return;
+    private async _loadCallEntries(callEntries: CallEntry[], txn: Transaction, log: ILogItem): Promise<void> {
+        log.set("entries", callEntries.length);
+        await Promise.all(callEntries.map(async callEntry => {
+            if (this._calls.get(callEntry.callId)) {
+                return;
+            }
+            const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
+            if (event) {
+                const call = new GroupCall(event.event.state_key, false, event.event.content, event.roomId, this.groupCallOptions);
+                this._calls.set(call.id, call);
+            }
+        }));
+        const roomIds = Array.from(new Set(callEntries.map(e => e.roomId)));
+        await Promise.all(roomIds.map(async roomId => {
+            // TODO: don't load all members until we need them
+            const callsMemberEvents = await txn.roomState.getAllForType(roomId, EventType.GroupCallMember);
+            await Promise.all(callsMemberEvents.map(async entry => {
+                const userId = entry.event.sender;
+                const roomMemberState = await txn.roomState.get(roomId, MEMBER_EVENT_TYPE, userId);
+                let roomMember;
+                if (roomMemberState) {
+                    roomMember = RoomMember.fromMemberEvent(roomMemberState.event);
                 }
-                const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
-                if (event) {
-                    const call = new GroupCall(event.event.state_key, false, event.event.content, event.roomId, this.groupCallOptions);
-                    this._calls.set(call.id, call);
+                if (!roomMember) {
+                    // we'll be missing the member here if we received a call and it's members
+                    // as pre-gap state and the members weren't active in the timeline we got.
+                    roomMember = RoomMember.fromUserId(roomId, userId, "join");
                 }
+                this.handleCallMemberEvent(entry.event, roomMember, roomId, log);
             }));
-            const roomIds = Array.from(new Set(callEntries.map(e => e.roomId)));
-            await Promise.all(roomIds.map(async roomId => {
-                // TODO: don't load all members until we need them
-                const callsMemberEvents = await txn.roomState.getAllForType(roomId, EventType.GroupCallMember);
-                await Promise.all(callsMemberEvents.map(async entry => {
-                    const userId = entry.event.sender;
-                    const roomMemberState = await txn.roomState.get(roomId, MEMBER_EVENT_TYPE, userId);
-                    let roomMember;
-                    if (roomMemberState) {
-                        roomMember = RoomMember.fromMemberEvent(roomMemberState.event);
-                    }
-                    if (!roomMember) {
-                        // we'll be missing the member here if we received a call and it's members
-                        // as pre-gap state and the members weren't active in the timeline we got.
-                        roomMember = RoomMember.fromUserId(roomId, userId, "join");
-                    }
-                    this.handleCallMemberEvent(entry.event, roomMember, roomId, log);
-                }));
-            }));
-            log.set("newSize", this._calls.size);
-        });
+        }));
+        log.set("newSize", this._calls.size);
     }
 
-    async createCall(roomId: string, type: "m.video" | "m.voice", name: string, intent: CallIntent = CallIntent.Ring): Promise<GroupCall> {
-        const call = new GroupCall(makeId("conf-"), true, { 
-            "m.name": name,
-            "m.intent": intent
-        }, roomId, this.groupCallOptions);
-        this._calls.set(call.id, call);
+    createCall(roomId: string, type: "m.video" | "m.voice", name: string, intent?: CallIntent, log?: ILogItem): Promise<GroupCall> {
+        return this.options.logger.wrapOrRun(log, "CallHandler.createCall", async log => {
+            if (!intent) {
+                intent = CallIntent.Ring;
+            }
+            const call = new GroupCall(makeId("conf-"), true, { 
+                "m.name": name,
+                "m.intent": intent
+            }, roomId, this.groupCallOptions);
+            this._calls.set(call.id, call);
 
-        try {
-            await call.create(type);
-            // store call info so it will ring again when reopening the app
-            const txn = await this.options.storage.readWriteTxn([this.options.storage.storeNames.calls]);
-            txn.calls.add({
-                intent: call.intent,
-                callId: call.id,
-                timestamp: this.options.clock.now(),
-                roomId: roomId
-            });
-            await txn.complete();
-        } catch (err) {
-            //if (err.name === "ConnectionError") {
-                // if we're offline, give up and remove the call again
-                this._calls.remove(call.id);
-            //}
-            throw err;
-        }
-        return call;
+            try {
+                await call.create(type, log);
+                // store call info so it will ring again when reopening the app
+                const txn = await this.options.storage.readWriteTxn([this.options.storage.storeNames.calls]);
+                txn.calls.add({
+                    intent: call.intent,
+                    callId: call.id,
+                    timestamp: this.options.clock.now(),
+                    roomId: roomId
+                });
+                await txn.complete();
+            } catch (err) {
+                //if (err.name === "ConnectionError") {
+                    // if we're offline, give up and remove the call again
+                    this._calls.remove(call.id);
+                //}
+                throw err;
+            }
+            return call;
+        });
     }
 
     get calls(): BaseObservableMap<string, GroupCall> { return this._calls; }

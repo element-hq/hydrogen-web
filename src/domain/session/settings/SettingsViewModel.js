@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
-import {submitLogsToRageshakeServer} from "../../../domain/rageshake";
+import {submitLogsFromSessionToDefaultServer} from "../../../domain/rageshake";
 
 class PushNotificationStatus {
     constructor() {
@@ -175,29 +175,13 @@ export class SettingsViewModel extends ViewModel {
     }
 
     async sendLogsToServer() {
-        const {bugReportEndpointUrl} = this.platform.config;
-        if (bugReportEndpointUrl) {
-            this._logsFeedbackMessage = this.i18n`Sending logs…`;
+        this._logsFeedbackMessage = this.i18n`Sending logs…`;
+        try {
+            await submitLogsFromSessionToDefaultServer(this._session, this.platform);
+            this._logsFeedbackMessage = this.i18n`Logs sent succesfully!`;
+        } catch (err) {
+            this._logsFeedbackMessage = err.message;
             this.emitChange();
-            try {
-                const logExport = await this.logger.export();
-                await submitLogsToRageshakeServer(
-                    {
-                        app: "hydrogen",
-                        userAgent: this.platform.description,
-                        version: DEFINE_VERSION,
-                        text: `Submit logs from settings for user ${this._session.userId} on device ${this._session.deviceId}`,
-                    },
-                    logExport.asBlob(),
-                    bugReportEndpointUrl,
-                    this.platform.request
-                );
-                this._logsFeedbackMessage = this.i18n`Logs sent succesfully!`;
-                this.emitChange();
-            } catch (err) {
-                this._logsFeedbackMessage = err.message;
-                this.emitChange();
-            }
         }
     }
 
