@@ -97,6 +97,11 @@ export class Member {
     private expireTimeout?: Timeout;
     private errorBoundary = new ErrorBoundary(err => {
         this.options.emitUpdate(this, "error");
+        if (this.connection) {
+            // in case the error happens in code that does not log,
+            // log it here to make sure it isn't swallowed
+            this.connection.logItem.log("error at boundary").catch(err);
+        }
     });
 
     constructor(
