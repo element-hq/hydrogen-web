@@ -32,15 +32,23 @@ export class ErrorBoundary {
             if (result instanceof Promise) {
                 result = result.catch(err => {
                     this._error = err;
-                    this.errorCallback(err);
+                    this.reportError(err);
                     return errorValue;
                 });
             }
             return result;
         } catch (err) {
             this._error = err;
-            this.errorCallback(err);
+            this.reportError(err);
             return errorValue;
+        }
+    }
+
+    private reportError(err: Error) {
+        try {
+            this.errorCallback(err);
+        } catch (err) {
+            console.error("error in ErrorBoundary callback", err);
         }
     }
 
@@ -77,6 +85,15 @@ export function tests() {
             }, 0);
             assert(emitted);
             assert.strictEqual(result, 0);
+        },
+        "exception in error callback is swallowed": async assert => {
+            let emitted = false;
+            const boundary = new ErrorBoundary(() => { throw new Error("bug in errorCallback"); });
+            assert.doesNotThrow(() => {
+                boundary.try(() => {
+                    throw new Error("fail!");
+                });
+            });
         }
     }
 }
