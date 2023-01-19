@@ -94,12 +94,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
     /** Set between calling join and leave. */
     private joinedData?: JoinedData;
     private errorBoundary = new ErrorBoundary(err => {
+        this.emitChange();
         if (this.joinedData) {
             // in case the error happens in code that does not log,
             // log it here to make sure it isn't swallowed
             this.joinedData.logItem.log("error at boundary").catch(err);
         }
-        this.emitChange();
     });
 
     constructor(
