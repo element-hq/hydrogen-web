@@ -19,7 +19,7 @@ export const ErrorValue = Symbol("ErrorBoundary:Error");
 export class ErrorBoundary {
     private _error?: Error;
 
-    constructor(private readonly errorCallback: (Error) => void) {}
+    constructor(private readonly errorCallback: (err: Error) => void) {}
 
     /**
      * Executes callback() and then runs errorCallback() on error.
