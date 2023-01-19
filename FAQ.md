@@ -36,4 +36,4 @@ Published builds can be found at https://github.com/vector-im/hydrogen-web/relea
 
 ## I want to embed Hydrogen in my website, how should I do that?
 
-Hydrogen aims to be usable as an SDK, and while it is still early days, you can find some documentation how to do that in [SDK.md](SDK.md).
+Hydrogen aims to be usable as an SDK, and while it is still early days, you can find some documentation how to do that in [SDK.md](doc/SDK.md).
