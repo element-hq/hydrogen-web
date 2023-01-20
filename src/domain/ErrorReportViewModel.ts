@@ -20,15 +20,15 @@ import type { Session } from "../matrix/Session";
 import { ErrorViewModel } from "./ErrorViewModel";
 import type { LogCallback, LabelOrValues } from "../logging/types";
 
-export type Options = BaseOptions & {
+export type Options<N extends object> = BaseOptions<N> & {
     session: Session
 };
 
 /** Base class for view models that need to report errors to the UI. */
-export class ErrorReportViewModel<O extends Options = Options> extends ViewModel<O> {
-    private _errorViewModel?: ErrorViewModel;
+export class ErrorReportViewModel<N extends object, O extends Options<N> = Options<N>> extends ViewModel<N, O> {
+    private _errorViewModel?: ErrorViewModel<N>;
 
-    get errorViewModel(): ErrorViewModel | undefined {
+    get errorViewModel(): ErrorViewModel<N> | undefined {
         return this._errorViewModel;
     }
 

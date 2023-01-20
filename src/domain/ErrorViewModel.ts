@@ -17,16 +17,17 @@ limitations under the License.
 import { ViewModel, Options as BaseOptions } from "./ViewModel";
 import {submitLogsFromSessionToDefaultServer} from "./rageshake";
 import type { Session } from "../matrix/Session";
+import type {SegmentType} from "./navigation/index";
 
-type Options = {
+type Options<N extends object> = {
     error: Error
     session: Session,
     onClose: () => void
-} & BaseOptions;
+} & BaseOptions<N>;
 
-export class ErrorViewModel extends ViewModel<Options> {
+export class ErrorViewModel<N extends object = SegmentType, O extends Options<N> = Options<N>> extends ViewModel<N, O> {
     get message(): string {
-        return this.getOption("error")?.message;
+        return this.error.message;
     }
 
     get error(): Error {

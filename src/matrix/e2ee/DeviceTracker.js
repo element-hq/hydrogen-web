@@ -15,17 +15,23 @@ limitations under the License.
 */
 
 import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
+import {HistoryVisibility, shouldShareKey} from "./common.js";
+import {RoomMember} from "../room/members/RoomMember.js";
 
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
 
-export function addRoomToIdentity(identity, userId, roomId) {
+function createUserIdentity(userId, initialRoomId = undefined) {
+    return {
+        userId: userId,
+        roomIds: initialRoomId ? [initialRoomId] : [],
+        deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
+    };
+}
+
+function addRoomToIdentity(identity, userId, roomId) {
     if (!identity) {
-        identity = {
-            userId: userId,
-            roomIds: [roomId],
-            deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
-        };
+        identity = createUserIdentity(userId, roomId);
         return identity;
     } else {
         if (!identity.roomIds.includes(roomId)) {
@@ -79,28 +85,62 @@ export class DeviceTracker {
         }));
     }
 
-    writeMemberChanges(room, memberChanges, txn) {
-        return Promise.all(Array.from(memberChanges.values()).map(async memberChange => {
-            return this._applyMemberChange(memberChange, txn);
+    /** @return Promise<{added: string[], removed: string[]}> the user ids for who the room was added or removed to the userIdentity,
+     *                                                        and with who a key should be now be shared
+     **/
+    async writeMemberChanges(room, memberChanges, historyVisibility, txn) {
+        const added = [];
+        const removed = [];
+        await Promise.all(Array.from(memberChanges.values()).map(async memberChange => {
+            // keys should now be shared with this member?
+            // add the room to the userIdentity if so
+            if (shouldShareKey(memberChange.membership, historyVisibility)) {
+                if (await this._addRoomToUserIdentity(memberChange.roomId, memberChange.userId, txn)) {
+                    added.push(memberChange.userId);
+                }
+            } else if (shouldShareKey(memberChange.previousMembership, historyVisibility)) {
+                // try to remove room we were previously sharing the key with the member but not anymore
+                const {roomId} = memberChange;
+                // if we left the room, remove room from all user identities in the room
+                if (memberChange.userId === this._ownUserId) {
+                    const userIds = await txn.roomMembers.getAllUserIds(roomId);
+                    await Promise.all(userIds.map(userId => {
+                        return this._removeRoomFromUserIdentity(roomId, userId, txn);
+                    }));
+                } else {
+                    await this._removeRoomFromUserIdentity(roomId, memberChange.userId, txn);
+                }
+                removed.push(memberChange.userId);
+            }
         }));
+        return {added, removed};
     }
 
-    async trackRoom(room, log) {
+    async trackRoom(room, historyVisibility, log) {
         if (room.isTrackingMembers || !room.isEncrypted) {
             return;
         }
-        const memberList = await room.loadMemberList(log);
+        const memberList = await room.loadMemberList(undefined, log);
+        const txn = await this._storage.readWriteTxn([
+            this._storage.storeNames.roomSummary,
+            this._storage.storeNames.userIdentities,
+            this._storage.storeNames.deviceIdentities, // to remove all devices in _removeRoomFromUserIdentity
+        ]);
         try {
-            const txn = await this._storage.readWriteTxn([
-                this._storage.storeNames.roomSummary,
-                this._storage.storeNames.userIdentities,
-            ]);
             let isTrackingChanges;
             try {
                 isTrackingChanges = room.writeIsTrackingMembers(true, txn);
                 const members = Array.from(memberList.members.values());
                 log.set("members", members.length);
-                await this._writeJoinedMembers(members, txn);
+                // TODO: should we remove any userIdentities we should not share the key with??
+                // e.g. as an extra security measure if we had a mistake in other code?
+                await Promise.all(members.map(async member => {
+                    if (shouldShareKey(member.membership, historyVisibility)) {
+                        await this._addRoomToUserIdentity(member.roomId, member.userId, txn);
+                    } else {
+                        await this._removeRoomFromUserIdentity(member.roomId, member.userId, txn);
+                    }
+                }));
             } catch (err) {
                 txn.abort();
                 throw err;
@@ -112,21 +152,43 @@ export class DeviceTracker {
         }
     }
 
-    async _writeJoinedMembers(members, txn) {
-        await Promise.all(members.map(async member => {
-            if (member.membership === "join") {
-                await this._writeMember(member, txn);
-            }
-        }));
+    async writeHistoryVisibility(room, historyVisibility, syncTxn, log) {
+        const added = [];
+        const removed = [];
+        if (room.isTrackingMembers && room.isEncrypted) {
+            await log.wrap("rewriting userIdentities", async log => {
+                const memberList = await room.loadMemberList(syncTxn, log);
+                try {
+                    const members = Array.from(memberList.members.values());
+                    log.set("members", members.length);
+                    await Promise.all(members.map(async member => {
+                        if (shouldShareKey(member.membership, historyVisibility)) {
+                            if (await this._addRoomToUserIdentity(member.roomId, member.userId, syncTxn)) {
+                                added.push(member.userId);
+                            }
+                        } else {
+                            if (await this._removeRoomFromUserIdentity(member.roomId, member.userId, syncTxn)) {
+                                removed.push(member.userId);
+                            }
+                        }
+                    }));
+                } finally {
+                    memberList.release();
+                }
+            });
+        }
+        return {added, removed};
     }
 
-    async _writeMember(member, txn) {
+    async _addRoomToUserIdentity(roomId, userId, txn) {
         const {userIdentities} = txn;
-        const identity = await userIdentities.get(member.userId);
-        const updatedIdentity = addRoomToIdentity(identity, member.userId, member.roomId);
+        const identity = await userIdentities.get(userId);
+        const updatedIdentity = addRoomToIdentity(identity, userId, roomId);
         if (updatedIdentity) {
             userIdentities.set(updatedIdentity);
+            return true;
         }
+        return false;
     }
 
     async _removeRoomFromUserIdentity(roomId, userId, txn) {
@@ -141,33 +203,17 @@ export class DeviceTracker {
             } else {
                 userIdentities.set(identity);
             }
+            return true;
         }
-    }
-
-    async _applyMemberChange(memberChange, txn) {
-        // TODO: depends whether we encrypt for invited users??
-        // add room
-        if (memberChange.hasJoined) {
-            await this._writeMember(memberChange.member, txn);
-        }
-        // remove room
-        else if (memberChange.hasLeft) {
-            const {roomId} = memberChange;
-            // if we left the room, remove room from all user identities in the room
-            if (memberChange.userId === this._ownUserId) {
-                const userIds = await txn.roomMembers.getAllUserIds(roomId);
-                await Promise.all(userIds.map(userId => {
-                    return this._removeRoomFromUserIdentity(roomId, userId, txn);
-                }));
-            } else {
-                await this._removeRoomFromUserIdentity(roomId, memberChange.userId, txn);
-            }
-        }
+        return false;
     }
 
     async _queryKeys(userIds, hsApi, log) {
         // TODO: we need to handle the race here between /sync and /keys/query just like we need to do for the member list ...
         // there are multiple requests going out for /keys/query though and only one for /members
+        // So, while doing /keys/query, writeDeviceChanges should add userIds marked as outdated to a list
+        // when /keys/query returns, we should check that list and requery if we queried for a given user.
+        // and then remove the list.
 
         const deviceKeyResponse = await hsApi.queryKeys({
             "timeout": 10000,
@@ -230,7 +276,15 @@ export class DeviceTracker {
             txn.deviceIdentities.set(deviceIdentity);
         }
         // mark user identities as up to date
-        const identity = await txn.userIdentities.get(userId);
+        let identity = await txn.userIdentities.get(userId);
+        if (!identity) {
+            // create the identity if it doesn't exist, which can happen if
+            // we request devices before tracking the room.
+            // IMPORTANT here that the identity gets created without any roomId!
+            // if we claim that we share and e2ee room with the user without having
+            // checked, we could share keys with that user without them being in the room
+            identity = createUserIdentity(userId);
+        }
         identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
         txn.userIdentities.set(identity);
 
@@ -289,6 +343,7 @@ export class DeviceTracker {
 
     /**
      * Gives all the device identities for a room that is already tracked.
+     * Can be used to decide which users to share keys with.
      * Assumes room is already tracked. Call `trackRoom` first if unsure.
      * @param  {String} roomId [description]
      * @return {[type]}        [description]
@@ -305,16 +360,43 @@ export class DeviceTracker {
         
         // So, this will also contain non-joined memberships
         const userIds = await txn.roomMembers.getAllUserIds(roomId);
-
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+        // TODO: check here if userIds is safe? yes it is
+        return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
     }
 
-    /** gets devices for the given user ids that are in the given room */
+    /** 
+     * Can be used to decide which users to share keys with.
+     * Assumes room is already tracked. Call `trackRoom` first if unsure.
+     */
     async devicesForRoomMembers(roomId, userIds, hsApi, log) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+        return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
+    }
+
+    /** 
+     * Cannot be used to decide which users to share keys with.
+     * Does not assume membership to any room or whether any room is tracked.
+     */
+    async devicesForUsers(userIds, hsApi, log) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.userIdentities,
+        ]);
+
+        const upToDateIdentities = [];
+        const outdatedUserIds = [];
+        await Promise.all(userIds.map(async userId => {
+            const i = await txn.userIdentities.get(userId);
+            if (i && i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE) {
+                upToDateIdentities.push(i);
+            } else if (!i || i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED) {
+                // allow fetching for userIdentities we don't know about yet,
+                // as we don't assume the room is tracked here.
+                outdatedUserIds.push(userId);
+            }
+        }));
+        return this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
     }
 
     /** gets a single device */
@@ -372,29 +454,50 @@ export class DeviceTracker {
     }
 
     /**
-     * @param  {string} roomId  [description]
-     * @param  {Array<string>} userIds a set of user ids to try and find the identity for. Will be check to belong to roomId.
+     * Gets all the device identities with which keys should be shared for a set of users in a tracked room.
+     * If any userIdentities are outdated, it will fetch them from the homeserver.
+     * @param  {string} roomId the id of the tracked room to filter users by.
+     * @param  {Array<string>} userIds a set of user ids to try and find the identity for.
      * @param  {Transaction} userIdentityTxn to read the user identities
      * @param  {HomeServerApi} hsApi
-     * @return {Array<DeviceIdentity>}
+     * @return {Array<DeviceIdentity>} all devices identities for the given users we should share keys with.
      */
-    async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi, log) {
+    async _devicesForUserIdsInTrackedRoom(roomId, userIds, userIdentityTxn, hsApi, log) {
         const allMemberIdentities = await Promise.all(userIds.map(userId => userIdentityTxn.userIdentities.get(userId)));
         const identities = allMemberIdentities.filter(identity => {
-            // identity will be missing for any userIds that don't have 
-            // membership join in any of your encrypted rooms
+            // we use roomIds to decide with whom we should share keys for a given room,
+            // taking into account the membership and room history visibility.
+            // so filter out anyone who we shouldn't share keys with.
+            // Given we assume the room is tracked,
+            // also exclude any userId which doesn't have a userIdentity yet.
             return identity && identity.roomIds.includes(roomId);
         });
         const upToDateIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE);
-        const outdatedIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED);
+        const outdatedUserIds = identities
+            .filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED)
+            .map(i => i.userId);
+        let devices = await this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
+        // filter out our own device as we should never share keys with it.
+        devices = devices.filter(device => {
+            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
+            return !isOwnDevice;
+        });
+        return devices;
+    }
+
+    /** Gets the device identites for a set of user identities that
+     * are known to be up to date, and a set of userIds that are known
+     * to be absent from our store our outdated. The outdated user ids
+     * will have their keys fetched from the homeserver. */
+    async _devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log) {
         log.set("uptodate", upToDateIdentities.length);
-        log.set("outdated", outdatedIdentities.length);
+        log.set("outdated", outdatedUserIds.length);
         let queriedDevices;
-        if (outdatedIdentities.length) {
+        if (outdatedUserIds.length) {
             // TODO: ignore the race between /sync and /keys/query for now,
             // where users could get marked as outdated or added/removed from the room while
             // querying keys
-            queriedDevices = await this._queryKeys(outdatedIdentities.map(i => i.userId), hsApi, log);
+            queriedDevices = await this._queryKeys(outdatedUserIds, hsApi, log);
         }
 
         const deviceTxn = await this._storage.readTxn([
@@ -407,12 +510,7 @@ export class DeviceTracker {
         if (queriedDevices && queriedDevices.length) {
             flattenedDevices = flattenedDevices.concat(queriedDevices);
         }
-        // filter out our own device
-        const devices = flattenedDevices.filter(device => {
-            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
-            return !isOwnDevice;
-        });
-        return devices;
+        return flattenedDevices;
     }
 
     async getDeviceByCurve25519Key(curve25519Key, txn) {
@@ -422,16 +520,18 @@ export class DeviceTracker {
 
 import {createMockStorage} from "../../mocks/Storage";
 import {Instance as NullLoggerInstance} from "../../logging/NullLogger";
+import {MemberChange} from "../room/members/RoomMember";
 
 export function tests() {
 
     function createUntrackedRoomMock(roomId, joinedUserIds, invitedUserIds = []) {
         return {
+            id: roomId,
             isTrackingMembers: false,
             isEncrypted: true,
             loadMemberList: () => {
-                const joinedMembers = joinedUserIds.map(userId => {return {membership: "join", roomId, userId};});
-                const invitedMembers = invitedUserIds.map(userId => {return {membership: "invite", roomId, userId};});
+                const joinedMembers = joinedUserIds.map(userId => {return RoomMember.fromUserId(roomId, userId, "join");});
+                const invitedMembers = invitedUserIds.map(userId => {return RoomMember.fromUserId(roomId, userId, "invite");});
                 const members = joinedMembers.concat(invitedMembers);
                 const memberMap = members.reduce((map, member) => {
                     map.set(member.userId, member);
@@ -495,10 +595,29 @@ export function tests() {
             }
         };
     }
+
+    async function writeMemberListToStorage(room, storage) {
+        const txn = await storage.readWriteTxn([
+            storage.storeNames.roomMembers,
+        ]);
+        const memberList = await room.loadMemberList(txn);
+        try {
+            for (const member of memberList.members.values()) {
+                txn.roomMembers.set(member.serialize());
+            }
+        } catch (err) {
+            txn.abort();
+            throw err;
+        } finally {
+            memberList.release();
+        }
+        await txn.complete();
+    }
+
     const roomId = "!abc:hs.tld";
 
     return {
-        "trackRoom only writes joined members": async assert => {
+        "trackRoom only writes joined members with history visibility of joined": async assert => {
             const storage = await createMockStorage();
             const tracker = new DeviceTracker({
                 storage,
@@ -508,7 +627,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"], ["@charly:hs.tld"]);
-            await tracker.trackRoom(room, NullLoggerInstance.item);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const txn = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
                 userId: "@alice:hs.tld",
@@ -532,7 +651,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
-            await tracker.trackRoom(room, NullLoggerInstance.item);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const hsApi = createQueryKeysHSApiMock();
             const devices = await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
             assert.equal(devices.length, 2);
@@ -549,7 +668,7 @@ export function tests() {
                 ownDeviceId: "ABCD",
             });
             const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld", "@bob:hs.tld"]);
-            await tracker.trackRoom(room, NullLoggerInstance.item);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
             const hsApi = createQueryKeysHSApiMock();
             // query devices first time
             await tracker.devicesForRoomMembers(roomId, ["@alice:hs.tld", "@bob:hs.tld"], hsApi, NullLoggerInstance.item);
@@ -567,6 +686,199 @@ export function tests() {
             const txn2 = await storage.readTxn([storage.storeNames.deviceIdentities]);
             // also check the modified key was not stored
             assert.equal((await txn2.deviceIdentities.get("@alice:hs.tld", "device1")).ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+        },
+        "change history visibility from joined to invited adds invitees": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room = await createUntrackedRoomMock(roomId, 
+                ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+            const {added, removed} = await tracker.writeHistoryVisibility(room, HistoryVisibility.Invited, txn, NullLoggerInstance.item);
+            assert.equal((await txn.userIdentities.get("@bob:hs.tld")).userId, "@bob:hs.tld");
+            assert.deepEqual(added, ["@bob:hs.tld"]);
+            assert.deepEqual(removed, []);
+        },
+        "change history visibility from invited to joined removes invitees": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room = await createUntrackedRoomMock(roomId, 
+                ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            assert.equal((await txn.userIdentities.get("@bob:hs.tld")).userId, "@bob:hs.tld");
+            const {added, removed} = await tracker.writeHistoryVisibility(room, HistoryVisibility.Joined, txn, NullLoggerInstance.item);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+            assert.deepEqual(added, []);
+            assert.deepEqual(removed, ["@bob:hs.tld"]);
+        },
+        "adding invitee with history visibility of invited adds room to userIdentities": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = await createUntrackedRoomMock(roomId, ["@alice:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            // inviting a new member
+            const inviteChange = new MemberChange(RoomMember.fromUserId(roomId, "@bob:hs.tld", "invite"));
+            const {added, removed} = await tracker.writeMemberChanges(room, [inviteChange], HistoryVisibility.Invited, txn);
+            assert.deepEqual(added, ["@bob:hs.tld"]);
+            assert.deepEqual(removed, []);
+            assert.equal((await txn.userIdentities.get("@bob:hs.tld")).userId, "@bob:hs.tld");
+        },
+        "adding invitee with history visibility of joined doesn't add room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = await createUntrackedRoomMock(roomId, ["@alice:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            // inviting a new member
+            const inviteChange = new MemberChange(RoomMember.fromUserId(roomId, "@bob:hs.tld", "invite"));
+            const memberChanges = new Map([[inviteChange.userId, inviteChange]]);
+            const {added, removed} = await tracker.writeMemberChanges(room, memberChanges, HistoryVisibility.Joined, txn);
+            assert.deepEqual(added, []);
+            assert.deepEqual(removed, []);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+        },
+        "getting all devices after changing history visibility now includes invitees": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const room = createUntrackedRoomMock(roomId, ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const hsApi = createQueryKeysHSApiMock();
+            // write memberlist from room mock to mock storage,
+            // as devicesForTrackedRoom reads directly from roomMembers store.
+            await writeMemberListToStorage(room, storage);
+            const devices = await tracker.devicesForTrackedRoom(roomId, hsApi, NullLoggerInstance.item);
+            assert.equal(devices.length, 2);
+            assert.equal(devices.find(d => d.userId === "@alice:hs.tld").ed25519Key, "ed25519:@alice:hs.tld:device1:key");
+            assert.equal(devices.find(d => d.userId === "@bob:hs.tld").ed25519Key, "ed25519:@bob:hs.tld:device1:key");
+        },
+        "rejecting invite with history visibility of invited removes room from user identity": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room = await createUntrackedRoomMock(roomId, ["@alice:hs.tld"], ["@bob:hs.tld"]);
+            await tracker.trackRoom(room, HistoryVisibility.Invited, NullLoggerInstance.item);
+            const txn = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            // reject invite
+            const inviteChange = new MemberChange(RoomMember.fromUserId(roomId, "@bob:hs.tld", "leave"), "invite");
+            const memberChanges = new Map([[inviteChange.userId, inviteChange]]);
+            const {added, removed} = await tracker.writeMemberChanges(room, memberChanges, HistoryVisibility.Invited, txn);
+            assert.deepEqual(added, []);
+            assert.deepEqual(removed, ["@bob:hs.tld"]);
+            assert.equal(await txn.userIdentities.get("@bob:hs.tld"), undefined);
+        },
+        "remove room from user identity sharing multiple rooms with us preserves other room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room1 = await createUntrackedRoomMock("!abc:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            const room2 = await createUntrackedRoomMock("!def:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room1, HistoryVisibility.Joined, NullLoggerInstance.item);
+            await tracker.trackRoom(room2, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld", "!def:hs.tld"]);
+            const leaveChange = new MemberChange(RoomMember.fromUserId(room2.id, "@bob:hs.tld", "leave"), "join");
+            const memberChanges = new Map([[leaveChange.userId, leaveChange]]);
+            const txn2 = await storage.readWriteTxn([storage.storeNames.userIdentities, storage.storeNames.deviceIdentities]);
+            await tracker.writeMemberChanges(room2, memberChanges, HistoryVisibility.Joined, txn2);
+            await txn2.complete();
+            const txn3 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn3.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld"]);
+        },
+        "add room to user identity sharing multiple rooms with us preserves other room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            // alice is joined, bob is invited
+            const room1 = await createUntrackedRoomMock("!abc:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            const room2 = await createUntrackedRoomMock("!def:hs.tld", ["@alice:hs.tld", "@bob:hs.tld"]);
+            await tracker.trackRoom(room1, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld"]);
+            await tracker.trackRoom(room2, HistoryVisibility.Joined, NullLoggerInstance.item);
+            const txn2 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn2.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld", "!def:hs.tld"]);
+        },
+        "devicesForUsers fetches users even though they aren't in any tracked room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const hsApi = createQueryKeysHSApiMock();
+            const devices = await tracker.devicesForUsers(["@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            assert.equal(devices.length, 1);
+            assert.equal(devices[0].curve25519Key, "curve25519:@bob:hs.tld:device1:key");
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
+        },
+        "devicesForUsers doesn't add any roomId when creating userIdentity": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const hsApi = createQueryKeysHSApiMock();
+            await tracker.devicesForUsers(["@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
         }
     }
 }

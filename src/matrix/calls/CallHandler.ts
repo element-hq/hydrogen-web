@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableMap} from "../../observable/map/ObservableMap";
+import {ObservableMap} from "../../observable/map";
 import {WebRTC, PeerConnection} from "../../platform/types/WebRTC";
 import {MediaDevices, Track} from "../../platform/types/MediaDevices";
 import {handlesEventType} from "./PeerCall";
@@ -31,7 +31,7 @@ import type {MemberChange} from "../room/members/RoomMember";
 import type {StateEvent} from "../storage/types";
 import type {ILogItem, ILogger} from "../../logging/types";
 import type {Platform} from "../../platform/web/Platform";
-import type {BaseObservableMap} from "../../observable/map/BaseObservableMap";
+import type {BaseObservableMap} from "../../observable/map";
 import type {SignallingMessage, MGroupCallBase} from "./callEventTypes";
 import type {Options as GroupCallOptions} from "./group/GroupCall";
 import type {Transaction} from "../storage/idb/Transaction";

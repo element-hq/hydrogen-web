@@ -29,10 +29,9 @@ export class GapView extends TemplateView {
             isLoading: vm => vm.isLoading,
             isAtTop: vm => vm.isAtTop,
         };
-        return t.li({className}, [
-            spinner(t),
-            t.div(vm => vm.isLoading ? vm.i18n`Loading more messages …` : vm.i18n`Not loading!`),
-            t.if(vm => vm.error, t => t.strong(vm => vm.error))
+        return t.li({ className }, [
+            t.if(vm => vm.showSpinner, (t) => spinner(t)),
+            t.span(vm => vm.currentAction)
         ]);
     }
 

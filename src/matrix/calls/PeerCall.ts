@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableMap} from "../../observable/map/ObservableMap";
-import {BaseObservableValue} from "../../observable/value/BaseObservableValue";
+import {ObservableMap} from "../../observable/map";
+import {BaseObservableValue} from "../../observable/value";
 import {recursivelyAssign} from "../../utils/recursivelyAssign";
 import {Disposables, Disposable, IDisposable} from "../../utils/Disposables";
 import {WebRTC, PeerConnection, Transceiver, TransceiverDirection, Sender, Receiver, PeerConnectionEventMap} from "../../platform/types/WebRTC";

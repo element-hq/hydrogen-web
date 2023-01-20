@@ -1,4 +1,4 @@
-import { linkify } from "./linkify/linkify.js";
+import { linkify } from "./linkify/linkify";
 import { getIdentifierColorNumber, avatarInitials } from "../../../avatar";
 
 /**

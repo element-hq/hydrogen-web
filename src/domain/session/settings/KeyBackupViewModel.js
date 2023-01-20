@@ -17,7 +17,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
-import {FlatMapObservableValue} from "../../../observable/value/FlatMapObservableValue";
+import {FlatMapObservableValue} from "../../../observable/value";
 
 export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
 export const BackupWriteStatus = createEnum("Writing", "Stopped", "Done", "Pending"); 

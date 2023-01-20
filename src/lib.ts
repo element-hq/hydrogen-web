@@ -27,9 +27,9 @@ export type {MemberChange} from "./matrix/room/members/RoomMember";
 export type {Transaction} from "./matrix/storage/idb/Transaction";
 export type {Room} from "./matrix/room/Room";
 export type {StateEvent} from "./matrix/storage/types";
-
+export {PowerLevels} from "./matrix/room/PowerLevels.js";
 // export main view & view models
-export {createNavigation, createRouter} from "./domain/navigation/index.js";
+export {createNavigation, createRouter} from "./domain/navigation/index";
 export {RootViewModel} from "./domain/RootViewModel.js";
 export {RootView} from "./platform/web/ui/RootView.js";
 export {SessionViewModel} from "./domain/session/SessionViewModel.js";
@@ -92,6 +92,8 @@ export {
     ConcatList,
     ObservableMap
 } from "./observable/index";
-export {BaseObservableValue} from "./observable/value/BaseObservableValue";
-export {ObservableValue} from "./observable/value/ObservableValue";
-export {RetainedObservableValue} from "./observable/value/RetainedObservableValue";
+export {
+    BaseObservableValue,
+    ObservableValue,
+    RetainedObservableValue
+} from "./observable/value";

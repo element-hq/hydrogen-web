@@ -39,11 +39,11 @@ In this repository, create a Docker image:
 docker build -t hydrogen .
 ```
 
-Or, pull the docker image from GitLab:
+Or, pull the docker image from GitHub Container Registry:
 
 ```
-docker pull registry.gitlab.com/jcgruenhage/hydrogen-web
-docker tag registry.gitlab.com/jcgruenhage/hydrogen-web hydrogen
+docker pull ghcr.io/vector-im/hydrogen-web
+docker tag ghcr.io/vector-im/hydrogen-web hydrogen
 ```
 
 ### Start container image
@@ -54,5 +54,29 @@ Then, start up a container from that image:
 docker run \
     --name hydrogen \
     --publish 80:80 \
+    hydrogen
+```
+
+You can override the default `config.json` using the `CONFIG_OVERRIDE` environment variable. For example to specify a different Homeserver and :
+
+```
+docker run \
+    --name hydrogen \
+    --publish 80:80 \
+    --env CONFIG_OVERRIDE='{
+  "push": {
+    "appId": "io.element.hydrogen.web",
+    "gatewayUrl": "https://matrix.org",
+    "applicationServerKey": "BC-gpSdVHEXhvHSHS0AzzWrQoukv2BE7KzpoPO_FfPacqOo3l1pdqz7rSgmB04pZCWaHPz7XRe6fjLaC-WPDopM"
+  },
+  "defaultHomeServer": "https://fosdem.org",
+  "themeManifests": [
+    "assets/theme-element.json"
+  ],
+  "defaultTheme": {
+    "light": "element-light",
+    "dark": "element-dark"
+  }
+}' \
     hydrogen
 ```

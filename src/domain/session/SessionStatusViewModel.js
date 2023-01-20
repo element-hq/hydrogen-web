@@ -36,7 +36,7 @@ export class SessionStatusViewModel extends ViewModel {
         this._reconnector = reconnector;
         this._status = this._calculateState(reconnector.connectionStatus.get(), sync.status.get());
         this._session = session;
-        this._setupKeyBackupUrl = this.urlCreator.urlForSegment("settings");
+        this._setupKeyBackupUrl = this.urlRouter.urlForSegment("settings");
         this._dismissSecretStorage = false;
     }
 

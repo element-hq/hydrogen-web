@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {AbortError} from "../../utils/error";
-import {BaseObservableValue} from "./BaseObservableValue";
+import {BaseObservableValue} from "./index";
 
 export class ObservableValue<T> extends BaseObservableValue<T> {
     private _value: T;
@@ -39,7 +39,7 @@ export class ObservableValue<T> extends BaseObservableValue<T> {
 
 export function tests() {
     return {
-        "set emits an update": assert => {
+        "set emits an update": (assert): void => {
             const a = new ObservableValue<number>(0);
             let fired = false;
             const subscription = a.subscribe(v => {
@@ -50,7 +50,7 @@ export function tests() {
             assert(fired);
             subscription();
         },
-        "set doesn't emit if value hasn't changed": assert => {
+        "set doesn't emit if value hasn't changed": (assert): void => {
             const a = new ObservableValue(5);
             let fired = false;
             const subscription = a.subscribe(() => {
@@ -61,22 +61,22 @@ export function tests() {
             assert(!fired);
             subscription();
         },
-        "waitFor promise resolves on matching update": async assert => {
+        "waitFor promise resolves on matching update": async (assert): Promise<void> => {
             const a = new ObservableValue(5);
             const handle = a.waitFor(v => v === 6);
-            Promise.resolve().then(() => {
+            await Promise.resolve().then(() => {
                 a.set(6);
             });
             await handle.promise;
             assert.strictEqual(a.get(), 6);
         },
-        "waitFor promise rejects when disposed": async assert => {
+        "waitFor promise rejects when disposed": async (assert): Promise<void> => {
             const a = new ObservableValue<number>(0);
             const handle = a.waitFor(() => false);
-            Promise.resolve().then(() => {
+            await Promise.resolve().then(() => {
                 handle.dispose();
             });
             await assert.rejects(handle.promise, AbortError);
-        }
-    }
+        },
+    };
 }

@@ -25,9 +25,11 @@ import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
 import {CreateRoomViewModel} from "./CreateRoomViewModel.js";
+import {JoinRoomViewModel} from "./JoinRoomViewModel";
 import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
+import {SyncStatus} from "../../matrix/Sync.js";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {
@@ -44,7 +46,9 @@ export class SessionViewModel extends ViewModel {
         this._roomViewModelObservable = null;
         this._gridViewModel = null;
         this._createRoomViewModel = null;
+        this._joinRoomViewModel = null;
         this._setupNavigation();
+        this._setupForcedLogoutOnAccessTokenInvalidation();
     }
 
     _setupNavigation() {
@@ -81,6 +85,12 @@ export class SessionViewModel extends ViewModel {
         }));
         this._updateCreateRoom(createRoom.get());
 
+        const joinRoom = this.navigation.observe("join-room");
+        this.track(joinRoom.subscribe((joinRoomOpen) => {
+            this._updateJoinRoom(joinRoomOpen);
+        }));
+        this._updateJoinRoom(joinRoom.get());
+
         const lightbox = this.navigation.observe("lightbox");
         this.track(lightbox.subscribe(eventId => {
             this._updateLightbox(eventId);
@@ -91,6 +101,23 @@ export class SessionViewModel extends ViewModel {
         const rightpanel = this.navigation.observe("right-panel");
         this.track(rightpanel.subscribe(() => this._updateRightPanel()));
         this._updateRightPanel();
+    }
+
+    _setupForcedLogoutOnAccessTokenInvalidation() {
+        this.track(this._client.sync.status.subscribe(status => {
+            if (status === SyncStatus.Stopped) {
+                const error = this._client.sync.error;
+                if (error?.errcode === "M_UNKNOWN_TOKEN") {
+                    // Access token is no longer valid, so force the user to log out
+                    const segments = [
+                        this.navigation.segment("logout", this.id),
+                        this.navigation.segment("forced", true),
+                    ];
+                    const path = this.navigation.pathFrom(segments);
+                    this.navigation.applyPath(path);
+                }
+            }
+        }));
     }
 
     get id() {
@@ -105,7 +132,13 @@ export class SessionViewModel extends ViewModel {
     }
 
     get activeMiddleViewModel() {
-        return this._roomViewModelObservable?.get() || this._gridViewModel || this._settingsViewModel || this._createRoomViewModel;
+        return (
+            this._roomViewModelObservable?.get() ||
+            this._gridViewModel ||
+            this._settingsViewModel ||
+            this._createRoomViewModel ||
+            this._joinRoomViewModel
+        );
     }
 
     get roomGridViewModel() {
@@ -134,6 +167,10 @@ export class SessionViewModel extends ViewModel {
 
     get createRoomViewModel() {
         return this._createRoomViewModel;
+    }
+
+    get joinRoomViewModel() {
+        return this._joinRoomViewModel;
     }
 
     _updateGrid(roomIds) {
@@ -266,6 +303,16 @@ export class SessionViewModel extends ViewModel {
         }
         if (createRoomOpen) {
             this._createRoomViewModel = this.track(new CreateRoomViewModel(this.childOptions({session: this._client.session})));
+        }
+        this.emitChange("activeMiddleViewModel");
+    }
+
+    _updateJoinRoom(joinRoomOpen) {
+        if (this._joinRoomViewModel) {
+            this._joinRoomViewModel = this.disposeTracked(this._joinRoomViewModel);
+        }
+        if (joinRoomOpen) {
+            this._joinRoomViewModel = this.track(new JoinRoomViewModel(this.childOptions({session: this._client.session})));
         }
         this.emitChange("activeMiddleViewModel");
     }

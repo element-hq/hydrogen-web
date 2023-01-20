@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {ObservableMap} from "../../../../observable/map/ObservableMap";
+import {ObservableMap} from "../../../../observable";
 
 export class ReactionsViewModel {
     constructor(parentTile) {
@@ -189,7 +189,7 @@ import {HomeServer as MockHomeServer} from "../../../../mocks/HomeServer.js";
 // other imports
 import {BaseMessageTile} from "./tiles/BaseMessageTile.js";
 import {MappedList} from "../../../../observable/list/MappedList";
-import {ObservableValue} from "../../../../observable/value/ObservableValue";
+import {ObservableValue} from "../../../../observable/value";
 import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
 
 export function tests() {

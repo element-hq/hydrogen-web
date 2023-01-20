@@ -17,7 +17,7 @@ limitations under the License.
 
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
 import {RootViewModel} from "../../domain/RootViewModel.js";
-import {createNavigation, createRouter} from "../../domain/navigation/index.js";
+import {createNavigation, createRouter} from "../../domain/navigation/index";
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
@@ -41,7 +41,7 @@ export async function main(platform) {
             platform,
             // the only public interface of the router is to create urls,
             // so we call it that in the view models
-            urlCreator: urlRouter,
+            urlRouter: urlRouter,
             navigation,
         });
         await vm.load();

@@ -29,6 +29,7 @@ import {SettingsView} from "./settings/SettingsView.js";
 import {CreateRoomView} from "./CreateRoomView.js";
 import {RightPanelView} from "./rightpanel/RightPanelView.js";
 import {viewClassForTile} from "./room/common";
+import {JoinRoomView} from "./JoinRoomView";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
@@ -48,6 +49,8 @@ export class SessionView extends TemplateView {
                     return new SettingsView(vm.settingsViewModel);
                 } else if (vm.createRoomViewModel) {
                     return new CreateRoomView(vm.createRoomViewModel);
+                } else if (vm.joinRoomViewModel) {
+                    return new JoinRoomView(vm.joinRoomViewModel);
                 } else if (vm.currentRoomViewModel) {
                     if (vm.currentRoomViewModel.kind === "invite") {
                         return new InviteView(vm.currentRoomViewModel);

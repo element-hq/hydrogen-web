@@ -18,7 +18,7 @@ limitations under the License.
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
 import {ComposerViewModel} from "./ComposerViewModel.js"
 import {CallViewModel} from "./CallViewModel"
-import {PickMapObservableValue} from "../../../observable/value/PickMapObservableValue";
+import {PickMapObservableValue} from "../../../observable/value";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {ViewModel} from "../../ViewModel";
@@ -27,6 +27,7 @@ import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
+import {joinRoom} from "../../../matrix/room/joinRoom";
 
 export class RoomViewModel extends ErrorReportViewModel {
     constructor(options) {
@@ -39,12 +40,12 @@ export class RoomViewModel extends ErrorReportViewModel {
         this._onRoomChange = this._onRoomChange.bind(this);
         this._composerVM = null;
         if (room.isArchived) {
-            this._composerVM = new ArchivedViewModel(this.childOptions({archivedRoom: room}));
+            this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
         } else {
-            this._composerVM = new ComposerViewModel(this);
+            this._recreateComposerOnPowerLevelChange();
         }
         this._clearUnreadTimout = null;
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
         this._setupCallViewModel();
     }
 
@@ -91,6 +92,30 @@ export class RoomViewModel extends ErrorReportViewModel {
         });
     }
 
+    async _recreateComposerOnPowerLevelChange() {
+        const powerLevelObservable = await this._room.observePowerLevels();
+        const canSendMessage = () => powerLevelObservable.get().canSendType("m.room.message");
+        let oldCanSendMessage = canSendMessage();
+        const recreateComposer = newCanSendMessage => {
+            this._composerVM = this.disposeTracked(this._composerVM);
+            if (newCanSendMessage) {
+                this._composerVM = this.track(new ComposerViewModel(this));
+            }
+            else {
+                this._composerVM = this.track(new LowerPowerLevelViewModel(this.childOptions()));
+            }
+            this.emitChange("powerLevelObservable")
+        };
+        this.track(powerLevelObservable.subscribe(() => {
+            const newCanSendMessage = canSendMessage();
+            if (oldCanSendMessage !== newCanSendMessage) {
+                recreateComposer(newCanSendMessage);
+                oldCanSendMessage = newCanSendMessage;
+            }
+        }));
+        recreateComposer(oldCanSendMessage);
+    }
+
     async _clearUnreadAfterDelay(log) {
         if (this._room.isArchived || this._clearUnreadTimout) {
             return;
@@ -131,7 +156,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     // so emit all fields originating from summary
     _onRoomChange() {
         // propagate the update to the child view models so it's bindings can update based on room changes
-        this._composerVM.emitChange();
+        this._composerVM?.emitChange();
         this.emitChange();
     }
 
@@ -196,9 +221,12 @@ export class RoomViewModel extends ErrorReportViewModel {
             let success = false;
             if (!this._room.isArchived && message) {
                 let msgtype = "m.text";
-                if (message.startsWith("/me ")) {
-                    message = message.substr(4).trim();
-                    msgtype = "m.emote";
+                if (message.startsWith("//")) {
+                    message = message.substring(1).trim();
+                } else if (message.startsWith("/")) {
+                    const result = await this._processCommand(message);
+                    msgtype = result.msgtype;
+                    message = result.message;
                 }
                 let content;
                 if (replyingTo) {
@@ -213,6 +241,55 @@ export class RoomViewModel extends ErrorReportViewModel {
             log.set("success", success);
             return success;
         }, false);
+    }
+
+    async _processCommandJoin(roomName) {
+        try {
+            const session = this._options.client.session;
+            const roomId = await joinRoom(roomName, session);
+            this.navigation.push("room", roomId);
+        } catch (err) {
+            this.reportError(err);
+        }
+    } 
+
+    async _processCommand(message) {
+        let msgtype;
+        const [commandName, ...args] = message.substring(1).split(" ");
+        switch (commandName) {
+            case "me":
+                message = args.join(" ");
+                msgtype = "m.emote";
+                break;
+            case "join":
+                if (args.length === 1) {
+                    const roomName = args[0];
+                    await this._processCommandJoin(roomName);
+                } else {
+                    this.reportError(new Error("join syntax: /join <room-id>"));
+                }
+                break;
+            case "shrug":
+                message = "¯\\_(ツ)_/¯ " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            case "tableflip":
+                message = "(╯°□°）╯︵ ┻━┻ " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            case "unflip":
+                message = "┬──┬ ノ( ゜-゜ノ) " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            case "lenny":
+                message = "( ͡° ͜ʖ ͡°) " + args.join(" ");
+                msgtype = "m.text";
+                break;
+            default:
+                this.reportError(new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`));
+                message = undefined;
+        }
+        return {type: msgtype, message: message};
     }
 
     _pickAndSendFile() {
@@ -406,6 +483,16 @@ class ArchivedViewModel extends ViewModel {
     }
 
     get kind() {
-        return "archived";
+        return "disabled";
+    }
+}
+
+class LowerPowerLevelViewModel extends ViewModel {
+    get description() {
+        return this.i18n`You do not have the powerlevel necessary to send messages`;
+    }
+
+    get kind() {
+        return "disabled";
     }
 }

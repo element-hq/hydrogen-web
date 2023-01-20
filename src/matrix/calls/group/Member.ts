@@ -30,7 +30,7 @@ import type {GroupCall} from "./GroupCall";
 import type {RoomMember} from "../../room/members/RoomMember";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
-import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import type {BaseObservableValue} from "../../../observable/value";
 import type {Clock, Timeout} from "../../../platform/web/dom/Clock";
 
 export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage" | "turnServer"> & {

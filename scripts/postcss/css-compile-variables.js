@@ -112,7 +112,14 @@ function populateMapWithDerivedVariables(map, cssFileLocation, {resolvedMap, ali
         ...([...resolvedMap.keys()].filter(v => !aliasMap.has(v))),
         ...([...aliasMap.entries()].map(([alias, variable]) => `${alias}=${variable}`))
     ];
-    map.set(location, { "derived-variables": derivedVariables });
+    const sharedObject = map.get(location);
+    const output = { "derived-variables": derivedVariables };
+    if (sharedObject) {
+        Object.assign(sharedObject, output);
+    }
+    else {
+        map.set(location, output);
+    }
 }
 
 /**

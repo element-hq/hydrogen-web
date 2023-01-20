@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue} from "../../observable/value/BaseObservableValue";
+import {BaseObservableValue} from "../../observable/value";
 
 export class ObservedEventMap {
     constructor(notifyEmpty) {

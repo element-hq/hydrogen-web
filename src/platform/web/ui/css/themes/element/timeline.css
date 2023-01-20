@@ -364,7 +364,7 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageReactions button.active {
-    background-color: var(--background-color-secondary);
+    background-color: var(--accent-color--alpha-11);
     border-color: var(--accent-color);
 }
 
@@ -422,3 +422,22 @@ only loads when the top comes into view*/
 .GapView.isAtTop {
     padding: 52px 20px 12px 20px;
 }
+
+.DateHeader {
+    font-weight: bold;
+    font-size: 1.5rem;
+    position: sticky;
+    top: 5px;
+}
+
+.DateHeader time {
+    margin: 0 auto;
+    padding: 12px 4px;
+    width: 250px;
+    padding: 12px;
+    display: block;
+    color: var(--light-text-color);
+    background-color: var(--background-color-primary);
+    border-radius: 8px;
+    text-align: center;
+  }

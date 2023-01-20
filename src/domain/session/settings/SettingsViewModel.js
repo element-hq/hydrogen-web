@@ -45,7 +45,7 @@ export class SettingsViewModel extends ViewModel {
         const {client} = options;
         this._client = client;
         this._keyBackupViewModel = this.track(new KeyBackupViewModel(this.childOptions({session: this._session})));
-        this._closeUrl = this.urlCreator.urlUntilSegment("session");
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
         this._estimate = null;
         this.sentImageSizeLimit = null;
         this.minSentImageSizeLimit = 400;

@@ -26,17 +26,17 @@ export interface IListObserver<T> {
 
 export function defaultObserverWith<T>(overrides: { [key in keyof IListObserver<T>]?: IListObserver<T>[key] }): IListObserver<T> {
     const defaults = {
-        onReset(){},
-        onAdd(){},
-        onUpdate(){},
-        onRemove(){},
-        onMove(){},
-    }
+        onReset(): void {},
+        onAdd(): void {},
+        onUpdate(): void {},
+        onRemove(): void {},
+        onMove(): void {},
+    };
     return Object.assign(defaults, overrides);
 }
 
 export abstract class BaseObservableList<T> extends BaseObservable<IListObserver<T>> implements Iterable<T> {
-    emitReset() {
+    emitReset(): void {
         for(let h of this._handlers) {
             h.onReset(this);
         }

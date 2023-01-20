@@ -17,11 +17,11 @@ limitations under the License.
 import {AbortError} from "../../utils/error";
 import {BaseObservable} from "../BaseObservable";
 import type {SubscriptionHandle} from "../BaseObservable";
-import {FlatMapObservableValue} from "./FlatMapObservableValue";
+import {FlatMapObservableValue} from "./index";
 
 // like an EventEmitter, but doesn't have an event type
 export abstract class BaseObservableValue<T> extends BaseObservable<(value: T) => void> {
-    emit(argument: T) {
+    emit(argument: T): void {
         for (const h of this._handlers) {
             h(argument);
         }
@@ -35,6 +35,10 @@ export abstract class BaseObservableValue<T> extends BaseObservable<(value: T) =
         } else {
             return new WaitForHandle(this, predicate);
         }
+    }
+
+    flatMap<C>(mapper: (value: T) => (BaseObservableValue<C> | undefined)): BaseObservableValue<C | undefined> {
+        return new FlatMapObservableValue<T, C>(this, mapper);
     }
 }
 
@@ -65,7 +69,7 @@ class WaitForHandle<T> implements IWaitHandle<T> {
         return this._promise;
     }
 
-    dispose() {
+    dispose(): void {
         if (this._subscription) {
             this._subscription();
             this._subscription = null;
@@ -79,5 +83,5 @@ class WaitForHandle<T> implements IWaitHandle<T> {
 
 class ResolvedWaitForHandle<T> implements IWaitHandle<T> {
     constructor(public promise: Promise<T>) {}
-    dispose() {}
+    dispose(): void {}
 }

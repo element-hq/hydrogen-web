@@ -31,17 +31,14 @@ interface DecryptAllResult {
  * Does the actual decryption of all events for a given megolm session in a batch
  */
 export class SessionDecryption {
-    private key: RoomKey;
-    private events: TimelineEvent[];
-    private keyLoader: KeyLoader;
-    private olmWorker?: OlmWorker;
     private decryptionRequests?: any[];
 
-    constructor(key: RoomKey, events: TimelineEvent[], olmWorker: OlmWorker | undefined, keyLoader: KeyLoader) {
-        this.key = key;
-        this.events = events;
-        this.olmWorker = olmWorker;
-        this.keyLoader = keyLoader;
+    constructor(
+        private readonly key: RoomKey,
+        private readonly events: TimelineEvent[],
+        private readonly olmWorker: OlmWorker | undefined,
+        private readonly keyLoader: KeyLoader
+    ) {
         this.decryptionRequests = olmWorker ? [] : undefined;
     }
 
@@ -75,7 +72,7 @@ export class SessionDecryption {
                             {encryptedRoomId: payload.room_id, eventRoomId: this.key.roomId});
                     }
                     replayEntries.push(new ReplayDetectionEntry(this.key.sessionId, decryptionResult!.message_index, event));
-                    const result = new DecryptionResult(payload, this.key.senderKey, this.key.claimedEd25519Key);
+                    const result = new DecryptionResult(payload, this.key.senderKey, this.key.claimedEd25519Key, event);
                     results.set(event.event_id, result);
                 } catch (err) {
                     // ignore AbortError from cancelling decryption requests in dispose method

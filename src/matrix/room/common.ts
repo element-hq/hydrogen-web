@@ -14,11 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {Room} from "./Room";
-import type {StateEvent, TimelineEvent} from "../storage/types";
-import type {Transaction} from "../storage/idb/Transaction";
-import type {ILogItem} from "../../logging/types";
-import type {MemberChange} from "./members/RoomMember";
+import type {StateEvent} from "../storage/types";
 
 export function getPrevContentFromStateEvent(event) {
     // where to look for prev_content is a bit of a mess,
@@ -57,12 +53,21 @@ type RoomResponse = {
 }
 
 /** iterates over any state events in a sync room response, in the order that they should be applied (from older to younger events) */
-export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => void) {
+
+export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => Promise<void> | void): Promise<void> | void {
+    let promises: Promise<void>[] | undefined = undefined;
+    const callCallback = stateEvent => {
+        const result = callback(stateEvent);
+        if (result instanceof Promise) {
+            promises = promises ?? [];
+            promises.push(result);
+        }
+    };
     // first iterate over state events, they precede the timeline
     const stateEvents = roomResponse.state?.events;
     if (stateEvents) {
         for (let i = 0; i < stateEvents.length; i++) {
-            callback(stateEvents[i]);
+            callCallback(stateEvents[i]);
         }
     }
     // now see if there are any state events within the timeline
@@ -71,9 +76,12 @@ export function iterateResponseStateEvents(roomResponse: RoomResponse, callback:
         for (let i = 0; i < timelineEvents.length; i++) {
             const event = timelineEvents[i];
             if (typeof event.state_key === "string") {
-                callback(event);
+                callCallback(event);
             }
         }
+    }
+    if (promises) {
+        return Promise.all(promises).then(() => undefined);
     }
 }
 

@@ -19,34 +19,35 @@ import type  {ViewModel} from "../../ViewModel";
 import {ErrorReportViewModel, Options as BaseOptions} from "../../ErrorReportViewModel";
 import {getStreamVideoTrack, getStreamAudioTrack} from "../../../matrix/calls/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
-import {EventObservableValue} from "../../../observable/value/EventObservableValue";
-import {ObservableValueMap} from "../../../observable/map/ObservableValueMap";
+import {EventObservableValue} from "../../../observable/value";
+import {ObservableValueMap, BaseObservableMap} from "../../../observable/map";
 import {ErrorViewModel} from "../../ErrorViewModel";
 import type {Room} from "../../../matrix/room/Room";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Member} from "../../../matrix/calls/group/Member";
 import type {RoomMember} from "../../../matrix/room/members/RoomMember";
 import type {BaseObservableList} from "../../../observable/list/BaseObservableList";
-import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import type {BaseObservableValue} from "../../../observable/value";
 import type {Stream} from "../../../platform/types/MediaDevices";
 import type {MediaRepository} from "../../../matrix/net/MediaRepository";
 import type {Session} from "../../../matrix/Session";
+import type {SegmentType} from "../../navigation";
 
-type Options = BaseOptions & {
+type Options<N extends object> = BaseOptions<N> & {
     call: GroupCall,
     room: Room,
 };
 
-export class CallViewModel extends ErrorReportViewModel<Options> {
+export class CallViewModel extends ErrorReportViewModel<SegmentType, Options<SegmentType>> {
     public readonly memberViewModels: BaseObservableList<IStreamViewModel>;
 
-    constructor(options: Options) {
+    constructor(options: Options<SegmentType>) {
         super(options);
         const callObservable = new EventObservableValue(this.call, "change");
         this.track(callObservable.subscribe(() => this.onUpdate()));
         const ownMemberViewModelMap = new ObservableValueMap("self", callObservable)
             .mapValues((call, emitChange) => new OwnMemberViewModel(this.childOptions({call, emitChange})), () => {});
-        this.memberViewModels = this.call.members
+        const otherMemberViewModels = this.call.members
             .filterValues(member => member.isConnected)
             .mapValues(
                 (member, emitChange) => new CallMemberViewModel(this.childOptions({
@@ -55,7 +56,8 @@ export class CallViewModel extends ErrorReportViewModel<Options> {
                     mediaRepository: this.getOption("room").mediaRepository
                 })),
                 (vm: CallMemberViewModel) => vm.onUpdate(),
-            )
+            ) as BaseObservableMap<string, IStreamViewModel>; 
+        this.memberViewModels = otherMemberViewModels
             .join(ownMemberViewModelMap)
             .sortValues((a, b) => a.compare(b));
         this.track(this.memberViewModels.subscribe({
@@ -142,10 +144,10 @@ export class CallViewModel extends ErrorReportViewModel<Options> {
     }
 }
 
-class OwnMemberViewModel extends ErrorReportViewModel<Options> implements IStreamViewModel {
+class OwnMemberViewModel extends ErrorReportViewModel<SegmentType, Options<SegmentType>> implements IStreamViewModel {
     private memberObservable: undefined | BaseObservableValue<RoomMember>;
     
-    constructor(options: Options) {
+    constructor(options: Options<SegmentType>) {
         super(options);
         this.init();
     }
@@ -207,17 +209,18 @@ class OwnMemberViewModel extends ErrorReportViewModel<Options> implements IStrea
         }
     }
 
-    compare(other: OwnMemberViewModel | CallMemberViewModel): number {
+    compare(other: IStreamViewModel): number {
+        // I always come first.
         return -1;
     }
 }
 
-type MemberOptions = BaseOptions & {
+type MemberOptions<N extends object> = BaseOptions<N> & {
     member: Member,
     mediaRepository: MediaRepository,
 };
 
-export class CallMemberViewModel extends ErrorReportViewModel<MemberOptions> implements IStreamViewModel {
+export class CallMemberViewModel extends ErrorReportViewModel<SegmentType, MemberOptions<SegmentType>> implements IStreamViewModel {
     get stream(): Stream | undefined {
         return this.member.remoteMedia?.userMedia;
     }
@@ -262,16 +265,17 @@ export class CallMemberViewModel extends ErrorReportViewModel<MemberOptions> imp
         }
     }
 
-    compare(other: OwnMemberViewModel | CallMemberViewModel): number {
-        if (other instanceof OwnMemberViewModel) {
+    compare(other: IStreamViewModel): number {
+        if (other instanceof CallMemberViewModel) {
+            const myUserId = this.member.member.userId;
+            const otherUserId = other.member.member.userId;
+            if(myUserId === otherUserId) {
+                return 0;
+            }
+            return myUserId < otherUserId ? -1 : 1;
+        } else {
             return -other.compare(this);
         }
-        const myUserId = this.member.member.userId;
-        const otherUserId = other.member.member.userId;
-        if(myUserId === otherUserId) {
-            return 0;
-        }
-        return myUserId < otherUserId ? -1 : 1;
     }
 }
 
@@ -280,4 +284,5 @@ export interface IStreamViewModel extends AvatarSource, ViewModel {
     get isCameraMuted(): boolean;
     get isMicrophoneMuted(): boolean;
     get errorViewModel(): ErrorViewModel | undefined;
+    compare(other: IStreamViewModel): number;
 }

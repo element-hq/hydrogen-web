@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableMap} from "../../../observable/map/ObservableMap";
+import {ObservableMap} from "../../../observable/map";
 import {Member, isMemberExpired, memberExpiresAt} from "./Member";
 import {LocalMedia} from "../LocalMedia";
 import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS, mute} from "../common";
@@ -25,7 +25,7 @@ import { ErrorBoundary } from "../../../utils/ErrorBoundary";
 
 import type {Options as MemberOptions} from "./Member";
 import type {TurnServerSource} from "../TurnServerSource";
-import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
+import type {BaseObservableMap} from "../../../observable/map";
 import type {Track} from "../../../platform/types/MediaDevices";
 import type {SignallingMessage, MGroupCallBase, CallMembership, CallMemberContent, CallDeviceMembership} from "../callEventTypes";
 import type {Room} from "../../room/Room";
@@ -34,7 +34,7 @@ import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem, ILogger} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
-import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import type {BaseObservableValue} from "../../../observable/value";
 import type {Clock, Timeout} from "../../../platform/web/dom/Clock";
 
 export enum GroupCallState {

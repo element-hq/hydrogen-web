@@ -29,7 +29,7 @@ import {ObservedEventMap} from "./ObservedEventMap.js";
 import {DecryptionSource} from "../e2ee/common.js";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
-import {RetainedObservableValue} from "../../observable/value/RetainedObservableValue";
+import {RetainedObservableValue} from "../../observable/value";
 import {TimelineReader} from "./timeline/persistence/TimelineReader";
 import {ObservedStateTypeMap} from "./state/ObservedStateTypeMap";
 import {ObservedStateKeyValue} from "./state/ObservedStateKeyValue";
@@ -180,7 +180,7 @@ export class BaseRoom extends EventEmitter {
             try {
                 decryption = await changes.write(writeTxn, log);
                 if (isTimelineOpen) {
-                    await decryption.verifySenders(writeTxn);
+                    await decryption.verifyKnownSenders(writeTxn);
                 }
             } catch (err) {
                 writeTxn.abort();
@@ -191,6 +191,16 @@ export class BaseRoom extends EventEmitter {
             decryption.applyToEntries(entries);
             if (this._observedEvents) {
                 this._observedEvents.updateEvents(entries);
+            }
+            if (isTimelineOpen && decryption.hasUnverifiedSenders) {
+                // verify missing senders async and update timeline once done so we don't delay rendering with network requests
+                log.wrapDetached("fetch unknown senders keys", async log => {
+                    const newlyVerifiedDecryption = await decryption.fetchAndVerifyRemainingSenders(this._hsApi, log);
+                    const verifiedEntries = [];
+                    newlyVerifiedDecryption.applyToEntries(entries, entry => verifiedEntries.push(entry));
+                    this._timeline?.replaceEntries(verifiedEntries);
+                    this._observedEvents?.updateEvents(verifiedEntries);
+                });
             }
         }, ensureLogItem(log));
         return request;
@@ -269,7 +279,7 @@ export class BaseRoom extends EventEmitter {
 
 
     /** @public */
-    async loadMemberList(log = null) {
+    async loadMemberList(txn = undefined, log = null) {
         if (this._memberList) {
             // TODO: also await fetchOrLoadMembers promise here
             this._memberList.retain();
@@ -280,6 +290,9 @@ export class BaseRoom extends EventEmitter {
                 roomId: this._roomId,
                 hsApi: this._hsApi,
                 storage: this._storage,
+                // pass in a transaction if we know we won't need to fetch (which would abort the transaction)
+                // and we want to make this operation part of the larger transaction
+                txn,
                 syncToken: this._getSyncToken(),
                 // to handle race between /members and /sync
                 setChangedMembersMap: map => this._changedMembersDuringSync = map,

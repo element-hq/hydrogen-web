@@ -29,7 +29,7 @@ export class SessionLoadViewModel extends ViewModel {
         this._deleteSessionOnCancel = deleteSessionOnCancel;
         this._loading = false;
         this._error = null;
-        this.backUrl = this.urlCreator.urlForSegment("session", true);
+        this.backUrl = this.urlRouter.urlForSegment("session", true);
         this._accountSetupViewModel = undefined;
 
     }
@@ -154,7 +154,7 @@ export class SessionLoadViewModel extends ViewModel {
     }
 
     async logout() {
-        await this._client.logout();
+        await this._client.startLogout(this.navigation.path.get("session").value);
         this.navigation.push("session", true);
     }
 

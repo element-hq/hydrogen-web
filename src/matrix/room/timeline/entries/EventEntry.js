@@ -33,10 +33,11 @@ export class EventEntry extends BaseEventEntry {
     }
 
     updateFrom(other) {
-        if (other._decryptionResult && !this._decryptionResult) {
+        // only update these when we attempted decryption, as some updates (like reactions) don't.
+        if (other._decryptionResult) {
             this._decryptionResult = other._decryptionResult;
         }
-        if (other._decryptionError && !this._decryptionError) {
+        if (other._decryptionError) {
             this._decryptionError = other._decryptionError;
         }
         this._contextForEntries = other.contextForEntries;

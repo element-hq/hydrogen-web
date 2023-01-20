@@ -28,7 +28,7 @@ import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 import {CallTile} from "./CallTile.js";
 
-import type {SimpleTile} from "./SimpleTile.js";
+import type {ITile, TileShape} from "./ITile";
 import type {Room} from "../../../../../matrix/room/Room";
 import type {Session} from "../../../../../matrix/Session";
 import type {Timeline} from "../../../../../matrix/room/timeline/Timeline";
@@ -45,7 +45,7 @@ export type Options = ViewModelOptions & {
     timeline: Timeline
     tileClassForEntry: TileClassForEntryFn;
 };
-export type TileConstructor = new (entry: TimelineEntry, options: Options) => SimpleTile;
+export type TileConstructor = new (entry: TimelineEntry, options: Options) => ITile;
 
 export function tileClassForEntry(entry: TimelineEntry): TileConstructor | undefined {
     if (entry.isGap) {

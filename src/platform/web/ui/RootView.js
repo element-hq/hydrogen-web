@@ -17,6 +17,7 @@ limitations under the License.
 import {SessionView} from "./session/SessionView.js";
 import {LoginView} from "./login/LoginView";
 import {LogoutView} from "./LogoutView.js";
+import {ForcedLogoutView} from "./ForcedLogoutView.js";
 import {SessionLoadView} from "./login/SessionLoadView.js";
 import {SessionPickerView} from "./login/SessionPickerView.js";
 import {TemplateView} from "./general/TemplateView";
@@ -39,6 +40,8 @@ export class RootView extends TemplateView {
                     return new LoginView(vm.loginViewModel);
                 case "logout":
                     return new LogoutView(vm.logoutViewModel);
+                case "forced-logout":
+                    return new ForcedLogoutView(vm.forcedLogoutViewModel);
                 case "picker":
                     return new SessionPickerView(vm.sessionPickerViewModel);
                 case "redirecting":

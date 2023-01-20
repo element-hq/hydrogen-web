@@ -41,7 +41,8 @@ import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
 import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
-import {ThemeLoader} from "./ThemeLoader";
+import {ThemeLoader} from "./theming/ThemeLoader";
+import {TimeFormatter} from "./dom/TimeFormatter";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -142,6 +143,7 @@ export class Platform {
         this.logger = logger ?? this._createLogger(options?.development);
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
+        this.timeFormatter = new TimeFormatter();
         this._serviceWorkerHandler = null;
         if (assetPaths.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
@@ -197,7 +199,7 @@ export class Platform {
                     await this._themeLoader?.init(manifests, log);
                     const { themeName, themeVariant } = await this._themeLoader.getActiveTheme();
                     log.log({ l: "Active theme", name: themeName, variant: themeVariant });
-                    this._themeLoader.setTheme(themeName, themeVariant, log);
+                    await this._themeLoader.setTheme(themeName, themeVariant, log);
                 }
             });
         } catch (err) {
@@ -339,21 +341,39 @@ export class Platform {
         return this._themeLoader;
     }
 
-    replaceStylesheet(newPath) {
-        const head = document.querySelector("head");
-        // remove default theme 
-        document.querySelectorAll(".theme").forEach(e => e.remove());
-        // add new theme
-        const styleTag = document.createElement("link");
-        styleTag.href = `./${newPath}`;
-        styleTag.rel = "stylesheet";
-        styleTag.type = "text/css";
-        styleTag.className = "theme";
-        head.appendChild(styleTag);
+    async replaceStylesheet(newPath, log) {
+        const error = await this.logger.wrapOrRun(log, { l: "replaceStylesheet", location: newPath, }, async (l) => {
+            let error;
+            const head = document.querySelector("head");
+            // remove default theme 
+            document.querySelectorAll(".theme").forEach(e => e.remove());
+            // add new theme
+            const styleTag = document.createElement("link");
+            styleTag.href = newPath;
+            styleTag.rel = "stylesheet";
+            styleTag.type = "text/css";
+            styleTag.className = "theme";
+            const promise = new Promise(resolve => {
+                styleTag.onerror = () => {
+                    error = new Error(`Failed to load stylesheet from ${newPath}`);
+                    l.catch(error);
+                    resolve();
+                };
+                styleTag.onload = () => {
+                    resolve();
+                };
+            });
+            head.appendChild(styleTag);
+            await promise;
+            return error;
+        });
+        if (error) {
+            throw error;
+        }
     }
 
     get description() {
-        return navigator.userAgent ?? "<unknown>";
+        return "web-" + (navigator.userAgent ?? "<unknown>");
     }
 
     dispose() {
