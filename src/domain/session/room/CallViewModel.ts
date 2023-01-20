@@ -55,7 +55,7 @@ export class CallViewModel extends ErrorReportViewModel<SegmentType, Options<Seg
                     emitChange,
                     mediaRepository: this.getOption("room").mediaRepository
                 })),
-                (vm: CallMemberViewModel) => vm.onUpdate(),
+                (param, vm) => vm?.onUpdate(),
             ) as BaseObservableMap<string, IStreamViewModel>; 
         this.memberViewModels = otherMemberViewModels
             .join(ownMemberViewModelMap)

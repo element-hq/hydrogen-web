@@ -126,7 +126,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     member.dispose();
                     this._members.remove(memberKey);
                 } else {
-                    this._members.update(memberKey, member);
+                    this._members.update(memberKey);
                 }
             },
             encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
