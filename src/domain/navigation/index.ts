@@ -239,7 +239,7 @@ export function stringifyPath(path: Path<SegmentType>): string {
     let urlPath = "";
     let prevSegment: Segment<SegmentType> | undefined;
     for (const segment of path.segments) {
-        if (segment.type === "oidc-callback" || segment.type === "oidc-error") {
+        if (segment.type === "oidc") {
             // Do not put these segments in URL
             continue;
         }
