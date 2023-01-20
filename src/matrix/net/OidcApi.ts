@@ -80,9 +80,6 @@ export class OidcApi<N extends object = SegmentType> {
         this._urlRouter = urlRouter;
         this._staticClients = staticClients;
 
-        console.log(staticClients);
-        console.log(clientId);
-
         if (clientId) {
             this._registrationPromise = Promise.resolve({ client_id: clientId });
         }
