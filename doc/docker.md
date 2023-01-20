@@ -55,7 +55,7 @@ Then, start up a container from that image:
 ```
 docker run \
     --name hydrogen \
-    --publish 80:80 \
+    --publish 8080:8080 \
     hydrogen
 ```
 
@@ -64,7 +64,7 @@ You can override the default `config.json` using the `CONFIG_OVERRIDE` environme
 ```
 docker run \
     --name hydrogen \
-    --publish 80:80 \
+    --publish 8080:8080 \
     --env CONFIG_OVERRIDE='{
   "push": {
     "appId": "io.element.hydrogen.web",
