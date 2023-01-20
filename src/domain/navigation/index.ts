@@ -38,8 +38,10 @@ export type SegmentType = {
         state: string, 
     } & 
         ({
+            success: true,
             code: string,
         } | { 
+            success: false,
             error: string,
             errorDescription: string | null,
             errorUri: string | null ,
@@ -149,6 +151,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             // This is a proper OIDC callback
             if (code) {
                 segments.push(new Segment("oidc", {
+                    success: true,
                     state,
                     code,
                 }));
@@ -156,6 +159,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             } else if (error) {
                 segments.push(new Segment("oidc", {
                     state,
+                    success: false,
                     error,
                     errorDescription: params.get("error_description"),
                     errorUri: params.get("error_uri"),

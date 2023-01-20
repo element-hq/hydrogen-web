@@ -32,7 +32,7 @@ import { OIDCLoginMethod } from "../../matrix/login/OIDCLoginMethod.js";
 type Options = {
     defaultHomeserver: string;
     ready: ReadyFn;
-    oidc?: { state: string, code: string };
+    oidc?: SegmentType["oidc"];
     loginToken?: string;
 } & BaseOptions;
 
@@ -40,7 +40,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _ready: ReadyFn;
     private _loginToken?: string;
     private _client: Client;
-    private _oidc?: { state: string, code: string };
+    private _oidc?: SegmentType["oidc"];
     private _loginOptions?: LoginOptions;
     private _passwordLoginViewModel?: PasswordLoginViewModel;
     private _startSSOLoginViewModel?: StartSSOLoginViewModel;
@@ -138,7 +138,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                     })));
             this.emitChange("completeSSOLoginViewModel");
         }
-        else if (this._oidc) {
+        else if (this._oidc?.success === true) {
             this._hideHomeserver = true;
             this._completeOIDCLoginViewModel = this.track(new CompleteOIDCLoginViewModel(
                 this.childOptions(
@@ -149,6 +149,10 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                         code: this._oidc.code,
                     })));
             this.emitChange("completeOIDCLoginViewModel");
+        }
+        else if (this._oidc?.success === false) {
+            this._hideHomeserver = false;
+            this._showError(`Sign in failed: ${this._oidc.errorDescription ?? this._oidc.error} `);
         }
         else {
             void this.queryHomeserver();

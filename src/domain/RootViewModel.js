@@ -90,15 +90,11 @@ export class RootViewModel extends ViewModel {
                 this._showLogin({loginToken});
             }
         } else if (oidcCallback) {
-            if (oidcCallback.error) {
-                this._setSection(() => this._error = new Error(`OIDC error: ${oidcCallback.error}`));
-            } else {
-                this.urlRouter.normalizeUrl();
-                if (this.activeSection !== "login") {
-                    this._showLogin({
-                        oidc: oidcCallback,
-                    });
-                }
+            this.urlRouter.normalizeUrl();
+            if (this.activeSection !== "login") {
+                this._showLogin({
+                    oidc: oidcCallback,
+                });
             }
         }
         else {
