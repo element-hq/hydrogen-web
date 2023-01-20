@@ -43,7 +43,7 @@ export class LocalMedia {
      * Create an instance of LocalMedia without audio track (for user preview)
      */
     asPreview(): LocalMedia {
-        const media = new LocalMedia(this.userMedia, this.screenShare, this.dataChannelOptions);
+        const media = this.clone();
         const userMedia = media.userMedia;
         if (userMedia && userMedia.getVideoTracks().length > 0) {
             const audioTrack = getStreamAudioTrack(userMedia);
