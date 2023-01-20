@@ -226,6 +226,11 @@ export class OidcApi<N extends object = SegmentType> {
         return metadata["revocation_endpoint"];
     }
 
+    async isGuestAvailable(): Promise<boolean> {
+        const metadata = await this.metadata();
+        return metadata["scopes_supported"]?.includes("urn:matrix:org.matrix.msc2967.client:api:guest");
+    }
+
     generateDeviceScope(): String {
         const deviceId = randomString(10);
         return `urn:matrix:org.matrix.msc2967.client:device:${deviceId}`;

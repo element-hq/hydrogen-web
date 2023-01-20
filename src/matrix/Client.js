@@ -143,9 +143,11 @@ export class Client {
                     });
                     await oidcApi.validate();
 
+                    const guestAvailable = await oidcApi.isGuestAvailable();
+
                     return {
                         homeserver,
-                        oidc: { issuer, account },
+                        oidc: { issuer, account, guestAvailable },
                     };
                 } catch (e) {
                     console.log(e);
