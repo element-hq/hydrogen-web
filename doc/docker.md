@@ -59,6 +59,8 @@ docker run \
     hydrogen
 ```
 
+n.b. the image is now based on the unprivileged nginx base, so the port is now `8080` instead of `80` and you need a writable `/tmp` volume.
+
 You can override the default `config.json` using the `CONFIG_OVERRIDE` environment variable. For example to specify a different Homeserver and :
 
 ```
