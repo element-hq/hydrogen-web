@@ -139,6 +139,7 @@ export class Client {
                         request: this._platform.request,
                         encoding: this._platform.encoding,
                         crypto: this._platform.crypto,
+                        staticClients: this._platform.config["staticOidcClients"],
                     });
                     await oidcApi.validate();
 

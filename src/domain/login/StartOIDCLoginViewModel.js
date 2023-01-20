@@ -30,6 +30,7 @@ export class StartOIDCLoginViewModel extends ViewModel {
             encoding: this.platform.encoding,
             crypto: this.platform.crypto,
             urlRouter: this.urlRouter,
+            staticClients: this.platform.config["staticOidcClients"],
         });
     }
 

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {RequestFunction} from "../../platform/types/types";
-import type {IURLRouter} from "../../domain/navigation/URLRouter.js";
+import type {IURLRouter} from "../../domain/navigation/URLRouter";
 import type {SegmentType} from "../../domain/navigation";
 
 const WELL_KNOWN = ".well-known/openid-configuration";
@@ -54,40 +54,34 @@ function assert(condition: any, message: string): asserts condition {
     }
 };
 
-type IssuerUri = string;
-interface ClientConfig {
+export type IssuerUri = string;
+
+export interface OidcClientConfig {
     client_id: string;
-    client_secret?: string;
 }
 
-// These are statically configured OIDC client IDs for particular issuers:
-const clientIds: Record<IssuerUri, ClientConfig> = {
-    "https://dev-6525741.okta.com/": {
-        client_id: "0oa5x44w64wpNsxi45d7",
-    },
-    "https://keycloak-oidc.lab.element.dev/realms/master/": {
-        client_id: "hydrogen-oidc-playground"
-    },
-    "https://id.thirdroom.io/realms/thirdroom/": {
-        client_id: "hydrogen-oidc-playground"
-    },
-};
+export type StaticOidcClientsConfig = Record<IssuerUri, OidcClientConfig>;
 
 export class OidcApi<N extends object = SegmentType> {
-    _issuer: string;
+    _issuer: IssuerUri;
     _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
     _urlRouter: IURLRouter<N>;
     _metadataPromise: Promise<any>;
     _registrationPromise: Promise<any>;
+    _staticClients: StaticOidcClientsConfig;
 
-    constructor({ issuer, request, encoding, crypto, urlRouter, clientId }) {
+    constructor({ issuer, request, encoding, crypto, urlRouter, clientId, staticClients = {} }: { issuer: IssuerUri, request: RequestFunction, encoding: any, crypto: any, urlRouter: IURLRouter<N>, clientId?: string, staticClients?: StaticOidcClientsConfig}) {
         this._issuer = issuer;
         this._requestFn = request;
         this._encoding = encoding;
         this._crypto = crypto;
         this._urlRouter = urlRouter;
+        this._staticClients = staticClients;
+
+        console.log(staticClients);
+        console.log(clientId);
 
         if (clientId) {
             this._registrationPromise = Promise.resolve({ client_id: clientId });
@@ -127,8 +121,8 @@ export class OidcApi<N extends object = SegmentType> {
                 // use static client if available
                 const authority = `${this.issuer}${this.issuer.endsWith('/') ? '' : '/'}`;
 
-                if (clientIds[authority]) {
-                    return clientIds[authority];
+                if (this._staticClients[authority]) {
+                    return this._staticClients[authority];
                 }
 
                 const headers = new Map();
