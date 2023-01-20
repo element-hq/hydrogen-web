@@ -196,7 +196,6 @@ export class Member {
                 connectLogItem = log;
                 await this.callIfNeeded(log);
             });
-            throw new Error("connect failed!");
             return connectLogItem;
         });
     }
