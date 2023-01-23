@@ -22,6 +22,9 @@ enum TimeScope {
     Day = 24 * 60 * 60 * 1000,
 }
 
+const MINUTES_IN_MS = 60 * 1000;
+const HOURS_IN_MS = MINUTES_IN_MS * 60;
+
 export class TimeFormatter implements ITimeFormatter {
 
     private todayMidnight: Date;
@@ -74,6 +77,27 @@ export class TimeFormatter implements ITimeFormatter {
             // Friday, November 5, 2021
             return this.otherYearFormatter.format(date);
         }
+    }
+
+    formatDuration(milliseconds: number): string {
+        let hours = 0;
+        let minutes = 0;
+        if (milliseconds > HOURS_IN_MS) {
+            hours = Math.floor(milliseconds / HOURS_IN_MS);
+            milliseconds -= hours * HOURS_IN_MS;
+        }
+        if (milliseconds > MINUTES_IN_MS) {
+            minutes = Math.floor(milliseconds / MINUTES_IN_MS);
+            milliseconds -= minutes * MINUTES_IN_MS;
+        }
+        const seconds = Math.floor(milliseconds / 1000);
+        if (hours) {
+            return `${hours}h ${minutes}m ${seconds}s`;
+        }
+        if (minutes) {
+            return `${minutes}m ${seconds}s`;
+        }
+        return `${seconds}s`;
     }
 }
 

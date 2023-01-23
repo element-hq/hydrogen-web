@@ -105,6 +105,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     constructor(
         public readonly id: string,
         newCall: boolean,
+        private startTime: number | undefined,
         private callContent: Record<string, any>,
         public readonly roomId: string,
         private readonly options: Options,
@@ -141,6 +142,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     get isTerminated(): boolean {
         return this.callContent?.["m.terminated"] === true;
+    }
+
+    get duration(): number | undefined {
+        if (typeof this.startTime === "number") {
+            return (this.options.clock.now() - this.startTime);
+        }
     }
 
     get isRinging(): boolean {
@@ -340,10 +347,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateCallEvent(callContent: Record<string, any>, syncLog: ILogItem) {
+    updateCallEvent(event: StateEvent, syncLog: ILogItem) {
         this.errorBoundary.try(() => {
             syncLog.wrap({l: "update call", t: CALL_LOG_TYPE, id: this.id}, log => {
-                this.callContent = callContent;
+
+                if (typeof this.startTime !== "number") {
+                    this.startTime = event.origin_server_ts;
+                }
+                this.callContent = event.content;
                 if (this._state === GroupCallState.Creating) {
                     this._state = GroupCallState.Created;
                 }

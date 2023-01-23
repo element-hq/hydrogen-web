@@ -33,15 +33,25 @@ export class CallTile extends SimpleTile {
         this._callSubscription = undefined;
         if (this._call) {
             this._callSubscription = this.track(this._call.disposableOn("change", () => {
-                // unsubscribe when terminated
-                if (this._call.isTerminated) {
-                    this._callSubscription = this._callSubscription();
-                    this._call = undefined;
-                }
-                this.emitChange();
+                this._onCallUpdate();
             }));
+            this._onCallUpdate();
             this.memberViewModels = this._setupMembersList(this._call);
         }
+    }
+
+    _onCallUpdate() {
+        // unsubscribe when terminated
+        if (this._call.isTerminated) {
+            this._durationInterval = this.disposeTracked(this._durationInterval);
+            this._callSubscription = this.disposeTracked(this._callSubscription);
+            this._call = undefined;
+        } else if (!this._durationInterval) {
+            this._durationInterval = this.track(this.platform.clock.createInterval(() => {
+                this.emitChange("duration");
+            }, 1000));
+        }
+        this.emitChange();
     }
 
     _setupMembersList(call) {
@@ -56,6 +66,14 @@ export class CallTile extends SimpleTile {
 
     get confId() {
         return this._entry.stateKey;
+    }
+
+    get duration() {
+        if (this._call && this._call.duration) {
+            return this.timeFormatter.formatDuration(this._call.duration);
+        } else {
+            return "";
+        }
     }
     
     get shape() {

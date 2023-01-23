@@ -104,7 +104,7 @@ export class CallHandler implements RoomStateHandler {
             }
             const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
             if (event) {
-                const call = new GroupCall(event.event.state_key, false, event.event.content, event.roomId, this.groupCallOptions);
+                const call = new GroupCall(event.event.state_key, false, callEntry.timestamp, event.event.content, event.roomId, this.groupCallOptions);
                 this._calls.set(call.id, call);
             }
         }));
@@ -135,7 +135,7 @@ export class CallHandler implements RoomStateHandler {
             if (!intent) {
                 intent = CallIntent.Ring;
             }
-            const call = new GroupCall(makeId("conf-"), true, { 
+            const call = new GroupCall(makeId("conf-"), true, undefined, { 
                 "m.name": name,
                 "m.intent": intent
             }, roomId, this.groupCallOptions);
@@ -210,14 +210,14 @@ export class CallHandler implements RoomStateHandler {
         const callId = event.state_key;
         let call = this._calls.get(callId);
         if (call) {
-            call.updateCallEvent(event.content, log);
+            call.updateCallEvent(event, log);
             if (call.isTerminated) {
                 call.disconnect(log);
                 this._calls.remove(call.id);
                 txn.calls.remove(call.intent, roomId, call.id);
             }
         } else {
-            call = new GroupCall(event.state_key, false, event.content, roomId, this.groupCallOptions);
+            call = new GroupCall(event.state_key, false, event.origin_server_ts, event.content, roomId, this.groupCallOptions);
             this._calls.set(call.id, call);
             txn.calls.add({
                 intent: call.intent,

@@ -19,14 +19,7 @@ import type {CallTile} from "../../../../../../domain/session/room/timeline/tile
 import {ErrorView} from "../../../general/ErrorView";
 import {ListView} from "../../../general/ListView";
 import {AvatarView} from "../../../AvatarView";
-/*
-.CallTileView_members > * {
-    margin-left: -16px;
-}
-.CallTileView_members {
-    display: flex;
-}
-*/
+
 export class CallTileView extends TemplateView<CallTile> {
     render(t: Builder<CallTile>, vm: CallTile) {
         return t.li(
@@ -38,6 +31,7 @@ export class CallTileView extends TemplateView<CallTile> {
                 }),
                 t.div([
                     vm => vm.label,
+                    vm => vm.duration,
                     t.view(new ListView({className: "CallTileView_members", list: vm.memberViewModels}, vm => new AvatarView(vm, 24))),
                     t.button({className: "CallTileView_join", hidden: vm => !vm.canJoin}, "Join"),
                     t.button({className: "CallTileView_leave", hidden: vm => !vm.canLeave}, "Leave")
