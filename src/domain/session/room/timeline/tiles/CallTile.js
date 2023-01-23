@@ -64,6 +64,14 @@ export class CallTile extends SimpleTile {
         ).sortValues((a, b) => a.userId.localeCompare(b.userId));
     }
 
+    get memberCount() {
+        // TODO: emit updates for this property
+        if (this._call) {
+            return this._call.members.size;
+        }
+        return 0;
+    }
+
     get confId() {
         return this._entry.stateKey;
     }
@@ -80,10 +88,6 @@ export class CallTile extends SimpleTile {
         return "call";
     }
 
-    get name() {
-        return this._entry.content["m.name"];
-    }
-
     get canJoin() {
         return this._call && !this._call.hasJoined;
     }
@@ -92,15 +96,15 @@ export class CallTile extends SimpleTile {
         return this._call && this._call.hasJoined;
     }
 
-    get label() {
+    get title() {
         if (this._call) {
-            if (this._type === CallType.Video) {
+            if (this.type === CallType.Video) {
                 return `${this.displayName} started a video call`;
             } else {
                 return `${this.displayName} started a voice call`;
             }
         } else {
-            if (this._type === CallType.Video) {
+            if (this.type === CallType.Video) {
                 return `Video call ended`;
             } else {
                 return `Voice call ended`;
@@ -108,7 +112,15 @@ export class CallTile extends SimpleTile {
         }
     }
 
-    get _type() {
+    get typeLabel() {
+        if (this.type === CallType.Video) {
+                return `Video call`;
+            } else {
+                return `Voice call`;
+            }
+    }
+
+    get type() {
         return this._entry.event.content["m.type"];
     }
 
