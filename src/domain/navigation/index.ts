@@ -559,21 +559,21 @@ export function tests() {
             const segments = parseUrlPath("state=tc9CnLU7&code=cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
-            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", code: "cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx"});
+            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", code: "cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx", success: true});
         },
         "Parse OIDC error": assert => {
             const path = createEmptyPath();
             const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
-            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorUri: null, errorDescription: null});
+            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorUri: null, errorDescription: null, success: false});
         },
         "Parse OIDC error with description": assert => {
             const path = createEmptyPath();
             const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request&error_description=Unsupported%20response_type%20value", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
-            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorDescription: "Unsupported response_type value", errorUri: null});
+            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorDescription: "Unsupported response_type value", errorUri: null, success: false});
         },
     }
 }
