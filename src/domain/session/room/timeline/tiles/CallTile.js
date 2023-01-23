@@ -51,7 +51,7 @@ export class CallTile extends SimpleTile {
                 emitChange,
                 mediaRepository: this.getOption("room").mediaRepository
             })),
-        ).sortValues((a, b) => a.avatarTitle < b.avatarTitle ? -1 : 1);
+        ).sortValues((a, b) => a.userId.localeCompare(b.userId));
     }
 
     get confId() {
@@ -116,6 +116,10 @@ export class CallTile extends SimpleTile {
 class MemberAvatarViewModel extends ViewModel {
     get _member() {
         return this.getOption("member");
+    }
+
+    get userId() {
+        return this._member.userId;
     }
 
     get avatarLetter() {
