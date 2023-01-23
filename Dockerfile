@@ -15,7 +15,7 @@ RUN yarn build
 RUN mv -f target/config.json /config.json.bundled \
   && ln -sf /tmp/config.json target/config.json
 
-FROM --platform=${BUILDPLATFORM} docker.io/nginxinc/nginx-unprivileged:alpine
+FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:alpine
 
 # Copy the dynamic config script
 COPY ./docker/dynamic-config.sh /docker-entrypoint.d/99-dynamic-config.sh
