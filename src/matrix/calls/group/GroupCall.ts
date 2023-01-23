@@ -140,7 +140,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get isTerminated(): boolean {
-        return this.callContent?.["m.terminated"] === true;
+        return !!this.callContent?.["m.terminated"];
     }
 
     get isRinging(): boolean {
