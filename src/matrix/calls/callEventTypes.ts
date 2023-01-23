@@ -227,3 +227,8 @@ export enum CallIntent {
     Prompt = "m.prompt",
     Room = "m.room",
 };
+
+export enum CallType {
+    Video = "m.video",
+    Voice = "m.voice",
+}

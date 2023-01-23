@@ -18,7 +18,7 @@ import {ObservableMap} from "../../observable/map";
 import {WebRTC, PeerConnection} from "../../platform/types/WebRTC";
 import {MediaDevices, Track} from "../../platform/types/MediaDevices";
 import {handlesEventType} from "./PeerCall";
-import {EventType, CallIntent} from "./callEventTypes";
+import {EventType, CallIntent, CallType} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
 import {makeId} from "../common";
 import {CALL_LOG_TYPE} from "./common";
@@ -130,7 +130,7 @@ export class CallHandler implements RoomStateHandler {
         log.set("newSize", this._calls.size);
     }
 
-    createCall(roomId: string, type: "m.video" | "m.voice", name: string, intent?: CallIntent, log?: ILogItem): Promise<GroupCall> {
+    createCall(roomId: string, type: CallType, name: string, intent?: CallIntent, log?: ILogItem): Promise<GroupCall> {
         return this.options.logger.wrapOrRun(log, "CallHandler.createCall", async log => {
             if (!intent) {
                 intent = CallIntent.Ring;

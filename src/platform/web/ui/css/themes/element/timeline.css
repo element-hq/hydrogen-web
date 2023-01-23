@@ -440,4 +440,11 @@ only loads when the top comes into view*/
     background-color: var(--background-color-primary);
     border-radius: 8px;
     text-align: center;
-  }
+}
+
+.CallTileView_members > * {
+    margin-left: -16px;
+}
+.CallTileView_members {
+    display: flex;
+}

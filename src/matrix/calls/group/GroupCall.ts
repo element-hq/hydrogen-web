@@ -20,7 +20,7 @@ import {LocalMedia} from "../LocalMedia";
 import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS, mute} from "../common";
 import {MemberChange, RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
-import {EventType, CallIntent} from "../callEventTypes";
+import {EventType, CallIntent, CallType} from "../callEventTypes";
 import { ErrorBoundary } from "../../../utils/ErrorBoundary";
 
 import type {Options as MemberOptions} from "./Member";
@@ -153,6 +153,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     get intent(): CallIntent {
         return this.callContent?.["m.intent"];
+    }
+
+    get type(): CallType {
+        return this.callContent?.["m.type"];
     }
 
     /**
@@ -318,7 +322,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(type: "m.video" | "m.voice", log: ILogItem): Promise<void> {
+    create(type: CallType, log: ILogItem): Promise<void> {
         return log.wrap({l: "create call", t: CALL_LOG_TYPE}, async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;

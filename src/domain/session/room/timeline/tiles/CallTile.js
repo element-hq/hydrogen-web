@@ -15,7 +15,11 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
+import {ViewModel} from "../../../../ViewModel";
 import {LocalMedia} from "../../../../../matrix/calls/LocalMedia";
+import {CallType} from "../../../../../matrix/calls/callEventTypes";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../../../avatar";
+
 // TODO: timeline entries for state events with the same state key and type
 // should also update previous entries in the timeline, so we can update the name of the call, whether it is terminated, etc ...
 
@@ -28,15 +32,26 @@ export class CallTile extends SimpleTile {
         this._call = calls.get(this._entry.stateKey);
         this._callSubscription = undefined;
         if (this._call) {
-            this._callSubscription = this._call.disposableOn("change", () => {
+            this._callSubscription = this.track(this._call.disposableOn("change", () => {
                 // unsubscribe when terminated
                 if (this._call.isTerminated) {
                     this._callSubscription = this._callSubscription();
                     this._call = undefined;
                 }
                 this.emitChange();
-            });
+            }));
+            this.memberViewModels = this._setupMembersList(this._call);
         }
+    }
+
+    _setupMembersList(call) {
+        return call.members.mapValues(
+            (member, emitChange) => new MemberAvatarViewModel(this.childOptions({
+                member,
+                emitChange,
+                mediaRepository: this.getOption("room").mediaRepository
+            })),
+        ).sortValues((a, b) => a.avatarTitle < b.avatarTitle ? -1 : 1);
     }
 
     get confId() {
@@ -61,14 +76,22 @@ export class CallTile extends SimpleTile {
 
     get label() {
         if (this._call) {
-            if (this._call.hasJoined) {
-                return `Ongoing call (${this.name}, ${this.confId})`;
+            if (this._type === CallType.Video) {
+                return `${this.displayName} started a video call`;
             } else {
-                return `${this.displayName} started a call (${this.name}, ${this.confId})`;
+                return `${this.displayName} started a voice call`;
             }
         } else {
-            return `Call finished, started by ${this.displayName} (${this.name}, ${this.confId})`;
+            if (this._type === CallType.Video) {
+                return `Video call ended`;
+            } else {
+                return `Voice call ended`;
+            }
         }
+    }
+
+    get _type() {
+        return this._entry.event.content["m.type"];
     }
 
     async join() {
@@ -88,10 +111,28 @@ export class CallTile extends SimpleTile {
             }
         });
     }
+}
 
-    dispose() {
-        if (this._callSubscription) {
-            this._callSubscription = this._callSubscription();
-        }
+class MemberAvatarViewModel extends ViewModel {
+    get _member() {
+        return this.getOption("member");
+    }
+
+    get avatarLetter() {
+        return avatarInitials(this._member.member.name);
+    }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this._member.userId);
+    }
+
+    avatarUrl(size) {
+        const {avatarUrl} = this._member.member;
+        const mediaRepository = this.getOption("mediaRepository");
+        return getAvatarHttpUrl(avatarUrl, size, this.platform, mediaRepository);
+    }
+
+    get avatarTitle() {
+        return this._member.member.name;
     }
 }
