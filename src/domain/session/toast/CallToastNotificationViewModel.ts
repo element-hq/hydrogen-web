@@ -39,7 +39,9 @@ export class CallToastNotificationViewModel extends BaseToastNotificationViewMod
                 onRemove: (_, __) => {
                     this.emitChange("memberCount");
                 },
-                onReset: () => { /** noop */ },
+                onReset: () => {
+                    this.emitChange("memberCount");
+                },
             })
         );
         // Dismiss the toast if the room is opened manually
