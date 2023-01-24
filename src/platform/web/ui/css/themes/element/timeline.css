@@ -449,16 +449,26 @@ only loads when the top comes into view*/
 }
 
 .CallTileView_members > * {
-    margin-left: -16px;
+    margin-right: -16px;
 }
+
 .CallTileView_members {
     display: flex;
 }
 
+.CallTileView_title {
+    font-weight: bold;
+}
+
+.CallTileView_subtitle {
+    font-size: 12px;
+}
+
 .CallTileView_memberCount::before {
     content: url('./icons/room-members.svg?primary=text-color');
-    background-repeat: no-repeat;
-    background-size: 24px;
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    vertical-align: bottom;
+    margin-right: 4px;
 }
