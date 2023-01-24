@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { ErrorReportViewModel } from "../../ErrorReportViewModel";
+import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {Options as BaseOptions} from "../../ViewModel";
 import type {Session} from "../../../matrix/Session.js";
 
