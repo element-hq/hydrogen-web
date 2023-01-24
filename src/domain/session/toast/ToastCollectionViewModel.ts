@@ -20,12 +20,13 @@ import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Room} from "../../../matrix/room/Room.js";
 import type {Session} from "../../../matrix/Session.js";
+import type {SegmentType} from "../../navigation";
 
 type Options = {
     session: Session;
 } & BaseOptions;
 
-export class ToastCollectionViewModel extends ViewModel<Options> {
+export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     public readonly toastViewModels: ObservableArray<CallToastNotificationViewModel> = new ObservableArray();
 
     constructor(options: Options) {

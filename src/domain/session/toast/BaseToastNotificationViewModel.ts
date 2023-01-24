@@ -17,14 +17,15 @@ limitations under the License.
 import {ErrorReportViewModel} from "../../ErrorReportViewModel";
 import {Options as BaseOptions} from "../../ViewModel";
 import type {Session} from "../../../matrix/Session.js";
+import {SegmentType} from "../../navigation";
 
-export type BaseClassOptions = {
+export type BaseClassOptions<N extends object = SegmentType> = {
     dismiss: () => void;
     session: Session;
-} & BaseOptions;
+} & BaseOptions<N>;
 
-export abstract class BaseToastNotificationViewModel<T extends BaseClassOptions = BaseClassOptions> extends ErrorReportViewModel<T> {
-    constructor(options: T) {
+export abstract class BaseToastNotificationViewModel<N extends object = SegmentType, O extends BaseClassOptions<N> = BaseClassOptions<N>> extends ErrorReportViewModel<N, O> {
+    constructor(options: O) {
         super(options);
     }
 

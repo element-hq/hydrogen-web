@@ -18,15 +18,21 @@ import type {Room} from "../../../matrix/room/Room.js";
 import {IAvatarContract, avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar"; 
 import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 import {BaseClassOptions, BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";
+import {SegmentType} from "../../navigation";
 
-type Options = {
+type Options<N extends MinimumNeededSegmentType = SegmentType> = {
     call: GroupCall;
     room: Room;
-} & BaseClassOptions;
+} & BaseClassOptions<N>;
 
+// Since we access the room segment below, the segment type
+// needs to at least contain the room segment!
+type MinimumNeededSegmentType = {
+    "room": string;
+};
 
-export class CallToastNotificationViewModel extends BaseToastNotificationViewModel<Options> implements IAvatarContract {
-    constructor(options: Options) {
+export class CallToastNotificationViewModel<N extends MinimumNeededSegmentType = SegmentType, O extends Options<N> = Options<N>> extends BaseToastNotificationViewModel<N, O> implements IAvatarContract {
+    constructor(options: O) {
         super(options);
         this.track(
             this.call.members.subscribe({
@@ -46,8 +52,8 @@ export class CallToastNotificationViewModel extends BaseToastNotificationViewMod
         );
         // Dismiss the toast if the room is opened manually
         this.track(
-            this.navigation.observe("room").subscribe(roomId => {
-                if (roomId === this.call.roomId) {
+            this.navigation.observe("room").subscribe((roomId) => {
+                if ((roomId as unknown as string) === this.call.roomId) {
                     this.dismiss();
                 }
         }));
@@ -58,8 +64,8 @@ export class CallToastNotificationViewModel extends BaseToastNotificationViewMod
             const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
             const localMedia = new LocalMedia().withUserMedia(stream);
             await this.call.join(localMedia, log);
-            const url = this.urlCreator.openRoomActionUrl(this.call.roomId);
-            this.urlCreator.pushUrl(url);
+            const url = this.urlRouter.openRoomActionUrl(this.call.roomId);
+            this.urlRouter.pushUrl(url);
         });
     }
 
