@@ -24,6 +24,7 @@ enum TimeScope {
 
 const MINUTES_IN_MS = 60 * 1000;
 const HOURS_IN_MS = MINUTES_IN_MS * 60;
+const DAYS_IN_MS = HOURS_IN_MS * 24;
 
 export class TimeFormatter implements ITimeFormatter {
 
@@ -80,8 +81,13 @@ export class TimeFormatter implements ITimeFormatter {
     }
 
     formatDuration(milliseconds: number): string {
+        let days = 0;
         let hours = 0;
         let minutes = 0;
+        if (milliseconds > DAYS_IN_MS) {
+            days = Math.floor(milliseconds / DAYS_IN_MS);
+            milliseconds -= days * DAYS_IN_MS;
+        }
         if (milliseconds > HOURS_IN_MS) {
             hours = Math.floor(milliseconds / HOURS_IN_MS);
             milliseconds -= hours * HOURS_IN_MS;
@@ -91,13 +97,18 @@ export class TimeFormatter implements ITimeFormatter {
             milliseconds -= minutes * MINUTES_IN_MS;
         }
         const seconds = Math.floor(milliseconds / 1000);
-        if (hours) {
-            return `${hours}h ${minutes}m ${seconds}s`;
+        let result = "";
+        if (days) {
+            result = `${days}d `;
         }
-        if (minutes) {
-            return `${minutes}m ${seconds}s`;
+        if (hours || days) {
+            result += `${hours}h `;
         }
-        return `${seconds}s`;
+        if (minutes || hours || days) {
+            result += `${minutes}m `;
+        }
+        result += `${seconds}s`;
+        return result;
     }
 }
 
