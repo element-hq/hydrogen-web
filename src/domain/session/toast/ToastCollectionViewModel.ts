@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {CallToastNotificationViewModel} from "./CallToastNotificationViewModel";
 import {ObservableArray} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Room} from "../../../matrix/room/Room.js";
 import type {Session} from "../../../matrix/Session.js";
-import {CallToastNotificationViewModel} from "./CallToastNotificationViewModel";
 
 type Options = {
     session: Session;
@@ -35,8 +35,8 @@ export class ToastCollectionViewModel extends ViewModel<Options> {
         this.track(callsObservableMap.subscribe(this));
     }
 
-    onAdd(_, call) {
-        if (this.shouldShowNotification(call)) {
+    onAdd(_, call: GroupCall) {
+        if (this._shouldShowNotification(call)) {
             const room = this._findRoomForCall(call);
             const dismiss = () => {
                 const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
@@ -50,17 +50,16 @@ export class ToastCollectionViewModel extends ViewModel<Options> {
         }
     }
 
-    onRemove(_, call) {
+    onRemove(_, call: GroupCall) {
         const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
         if (idx !== -1) {
             this.toastViewModels.remove(idx);
         }
     }
 
-    onUpdate(_, call) {
+    onUpdate(_, call: GroupCall) {
         const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
         if (idx !== -1) {
-            // todo: is this correct?
             this.toastViewModels.update(idx, this.toastViewModels.at(idx)!);
         }
     }
@@ -77,7 +76,7 @@ export class ToastCollectionViewModel extends ViewModel<Options> {
         return rooms.get(id);
     }
     
-    private shouldShowNotification(call: GroupCall): boolean {
+    private _shouldShowNotification(call: GroupCall): boolean {
         const currentlyOpenedRoomId = this.navigation.path.get("room")?.value;
         if (!call.isLoadedFromStorage && call.roomId !== currentlyOpenedRoomId) {
             return true;
