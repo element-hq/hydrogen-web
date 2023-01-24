@@ -28,7 +28,7 @@ export abstract class BaseToastNotificationViewModel<T extends BaseClassOptions 
         super(options);
     }
 
-    dismiss() {
+    dismiss(): void {
         this.getOption("dismiss")();
     }
 }

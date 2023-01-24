@@ -53,7 +53,7 @@ export class CallToastNotificationViewModel extends BaseToastNotificationViewMod
         }));
     }
 
-    async join() {
+    async join(): Promise<void> {
         await this.logAndCatch("CallToastNotificationViewModel.join", async (log) => {
             const stream = await this.platform.mediaDevices.getMediaTracks(false, true);
             const localMedia = new LocalMedia().withUserMedia(stream);
@@ -79,19 +79,19 @@ export class CallToastNotificationViewModel extends BaseToastNotificationViewMod
         return this.call.members.size;
     }
 
-    get avatarLetter() {
+    get avatarLetter(): string {
         return avatarInitials(this.roomName);
     }
 
-    get avatarColorNumber() {
+    get avatarColorNumber(): number {
         return getIdentifierColorNumber(this.room.avatarColorId);
     }
 
-    avatarUrl(size: number) {
+    avatarUrl(size: number): string | undefined {
         return getAvatarHttpUrl(this.room.avatarUrl, size, this.platform, this.room.mediaRepository);
     }
 
-    get avatarTitle() {
+    get avatarTitle(): string {
         return this.roomName;
     }
 }
