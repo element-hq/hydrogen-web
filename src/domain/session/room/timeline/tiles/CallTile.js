@@ -29,14 +29,15 @@ export class CallTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
         const calls = this.getOption("session").callHandler.calls;
-        this._call = calls.get(this._entry.stateKey);
         this._callSubscription = undefined;
-        if (this._call) {
+        const call = calls.get(this._entry.stateKey);
+        if (call && !call.isTerminated) {
+            this._call = call;
+            this.memberViewModels = this._setupMembersList(this._call);
             this._callSubscription = this.track(this._call.disposableOn("change", () => {
                 this._onCallUpdate();
             }));
             this._onCallUpdate();
-            this.memberViewModels = this._setupMembersList(this._call);
         }
     }
 
