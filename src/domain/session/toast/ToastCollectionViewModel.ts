@@ -14,16 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableArray, ObservableMap} from "../../../observable";
+import {ObservableArray} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Room} from "../../../matrix/room/Room.js";
-import type {CallHandler} from "../../../matrix/calls/CallHandler";
 import type {Session} from "../../../matrix/Session.js";
 import {CallToastNotificationViewModel} from "./CallToastNotificationViewModel";
 
 type Options = {
-    callHandler: CallHandler;
     session: Session;
 } & BaseOptions;
 
@@ -32,7 +30,8 @@ export class ToastCollectionViewModel extends ViewModel<Options> {
 
     constructor(options: Options) {
         super(options);
-        const callsObservableMap = this.getOption("callHandler").calls;
+        const session = this.getOption("session");
+        const callsObservableMap = session.callHandler.calls;
         this.track(callsObservableMap.subscribe(this));
     }
 

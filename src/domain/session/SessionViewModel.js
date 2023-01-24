@@ -49,7 +49,6 @@ export class SessionViewModel extends ViewModel {
         this._createRoomViewModel = null;
         this._joinRoomViewModel = null;
         this._toastCollectionViewModel = this.track(new ToastCollectionViewModel(this.childOptions({
-            callHandler: this._client.session.callHandler,
             session: this._client.session,
         })));
         this._setupNavigation();
