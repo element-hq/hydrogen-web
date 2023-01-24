@@ -104,6 +104,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     constructor(
         public readonly id: string,
+        public readonly isLoadedFromStorage: boolean,
         newCall: boolean,
         private callContent: Record<string, any>,
         public readonly roomId: string,

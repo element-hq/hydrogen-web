@@ -30,6 +30,7 @@ import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
 import {SyncStatus} from "../../matrix/Sync.js";
+import {ToastCollectionViewModel} from "./toast/ToastCollectionViewModel";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {
@@ -47,6 +48,10 @@ export class SessionViewModel extends ViewModel {
         this._gridViewModel = null;
         this._createRoomViewModel = null;
         this._joinRoomViewModel = null;
+        this._toastCollectionViewModel = this.track(new ToastCollectionViewModel(this.childOptions({
+            callHandler: this._client.session.callHandler,
+            session: this._client.session,
+        })));
         this._setupNavigation();
         this._setupForcedLogoutOnAccessTokenInvalidation();
     }
@@ -171,6 +176,10 @@ export class SessionViewModel extends ViewModel {
 
     get joinRoomViewModel() {
         return this._joinRoomViewModel;
+    }
+
+    get toastCollectionViewModel() {
+        return this._toastCollectionViewModel;
     }
 
     _updateGrid(roomIds) {
