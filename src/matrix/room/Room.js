@@ -233,6 +233,7 @@ export class Room extends BaseRoom {
             }
         }
         let emitChange = false;
+        const previousData = this._summary.data;
         if (summaryChanges) {
             this._summary.applyChanges(summaryChanges);
             if (!this._summary.data.needsHeroes) {
@@ -251,7 +252,7 @@ export class Room extends BaseRoom {
             this._updatePowerLevels(powerLevelsEvent);
         }
         if (emitChange) {
-            this._emitUpdate();
+            this._emitUpdate(previousData);
         }
         if (this._timeline) {
             // these should not be added if not already there
