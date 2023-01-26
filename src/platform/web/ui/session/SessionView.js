@@ -30,6 +30,7 @@ import {CreateRoomView} from "./CreateRoomView.js";
 import {RightPanelView} from "./rightpanel/RightPanelView.js";
 import {viewClassForTile} from "./room/common";
 import {JoinRoomView} from "./JoinRoomView";
+import {ToastCollectionView} from "./toast/ToastCollectionView";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
@@ -40,6 +41,7 @@ export class SessionView extends TemplateView {
                 "right-shown": vm => !!vm.rightPanelViewModel
             },
         }, [
+            t.view(new ToastCollectionView(vm.toastCollectionViewModel)),
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.view(new LeftPanelView(vm.leftPanelViewModel)),
             t.mapView(vm => vm.activeMiddleViewModel, () => {

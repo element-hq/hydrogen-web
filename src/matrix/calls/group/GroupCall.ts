@@ -104,6 +104,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     constructor(
         public readonly id: string,
+        public readonly isLoadedFromStorage: boolean,
         newCall: boolean,
         private startTime: number | undefined,
         private callContent: Record<string, any>,
@@ -141,7 +142,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get isTerminated(): boolean {
-        return this.callContent?.["m.terminated"] === true;
+        return !!this.callContent?.["m.terminated"];
     }
 
     get duration(): number | undefined {
@@ -297,7 +298,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
                     await request.response();
                     // our own user isn't included in members, so not in the count
-                    if (this.intent === CallIntent.Ring && this._members.size === 0) {
+                    if ((this.intent === CallIntent.Ring || this.intent === CallIntent.Prompt) && this._members.size === 0) {
                         await this.terminate(log);
                     }
                 } else {

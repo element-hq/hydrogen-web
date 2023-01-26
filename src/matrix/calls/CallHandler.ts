@@ -104,7 +104,15 @@ export class CallHandler implements RoomStateHandler {
             }
             const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
             if (event) {
-                const call = new GroupCall(event.event.state_key, false, callEntry.timestamp, event.event.content, event.roomId, this.groupCallOptions);
+                const call = new GroupCall(
+                    event.event.state_key, // id
+                    true, // isLoadedFromStorage
+                    false, // newCall
+                    callEntry.timestamp, // startTime
+                    event.event.content, // callContent
+                    event.roomId, // roomId
+                    this.groupCallOptions // options
+                );
                 this._calls.set(call.id, call);
             }
         }));
@@ -135,10 +143,15 @@ export class CallHandler implements RoomStateHandler {
             if (!intent) {
                 intent = CallIntent.Ring;
             }
-            const call = new GroupCall(makeId("conf-"), true, undefined, { 
-                "m.name": name,
-                "m.intent": intent
-            }, roomId, this.groupCallOptions);
+            const call = new GroupCall(
+                makeId("conf-"), // id
+                false, // isLoadedFromStorage
+                true, // newCall
+                undefined, // startTime
+                {"m.name": name, "m.intent": intent}, // callContent
+                roomId, // roomId
+                this.groupCallOptions // options
+            );
             this._calls.set(call.id, call);
 
             try {
@@ -217,7 +230,15 @@ export class CallHandler implements RoomStateHandler {
                 txn.calls.remove(call.intent, roomId, call.id);
             }
         } else {
-            call = new GroupCall(event.state_key, false, event.origin_server_ts, event.content, roomId, this.groupCallOptions);
+            call = new GroupCall(
+                event.state_key, // id
+                false, // isLoadedFromStorage
+                false, // newCall
+                event.origin_server_ts, // startTime
+                event.content, // callContent
+                roomId, // roomId
+                this.groupCallOptions // options
+            );
             this._calls.set(call.id, call);
             txn.calls.add({
                 intent: call.intent,
