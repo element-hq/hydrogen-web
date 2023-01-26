@@ -58,3 +58,11 @@ export function getAvatarHttpUrl(avatarUrl: string | undefined, cssSize: number,
     }
     return undefined;
 }
+
+// move to AvatarView.js when converting to typescript
+export interface IAvatarContract {
+    avatarLetter: string;
+    avatarColorNumber: number;
+    avatarUrl: (size: number) => string | undefined;
+    avatarTitle: string;
+}
