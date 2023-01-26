@@ -12,4 +12,5 @@ export {EventObservableValue} from './EventObservableValue';
 export {FlatMapObservableValue} from './FlatMapObservableValue';
 export {PickMapObservableValue} from './PickMapObservableValue';
 export {RetainedObservableValue} from './RetainedObservableValue';
+export {MapSizeObservableValue} from './MapSizeObservableValue';
 export {ObservableValue} from './ObservableValue';
