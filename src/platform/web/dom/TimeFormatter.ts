@@ -84,15 +84,15 @@ export class TimeFormatter implements ITimeFormatter {
         let days = 0;
         let hours = 0;
         let minutes = 0;
-        if (milliseconds > DAYS_IN_MS) {
+        if (milliseconds >= DAYS_IN_MS) {
             days = Math.floor(milliseconds / DAYS_IN_MS);
             milliseconds -= days * DAYS_IN_MS;
         }
-        if (milliseconds > HOURS_IN_MS) {
+        if (milliseconds >= HOURS_IN_MS) {
             hours = Math.floor(milliseconds / HOURS_IN_MS);
             milliseconds -= hours * HOURS_IN_MS;
         }
-        if (milliseconds > MINUTES_IN_MS) {
+        if (milliseconds >= MINUTES_IN_MS) {
             minutes = Math.floor(milliseconds / MINUTES_IN_MS);
             milliseconds -= minutes * MINUTES_IN_MS;
         }
