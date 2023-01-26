@@ -34,22 +34,9 @@ type MinimumNeededSegmentType = {
 export class CallToastNotificationViewModel<N extends MinimumNeededSegmentType = SegmentType, O extends Options<N> = Options<N>> extends BaseToastNotificationViewModel<N, O> implements IAvatarContract {
     constructor(options: O) {
         super(options);
-        this.track(
-            this.call.members.subscribe({
-                onAdd: (_, __) => {
-                    this.emitChange("memberCount");
-                },
-                onUpdate: (_, __) => {
-                    this.emitChange("memberCount");
-                },
-                onRemove: (_, __) => {
-                    this.emitChange("memberCount");
-                },
-                onReset: () => {
-                    this.emitChange("memberCount");
-                },
-            })
-        );
+        this.track(this.call.members.observeSize().subscribe(() => {
+            this.emitChange("memberCount");
+        }));
         // Dismiss the toast if the room is opened manually
         this.track(
             this.navigation.observe("room").subscribe((roomId) => {
