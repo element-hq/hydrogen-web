@@ -30,12 +30,16 @@ export class CallTile extends SimpleTile {
         super(entry, options);
         const calls = this.getOption("session").callHandler.calls;
         this._callSubscription = undefined;
+        this._memberSizeSubscription = undefined;
         const call = calls.get(this._entry.stateKey);
         if (call && !call.isTerminated) {
             this._call = call;
             this.memberViewModels = this._setupMembersList(this._call);
             this._callSubscription = this.track(this._call.disposableOn("change", () => {
                 this._onCallUpdate();
+            }));
+            this._memberSizeSubscription = this.track(this._call.members.observeSize().subscribe(() => {
+                this.emitChange("memberCount");
             }));
             this._onCallUpdate();
         }

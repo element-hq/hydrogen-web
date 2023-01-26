@@ -549,7 +549,6 @@ export class GroupCall extends EventEmitter<{change: never}> {
                 member.dispose();
                 this._members.remove(memberKey);
             }
-            this.emitChange();
         });
     }
 
