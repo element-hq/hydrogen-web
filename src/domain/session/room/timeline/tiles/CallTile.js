@@ -15,7 +15,11 @@ limitations under the License.
 */
 
 import {SimpleTile} from "./SimpleTile.js";
+import {ViewModel} from "../../../../ViewModel";
 import {LocalMedia} from "../../../../../matrix/calls/LocalMedia";
+import {CallType} from "../../../../../matrix/calls/callEventTypes";
+import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../../../avatar";
+
 // TODO: timeline entries for state events with the same state key and type
 // should also update previous entries in the timeline, so we can update the name of the call, whether it is terminated, etc ...
 
@@ -25,30 +29,64 @@ export class CallTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
         const calls = this.getOption("session").callHandler.calls;
-        this._call = calls.get(this._entry.stateKey);
         this._callSubscription = undefined;
-        if (this._call) {
-            this._callSubscription = this._call.disposableOn("change", () => {
-                // unsubscribe when terminated
-                if (this._call.isTerminated) {
-                    this._callSubscription = this._callSubscription();
-                    this._call = undefined;
-                }
-                this.emitChange();
-            });
+        const call = calls.get(this._entry.stateKey);
+        if (call && !call.isTerminated) {
+            this._call = call;
+            this.memberViewModels = this._setupMembersList(this._call);
+            this._callSubscription = this.track(this._call.disposableOn("change", () => {
+                this._onCallUpdate();
+            }));
+            this._onCallUpdate();
         }
+    }
+
+    _onCallUpdate() {
+        // unsubscribe when terminated
+        if (this._call.isTerminated) {
+            this._durationInterval = this.disposeTracked(this._durationInterval);
+            this._callSubscription = this.disposeTracked(this._callSubscription);
+            this._call = undefined;
+        } else if (!this._durationInterval) {
+            this._durationInterval = this.track(this.platform.clock.createInterval(() => {
+                this.emitChange("duration");
+            }, 1000));
+        }
+        this.emitChange();
+    }
+
+    _setupMembersList(call) {
+        return call.members.mapValues(
+            (member, emitChange) => new MemberAvatarViewModel(this.childOptions({
+                member,
+                emitChange,
+                mediaRepository: this.getOption("room").mediaRepository
+            })),
+        ).sortValues((a, b) => a.userId.localeCompare(b.userId));
+    }
+
+    get memberCount() {
+        // TODO: emit updates for this property
+        if (this._call) {
+            return this._call.members.size;
+        }
+        return 0;
     }
 
     get confId() {
         return this._entry.stateKey;
     }
+
+    get duration() {
+        if (this._call && this._call.duration) {
+            return this.timeFormatter.formatDuration(this._call.duration);
+        } else {
+            return "";
+        }
+    }
     
     get shape() {
         return "call";
-    }
-
-    get name() {
-        return this._entry.content["m.name"];
     }
 
     get canJoin() {
@@ -59,16 +97,32 @@ export class CallTile extends SimpleTile {
         return this._call && this._call.hasJoined;
     }
 
-    get label() {
+    get title() {
         if (this._call) {
-            if (this._call.hasJoined) {
-                return `Ongoing call (${this.name}, ${this.confId})`;
+            if (this.type === CallType.Video) {
+                return `${this.displayName} started a video call`;
             } else {
-                return `${this.displayName} started a call (${this.name}, ${this.confId})`;
+                return `${this.displayName} started a voice call`;
             }
         } else {
-            return `Call finished, started by ${this.displayName} (${this.name}, ${this.confId})`;
+            if (this.type === CallType.Video) {
+                return `Video call ended`;
+            } else {
+                return `Voice call ended`;
+            }
         }
+    }
+
+    get typeLabel() {
+        if (this.type === CallType.Video) {
+                return `Video call`;
+            } else {
+                return `Voice call`;
+            }
+    }
+
+    get type() {
+        return this._entry.event.content["m.type"];
     }
 
     async join() {
@@ -88,10 +142,32 @@ export class CallTile extends SimpleTile {
             }
         });
     }
+}
 
-    dispose() {
-        if (this._callSubscription) {
-            this._callSubscription = this._callSubscription();
-        }
+class MemberAvatarViewModel extends ViewModel {
+    get _member() {
+        return this.getOption("member");
+    }
+
+    get userId() {
+        return this._member.userId;
+    }
+
+    get avatarLetter() {
+        return avatarInitials(this._member.member.name);
+    }
+
+    get avatarColorNumber() {
+        return getIdentifierColorNumber(this._member.userId);
+    }
+
+    avatarUrl(size) {
+        const {avatarUrl} = this._member.member;
+        const mediaRepository = this.getOption("mediaRepository");
+        return getAvatarHttpUrl(avatarUrl, size, this.platform, mediaRepository);
+    }
+
+    get avatarTitle() {
+        return this._member.member.name;
     }
 }

@@ -20,7 +20,7 @@ import {LocalMedia} from "../LocalMedia";
 import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS, mute} from "../common";
 import {MemberChange, RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
-import {EventType, CallIntent} from "../callEventTypes";
+import {EventType, CallIntent, CallType} from "../callEventTypes";
 import { ErrorBoundary } from "../../../utils/ErrorBoundary";
 
 import type {Options as MemberOptions} from "./Member";
@@ -106,6 +106,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         public readonly id: string,
         public readonly isLoadedFromStorage: boolean,
         newCall: boolean,
+        private startTime: number | undefined,
         private callContent: Record<string, any>,
         public readonly roomId: string,
         private readonly options: Options,
@@ -144,6 +145,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return !!this.callContent?.["m.terminated"];
     }
 
+    get duration(): number | undefined {
+        if (typeof this.startTime === "number") {
+            return (this.options.clock.now() - this.startTime);
+        }
+    }
+
     get isRinging(): boolean {
         return this._state === GroupCallState.Created && this.intent === "m.ring" && !this.isMember(this.options.ownUserId);
     }
@@ -154,6 +161,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     get intent(): CallIntent {
         return this.callContent?.["m.intent"];
+    }
+
+    get type(): CallType {
+        return this.callContent?.["m.type"];
     }
 
     /**
@@ -319,7 +330,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(type: "m.video" | "m.voice", log: ILogItem): Promise<void> {
+    create(type: CallType, log: ILogItem): Promise<void> {
         return log.wrap({l: "create call", t: CALL_LOG_TYPE}, async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
@@ -337,10 +348,14 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateCallEvent(callContent: Record<string, any>, syncLog: ILogItem) {
+    updateCallEvent(event: StateEvent, syncLog: ILogItem) {
         this.errorBoundary.try(() => {
             syncLog.wrap({l: "update call", t: CALL_LOG_TYPE, id: this.id}, log => {
-                this.callContent = callContent;
+
+                if (typeof this.startTime !== "number") {
+                    this.startTime = event.origin_server_ts;
+                }
+                this.callContent = event.content;
                 if (this._state === GroupCallState.Creating) {
                     this._state = GroupCallState.Created;
                 }

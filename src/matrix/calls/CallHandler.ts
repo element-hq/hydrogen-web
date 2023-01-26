@@ -18,7 +18,7 @@ import {ObservableMap} from "../../observable/map";
 import {WebRTC, PeerConnection} from "../../platform/types/WebRTC";
 import {MediaDevices, Track} from "../../platform/types/MediaDevices";
 import {handlesEventType} from "./PeerCall";
-import {EventType, CallIntent} from "./callEventTypes";
+import {EventType, CallIntent, CallType} from "./callEventTypes";
 import {GroupCall} from "./group/GroupCall";
 import {makeId} from "../common";
 import {CALL_LOG_TYPE} from "./common";
@@ -104,7 +104,15 @@ export class CallHandler implements RoomStateHandler {
             }
             const event = await txn.roomState.get(callEntry.roomId, EventType.GroupCall, callEntry.callId);
             if (event) {
-                const call = new GroupCall(event.event.state_key, true, false, event.event.content, event.roomId, this.groupCallOptions);
+                const call = new GroupCall(
+                    event.event.state_key, // id
+                    true, // isLoadedFromStorage
+                    false, // newCall
+                    callEntry.timestamp, // startTime
+                    event.event.content, // callContent
+                    event.roomId, // roomId
+                    this.groupCallOptions // options
+                );
                 this._calls.set(call.id, call);
             }
         }));
@@ -130,15 +138,20 @@ export class CallHandler implements RoomStateHandler {
         log.set("newSize", this._calls.size);
     }
 
-    createCall(roomId: string, type: "m.video" | "m.voice", name: string, intent?: CallIntent, log?: ILogItem): Promise<GroupCall> {
+    createCall(roomId: string, type: CallType, name: string, intent?: CallIntent, log?: ILogItem): Promise<GroupCall> {
         return this.options.logger.wrapOrRun(log, "CallHandler.createCall", async log => {
             if (!intent) {
                 intent = CallIntent.Ring;
             }
-            const call = new GroupCall(makeId("conf-"), false, true, { 
-                "m.name": name,
-                "m.intent": intent
-            }, roomId, this.groupCallOptions);
+            const call = new GroupCall(
+                makeId("conf-"), // id
+                false, // isLoadedFromStorage
+                true, // newCall
+                undefined, // startTime
+                {"m.name": name, "m.intent": intent}, // callContent
+                roomId, // roomId
+                this.groupCallOptions // options
+            );
             this._calls.set(call.id, call);
 
             try {
@@ -210,14 +223,22 @@ export class CallHandler implements RoomStateHandler {
         const callId = event.state_key;
         let call = this._calls.get(callId);
         if (call) {
-            call.updateCallEvent(event.content, log);
+            call.updateCallEvent(event, log);
             if (call.isTerminated) {
                 call.disconnect(log);
                 this._calls.remove(call.id);
                 txn.calls.remove(call.intent, roomId, call.id);
             }
         } else {
-            call = new GroupCall(event.state_key, false, false, event.content, roomId, this.groupCallOptions);
+            call = new GroupCall(
+                event.state_key, // id
+                false, // isLoadedFromStorage
+                false, // newCall
+                event.origin_server_ts, // startTime
+                event.content, // callContent
+                roomId, // roomId
+                this.groupCallOptions // options
+            );
             this._calls.set(call.id, call);
             txn.calls.add({
                 intent: call.intent,

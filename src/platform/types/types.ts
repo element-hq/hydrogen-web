@@ -55,4 +55,5 @@ export interface ITimeFormatter {
     formatTime(date: Date): string;
     formatRelativeDate(date: Date): string;
     formatMachineReadableDate(date: Date): string;
+    formatDuration(milliseconds: number): string;
 }
