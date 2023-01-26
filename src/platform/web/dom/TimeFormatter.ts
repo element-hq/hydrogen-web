@@ -16,15 +16,7 @@ limitations under the License.
 
 import type { ITimeFormatter } from "../../types/types";
 import {Clock} from "./Clock";
-
-enum TimeScope {
-    Minute = 60 * 1000,
-    Day = 24 * 60 * 60 * 1000,
-}
-
-const MINUTES_IN_MS = 60 * 1000;
-const HOURS_IN_MS = MINUTES_IN_MS * 60;
-const DAYS_IN_MS = HOURS_IN_MS * 24;
+import {formatDuration, TimeScope} from "../../../utils/timeFormatting";
 
 export class TimeFormatter implements ITimeFormatter {
 
@@ -81,34 +73,7 @@ export class TimeFormatter implements ITimeFormatter {
     }
 
     formatDuration(milliseconds: number): string {
-        let days = 0;
-        let hours = 0;
-        let minutes = 0;
-        if (milliseconds >= DAYS_IN_MS) {
-            days = Math.floor(milliseconds / DAYS_IN_MS);
-            milliseconds -= days * DAYS_IN_MS;
-        }
-        if (milliseconds >= HOURS_IN_MS) {
-            hours = Math.floor(milliseconds / HOURS_IN_MS);
-            milliseconds -= hours * HOURS_IN_MS;
-        }
-        if (milliseconds >= MINUTES_IN_MS) {
-            minutes = Math.floor(milliseconds / MINUTES_IN_MS);
-            milliseconds -= minutes * MINUTES_IN_MS;
-        }
-        const seconds = Math.floor(milliseconds / 1000);
-        let result = "";
-        if (days) {
-            result = `${days}d `;
-        }
-        if (hours || days) {
-            result += `${hours}h `;
-        }
-        if (minutes || hours || days) {
-            result += `${minutes}m `;
-        }
-        result += `${seconds}s`;
-        return result;
+        return formatDuration(milliseconds);
     }
 }
 
