@@ -94,7 +94,7 @@ export class CallTile extends SimpleTile {
     }
 
     get canJoin() {
-        return this._call && !this._call.hasJoined;
+        return this._call && !this._call.hasJoined && !this._call.usesFoci;
     }
 
     get canLeave() {

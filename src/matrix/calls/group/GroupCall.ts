@@ -190,7 +190,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     join(localMedia: LocalMedia, log?: ILogItem): Promise<void> {
         return this.options.logger.wrapOrRun(log, "Call.join", async joinLog => {
-            if (this._state !== GroupCallState.Created || this.joinedData) {
+            if (this._state !== GroupCallState.Created || this.joinedData || this.usesFoci) {
                 return;
             }
             const logItem = this.options.logger.child({
