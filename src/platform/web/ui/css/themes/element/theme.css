@@ -1278,7 +1278,10 @@ button.RoomDetailsView_row::after {
 }
 
 .CallToastNotificationView__call-type::before {
-    content: url("./icons/video-call.svg?primary=light-text-color");
+    content: "";
+    background-image: url("./icons/video-call.svg?primary=light-text-color");
+    background-repeat: no-repeat;
+    background-size: 20px 20px;
     display: flex;
     width: 20px;
     height: 20px;
@@ -1296,7 +1299,10 @@ button.RoomDetailsView_row::after {
 }
 
 .CallToastNotificationView__member-count::before {
-    content: url("./icons/room-members.svg?primary=light-text-color");
+    content: "";
+    background-image: url("./icons/room-members.svg?primary=light-text-color");
+    background-repeat: no-repeat;
+    background-size: 20px 20px;
     display: flex;
     width: 20px;
     height: 20px;
