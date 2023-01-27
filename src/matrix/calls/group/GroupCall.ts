@@ -145,6 +145,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return !!this.callContent?.["m.terminated"];
     }
 
+    get usesFoci(): boolean {
+        for (const member of this._members.values()) {
+            if (member.usesFoci) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     get duration(): number | undefined {
         if (typeof this.startTime === "number") {
             return (this.options.clock.now() - this.startTime);
