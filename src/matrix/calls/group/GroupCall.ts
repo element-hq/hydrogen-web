@@ -226,7 +226,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     this.emitChange();
                 });
                 // send invite to all members that are < my userId
-                for (const [,member] of this._members) {
+                for (const member of this._members.values()) {
                     this.connectToMember(member, joinedData, log);
                 }
             });
@@ -530,7 +530,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     disconnect(log: ILogItem): boolean {
         return this.errorBoundary.try(() => {
             if (this.hasJoined) {
-                for (const [,member] of this._members) {
+                for (const member of this._members.values()) {
                     const disconnectLogItem = member.disconnect(true);
                     if (disconnectLogItem) {
                         log.refDetached(disconnectLogItem);
