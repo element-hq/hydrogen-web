@@ -94,7 +94,7 @@ export class CallTile extends SimpleTile {
     }
 
     get canJoin() {
-        return this._call && !this._call.hasJoined;
+        return this._call && !this._call.hasJoined && !this._call.usesFoci;
     }
 
     get canLeave() {
@@ -118,11 +118,14 @@ export class CallTile extends SimpleTile {
     }
 
     get typeLabel() {
+        if (this._call && this._call.usesFoci) {
+            return `This call uses a stream-forwarding unit, which isn't supported yet, so you can't join this call.`;
+        }
         if (this.type === CallType.Video) {
-                return `Video call`;
-            } else {
-                return `Voice call`;
-            }
+            return `Video call`;
+        } else {
+            return `Voice call`;
+        }
     }
 
     get type() {

@@ -145,6 +145,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return !!this.callContent?.["m.terminated"];
     }
 
+    get usesFoci(): boolean {
+        for (const member of this._members.values()) {
+            if (member.usesFoci) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     get duration(): number | undefined {
         if (typeof this.startTime === "number") {
             return (this.options.clock.now() - this.startTime);
@@ -181,7 +190,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     join(localMedia: LocalMedia, log?: ILogItem): Promise<void> {
         return this.options.logger.wrapOrRun(log, "Call.join", async joinLog => {
-            if (this._state !== GroupCallState.Created || this.joinedData) {
+            if (this._state !== GroupCallState.Created || this.joinedData || this.usesFoci) {
+                localMedia.dispose();
                 return;
             }
             const logItem = this.options.logger.child({
@@ -217,7 +227,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     this.emitChange();
                 });
                 // send invite to all members that are < my userId
-                for (const [,member] of this._members) {
+                for (const member of this._members.values()) {
                     this.connectToMember(member, joinedData, log);
                 }
             });
@@ -521,7 +531,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
     disconnect(log: ILogItem): boolean {
         return this.errorBoundary.try(() => {
             if (this.hasJoined) {
-                for (const [,member] of this._members) {
+                for (const member of this._members.values()) {
                     const disconnectLogItem = member.disconnect(true);
                     if (disconnectLogItem) {
                         log.refDetached(disconnectLogItem);

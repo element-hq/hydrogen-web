@@ -117,6 +117,11 @@ export class Member {
         return this.errorBoundary.error;
     }
 
+    get usesFoci(): boolean {
+        const activeFoci = this.callDeviceMembership["m.foci.active"];
+        return Array.isArray(activeFoci) && activeFoci.length > 0;
+    }
+
     private _renewExpireTimeout(log: ILogItem) {
         this.expireTimeout?.dispose();
         this.expireTimeout = undefined;

@@ -79,7 +79,7 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     
     private _shouldShowNotification(call: GroupCall): boolean {
         const currentlyOpenedRoomId = this.navigation.path.get("room")?.value;
-        if (!call.isLoadedFromStorage && call.roomId !== currentlyOpenedRoomId) {
+        if (!call.isLoadedFromStorage && call.roomId !== currentlyOpenedRoomId && !call.usesFoci) {
             return true;
         }
         return false;
