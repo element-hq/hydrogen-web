@@ -229,7 +229,8 @@ export class CallHandler implements RoomStateHandler {
                 this._calls.remove(call.id);
                 txn.calls.remove(call.intent, roomId, call.id);
             }
-        } else {
+        } else if(!event.content["m.terminated"]) {
+            // We don't have this call already and it isn't terminated, so create the call:
             call = new GroupCall(
                 event.state_key, // id
                 false, // isLoadedFromStorage
