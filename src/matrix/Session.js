@@ -47,6 +47,10 @@ import {
 import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
 import {PeekableRoom} from "./room/PeekableRoom";
+import {RelationWriter} from "./room/timeline/persistence/RelationWriter";
+import {GapWriter} from "./room/timeline/persistence/GapWriter";
+import {FragmentBoundaryEntry} from "./room/timeline/entries/FragmentBoundaryEntry";
+import {FragmentIdComparer} from "./room/timeline/FragmentIdComparer";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -968,18 +972,65 @@ export class Session {
             const room = this._peekableRooms.get(roomId);
             console.log('activePeekableRoom',room);
             if (room) {
-                room.retain();
+                // room.retain();
                 return room;
             }
-            const txn = await this._storage.readTxn([
-                this._storage.storeNames.peekableRoomSummary,
-                this._storage.storeNames.roomMembers,
-            ]);
-            const summary = await txn.peekableRoomSummary.get(roomId);
-            console.log('summary for peekable room',summary);
+
+            // const summary = await txn.peekableRoomSummary.get(roomId);
+            const summary = {"roomId":"!mOoWPqHyoyVyVeOmrK:synapse.dev:8008","name":"Mustang","lastMessageTimestamp":0,"isUnread":false,"membership":"join","inviteCount":0,"joinCount":1,"heroes":[],"canonicalAlias":"#mustang:synapse.dev:8008","hasFetchedMembers":false,"isTrackingMembers":false,"notificationCount":0,"highlightCount":0,"isDirectMessage":false};
+            console.log('summary (hardcoded) for peekable room',summary);
             if (summary) {
                 const room = this._createPeekableRoom(roomId);
-                await room.load(summary, txn, log);
+
+                const response = await this._hsApi.messages(roomId, {
+                    limit: 30,
+                    filter: {
+                        lazy_load_members: true,
+                        include_redundant_members: true,
+                    }
+                }, {log}).response();
+                console.log('response',response);
+
+                const txn = await this._storage.readWriteTxn([
+                    this._storage.storeNames.timelineFragments,
+                ]);
+                // this fragment is most likely not completely correct in terms of values it will have
+                const fragment = {
+                    roomId: roomId,
+                    id: 0,
+                    previousId: null,
+                    nextId: null,
+                    previousToken: response.start,
+                    nextToken: "",
+                };
+                txn.timelineFragments.add(fragment);
+
+                for (let i = 0; i < response.chunk.length; i++ ) {
+                    let event = response.chunk[i];
+                    event.fragmentId = 0;
+                    const timelineEntry = {
+                        roomId: roomId,
+                        fragmentId: 0,
+                        eventIndex: 0,
+                        event: event,
+                    }
+                    let txn = await this._storage.readWriteTxn([
+                        this._storage.storeNames.pendingEvents,
+                        this._storage.storeNames.timelineEvents,
+                        this._storage.storeNames.timelineRelations,
+                        this._storage.storeNames.timelineFragments,
+                    ]);
+                    await txn.timelineEvents.tryInsert(timelineEntry, log);
+                }
+
+                const txn0 = await this._storage.readTxn([
+                    this._storage.storeNames.peekableRoomSummary,
+                    this._storage.storeNames.timelineFragments,
+                    this._storage.storeNames.timelineEvents,
+                    this._storage.storeNames.roomMembers,
+                ]);
+                await room.load(summary, txn0, log);
+
                 return room;
             }
         });

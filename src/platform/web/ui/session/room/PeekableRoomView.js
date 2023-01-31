@@ -4,16 +4,31 @@ import {TimelineView} from "./TimelineView";
 import {TimelineLoadingView} from "./TimelineLoadingView";
 import {MessageComposer} from "./MessageComposer";
 import {DisabledComposerView} from "./DisabledComposerView";
+import {AvatarView} from "../../AvatarView";
 
 export class PeekableRoomView extends TemplateView {
+
     constructor(vm, viewClassForTile) {
         super(vm);
+        this._viewClassForTile = viewClassForTile;
     }
 
     render(t, vm) {
-        return t.main({className: "UnknownRoomView middle"}, t.div([
-            t.h2([
-                vm.i18n`Peeking in room: ${vm.roomIdOrAlias}.`,
+        return t.main({className: "RoomView middle"}, [
+            // t.h2([
+            //     vm.i18n`Peeking in room: ${vm.roomIdOrAlias}.`,
+            // ]),
+            t.div({className: "RoomHeader middle-header"}, [
+                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
+                // t.view(new AvatarView(vm, 32)),
+                t.div({className: "room-description"}, [
+                    t.h2(vm => vm.name),
+                ]),
+                // t.button({
+                //     className: "button-utility room-options",
+                //     "aria-label":vm.i18n`Room options`,
+                //     onClick: evt => this._toggleOptionsMenu(evt)
+                // })
             ]),
             t.div({className: "RoomView_body"}, [
                 t.div({className: "RoomView_error"}, [
@@ -38,6 +53,6 @@ export class PeekableRoomView extends TemplateView {
                         }
                     }),
             ])
-        ]));
+        ]);
     }
 }

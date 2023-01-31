@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {TimelineViewModel} from "./timeline/TimelineViewModel";
+import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
 
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
@@ -38,6 +39,10 @@ export class UnknownRoomViewModel extends ViewModel {
 
     get error() {
         return this._error?.message;
+    }
+
+    get room() {
+        return this._room;
     }
 
     async join() {
@@ -84,7 +89,7 @@ export class UnknownRoomViewModel extends ViewModel {
             this._tileOptions = this.childOptions({
                 roomVM: this,
                 timeline,
-                tileClassForEntry: this._tileClassForEntry,
+                tileClassForEntry: defaultTileClassForEntry,
             });
             this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
                 tileOptions: this._tileOptions,
