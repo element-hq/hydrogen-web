@@ -39,6 +39,9 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     onAdd(_, call: GroupCall) {
         if (this._shouldShowNotification(call)) {
             const room = this._findRoomForCall(call);
+            if (!room) {
+                return;
+            }
             const dismiss = () => {
                 const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
                 if (idx !== -1) {
