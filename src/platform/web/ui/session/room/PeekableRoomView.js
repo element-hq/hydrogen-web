@@ -43,15 +43,12 @@ export class PeekableRoomView extends TemplateView {
                         new TimelineView(timelineViewModel, this._viewClassForTile) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
-                t.mapView(vm => vm.composerViewModel,
-                    composerViewModel => {
-                        switch (composerViewModel?.kind) {
-                            case "composer":
-                                return new MessageComposer(vm.composerViewModel, this._viewClassForTile);
-                            case "disabled":
-                                return new DisabledComposerView(vm.composerViewModel);
-                        }
-                    }),
+                t.div({className: "PeekableRoomComposerView"}, [t.h3(vm => vm.description),
+                    t.button({
+                        className: "joinRoomButton",
+                        onClick: () => vm.join()
+                    }, "Join")
+                ])
             ])
         ]);
     }

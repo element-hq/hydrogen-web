@@ -27,6 +27,7 @@ export class UnknownRoomViewModel extends ViewModel {
         this._peekable = peekable;
         this._error = null;
         this._busy = false;
+        this.description = "You are currently peeking in " + roomIdOrAlias + ". Want to join it?";
 
         if ( peekable ) {
             this.peek().then(r => { console.log('peeked', r); });
