@@ -1004,7 +1004,7 @@ export class Session {
                     previousId: null,
                     nextId: null,
                     previousToken: response.start,
-                    nextToken: "",
+                    nextToken: null,
                 };
                 txn.timelineFragments.add(fragment);
 
