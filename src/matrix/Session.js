@@ -70,7 +70,6 @@ export class Session {
         this._rooms = new ObservableMap();
         this._roomUpdateCallback = (room, params) => this._rooms.update(room.id, params);
         this._activeArchivedRooms = new Map();
-        this._peekableRooms = new Map();
         this._invites = new ObservableMap();
         this._inviteUpdateCallback = (invite, params) => this._invites.update(invite.id, params);
         this._roomsBeingCreatedUpdateCallback = (rbc, params) => {
@@ -596,7 +595,7 @@ export class Session {
 
     /** @internal */
     _createPeekableRoom(roomId) {
-        const room = new PeekableRoom({
+        return new PeekableRoom({
             roomId,
             getSyncToken: this._getSyncToken,
             storage: this._storage,
@@ -608,8 +607,6 @@ export class Session {
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform
         });
-        this._peekableRooms.set(roomId, room);
-        return room;
     }
 
     get invites() {
@@ -972,62 +969,68 @@ export class Session {
     loadPeekableRoom(roomId, log = null) {
         return this._platform.logger.wrapOrRun(log, "loadPeekableRoom", async log => {
             log.set("id", roomId);
-            const room = this._peekableRooms.get(roomId);
-            console.log('activePeekableRoom',room);
-            if (room) {
-                // room.retain();
-                return room;
-            }
 
             // const summary = await txn.peekableRoomSummary.get(roomId);
-            const summary = {"roomId":"!mOoWPqHyoyVyVeOmrK:synapse.dev:8008","name":"Mustang","lastMessageTimestamp":0,"isUnread":false,"membership":"join","inviteCount":0,"joinCount":1,"heroes":[],"canonicalAlias":"#mustang:synapse.dev:8008","hasFetchedMembers":false,"isTrackingMembers":false,"notificationCount":0,"highlightCount":0,"isDirectMessage":false};
-            console.log('summary (hardcoded) for peekable room',summary);
-            if (summary) {
-                const room = this._createPeekableRoom(roomId);
+            const summary = {
+                "roomId": "!mOoWPqHyoyVyVeOmrK:synapse.dev:8008",
+                "name": "Mustang",
+                "lastMessageTimestamp": 0,
+                "isUnread": false,
+                "membership": "join",
+                "inviteCount": 0,
+                "joinCount": 1,
+                "heroes": [],
+                "canonicalAlias": "#mustang:synapse.dev:8008",
+                "hasFetchedMembers": false,
+                "isTrackingMembers": false,
+                "notificationCount": 0,
+                "highlightCount": 0,
+                "isDirectMessage": false
+            };
+            console.log('summary (hardcoded) for peekable room', summary);
 
-                const response = await this._hsApi.messages(roomId, {
-                    limit: 30,
-                    filter: {
-                        lazy_load_members: true,
-                        include_redundant_members: true,
-                    }
-                }, {log}).response();
-                console.log('response',response);
-
-                const txn = await this._storage.readWriteTxn([
-                    this._storage.storeNames.timelineFragments,
-                ]);
-                // this fragment is most likely not completely correct in terms of values it will have
-                const fragment = {
-                    roomId: roomId,
-                    id: 0,
-                    previousId: null,
-                    nextId: null,
-                    previousToken: response.start,
-                    nextToken: null,
-                };
-                txn.timelineFragments.add(fragment);
-
-                let eventKey = EventKey.defaultLiveKey;
-                for (let i = 0; i < response.chunk.length; i++ ) {
-                    if (i) {
-                        eventKey = eventKey.nextKey();
-                    }
-                    let txn = await this._storage.readWriteTxn([this._storage.storeNames.timelineEvents]);
-                    let eventEntry = createEventEntry(eventKey,roomId,response.chunk[i]);
-                    await txn.timelineEvents.tryInsert(eventEntry, log);
+            const room = this._createPeekableRoom(roomId);
+            const response = await this._hsApi.messages(roomId, {
+                limit: 30,
+                filter: {
+                    lazy_load_members: true,
+                    include_redundant_members: true,
                 }
+            }, {log}).response();
+            console.log('response', response);
 
-                const txn0 = await this._storage.readTxn([
-                    this._storage.storeNames.peekableRoomSummary,
-                    this._storage.storeNames.timelineFragments,
-                    this._storage.storeNames.timelineEvents,
-                    this._storage.storeNames.roomMembers,
-                ]);
-                await room.load(summary, txn0, log);
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.timelineFragments,
+            ]);
+            // this fragment is most likely not completely correct in terms of values it will have
+            const fragment = {
+                roomId: roomId,
+                id: 0,
+                previousId: null,
+                nextId: null,
+                previousToken: response.start,
+                nextToken: null,
+            };
+            txn.timelineFragments.add(fragment);
 
-                return room;
+            let eventKey = EventKey.defaultLiveKey;
+            for (let i = 0; i < response.chunk.length; i++) {
+                if (i) {
+                    eventKey = eventKey.nextKey();
+                }
+                let txn = await this._storage.readWriteTxn([this._storage.storeNames.timelineEvents]);
+                let eventEntry = createEventEntry(eventKey, roomId, response.chunk[i]);
+                await txn.timelineEvents.tryInsert(eventEntry, log);
             }
+
+            const txn0 = await this._storage.readTxn([
+                this._storage.storeNames.timelineFragments,
+                this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.roomMembers,
+            ]);
+            await room.load(summary, txn0, log);
+
+            return room;
         });
     }
 

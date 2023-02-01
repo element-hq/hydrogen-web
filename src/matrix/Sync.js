@@ -319,7 +319,6 @@ export class Sync {
             storeNames.session,
             storeNames.roomSummary,
             storeNames.archivedRoomSummary,
-            storeNames.peekableRoomSummary,
             storeNames.invites,
             storeNames.roomState,
             storeNames.roomMembers,

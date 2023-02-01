@@ -19,7 +19,6 @@ export enum StoreNames {
     roomState = "roomState",
     roomSummary = "roomSummary",
     archivedRoomSummary = "archivedRoomSummary",
-    peekableRoomSummary = "peekableRoomSummary",
     invites = "invites",
     roomMembers = "roomMembers",
     timelineEvents = "timelineEvents",
@@ -60,7 +59,7 @@ export const KeyLimits = {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0;
     },
-    
+
     get middleStorageKey(): number {
         // for indexeddb, we use unsigned 32 bit integers as keys
         return 0x7FFFFFFF;
