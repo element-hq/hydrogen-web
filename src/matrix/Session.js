@@ -51,6 +51,9 @@ import {RelationWriter} from "./room/timeline/persistence/RelationWriter";
 import {GapWriter} from "./room/timeline/persistence/GapWriter";
 import {FragmentBoundaryEntry} from "./room/timeline/entries/FragmentBoundaryEntry";
 import {FragmentIdComparer} from "./room/timeline/FragmentIdComparer";
+import {EventKey} from "./room/timeline/EventKey";
+import {createEventEntry} from "./room/timeline/persistence/common";
+import {Instance as nullLogger} from "../logging/NullLogger";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -1005,22 +1008,14 @@ export class Session {
                 };
                 txn.timelineFragments.add(fragment);
 
+                let eventKey = EventKey.defaultLiveKey;
                 for (let i = 0; i < response.chunk.length; i++ ) {
-                    let event = response.chunk[i];
-                    event.fragmentId = 0;
-                    const timelineEntry = {
-                        roomId: roomId,
-                        fragmentId: 0,
-                        eventIndex: 0,
-                        event: event,
+                    if (i) {
+                        eventKey = eventKey.nextKey();
                     }
-                    let txn = await this._storage.readWriteTxn([
-                        this._storage.storeNames.pendingEvents,
-                        this._storage.storeNames.timelineEvents,
-                        this._storage.storeNames.timelineRelations,
-                        this._storage.storeNames.timelineFragments,
-                    ]);
-                    await txn.timelineEvents.tryInsert(timelineEntry, log);
+                    let txn = await this._storage.readWriteTxn([this._storage.storeNames.timelineEvents]);
+                    let eventEntry = createEventEntry(eventKey,roomId,response.chunk[i]);
+                    await txn.timelineEvents.tryInsert(eventEntry, log);
                 }
 
                 const txn0 = await this._storage.readTxn([
