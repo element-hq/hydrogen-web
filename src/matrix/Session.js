@@ -132,7 +132,6 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
-        this._pendingObserveCalls = [];
     }
 
     get fingerprintKey() {
@@ -797,8 +796,6 @@ export class Session {
         // now all the collections are updated, update the room status
         // so any listeners to the status will find the collections
         // completely up to date
-        await Promise.all(this._pendingObserveCalls);
-        this._pendingObserveCalls = [];
         if (this._observedRoomStatus.size !== 0) {
             for (const ars of archivedRoomStates) {
                 if (ars.shouldAdd) {
@@ -941,21 +938,24 @@ export class Session {
     }
 
     async observeRoomStatus(roomId) {
-        const op = async () => {
-            let observable = this._observedRoomStatus.get(roomId);
-            if (!observable) {
-                const status = await this.getRoomStatus(roomId);
-                observable = new RetainedObservableValue(status, () => {
-                    this._observedRoomStatus.delete(roomId);
-                });
-
-                this._observedRoomStatus.set(roomId, observable);
+        let observable = this._observedRoomStatus.get(roomId);
+        if (!observable) {
+            let status = undefined;
+            // Create and set the observable with value = undefined, so that
+            // we don't loose any sync changes that come in while we are busy
+            // calculating the current room status.
+            observable = new RetainedObservableValue(status, () => {
+                this._observedRoomStatus.delete(roomId);
+            });
+            this._observedRoomStatus.set(roomId, observable);
+            status = await this.getRoomStatus(roomId);
+            // If observable.value is not undefined anymore, then some
+            // change has come through the sync.
+            if (observable.get() === undefined) {
+                observable.set(status);
             }
-            return observable;
         }
-        const promise = op();
-        this._pendingObserveCalls.push(promise);
-        return await promise;
+        return observable;
     }
 
     observeRoomState(roomStateHandler) {
