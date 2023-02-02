@@ -21,6 +21,7 @@ import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Room} from "../../../matrix/room/Room.js";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
+import { RoomStatus } from "../../../lib";
 
 type Options = {
     session: Session;
@@ -36,12 +37,9 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
         this.track(callsObservableMap.subscribe(this));
     }
 
-    onAdd(_, call: GroupCall) {
+    async onAdd(_, call: GroupCall) {
         if (this._shouldShowNotification(call)) {
-            const room = this._findRoomForCall(call);
-            if (!room) {
-                return;
-            }
+            const room = await this._findRoomForCall(call);
             const dismiss = () => {
                 const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
                 if (idx !== -1) {
@@ -74,10 +72,16 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
         }
     }
 
-    private _findRoomForCall(call: GroupCall): Room {
+    private async _findRoomForCall(call: GroupCall): Promise<Room> {
         const id = call.roomId;
-        const rooms = this.getOption("session").rooms;
-        return rooms.get(id);
+        const session = this.getOption("session");
+        const rooms = session.rooms;
+        // Make sure that we know of this room, 
+        // otherwise wait for it to come through sync
+        const observable = await session.observeRoomStatus(id);
+        await observable.waitFor(s => s === RoomStatus.Joined).promise;
+        const room = rooms.get(id);
+        return room;
     }
     
     private _shouldShowNotification(call: GroupCall): boolean {

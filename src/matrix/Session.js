@@ -132,6 +132,7 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+        this._pendingObserveCalls = [];
     }
 
     get fingerprintKey() {
@@ -776,7 +777,7 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
+    async applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
@@ -796,6 +797,8 @@ export class Session {
         // now all the collections are updated, update the room status
         // so any listeners to the status will find the collections
         // completely up to date
+        await Promise.all(this._pendingObserveCalls);
+        this._pendingObserveCalls = [];
         if (this._observedRoomStatus.size !== 0) {
             for (const ars of archivedRoomStates) {
                 if (ars.shouldAdd) {
@@ -938,16 +941,21 @@ export class Session {
     }
 
     async observeRoomStatus(roomId) {
-        let observable = this._observedRoomStatus.get(roomId);
-        if (!observable) {
-            const status = await this.getRoomStatus(roomId);
-            observable = new RetainedObservableValue(status, () => {
-                this._observedRoomStatus.delete(roomId);
-            });
+        const op = async () => {
+            let observable = this._observedRoomStatus.get(roomId);
+            if (!observable) {
+                const status = await this.getRoomStatus(roomId);
+                observable = new RetainedObservableValue(status, () => {
+                    this._observedRoomStatus.delete(roomId);
+                });
 
-            this._observedRoomStatus.set(roomId, observable);
+                this._observedRoomStatus.set(roomId, observable);
+            }
+            return observable;
         }
-        return observable;
+        const promise = op();
+        this._pendingObserveCalls.push(promise);
+        return await promise;
     }
 
     observeRoomState(roomStateHandler) {
