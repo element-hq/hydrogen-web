@@ -10,7 +10,7 @@ export class PeekableRoomView extends TemplateView {
     }
 
     render(t, vm) {
-        return t.main({className: "RoomView middle"}, [
+        return t.main({className: "RoomView PeekableRoomView middle"}, [
             t.div({className: "RoomHeader middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
                 t.div({className: "room-description"}, [

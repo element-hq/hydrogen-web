@@ -977,6 +977,10 @@ button.link {
     width: 100%;
 }
 
+.PeekableRoomView .Timeline_message:hover > .Timeline_messageOptions{
+    display: none;
+}
+
 .LoadingView {
     height: 100%;
     width: 100%;
