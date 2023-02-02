@@ -987,6 +987,7 @@ export class Session {
             const room = this._createPeekableRoom(roomId);
             const response = await this._hsApi.messages(roomId, {
                 limit: 30,
+                dir: 'b',
                 filter: {
                     lazy_load_members: true,
                     include_redundant_members: true,
@@ -1011,7 +1012,7 @@ export class Session {
             let eventKey = EventKey.defaultLiveKey;
             for (let i = 0; i < response.chunk.length; i++) {
                 if (i) {
-                    eventKey = eventKey.nextKey();
+                    eventKey = eventKey.previousKey();
                 }
                 let txn = await this._storage.readWriteTxn([this._storage.storeNames.timelineEvents]);
                 let eventEntry = createEventEntry(eventKey, roomId, response.chunk[i]);
