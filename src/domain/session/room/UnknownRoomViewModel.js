@@ -75,10 +75,6 @@ export class UnknownRoomViewModel extends ViewModel {
         return this._peekable ? "peekable" : "unknown";
     }
 
-    get composerViewModel() {
-        return null;
-    }
-
     get timelineViewModel() {
         return this._timelineVM;
     }
