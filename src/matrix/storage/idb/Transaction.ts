@@ -103,7 +103,7 @@ export class Transaction {
     get roomSummary(): RoomSummaryStore {
         return this._store(StoreNames.roomSummary, idbStore => new RoomSummaryStore(idbStore));
     }
-
+    
     get archivedRoomSummary(): RoomSummaryStore {
         return this._store(StoreNames.archivedRoomSummary, idbStore => new RoomSummaryStore(idbStore));
     }
@@ -143,15 +143,15 @@ export class Transaction {
     get deviceIdentities(): DeviceIdentityStore {
         return this._store(StoreNames.deviceIdentities, idbStore => new DeviceIdentityStore(idbStore));
     }
-
+    
     get olmSessions(): OlmSessionStore {
         return this._store(StoreNames.olmSessions, idbStore => new OlmSessionStore(idbStore));
     }
-
+    
     get inboundGroupSessions(): InboundGroupSessionStore {
         return this._store(StoreNames.inboundGroupSessions, idbStore => new InboundGroupSessionStore(idbStore));
     }
-
+    
     get outboundGroupSessions(): OutboundGroupSessionStore {
         return this._store(StoreNames.outboundGroupSessions, idbStore => new OutboundGroupSessionStore(idbStore));
     }

@@ -33,7 +33,7 @@ export const schema: MigrationFunc[] = [
     backupAndRestoreE2EEAccountToLocalStorage,
     clearAllStores,
     addInboundSessionBackupIndex,
-    migrateBackupStatus,
+    migrateBackupStatus
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
