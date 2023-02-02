@@ -47,13 +47,8 @@ import {
 import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
 import {PeekableRoom} from "./room/PeekableRoom";
-import {RelationWriter} from "./room/timeline/persistence/RelationWriter";
-import {GapWriter} from "./room/timeline/persistence/GapWriter";
-import {FragmentBoundaryEntry} from "./room/timeline/entries/FragmentBoundaryEntry";
-import {FragmentIdComparer} from "./room/timeline/FragmentIdComparer";
 import {EventKey} from "./room/timeline/EventKey";
 import {createEventEntry} from "./room/timeline/persistence/common";
-import {Instance as nullLogger} from "../logging/NullLogger";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
