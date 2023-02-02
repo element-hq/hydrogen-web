@@ -965,6 +965,10 @@ export class Session {
         return this._platform.logger.wrapOrRun(log, "loadPeekableRoom", async log => {
             log.set("id", roomId);
 
+            const room = this._createPeekableRoom(roomId);
+            let response = await this._loadEventsPeekableRoom(roomId, 30, 'b', null, log);
+            console.log('response from _loadEventsPeekableRoom', response); // response.end to be used in the next call for sync functionality
+
             // const summary = await txn.peekableRoomSummary.get(roomId);
             const summary = {
                 "roomId": "!mOoWPqHyoyVyVeOmrK:synapse.dev:8008",
@@ -984,16 +988,44 @@ export class Session {
             };
             console.log('summary (hardcoded) for peekable room', summary);
 
-            const room = this._createPeekableRoom(roomId);
-            const response = await this._hsApi.messages(roomId, {
-                limit: 30,
-                dir: 'b',
-                filter: {
-                    lazy_load_members: true,
-                    include_redundant_members: true,
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.timelineFragments,
+                this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.roomMembers,
+            ]);
+            await room.load(summary, txn, log);
+
+            return room;
+        });
+    }
+
+    async _loadEventsPeekableRoom(roomId, limit = 30, dir = 'b', end = null, log = null) {
+        return this._platform.logger.wrapOrRun(log, "loadEventsPeekableRoom", async log => {
+            log.set("id", roomId);
+            let options;
+            if (end === null) {
+                options = {
+                    limit: limit,
+                    dir: 'b',
+                    filter: {
+                        lazy_load_members: true,
+                        include_redundant_members: true,
+                    }
                 }
-            }, {log}).response();
-            console.log('response', response);
+            } else {
+                options = {
+                    limit: limit,
+                    dir: 'b',
+                    from: end,
+                    filter: {
+                        lazy_load_members: true,
+                        include_redundant_members: true,
+                    }
+                }
+            }
+
+            const response = await this._hsApi.messages(roomId, options, {log}).response();
+            console.info('/messages endpoint response', response);
 
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.timelineFragments,
@@ -1019,17 +1051,9 @@ export class Session {
                 await txn.timelineEvents.tryInsert(eventEntry, log);
             }
 
-            const txn0 = await this._storage.readTxn([
-                this._storage.storeNames.timelineFragments,
-                this._storage.storeNames.timelineEvents,
-                this._storage.storeNames.roomMembers,
-            ]);
-            await room.load(summary, txn0, log);
-
-            return room;
+            return response;
         });
     }
-
 
     joinRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "joinRoom", async log => {
