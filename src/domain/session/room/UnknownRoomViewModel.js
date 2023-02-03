@@ -27,10 +27,6 @@ export class UnknownRoomViewModel extends ViewModel {
         this._peekable = peekable;
         this._error = null;
         this._busy = false;
-
-        if ( peekable ) {
-            this.peek().then(r => { console.log('peeked', r); });
-        }
     }
 
     get peekable() {

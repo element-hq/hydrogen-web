@@ -228,11 +228,16 @@ export class SessionViewModel extends ViewModel {
         }
         const peekable = await this._client.session.canPeekInRoom(roomId);
 
-        return new UnknownRoomViewModel(this.childOptions({
+        let vm = new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
             session: this._client.session,
             peekable: peekable
         }));
+        if (peekable) {
+            await vm.peek();
+        }
+
+        return vm;
     }
 
     async _createArchivedRoomViewModel(roomId) {
