@@ -966,7 +966,7 @@ export class Session {
             log.set("id", roomId);
 
             const room = this._createPeekableRoom(roomId);
-            let response = await this._loadEventsPeekableRoom(roomId, 10, 'b', null, log);
+            let response = await this._loadEventsPeekableRoom(roomId, 100, 'b', null, log);
             console.log('response from _loadEventsPeekableRoom', response); // response.end to be used in the next call for sync functionality
 
             let summary = await this._preparePeekableRoomSummary(roomId, log);
