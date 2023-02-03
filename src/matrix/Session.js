@@ -1002,26 +1002,16 @@ export class Session {
     async _loadEventsPeekableRoom(roomId, limit = 30, dir = 'b', end = null, log = null) {
         return this._platform.logger.wrapOrRun(log, "loadEventsPeekableRoom", async log => {
             log.set("id", roomId);
-            let options;
-            if (end === null) {
-                options = {
-                    limit: limit,
-                    dir: 'b',
-                    filter: {
-                        lazy_load_members: true,
-                        include_redundant_members: true,
-                    }
+            let options = {
+                limit: limit,
+                dir: 'b',
+                filter: {
+                    lazy_load_members: true,
+                    include_redundant_members: true,
                 }
-            } else {
-                options = {
-                    limit: limit,
-                    dir: 'b',
-                    from: end,
-                    filter: {
-                        lazy_load_members: true,
-                        include_redundant_members: true,
-                    }
-                }
+            }
+            if (end !== null) {
+                options['from'] = end;
             }
 
             const response = await this._hsApi.messages(roomId, options, {log}).response();
