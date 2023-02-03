@@ -1005,6 +1005,8 @@ export class Session {
                     summary["name"] = resp[i].content.name;
                 } else if ( resp[i].type === 'm.room.canonical_alias' ) {
                     summary["canonicalAlias"] = resp[i].content.alias;
+                } else if ( resp[i].type === 'm.room.avatar' ) {
+                    summary["avatarUrl"] = resp[i].content.url;
                 }
             }
 

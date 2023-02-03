@@ -17,6 +17,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel";
 import {TimelineViewModel} from "./timeline/TimelineViewModel";
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
+import {getAvatarHttpUrl} from "../../avatar";
 
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
@@ -73,6 +74,10 @@ export class UnknownRoomViewModel extends ViewModel {
 
     get timelineViewModel() {
         return this._timelineVM;
+    }
+
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
     }
 
     async peek() {

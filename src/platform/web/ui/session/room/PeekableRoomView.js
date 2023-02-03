@@ -1,6 +1,7 @@
 import {TemplateView} from "../../general/TemplateView";
 import {TimelineView} from "./TimelineView";
 import {TimelineLoadingView} from "./TimelineLoadingView";
+import {AvatarView} from "../../AvatarView";
 
 export class PeekableRoomView extends TemplateView {
 
@@ -13,6 +14,7 @@ export class PeekableRoomView extends TemplateView {
         return t.main({className: "RoomView PeekableRoomView middle"}, [
             t.div({className: "RoomHeader middle-header"}, [
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
+                t.view(new AvatarView(vm, 32)),
                 t.div({className: "room-description"}, [
                     t.h2(vm => vm.name),
                 ]),
