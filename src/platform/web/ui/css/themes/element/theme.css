@@ -950,7 +950,7 @@ button.link {
     width: 100%;
 }
 
-.DisabledComposerView {
+.DisabledComposerView, .PeekableRoomComposerView {
     padding: 12px;
     background-color: var(--background-color-secondary);
 }
@@ -979,6 +979,16 @@ button.link {
 
 .PeekableRoomView .Timeline_message:hover > .Timeline_messageOptions{
     display: none;
+}
+.PeekableRoomComposerView {
+    padding: 12px;
+}
+.PeekableRoomComposerView h3 {
+    display: inline-block;
+    margin: 0;
+}
+.PeekableRoomComposerView .joinRoomButton {
+    float: right;
 }
 
 .LoadingView {

@@ -31,8 +31,8 @@ export class PeekableRoomView extends TemplateView {
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
                 t.div({className: "PeekableRoomComposerView"}, [
-                    t.h3(vm => vm.i18n`You are currently peeking into this room. To join, click the button below.`),
-                    t.button({className: "joinRoomButton", onClick: () => vm.join()}, "Join")
+                    t.h3(vm => vm.i18n`Join the room to participate`),
+                    t.button({className: "joinRoomButton", onClick: () => vm.join()}, vm.i18n`Join Room`)
                 ])
             ])
         ]);
