@@ -966,28 +966,10 @@ export class Session {
             log.set("id", roomId);
 
             const room = this._createPeekableRoom(roomId);
-            let response = await this._loadEventsPeekableRoom(roomId, 30, 'b', null, log);
+            let response = await this._loadEventsPeekableRoom(roomId, 10, 'b', null, log);
             console.log('response from _loadEventsPeekableRoom', response); // response.end to be used in the next call for sync functionality
 
-            // const summary = await txn.peekableRoomSummary.get(roomId);
-            const summary = {
-                "roomId": "!mOoWPqHyoyVyVeOmrK:synapse.dev:8008",
-                "name": "Mustang",
-                "lastMessageTimestamp": 0,
-                "isUnread": false,
-                "membership": "join",
-                "inviteCount": 0,
-                "joinCount": 1,
-                "heroes": [],
-                "canonicalAlias": "#mustang:synapse.dev:8008",
-                "hasFetchedMembers": false,
-                "isTrackingMembers": false,
-                "notificationCount": 0,
-                "highlightCount": 0,
-                "isDirectMessage": false
-            };
-            console.log('summary (hardcoded) for peekable room', summary);
-
+            let summary = await this._preparePeekableRoomSummary(roomId, log);
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.timelineFragments,
                 this._storage.storeNames.timelineEvents,
@@ -996,6 +978,37 @@ export class Session {
             await room.load(summary, txn, log);
 
             return room;
+        });
+    }
+
+    async _preparePeekableRoomSummary(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "preparePeekableRoomSummary", async log => {
+            log.set("id", roomId);
+
+            let summary = {
+                "roomId": roomId,
+                "lastMessageTimestamp": 0,
+                "isUnread": false,
+                "membership": "join",
+                "inviteCount": 0,
+                "joinCount": 1,
+                "heroes": [],
+                "hasFetchedMembers": false,
+                "isTrackingMembers": false,
+                "notificationCount": 0,
+                "highlightCount": 0,
+                "isDirectMessage": false
+            };
+            const resp = await this._hsApi.currentState(roomId).response();
+            for ( let i=0; i<resp.length; i++ ) {
+                if ( resp[i].type === 'm.room.name') {
+                    summary["name"] = resp[i].content.name;
+                } else if ( resp[i].type === 'm.room.canonical_alias' ) {
+                    summary["canonicalAlias"] = resp[i].content.alias;
+                }
+            }
+
+            return summary;
         });
     }
 
