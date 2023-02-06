@@ -284,11 +284,12 @@ export class PeerCall implements IDisposable {
     }
 
     private async _hangup(errorCode: CallErrorCode, log: ILogItem): Promise<void> {
-        if (this._state === CallState.Ended) {
+        if (this._state === CallState.Ended || this._state === CallState.Ending) {
             return;
         }
-        this.terminate(CallParty.Local, errorCode, log);
+        this.setState(CallState.Ending, log);
         await this.sendHangupWithCallId(this.callId, errorCode, log);
+        this.terminate(CallParty.Local, errorCode, log);
     }
 
     getMessageAction<B extends MCallBase>(message: SignallingMessage<B>): IncomingMessageAction {
@@ -1130,6 +1131,7 @@ export enum CallState {
     Connecting = 'connecting',
     Connected = 'connected',
     Ringing = 'ringing',
+    Ending = 'ending',
     Ended = 'ended',
 }
 
