@@ -372,7 +372,6 @@ export class Member {
                 }
                 if (action === IncomingMessageAction.Handle) {
                     const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
-                    console.log(`splice ${message.type} at ${idx}`);
                     connection.queuedSignallingMessages.splice(idx, 0, message);
                     if (connection.peerCall) {
                         const hasNewMessageBeenDequeued = this.dequeueSignallingMessages(connection, connection.peerCall, message, syncLog);
