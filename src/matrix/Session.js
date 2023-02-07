@@ -776,7 +776,7 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
+    async applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
@@ -940,12 +940,20 @@ export class Session {
     async observeRoomStatus(roomId) {
         let observable = this._observedRoomStatus.get(roomId);
         if (!observable) {
-            const status = await this.getRoomStatus(roomId);
+            let status = undefined;
+            // Create and set the observable with value = undefined, so that
+            // we don't loose any sync changes that come in while we are busy
+            // calculating the current room status.
             observable = new RetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);
             });
-
             this._observedRoomStatus.set(roomId, observable);
+            status = await this.getRoomStatus(roomId);
+            // If observable.value is not undefined anymore, then some
+            // change has come through the sync.
+            if (observable.get() === undefined) {
+                observable.set(status);
+            }
         }
         return observable;
     }
