@@ -134,8 +134,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             },
             encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
                 return this.options.encryptDeviceMessage(this.roomId, userId, deviceId, message, log);
-            },
-            groupCallErrorBoundary: this.errorBoundary,
+            }
         });
     }
 

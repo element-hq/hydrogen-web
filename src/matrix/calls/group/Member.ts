@@ -42,7 +42,6 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
     emitUpdate: (participant: Member, params?: any) => void,
-    groupCallErrorBoundary: ErrorBoundary,
     clock: Clock
 }
 
@@ -422,7 +421,7 @@ export class Member {
     private _createPeerCall(callId: string): PeerCall {
         const connection = this.connection!;
         return new PeerCall(callId, Object.assign({}, this.options, {
-            errorBoundary: this.options.groupCallErrorBoundary,
+            errorBoundary: this.errorBoundary,
             emitUpdate: this.emitUpdateFromPeerCall,
             sendSignallingMessage: this.sendSignallingMessage,
             turnServer: connection.turnServer
