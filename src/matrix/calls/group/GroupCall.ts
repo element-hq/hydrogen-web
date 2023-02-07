@@ -133,7 +133,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
             },
             encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
                 return this.options.encryptDeviceMessage(this.roomId, userId, deviceId, message, log);
-            }
+            },
+            groupCallErrorBoundary: this.errorBoundary,
         });
     }
 
@@ -392,8 +393,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
 
     /** @internal */
     updateMembership(userId: string, roomMember: RoomMember, callMembership: CallMembership, syncLog: ILogItem) {
-        this.errorBoundary.try(() => {
-            syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, log => {
+        this.errorBoundary.try(async () => {
+            await syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, async log => {
                 const now = this.options.clock.now();
                 const devices = callMembership["m.devices"];
                 const previousDeviceIds = this.getDeviceIdsForUserId(userId);
@@ -415,7 +416,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             }
                         });
                     } else {
-                        log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, log => {
+                        await log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, async log => {
                             if (isMemberExpired(device, now)) {
                                 log.set("expired", true);
                                 const member = this._members.get(memberKey);
@@ -434,7 +435,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                             } else {
                                 if (member && sessionIdChanged) {
                                     log.set("removedSessionId", member.sessionId);
-                                    const disconnectLogItem = member.disconnect(false);
+                                    const disconnectLogItem = await member.disconnect(false);
                                     if (disconnectLogItem) {
                                         log.refDetached(disconnectLogItem);
                                     }
@@ -528,11 +529,11 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    disconnect(log: ILogItem): boolean {
-        return this.errorBoundary.try(() => {
+    disconnect(log: ILogItem): Promise<void> | true {
+        return this.errorBoundary.try(async () => {
             if (this.hasJoined) {
                 for (const member of this._members.values()) {
-                    const disconnectLogItem = member.disconnect(true);
+                    const disconnectLogItem = await member.disconnect(true);
                     if (disconnectLogItem) {
                         log.refDetached(disconnectLogItem);
                     }
@@ -546,13 +547,13 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    private removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
+    private async removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
         const memberKey = getMemberKey(userId, deviceId);
-        log.wrap({l: "remove device member", id: memberKey}, log => {
+        await log.wrap({l: "remove device member", id: memberKey}, async log => {
             const member = this._members.get(memberKey);
             if (member) {
                 log.set("leave", true);
-                const disconnectLogItem = member.disconnect(false);
+                const disconnectLogItem = await member.disconnect(false);
                 if (disconnectLogItem) {
                     log.refDetached(disconnectLogItem);
                 }
@@ -634,15 +635,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return stateContent;
     }
 
-    private connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
+    private async connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
         const memberKey = getMemberKey(member.userId, member.deviceId);
         const logItem = joinedData.membersLogItem.child({
             l: "member",
             id: memberKey,
             sessionId: member.sessionId
         });
-        log.wrap({l: "connect", id: memberKey}, log => {
-            const connectItem = member.connect(
+        await log.wrap({l: "connect", id: memberKey}, async log => {
+            const connectItem = await member.connect(
                 joinedData.localMedia,
                 joinedData.localMuteSettings,
                 joinedData.turnServer,

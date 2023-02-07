@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const ErrorValue = Symbol("ErrorBoundary:Error");
-
 export class ErrorBoundary {
     private _error?: Error;
 
@@ -23,7 +21,7 @@ export class ErrorBoundary {
 
     /**
      * Executes callback() and then runs errorCallback() on error.
-     * This will never throw but instead return `errorValue` if an error occured.
+     * This will never throw but instead return `errorValue` if an error occurred.
      */
     try<T, E>(callback: () => T, errorValue?: E): T | typeof errorValue;
     try<T, E>(callback: () => Promise<T>, errorValue?: E): Promise<T | typeof errorValue> | typeof errorValue {
