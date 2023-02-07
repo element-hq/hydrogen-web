@@ -581,7 +581,6 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     sessionId: message.content.sender_session_id,
                     type: message.type
                 });
-                syncLog.refDetached(item);
                 // we haven't received the m.call.member yet for this caller (or with this session id).
                 // buffer the device messages or create the member/call as it should arrive in a moment
                 let messages = this.bufferedDeviceMessages.get(key);
