@@ -1034,8 +1034,14 @@ export class Session {
 
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.timelineFragments,
+                this._storage.storeNames.timelineEvents,
             ]);
-            // this fragment is most likely not completely correct in terms of values it will have
+
+            // clear old records for this room
+            txn.timelineFragments.removeAllForRoom(roomId);
+            txn.timelineEvents.removeAllForRoom(roomId);
+
+            // insert fragment and event records for this room
             const fragment = {
                 roomId: roomId,
                 id: 0,
