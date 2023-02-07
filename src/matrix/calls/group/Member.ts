@@ -84,7 +84,7 @@ class MemberConnection {
             return true;
         }
         if (this.lastProcessedSeqNr === undefined) {
-            return true;
+            return firstSeq === 0;
         }
         // allow messages with both a seq we've just seen and
         // the next one to be dequeued as it can happen
