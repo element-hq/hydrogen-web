@@ -343,64 +343,65 @@ export class Member {
     /** @internal */
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): void {
         this.errorBoundary.try(() => {
-            const {connection} = this;
-            if (connection) {
-                const destSessionId = message.content.dest_session_id;
-                if (destSessionId !== this.options.sessionId) {
-                    const logItem = connection.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
-                    syncLog.refDetached(logItem);
-                    return;
-                }
-                // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it 
-                let action = IncomingMessageAction.Handle;
-                if (connection.peerCall) {
-                    action = connection.peerCall.getMessageAction(message);
-                    // deal with glare and replacing the call before creating new calls
-                    if (action === IncomingMessageAction.InviteGlare) {
-                        const {shouldReplace, log} = connection.peerCall.handleInviteGlare(message, this.deviceId, connection.logItem);
-                        if (log) {
-                            syncLog.refDetached(log);
-                        }
-                        if (shouldReplace) {
-                            connection.peerCall.dispose();
-                            connection.peerCall = undefined;
-                            action = IncomingMessageAction.Handle;
+            syncLog.wrap({l: "Member.handleDeviceMessage", type: message.type, seq: message.content?.seq}, log => {
+                const {connection} = this;
+                if (connection) {
+                    const destSessionId = message.content.dest_session_id;
+                    if (destSessionId !== this.options.sessionId) {
+                        const logItem = connection.logItem.log({l: "ignoring to_device event with wrong session_id", destSessionId, type: message.type});
+                        log.refDetached(logItem);
+                        return;
+                    }
+                    // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it 
+                    if (connection.peerCall) {
+                        const action = connection.peerCall.getMessageAction(message);
+                        // deal with glare and replacing the call before creating new calls
+                        if (action === IncomingMessageAction.InviteGlare) {
+                            const {shouldReplace, log} = connection.peerCall.handleInviteGlare(message, this.deviceId, connection.logItem);
+                            if (log) {
+                                log.refDetached(log);
+                            }
+                            if (shouldReplace) {
+                                connection.peerCall.dispose();
+                                connection.peerCall = undefined;
+                            }
                         }
                     }
-                }
-                if (message.type === EventType.Invite && !connection.peerCall) {
-                    connection.peerCall = this._createPeerCall(message.content.call_id);
-                }
-                if (action === IncomingMessageAction.Handle) {
+                    // create call on invite
+                    if (message.type === EventType.Invite && !connection.peerCall) {
+                        connection.peerCall = this._createPeerCall(message.content.call_id);
+                    }
+                    // enqueue
                     const idx = sortedIndex(connection.queuedSignallingMessages, message, (a, b) => a.content.seq - b.content.seq);
                     connection.queuedSignallingMessages.splice(idx, 0, message);
+                    // dequeue as much as we can
+                    let hasNewMessageBeenDequeued = false;
                     if (connection.peerCall) {
-                        const hasNewMessageBeenDequeued = this.dequeueSignallingMessages(connection, connection.peerCall, message, syncLog);
-                        if (!hasNewMessageBeenDequeued) {
-                            syncLog.refDetached(connection.logItem.log({l: "queued signalling message", type: message.type, seq: message.content.seq}));
-                        }
+                        hasNewMessageBeenDequeued = this.dequeueSignallingMessages(connection, connection.peerCall, message, log);
                     }
-                } else if (action === IncomingMessageAction.Ignore && connection.peerCall) {
-                    const logItem = connection.logItem.log({l: "ignoring to_device event with wrong call_id", callId: message.content.call_id, type: message.type});
-                    syncLog.refDetached(logItem);
+                    if (!hasNewMessageBeenDequeued) {
+                        log.refDetached(connection.logItem.log({l: "queued message", type: message.type, seq: message.content.seq, idx}));
+                    }
+                } else {
+                    // TODO: the right thing to do here would be to at least enqueue the message rather than drop it,
+                    // and if it's up to the other end to send the invite and the type is an invite to actually
+                    // call connect and assume the m.call.member state update is on its way?
+                    syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
                 }
-            } else {
-                syncLog.log({l: "member not connected", userId: this.userId, deviceId: this.deviceId});
-            }
+            });
         });
     }
 
     private dequeueSignallingMessages(connection: MemberConnection, peerCall: PeerCall, newMessage: SignallingMessage<MGroupCallBase>, syncLog: ILogItem): boolean {
         let hasNewMessageBeenDequeued = false;
         while (connection.canDequeueNextSignallingMessage) {
-            syncLog.wrap("dequeue message", log => {
-                const message = connection.queuedSignallingMessages.shift()!;
-                if (message === newMessage) {
-                    log.set("isNewMsg", true);
-                    hasNewMessageBeenDequeued = true;
-                }
+            const message = connection.queuedSignallingMessages.shift()!;
+            const isNewMsg = message === newMessage;
+            hasNewMessageBeenDequeued = hasNewMessageBeenDequeued || isNewMsg;
+            syncLog.wrap(isNewMsg ? "process message" : "dequeue message", log => {
                 const seq = message.content?.seq;
                 log.set("seq", seq);
+                log.set("type", message.type);
                 // ignore items in the queue that should not be handled and prevent
                 // the lastProcessedSeqNr being corrupted with the `seq` for other call ids
                 // XXX: Not needed anymore when seq is scoped to call_id
@@ -411,7 +412,6 @@ export class Member {
                     log.refDetached(item);
                     connection.lastProcessedSeqNr = seq;
                 } else {
-                    log.set("type", message.type);
                     log.set("ignored", true);
                     connection.lastIgnoredSeqNr = seq;
                 }
