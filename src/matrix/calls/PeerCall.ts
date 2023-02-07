@@ -165,7 +165,7 @@ export class PeerCall implements IDisposable {
         });
         listen("negotiationneeded", () => {
             const promiseCreator = () => {
-                return logItem.wrap("onNegotiationNeeded", log => {
+                return logItem.wrap({l: "onNegotiationNeeded", signalingState: this.peerConnection.signalingState}, log => {
                     return this.handleNegotiation(log);
                 });
             };
