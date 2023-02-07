@@ -83,10 +83,7 @@ export class UnknownRoomViewModel extends ViewModel {
     async peek() {
         try {
             this._room = await this._session.loadPeekableRoom(this.roomIdOrAlias);
-            console.log( 'room instance', this._room );
-
             const timeline = await this._room.openTimeline();
-            console.log('timeline',timeline);
             this._tileOptions = this.childOptions({
                 roomVM: this,
                 timeline,
@@ -96,7 +93,6 @@ export class UnknownRoomViewModel extends ViewModel {
                 tileOptions: this._tileOptions,
                 timeline,
             })));
-            console.log('emitting', this._timelineVM);
             this.emitChange("timelineViewModel");
         } catch (err) {
             console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);

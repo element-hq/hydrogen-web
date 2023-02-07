@@ -967,7 +967,7 @@ export class Session {
 
             const room = this._createPeekableRoom(roomId);
             let response = await this._loadEventsPeekableRoom(roomId, 100, 'b', null, log);
-            console.log('response from _loadEventsPeekableRoom', response); // response.end to be used in the next call for sync functionality
+            // Note: response.end to be used in the next call for sync functionality
 
             let summary = await this._preparePeekableRoomSummary(roomId, log);
             const txn = await this._storage.readTxn([
@@ -1030,7 +1030,7 @@ export class Session {
             }
 
             const response = await this._hsApi.messages(roomId, options, {log}).response();
-            console.info('/messages endpoint response', response);
+            log.set("/messages endpoint response", response);
 
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.timelineFragments,
