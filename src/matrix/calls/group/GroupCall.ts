@@ -99,6 +99,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             // in case the error happens in code that does not log,
             // log it here to make sure it isn't swallowed
             this.joinedData.logItem.log("error at boundary").catch(err);
+            console.error(err);
         }
     });
 

@@ -42,7 +42,7 @@ export class ErrorBoundary {
         }
     }
 
-    private reportError(err: Error) {
+    reportError(err: Error) {
         try {
             this.errorCallback(err);
         } catch (err) {

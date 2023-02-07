@@ -176,6 +176,9 @@ export class PeerCall implements IDisposable {
                 });
             };
             this.responsePromiseChain = this.responsePromiseChain?.then(promiseCreator) ?? promiseCreator();
+            this.responsePromiseChain.catch((e) =>
+                this.options.errorBoundary.reportError(e)
+            );
         });
     }
 
