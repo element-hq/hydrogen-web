@@ -511,7 +511,8 @@ export function tests() {
                 feeds: [{purpose: "m.usermedia"}]
             };
             const roomMember = RoomMember.fromUserId("!abc", "@bruno4:matrix.org", "join");
-            const turnServer = new ObservableValue({});
+            const turnServer = new ObservableValue({}) as ObservableValue<RTCIceServer>;
+            // @ts-ignore
             const options = {
                 confId: "conf",
                 ownUserId: "@foobaraccount2:matrix.org",
@@ -529,7 +530,8 @@ export function tests() {
             const member = new Member(roomMember, callDeviceMembership, options, logger.child("member"));
             member.connect(new MockMedia() as LocalMedia, new MuteSettings(), turnServer, logger.child("connect"));
             // pretend we've already received 3 messages
-            member.connection.lastProcessedSeqNr = 2;
+            // @ts-ignore
+            member.connection!.lastProcessedSeqNr = 2;
             // send hangup with seq=3, this will enqueue the message because there is no peerCall
             // as it's up to @bruno4:matrix.org to send the invite
             const hangup = {
@@ -545,7 +547,7 @@ export function tests() {
                   "sender_session_id": "s1d5863f41ec5a5",
                   "dest_session_id": "s1cece7088b9d35"
                 }
-            };
+            } as SignallingMessage<MGroupCallBase>;
             member.handleDeviceMessage(hangup, logger.child("handle hangup"));
             // Send an invite with seq=4, this will create a new peer call with a the call id
             // when dequeueing the hangup from before, it'll get ignored because it is
@@ -574,9 +576,10 @@ export function tests() {
                   "sender_session_id": "s1d5863f41ec5a5",
                   "dest_session_id": "s1cece7088b9d35"
                 }
-            };
+            } as SignallingMessage<MGroupCallBase>;
             member.handleDeviceMessage(invite, logger.child("handle invite"));
-            assert.equal(member.connection.queuedSignallingMessages.length, 0);
+            // @ts-ignore
+            assert.equal(member.connection!.queuedSignallingMessages.length, 0);
             // logger.reporters[0].printOpenItems();
         }
     };
