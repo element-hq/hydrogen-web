@@ -92,8 +92,7 @@ class MemberConnection {
         // are present in the queue
         // XXX: Not needed anymore when seq is scoped to call_id
         // see https://github.com/matrix-org/matrix-spec-proposals/pull/3401#discussion_r1097482166
-        return firstSeq === this.lastProcessedSeqNr ||
-            firstSeq === this.lastProcessedSeqNr + 1;
+        return firstSeq <= (this.lastProcessedSeqNr + 1);
     }
 
     dispose() {
