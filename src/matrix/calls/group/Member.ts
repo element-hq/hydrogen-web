@@ -362,6 +362,7 @@ export class Member {
                             syncLog.refDetached(log);
                         }
                         if (shouldReplace) {
+                            connection.peerCall.dispose();
                             connection.peerCall = undefined;
                             action = IncomingMessageAction.Handle;
                         }
