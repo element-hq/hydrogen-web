@@ -431,18 +431,14 @@ export class PeerCall implements IDisposable {
             log.refDetached(timeoutLog);
             // don't await this, as it would block other negotationneeded events from being processed
             // as they are processed serially
-            try {
-                await timeoutLog.run(async log => {
-                    await this.delay(CALL_TIMEOUT_MS);
-                    // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
-                    if (this._state === CallState.InviteSent) {
-                        await this._hangup(CallErrorCode.InviteTimeout, log);
-                    }
-                });
-            }
-            catch (e) {
-                // prevent error from being unhandled, it will be logged already by run above
-            } 
+            await timeoutLog.run(async log => {
+                try { await this.delay(CALL_TIMEOUT_MS); }
+                catch (err) { return; } // return when delay is cancelled by throwing an AbortError
+                // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+                if (this._state === CallState.InviteSent) {
+                    await this._hangup(CallErrorCode.InviteTimeout, log);
+                }
+            });
         }
     };
 
