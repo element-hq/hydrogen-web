@@ -457,7 +457,7 @@ export class Member {
         this.expireTimeout?.dispose();
         this.expireTimeout = undefined;
         // ensure the emitUpdate callback can't be called anymore
-        this.options = undefined as any as Options;
+        this.options.emitUpdate = () => {};
     }
 }
 
