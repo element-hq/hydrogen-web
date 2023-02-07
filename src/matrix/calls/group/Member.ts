@@ -193,8 +193,8 @@ export class Member {
     }
 
     /** @internal */
-    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, turnServer: BaseObservableValue<RTCIceServer>, memberLogItem: ILogItem): ILogItem | undefined {
-        return this.errorBoundary.try(() => {
+    connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, turnServer: BaseObservableValue<RTCIceServer>, memberLogItem: ILogItem): Promise<ILogItem | undefined> | undefined {
+        return this.errorBoundary.try(async () => {
             if (this.connection) {
                 return;
             }
@@ -207,7 +207,7 @@ export class Member {
             );
             this.connection = connection;
             let connectLogItem: ILogItem | undefined;
-            connection.logItem.wrap("connect", async log => {
+            await connection.logItem.wrap("connect", async log => {
                 connectLogItem = log;
                 await this.callIfNeeded(log);
             });
@@ -240,15 +240,15 @@ export class Member {
     }
 
     /** @internal */
-    disconnect(hangup: boolean): ILogItem | undefined {
-        return this.errorBoundary.try(() => {
+    disconnect(hangup: boolean): Promise<ILogItem | undefined> | undefined {
+        return this.errorBoundary.try(async () => {
             const {connection} = this;
             if (!connection) {
                 return;
             }
-            let disconnectLogItem;
+            let disconnectLogItem: ILogItem | undefined;
             // if if not sending the hangup, still log disconnect
-            connection.logItem.wrap("disconnect", async log => {
+            await connection.logItem.wrap("disconnect", async log => {
                 disconnectLogItem = log;
                 if (hangup && connection.peerCall) {
                     await connection.peerCall.hangup(CallErrorCode.UserHangup, log);
@@ -279,7 +279,7 @@ export class Member {
     }
 
     /** @internal */
-    emitUpdateFromPeerCall = (peerCall: PeerCall, params: any, log: ILogItem): void => {
+    emitUpdateFromPeerCall = async (peerCall: PeerCall, params: any, log: ILogItem): Promise<void> => {
         const connection = this.connection!;
         if (peerCall.state === CallState.Ringing) {
             connection.logItem.wrap("ringing, answer peercall", answerLog => {
@@ -294,12 +294,12 @@ export class Member {
             if (hangupReason && !errorCodesWithoutRetry.includes(hangupReason)) {
                 connection.retryCount += 1;
                 const {retryCount} = connection;
-                connection.logItem.wrap({l: "retry connection", retryCount}, async retryLog => {
+                await connection.logItem.wrap({l: "retry connection", retryCount}, async retryLog => {
                     log.refDetached(retryLog);
                     if (retryCount <= 3) {
                         await this.callIfNeeded(retryLog);
                     } else {
-                        const disconnectLogItem = this.disconnect(false);
+                        const disconnectLogItem = await this.disconnect(false);
                         if (disconnectLogItem) {
                             retryLog.refDetached(disconnectLogItem);
                         }
@@ -444,6 +444,7 @@ export class Member {
     private _createPeerCall(callId: string): PeerCall {
         const connection = this.connection!;
         return new PeerCall(callId, Object.assign({}, this.options, {
+            errorBoundary: this.errorBoundary,
             emitUpdate: this.emitUpdateFromPeerCall,
             sendSignallingMessage: this.sendSignallingMessage,
             turnServer: connection.turnServer
