@@ -303,7 +303,7 @@ export class PeerCall implements IDisposable {
     }
 
     handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): ILogItem {
-        // return logItem item immediately so it can be references in sync manner
+        // return logItem item immediately so it can be referenced by the sync log
         let logItem;
         log.wrap({
             l: "receive signalling message",
