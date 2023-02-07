@@ -21,13 +21,13 @@ import {formatToDeviceMessagesPayload} from "../../common";
 import {sortedIndex} from "../../../utils/sortedIndex";
 import { ErrorBoundary } from "../../../utils/ErrorBoundary";
 
-import type {MuteSettings} from "../common";
+import {MuteSettings} from "../common";
 import type {Options as PeerCallOptions, RemoteMedia} from "../PeerCall";
 import type {LocalMedia} from "../LocalMedia";
 import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {MCallBase, MGroupCallBase, SignallingMessage, CallDeviceMembership} from "../callEventTypes";
 import type {GroupCall} from "./GroupCall";
-import type {RoomMember} from "../../room/members/RoomMember";
+import {RoomMember} from "../../room/members/RoomMember";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem} from "../../../logging/types";
 import type {BaseObservableValue} from "../../../observable/value";
@@ -470,4 +470,114 @@ export function memberExpiresAt(callDeviceMembership: CallDeviceMembership): num
 export function isMemberExpired(callDeviceMembership: CallDeviceMembership, now: number, margin: number = 0) {
     const expiresAt = memberExpiresAt(callDeviceMembership);
     return typeof expiresAt === "number" ? ((expiresAt + margin) <= now) : true;
+}
+
+import {ObservableValue} from "../../../observable/value";
+import {Clock as MockClock} from "../../../mocks/Clock";
+import {Instance as NullLoggerInstance} from "../../../logging/NullLogger";
+
+export function tests() {
+    
+    class MockMedia {
+        clone(): MockMedia { return this; }
+    }
+
+    class MockPeerConn {
+        addEventListener() {}
+        removeEventListener() {}
+        setConfiguration() {}
+        setRemoteDescription() {}
+        getReceivers() { return [{}]; } // non-empty array
+        getSenders() { return []; }
+        addTrack() { return {}; }
+        removeTrack() {}
+        close() {}
+    }
+    return {
+        "test queue doesn't get blocked by enqueued, then ignored device message": assert => {
+            // XXX we might want to refactor the queue code a bit so it's easier to test
+            // without having to provide so many mocks
+            const clock = new MockClock();
+            // setup logging
+            const logger = NullLoggerInstance;
+            // const logger = new Logger({platform: {clock, random: Math.random}});
+            // logger.addReporter(new ConsoleReporter());
+            
+            // create member
+            const callDeviceMembership = {
+                ["device_id"]: "BVPIHSKXFC",
+                ["session_id"]: "s1d5863f41ec5a5",
+                ["expires_ts"]: 123,
+                feeds: [{purpose: "m.usermedia"}]
+            };
+            const roomMember = RoomMember.fromUserId("!abc", "@bruno4:matrix.org", "join");
+            const turnServer = new ObservableValue({});
+            const options = {
+                confId: "conf",
+                ownUserId: "@foobaraccount2:matrix.org",
+                ownDeviceId: "CMLEZSARRT",
+                sessionId: "s1cece7088b9d35",
+                clock,
+                emitUpdate: () => {},
+                webRTC: {
+                    prepareSenderForPurpose: () => {},
+                    createPeerConnection() {
+                        return new MockPeerConn();
+                    }
+                }
+            } as Options;
+            const member = new Member(roomMember, callDeviceMembership, options, logger.child("member"));
+            member.connect(new MockMedia() as LocalMedia, new MuteSettings(), turnServer, logger.child("connect"));
+            // pretend we've already received 3 messages
+            member.connection.lastProcessedSeqNr = 2;
+            // send hangup with seq=3, this will enqueue the message because there is no peerCall
+            // as it's up to @bruno4:matrix.org to send the invite
+            const hangup = {
+                type: EventType.Hangup,
+                content: {
+                  "call_id": "c0ac1b0e37afe73",
+                  "version": 1,
+                  "reason": "invite_timeout",
+                  "seq": 3,
+                  "conf_id": "conf-16a120796440a6",
+                  "device_id": "BVPIHSKXFC",
+                  "party_id": "BVPIHSKXFC",
+                  "sender_session_id": "s1d5863f41ec5a5",
+                  "dest_session_id": "s1cece7088b9d35"
+                }
+            };
+            member.handleDeviceMessage(hangup, logger.child("handle hangup"));
+            // Send an invite with seq=4, this will create a new peer call with a the call id
+            // when dequeueing the hangup from before, it'll get ignored because it is
+            // for the previous call id.
+            const invite = {
+                type: EventType.Invite,
+                content: {
+                  "call_id": "c1175b12d559fb1",
+                  "offer": {
+                    "type": "offer",
+                    "sdp": "..."
+                  },
+                  "org.matrix.msc3077.sdp_stream_metadata": {
+                    "60087b60-487e-4fa0-8229-b232c18e1332": {
+                      "purpose": "m.usermedia",
+                      "audio_muted": false,
+                      "video_muted": false
+                    }
+                  },
+                  "version": 1,
+                  "lifetime": 60000,
+                  "seq": 4,
+                  "conf_id": "conf-16a120796440a6",
+                  "device_id": "BVPIHSKXFC",
+                  "party_id": "BVPIHSKXFC",
+                  "sender_session_id": "s1d5863f41ec5a5",
+                  "dest_session_id": "s1cece7088b9d35"
+                }
+            };
+            member.handleDeviceMessage(invite, logger.child("handle invite"));
+            assert.equal(member.connection.queuedSignallingMessages.length, 0);
+            // logger.reporters[0].printOpenItems();
+        }
+    };
 }
