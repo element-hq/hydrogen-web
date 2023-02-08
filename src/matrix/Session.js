@@ -46,7 +46,6 @@ import {
 } from "./ssss/index";
 import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
-import {PeekableRoom} from "./room/PeekableRoom";
 import {EventKey} from "./room/timeline/EventKey";
 import {createEventEntry} from "./room/timeline/persistence/common";
 
@@ -590,7 +589,7 @@ export class Session {
 
     /** @internal */
     _createPeekableRoom(roomId) {
-        return new PeekableRoom({
+        return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
             storage: this._storage,
