@@ -968,48 +968,7 @@ export class Session {
             let response = await this._loadEventsPeekableRoom(roomId, 100, 'b', null, log);
             // Note: response.end to be used in the next call for sync functionality
 
-            let summary = await this._preparePeekableRoomSummary(roomId, log);
-            const txn = await this._storage.readTxn([
-                this._storage.storeNames.timelineFragments,
-                this._storage.storeNames.timelineEvents,
-                this._storage.storeNames.roomMembers,
-            ]);
-            await room.load(summary, txn, log);
-
             return room;
-        });
-    }
-
-    async _preparePeekableRoomSummary(roomId, log = null) {
-        return this._platform.logger.wrapOrRun(log, "preparePeekableRoomSummary", async log => {
-            log.set("id", roomId);
-
-            let summary = {
-                "roomId": roomId,
-                "lastMessageTimestamp": 0,
-                "isUnread": false,
-                "membership": "join",
-                "inviteCount": 0,
-                "joinCount": 1,
-                "heroes": [],
-                "hasFetchedMembers": false,
-                "isTrackingMembers": false,
-                "notificationCount": 0,
-                "highlightCount": 0,
-                "isDirectMessage": false
-            };
-            const resp = await this._hsApi.currentState(roomId).response();
-            for ( let i=0; i<resp.length; i++ ) {
-                if ( resp[i].type === 'm.room.name') {
-                    summary["name"] = resp[i].content.name;
-                } else if ( resp[i].type === 'm.room.canonical_alias' ) {
-                    summary["canonicalAlias"] = resp[i].content.alias;
-                } else if ( resp[i].type === 'm.room.avatar' ) {
-                    summary["avatarUrl"] = resp[i].content.url;
-                }
-            }
-
-            return summary;
         });
     }
 
