@@ -16,7 +16,7 @@ export class PeekableRoomView extends TemplateView {
                 t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
                 t.view(new AvatarView(vm, 32)),
                 t.div({className: "room-description"}, [
-                    t.h2(vm => vm.name),
+                    t.h2(vm => vm.room.name),
                 ]),
             ]),
             t.div({className: "RoomView_body"}, [

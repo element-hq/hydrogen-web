@@ -42,10 +42,6 @@ export class UnknownRoomViewModel extends ViewModel {
         return this._room;
     }
 
-    get name() {
-        return this._room?.name;
-    }
-
     async join() {
         this._busy = true;
         this.emitChange("busy");
