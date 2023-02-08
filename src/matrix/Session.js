@@ -984,20 +984,7 @@ export class Session {
         return this._platform.logger.wrapOrRun(log, "preparePeekableRoomSummary", async log => {
             log.set("id", roomId);
 
-            let summary = {
-                "roomId": roomId,
-                "lastMessageTimestamp": 0,
-                "isUnread": false,
-                "membership": "join",
-                "inviteCount": 0,
-                "joinCount": 1,
-                "heroes": [],
-                "hasFetchedMembers": false,
-                "isTrackingMembers": false,
-                "notificationCount": 0,
-                "highlightCount": 0,
-                "isDirectMessage": false
-            };
+            let summary = {};
             const resp = await this._hsApi.currentState(roomId).response();
             for ( let i=0; i<resp.length; i++ ) {
                 if ( resp[i].type === 'm.room.name') {
