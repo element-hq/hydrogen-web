@@ -597,7 +597,7 @@ export class Session {
             emitCollectionChange: this._roomUpdateCallback,
             hsApi: this._hsApi,
             mediaRepository: this._mediaRepository,
-            undefined, // pendingEvents,
+            pendingEvents: [],
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
             platform: this._platform
