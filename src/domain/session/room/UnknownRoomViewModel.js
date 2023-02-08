@@ -77,6 +77,9 @@ export class UnknownRoomViewModel extends ViewModel {
     }
 
     async peek() {
+        if ( !this._peekable ) {
+            return;
+        }
         try {
             this._room = await this._session.loadPeekableRoom(this.roomIdOrAlias);
             const timeline = await this._room.openTimeline();
