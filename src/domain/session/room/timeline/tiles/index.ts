@@ -92,7 +92,7 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
             case "org.matrix.msc3401.call": {
                 // if prevContent is present, it's an update to a call event, which we don't render
                 // as the original event is updated through the call object which receive state event updates
-                if (entry.stateKey && !entry.prevContent) {
+                if (options.features.calls && entry.stateKey && !entry.prevContent) {
                     return CallTile;
                 }
                 return undefined;

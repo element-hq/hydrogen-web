@@ -75,6 +75,61 @@ export class Session {
         };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
+        this._roomStateHandler = new RoomStateHandlerSet();
+        this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
+        this._olm = olm;
+        this._olmUtil = null;
+        this._e2eeAccount = null;
+        this._deviceTracker = null;
+        this._olmEncryption = null;
+        this._keyLoader = null;
+        this._megolmEncryption = null;
+        this._megolmDecryption = null;
+        this._getSyncToken = () => this.syncToken;
+        this._olmWorker = olmWorker;
+        this._keyBackup = new ObservableValue(undefined);
+        this._observedRoomStatus = new Map();
+
+        if (olm) {
+            this._olmUtil = new olm.Utility();
+            this._deviceTracker = new DeviceTracker({
+                storage,
+                getSyncToken: this._getSyncToken,
+                olmUtil: this._olmUtil,
+                ownUserId: sessionInfo.userId,
+                ownDeviceId: sessionInfo.deviceId,
+            });
+        }
+        this._createRoomEncryption = this._createRoomEncryption.bind(this);
+        this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
+        this.needsKeyBackup = new ObservableValue(false);
+
+        if (features.calls) {
+            this._setupCallHandler();
+        }
+    }
+
+    get fingerprintKey() {
+        return this._e2eeAccount?.identityKeys.ed25519;
+    }
+
+    get hasSecretStorageKey() {
+        return this._hasSecretStorageKey;
+    }
+
+    get deviceId() {
+        return this._sessionInfo.deviceId;
+    }
+
+    get userId() {
+        return this._sessionInfo.userId;
+    }
+
+    get callHandler() {
+        return this._callHandler;
+    }
+
+    _setupCallHandler() {
         this._callHandler = new CallHandler({
             clock: this._platform.clock,
             random: this._platform.random,
@@ -103,55 +158,7 @@ export class Session {
             logger: this._platform.logger,
             forceTURN: false,
         });
-        this._roomStateHandler = new RoomStateHandlerSet();
         this.observeRoomState(this._callHandler);
-        this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
-        this._olm = olm;
-        this._olmUtil = null;
-        this._e2eeAccount = null;
-        this._deviceTracker = null;
-        this._olmEncryption = null;
-        this._keyLoader = null;
-        this._megolmEncryption = null;
-        this._megolmDecryption = null;
-        this._getSyncToken = () => this.syncToken;
-        this._olmWorker = olmWorker;
-        this._keyBackup = new ObservableValue(undefined);
-        this._observedRoomStatus = new Map();
-
-        if (olm) {
-            this._olmUtil = new olm.Utility();
-            this._deviceTracker = new DeviceTracker({
-                storage,
-                getSyncToken: this._getSyncToken,
-                olmUtil: this._olmUtil,
-                ownUserId: sessionInfo.userId,
-                ownDeviceId: sessionInfo.deviceId,
-            });
-        }
-        this._createRoomEncryption = this._createRoomEncryption.bind(this);
-        this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
-        this.needsKeyBackup = new ObservableValue(false);
-    }
-
-    get fingerprintKey() {
-        return this._e2eeAccount?.identityKeys.ed25519;
-    }
-
-    get hasSecretStorageKey() {
-        return this._hasSecretStorageKey;
-    }
-
-    get deviceId() {
-        return this._sessionInfo.deviceId;
-    }
-
-    get userId() {
-        return this._sessionInfo.userId;
-    }
-
-    get callHandler() {
-        return this._callHandler;
     }
 
     // called once this._e2eeAccount is assigned
