@@ -15,6 +15,9 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
+import {TimelineViewModel} from "./timeline/TimelineViewModel";
+import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
+import {getAvatarHttpUrl} from "../../avatar";
 
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
@@ -25,6 +28,10 @@ export class UnknownRoomViewModel extends ViewModel {
         this._peekable = peekable;
         this._error = null;
         this._busy = false;
+    }
+
+    get room() {
+        return this._room;
     }
 
     get error() {
@@ -55,5 +62,37 @@ export class UnknownRoomViewModel extends ViewModel {
 
     get kind() {
         return this._peekable ? "peekable" : "unknown";
+    }
+
+    get timelineViewModel() {
+        return this._timelineVM;
+    }
+
+    avatarUrl(size) {
+        return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
+    }
+
+    async peek() {
+        if ( !this._peekable ) {
+            return;
+        }
+        try {
+            this._room = await this._session.loadPeekableRoom(this.roomIdOrAlias);
+            const timeline = await this._room.openTimeline();
+            this._tileOptions = this.childOptions({
+                roomVM: this,
+                timeline,
+                tileClassForEntry: defaultTileClassForEntry,
+            });
+            this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
+                tileOptions: this._tileOptions,
+                timeline,
+            })));
+            this.emitChange("timelineViewModel");
+        } catch (err) {
+            console.error(`room.openTimeline(): ${err.message}:\n${err.stack}`);
+            this._timelineError = err;
+            this.emitChange("error");
+        }
     }
 }

@@ -49,6 +49,8 @@ import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/value";
 import {CallHandler} from "./calls/CallHandler";
 import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
+import {EventKey} from "./room/timeline/EventKey";
+import {createEventEntry} from "./room/timeline/persistence/common";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
@@ -655,6 +657,21 @@ export class Session {
         return room;
     }
 
+    /** @internal */
+    _createPeekableRoom(roomId) {
+        return new Room({
+            roomId,
+            getSyncToken: this._getSyncToken,
+            storage: this._storage,
+            emitCollectionChange: this._roomUpdateCallback,
+            hsApi: this._hsApi,
+            mediaRepository: this._mediaRepository,
+            pendingEvents: [],
+            user: this._user,
+            platform: this._platform
+        });
+    }
+
     get invites() {
         return this._invites;
     }
@@ -1028,6 +1045,98 @@ export class Session {
                 await room.load(summary, txn, log);
                 return room;
             }
+        });
+    }
+
+    loadPeekableRoom(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "loadPeekableRoom", async log => {
+            log.set("id", roomId);
+
+            const room = this._createPeekableRoom(roomId);
+            let response = await this._loadEventsPeekableRoom(roomId, 100, 'b', null, log);
+            // Note: response.end to be used in the next call for sync functionality
+
+            let summary = await this._preparePeekableRoomSummary(roomId, log);
+            const txn = await this._storage.readTxn([
+                this._storage.storeNames.timelineFragments,
+                this._storage.storeNames.timelineEvents,
+                this._storage.storeNames.roomMembers,
+            ]);
+            await room.load(summary, txn, log);
+
+            return room;
+        });
+    }
+
+    async _preparePeekableRoomSummary(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "preparePeekableRoomSummary", async log => {
+            log.set("id", roomId);
+
+            let summary = {};
+            const resp = await this._hsApi.currentState(roomId).response();
+            for ( let i=0; i<resp.length; i++ ) {
+                if ( resp[i].type === 'm.room.name') {
+                    summary["name"] = resp[i].content.name;
+                } else if ( resp[i].type === 'm.room.canonical_alias' ) {
+                    summary["canonicalAlias"] = resp[i].content.alias;
+                } else if ( resp[i].type === 'm.room.avatar' ) {
+                    summary["avatarUrl"] = resp[i].content.url;
+                }
+            }
+
+            return summary;
+        });
+    }
+
+    async _loadEventsPeekableRoom(roomId, limit = 30, dir = 'b', end = null, log = null) {
+        return this._platform.logger.wrapOrRun(log, "loadEventsPeekableRoom", async log => {
+            log.set("id", roomId);
+            let options = {
+                limit: limit,
+                dir: 'b',
+                filter: {
+                    lazy_load_members: true,
+                    include_redundant_members: true,
+                }
+            }
+            if (end !== null) {
+                options['from'] = end;
+            }
+
+            const response = await this._hsApi.messages(roomId, options, {log}).response();
+            log.set("/messages endpoint response", response);
+
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.timelineFragments,
+                this._storage.storeNames.timelineEvents,
+            ]);
+
+            // clear old records for this room
+            txn.timelineFragments.removeAllForRoom(roomId);
+            txn.timelineEvents.removeAllForRoom(roomId);
+
+            // insert fragment and event records for this room
+            const fragment = {
+                roomId: roomId,
+                id: 0,
+                previousId: null,
+                nextId: null,
+                previousToken: response.start,
+                nextToken: null,
+            };
+            txn.timelineFragments.add(fragment);
+
+            let eventKey = EventKey.defaultLiveKey;
+            for (let i = 0; i < response.chunk.length; i++) {
+                if (i) {
+                    eventKey = eventKey.previousKey();
+                }
+                let txn = await this._storage.readWriteTxn([this._storage.storeNames.timelineEvents]);
+                let eventEntry = createEventEntry(eventKey, roomId, response.chunk[i]);
+                await txn.timelineEvents.tryInsert(eventEntry, log);
+            }
+
+            return response;
         });
     }
 
