@@ -34,7 +34,7 @@ export class TilesCollection extends BaseObservableList {
     }
 
     _createTile(entry) {
-        const Tile = this._tileOptions.tileClassForEntry(entry);
+        const Tile = this._tileOptions.tileClassForEntry(entry, this._tileOptions);
         if (Tile) {
             return new Tile(entry, this._tileOptions);
         }

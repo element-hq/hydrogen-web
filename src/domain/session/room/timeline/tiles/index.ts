@@ -47,7 +47,7 @@ export type Options = ViewModelOptions & {
 };
 export type TileConstructor = new (entry: TimelineEntry, options: Options) => ITile;
 
-export function tileClassForEntry(entry: TimelineEntry): TileConstructor | undefined {
+export function tileClassForEntry(entry: TimelineEntry, options: Options): TileConstructor | undefined {
     if (entry.isGap) {
         return GapTile;
     } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {

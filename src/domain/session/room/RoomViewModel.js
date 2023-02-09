@@ -209,7 +209,7 @@ export class RoomViewModel extends ErrorReportViewModel {
 
     _createTile(entry) {
         if (this._tileOptions) {
-            const Tile = this._tileOptions.tileClassForEntry(entry);
+            const Tile = this._tileOptions.tileClassForEntry(entry, this._tileOptions);
             if (Tile) {
                 return new Tile(entry, this._tileOptions);
             }
