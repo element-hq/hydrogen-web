@@ -30,6 +30,7 @@ import type {Navigation} from "./navigation/Navigation";
 import type {SegmentType} from "./navigation/index";
 import type {IURLRouter} from "./navigation/URLRouter";
 import type { ITimeFormatter } from "../platform/types/types";
+import type { FeatureSet } from "../features";
 
 export type Options<T extends object = SegmentType> = {
     platform: Platform;
@@ -37,6 +38,7 @@ export type Options<T extends object = SegmentType> = {
     urlRouter: IURLRouter<T>;
     navigation: Navigation<T>;
     emitChange?: (params: any) => void;
+    features: FeatureSet
 }
 
 
@@ -140,6 +142,10 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
 
     get urlRouter(): IURLRouter<N> {
         return this._options.urlRouter;
+    }
+
+    get features(): FeatureSet {
+        return this._options.features;
     }
 
     get navigation(): Navigation<N> {
