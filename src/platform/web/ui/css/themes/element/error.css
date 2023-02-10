@@ -4,9 +4,14 @@
     margin: 16px;
 }
 
-.ErrorView_inline {
+.ErrorView.ErrorView_inline {
     color: var(--error-color);
-    margin: 4px;
+    margin: 4px 0;
+    padding: 4px 0;
+}
+
+.ErrorView.ErrorView_inline > p {
+    margin: 0;
 }
 
 .ErrorView {

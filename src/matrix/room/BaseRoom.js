@@ -350,7 +350,7 @@ export class BaseRoom extends EventEmitter {
                     fragmentIdComparer: this._fragmentIdComparer,
                     relationWriter
                 });
-                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn, log);
+                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, fragmentEntry.token, txn, log);
             } catch (err) {
                 txn.abort();
                 throw err;

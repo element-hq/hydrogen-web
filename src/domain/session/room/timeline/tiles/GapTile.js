@@ -24,71 +24,59 @@ export class GapTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
         this._loading = false;
-        this._error = null;
+        this._waitingForConnection = false;
         this._isAtTop = true;
         this._siblingChanged = false;
-        this._showSpinner = false;
     }
 
     get needsDateSeparator() {
         return false;
     }
 
-    async fill() {
+    async fill(isRetrying = false) {
         if (!this._loading && !this._entry.edgeReached) {
             this._loading = true;
-            this._error = null;
-            this._showSpinner = true;
             this.emitChange("isLoading");
             try {
                 await this._room.fillGap(this._entry, 10);
             } catch (err) {
-                console.error(`room.fillGap(): ${err.message}:\n${err.stack}`);
-                this._error = err;
                 if (err instanceof ConnectionError) {
-                    this.emitChange("error");
-                    /*
-                    We need to wait for reconnection here rather than in
-                    notifyVisible() because when we return/throw here
-                    this._loading is set to false and other queued invocations of
-                    this method will succeed and attempt further room.fillGap() calls - 
-                    resulting in multiple error entries in logs and elsewhere!
-                    */
                     await this._waitForReconnection();
+                    if (!isRetrying) {
+                        // retry after the connection comes back
+                        // if this wasn't already a retry after coming back online
+                        return await this.fill(true);
+                    } else {
+                        return false;
+                    }
+                } else {
+                    this.reportError(err);
+                    return false;
                 }
-                // rethrow so caller of this method
-                // knows not to keep calling this for now
-                throw err;
             } finally {
                 this._loading = false;
-                this._showSpinner = false;
                 this.emitChange("isLoading");
             }
-                return true;
+            return true;
         }
         return false;
     }
 
     async notifyVisible() {
+        // if any error happened before (apart from being offline),
+        // let the user dismiss the error before trying to backfill
+        // again so we don't try to do backfill the don't succeed
+        // in quick succession
+        if (this.errorViewModel) {
+            return;
+        }
         // we do (up to 10) backfills while no new tiles have been added to the timeline
         // because notifyVisible won't be called again until something gets added to the timeline
         let depth = 0;
         let canFillMore;
         this._siblingChanged = false;
         do {
-            try {
-                canFillMore = await this.fill();
-            }
-            catch (e) {
-                if (e instanceof ConnectionError) {
-                    canFillMore = true;
-                    // Don't increase depth because this gap fill was a noop
-                    continue;
-                }
-                else {
-                    canFillMore = false;
-                }
-            }
+            canFillMore = await this.fill();
             depth = depth + 1;
         } while (depth < 10 && !this._siblingChanged && canFillMore && !this.isDisposed);
     }
@@ -124,7 +112,11 @@ export class GapTile extends SimpleTile {
     }
 
     async _waitForReconnection() {
+        this._waitingForConnection = true;
+        this.emitUpdate("status");
         await this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
+        this._waitingForConnection = false;
+        this.emitUpdate("status");
     }
 
     get shape() {
@@ -136,29 +128,19 @@ export class GapTile extends SimpleTile {
     }
 
     get showSpinner() {
-        return this._showSpinner;
+        return this.isLoading || this._waitingForConnection;
     }
 
-    get error() {
-        if (this._error) {
-            if (this._error instanceof ConnectionError) {
-                return "Waiting for reconnection";
-            }
-            const dir = this._entry.prev_batch ? "previous" : "next";
-            return `Could not load ${dir} messages: ${this._error.message}`;
-        }
-        return null;
-    }
-
-    get currentAction() {
-        if (this.error) {
-            return this.error;
-        }
-        else if (this.isLoading) {
-            return "Loading";
-        }
-        else {
-            return "Not Loading";
+    get status() {
+        const dir = this._entry.prev_batch ? "previous" : "next";
+        if (this._waitingForConnection) {
+            return "Waiting for connection…";
+        } else if (this.errorViewModel) {
+            return `Could not load ${dir} messages`;
+        } else if (this.isLoading) {
+            return "Loading more messages…";
+        } else {
+            return "Gave up loading more messages";
         }
     }
 }

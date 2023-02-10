@@ -411,7 +411,7 @@ only loads when the top comes into view*/
     border-radius: 10px;
 }
 
-.GapView > :not(:first-child) {
+.GapView_container > :not(:first-child) {
     margin-left: 12px;
 }
 
