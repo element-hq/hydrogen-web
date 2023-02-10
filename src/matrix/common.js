@@ -15,14 +15,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import {groupBy} from "../utils/groupBy";
+
+
 export function makeTxnId() {
+    return makeId("t");
+}
+
+export function makeId(prefix) {
     const n = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     const str = n.toString(16);
-    return "t" + "0".repeat(14 - str.length) + str;
+    return prefix + "0".repeat(14 - str.length) + str;
 }
 
 export function isTxnId(txnId) {
 	return txnId.startsWith("t") && txnId.length === 15;
+}
+
+export function formatToDeviceMessagesPayload(messages) {
+    const messagesByUser = groupBy(messages, message => message.device.userId);
+    const payload = {
+        messages: Array.from(messagesByUser.entries()).reduce((userMap, [userId, messages]) => {
+            userMap[userId] = messages.reduce((deviceMap, message) => {
+                deviceMap[message.device.deviceId] = message.content;
+                return deviceMap;
+            }, {});
+            return userMap;
+        }, {})
+    };
+    return payload;
 }
 
 export function tests() {

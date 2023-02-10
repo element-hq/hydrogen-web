@@ -53,6 +53,7 @@ type RoomResponse = {
 }
 
 /** iterates over any state events in a sync room response, in the order that they should be applied (from older to younger events) */
+
 export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => Promise<void> | void): Promise<void> | void {
     let promises: Promise<void>[] | undefined = undefined;
     const callCallback = stateEvent => {

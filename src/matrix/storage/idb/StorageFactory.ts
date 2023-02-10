@@ -69,7 +69,7 @@ export class StorageFactory {
         requestPersistedStorage().then(persisted => {
             // Firefox lies here though, and returns true even if the user denied the request
             if (!persisted) {
-                console.warn("no persisted storage, database can be evicted by browser");
+                log.log("no persisted storage, database can be evicted by browser", log.level.Warn);
             }
         });
 

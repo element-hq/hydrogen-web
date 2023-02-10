@@ -15,12 +15,12 @@ limitations under the License.
 */
 
 import {UpdateAction} from "../UpdateAction.js";
+import {ErrorReportViewModel} from "../../../../ErrorReportViewModel";
 import {TileShape} from "./ITile";
-import {ViewModel} from "../../../../ViewModel";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 import {DateTile} from "./DateTile";
 
-export class SimpleTile extends ViewModel {
+export class SimpleTile extends ErrorReportViewModel {
     constructor(entry, options) {
         super(options);
         this._entry = entry;
@@ -186,6 +186,14 @@ export class SimpleTile extends ViewModel {
 
     get _ownMember() {
         return this._options.timeline.me;
+    }
+
+    get displayName() {
+        return this._entry.displayName || this.sender;
+    }
+
+    get sender() {
+        return this._entry.sender;
     }
 }
 

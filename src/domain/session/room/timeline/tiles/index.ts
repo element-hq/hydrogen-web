@@ -26,9 +26,11 @@ import {RoomMemberTile} from "./RoomMemberTile.js";
 import {EncryptedEventTile} from "./EncryptedEventTile.js";
 import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
+import {CallTile} from "./CallTile.js";
 
 import type {ITile, TileShape} from "./ITile";
 import type {Room} from "../../../../../matrix/room/Room";
+import type {Session} from "../../../../../matrix/Session";
 import type {Timeline} from "../../../../../matrix/room/timeline/Timeline";
 import type {FragmentBoundaryEntry} from "../../../../../matrix/room/timeline/entries/FragmentBoundaryEntry";
 import type {EventEntry} from "../../../../../matrix/room/timeline/entries/EventEntry";
@@ -38,13 +40,14 @@ import type {Options as ViewModelOptions} from "../../../../ViewModel";
 export type TimelineEntry = FragmentBoundaryEntry | EventEntry | PendingEventEntry;
 export type TileClassForEntryFn = (entry: TimelineEntry) => TileConstructor | undefined;
 export type Options = ViewModelOptions & {
+    session: Session,
     room: Room,
     timeline: Timeline
     tileClassForEntry: TileClassForEntryFn;
 };
 export type TileConstructor = new (entry: TimelineEntry, options: Options) => ITile;
 
-export function tileClassForEntry(entry: TimelineEntry): TileConstructor | undefined {
+export function tileClassForEntry(entry: TimelineEntry, options: Options): TileConstructor | undefined {
     if (entry.isGap) {
         return GapTile;
     } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
@@ -86,6 +89,14 @@ export function tileClassForEntry(entry: TimelineEntry): TileConstructor | undef
                 return EncryptedEventTile;
             case "m.room.encryption":
                 return EncryptionEnabledTile;
+            case "org.matrix.msc3401.call": {
+                // if prevContent is present, it's an update to a call event, which we don't render
+                // as the original event is updated through the call object which receive state event updates
+                if (options.features.calls && entry.stateKey && !entry.prevContent) {
+                    return CallTile;
+                }
+                return undefined;
+            }
             default:
                 // unknown type not rendered
                 return undefined;

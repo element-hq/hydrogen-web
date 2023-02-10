@@ -189,7 +189,7 @@ import {HomeServer as MockHomeServer} from "../../../../mocks/HomeServer.js";
 // other imports
 import {BaseMessageTile} from "./tiles/BaseMessageTile.js";
 import {MappedList} from "../../../../observable/list/MappedList";
-import {ObservableValue} from "../../../../observable/ObservableValue";
+import {ObservableValue} from "../../../../observable/value";
 import {PowerLevels} from "../../../../matrix/room/PowerLevels.js";
 
 export function tests() {

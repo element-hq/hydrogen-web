@@ -64,6 +64,14 @@ export class DecryptionResult {
         }
     }
 
+    get userId(): string | undefined {
+        return this.device?.userId;
+    }
+
+    get deviceId(): string | undefined {
+        return this.device?.deviceId;
+    }
+
     get isVerificationUnknown(): boolean {
         return !this.device;
     }

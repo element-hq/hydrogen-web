@@ -159,6 +159,10 @@ export class HomeServerApi {
     state(roomId: string, eventType: string, stateKey: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, undefined, options);
     }
+    
+    sendState(roomId: string, eventType: string, stateKey: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, content, options);
+    }
 
     getLoginFlows(): IHomeServerRequest {
         return this._unauthedRequest("GET", this._url("/login"));
@@ -301,9 +305,13 @@ export class HomeServerApi {
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }
-    
+
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
+    }
+
+    getTurnServer(options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/voip/turnServer`, undefined, undefined, options);
     }
 }
 

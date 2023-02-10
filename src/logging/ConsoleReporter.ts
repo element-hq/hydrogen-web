@@ -13,17 +13,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {BaseLogger} from "./BaseLogger";
-import {LogItem} from "./LogItem";
-import type {ILogItem, LogItemValues, ILogExport} from "./types";
 
-export class ConsoleLogger extends BaseLogger {
-    _persistItem(item: LogItem): void {
-        printToConsole(item);
+import type {ILogger, ILogItem, LogItemValues, ILogReporter} from "./types";
+import type {LogItem} from "./LogItem";
+
+export class ConsoleReporter implements ILogReporter {
+    private logger?: ILogger;
+
+    reportItem(item: ILogItem): void {
+        printToConsole(item as LogItem);
     }
 
-    async export(): Promise<ILogExport | undefined> {
-        return undefined;
+    setLogger(logger: ILogger) {
+        this.logger = logger;
+    }
+
+    printOpenItems(): void {
+        if (!this.logger) {
+            return;
+        }
+        for (const item of this.logger.getOpenRootItems()) {
+            this.reportItem(item);
+        }
     }
 }
 
@@ -39,7 +50,7 @@ function filterValues(values: LogItemValues): LogItemValues | null {
 }
 
 function printToConsole(item: LogItem): void {
-    const label = `${itemCaption(item)} (${item.duration}ms)`;
+    const label = `${itemCaption(item)} (@${item.start}ms, duration: ${item.duration}ms)`;
     const filteredValues = filterValues(item.values);
     const shouldGroup = item.children || filteredValues;
     if (shouldGroup) {
@@ -78,6 +89,8 @@ function itemCaption(item: ILogItem): string {
         return `${item.values.l} ${item.values.id}`;
     } else if (item.values.l && typeof item.values.status !== "undefined") {
         return `${item.values.l} (${item.values.status})`;
+    } else if (item.values.l && typeof item.values.type !== "undefined") {
+        return `${item.values.l} (${item.values.type})`;
     } else if (item.values.l && item.error) {
         return `${item.values.l} failed`;
     } else if (typeof item.values.ref !== "undefined") {

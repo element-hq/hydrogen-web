@@ -24,6 +24,7 @@ import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
 import {ITile, TileShape} from "../../../../../domain/session/room/timeline/tiles/ITile.js";
 import {GapView} from "./timeline/GapView.js";
+import {CallTileView} from "./timeline/CallTileView";
 import {DateHeaderView} from "./timeline/DateHeaderView";
 import type {TileViewConstructor, ViewClassForEntryFn} from "./TimelineView";
 
@@ -48,6 +49,8 @@ export function viewClassForTile(vm: ITile): TileViewConstructor {
             return MissingAttachmentView;
         case TileShape.Redacted:
             return RedactedView;
+        case TileShape.Call:
+            return CallTileView;
         case TileShape.DateHeader:
             return DateHeaderView;
         default:

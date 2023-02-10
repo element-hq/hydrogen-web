@@ -21,6 +21,7 @@ import {createSessionEntry} from "./Session";
 import type {OlmMessage, OlmPayload, OlmEncryptedMessageContent} from "./types";
 import type {Account} from "../Account";
 import type {LockMap} from "../../../utils/LockMap";
+import {Lock, MultiLock, ILock} from "../../../utils/Lock";
 import type {Storage} from "../../storage/idb/Storage";
 import type {Transaction} from "../../storage/idb/Transaction";
 import type {DeviceIdentity} from "../../storage/idb/stores/DeviceIdentityStore";
@@ -62,6 +63,9 @@ const OTK_ALGORITHM = "signed_curve25519";
 const MAX_BATCH_SIZE = 20;
 
 export class Encryption {
+    
+    private _batchLocks: Array<Lock>;
+
     constructor(
         private readonly account: Account,
         private readonly pickleKey: string,
@@ -71,14 +75,42 @@ export class Encryption {
         private readonly ownUserId: string,
         private readonly olmUtil: Olm.Utility,
         private readonly senderKeyLock: LockMap<string>
-    ) {}
+    ) {
+        this._batchLocks = new Array(MAX_BATCH_SIZE);
+        for (let i = 0; i < MAX_BATCH_SIZE; i += 1) {
+            this._batchLocks[i] = new Lock();
+        }
+    }
+
+    /** A hack to prevent olm OOMing when `encrypt` is called several times concurrently,
+     * which is the case when encrypting voip signalling message to send over to_device.
+     * A better fix will be to extract the common bits from megolm/KeyLoader in a super class
+     * and have some sort of olm/SessionLoader that is shared between encryption and decryption
+     * and only keeps the olm session in wasm memory for a brief moment, like we already do for RoomKeys,
+     * and get the benefit of an optimal cache at the same time.
+     * */
+    private async _takeBatchLock(amount: number): Promise<ILock> {
+        const locks = this._batchLocks.filter(l => !l.isTaken).slice(0, amount);
+        if (locks.length < amount) {
+            const takenLocks = this._batchLocks.filter(l => l.isTaken).slice(0, amount - locks.length);
+            locks.push(...takenLocks);
+        }
+        await Promise.all(locks.map(l => l.take()));
+        return new MultiLock(locks);
+    }
 
     async encrypt(type: string, content: Record<string, any>, devices: DeviceIdentity[], hsApi: HomeServerApi, log: ILogItem): Promise<EncryptedMessage[]> {
         let messages: EncryptedMessage[] = [];
         for (let i = 0; i < devices.length ; i += MAX_BATCH_SIZE) {
             const batchDevices = devices.slice(i, i + MAX_BATCH_SIZE);
-            const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi, log);
-            messages = messages.concat(batchMessages);
+            const batchLock = await this._takeBatchLock(batchDevices.length);
+            try {
+                const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi, log);
+                messages = messages.concat(batchMessages);
+            }
+            finally {
+                batchLock.release();
+            }
         }
         return messages;
     }
@@ -311,7 +343,7 @@ class EncryptionTarget {
     }
 }
 
-class EncryptedMessage {
+export class EncryptedMessage {
     constructor(
         public readonly content: OlmEncryptedMessageContent,
         public readonly device: DeviceIdentity

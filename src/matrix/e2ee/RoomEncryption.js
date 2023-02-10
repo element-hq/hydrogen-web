@@ -18,7 +18,7 @@ import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
 import {groupEventsBySession} from "./megolm/decryption/utils";
 import {mergeMap} from "../../utils/mergeMap";
 import {groupBy} from "../../utils/groupBy";
-import {makeTxnId} from "../common.js";
+import {makeTxnId, formatToDeviceMessagesPayload} from "../common.js";
 import {iterateResponseStateEvents} from "../room/common";
 
 const ENCRYPTED_TYPE = "m.room.encrypted";
@@ -457,6 +457,7 @@ export class RoomEncryption {
         await writeTxn.complete();
     }
 
+    // TODO: make this use _sendMessagesToDevices
     async _sendSharedMessageToDevices(type, message, devices, hsApi, log) {
         const devicesByUser = groupBy(devices, device => device.userId);
         const payload = {
@@ -474,16 +475,7 @@ export class RoomEncryption {
 
     async _sendMessagesToDevices(type, messages, hsApi, log) {
         log.set("messages", messages.length);
-        const messagesByUser = groupBy(messages, message => message.device.userId);
-        const payload = {
-            messages: Array.from(messagesByUser.entries()).reduce((userMap, [userId, messages]) => {
-                userMap[userId] = messages.reduce((deviceMap, message) => {
-                    deviceMap[message.device.deviceId] = message.content;
-                    return deviceMap;
-                }, {});
-                return userMap;
-            }, {})
-        };
+        const payload = formatToDeviceMessagesPayload(messages);
         const txnId = makeTxnId();
         await hsApi.sendToDevice(type, payload, txnId, {log}).response();
     }

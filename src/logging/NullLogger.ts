@@ -14,14 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {LogLevel} from "./LogFilter";
-import type {ILogger, ILogExport, ILogItem, LabelOrValues, LogCallback, LogItemValues} from "./types";
+import type {ILogger, ILogItem, ILogReporter, LabelOrValues, LogCallback, LogItemValues} from "./types";
 
 function noop (): void {}
 
 export class NullLogger implements ILogger {
     public readonly item: ILogItem = new NullLogItem(this);
 
-    log(): void {}
+    log(labelOrValues: LabelOrValues): ILogItem {
+        return this.item;
+    }
+
+    addReporter() {}
+
+    get reporters(): ReadonlyArray<ILogReporter> {
+        return [];
+    }
+
+    getOpenRootItems(): Iterable<ILogItem> {
+        return [];
+    }
+
+    forceFinish(): void {}
+
+    child(labelOrValues: LabelOrValues): ILogItem  {
+        return this.item;
+    }
 
     run<T>(_, callback: LogCallback<T>): T {
         return callback(this.item);    
@@ -39,11 +57,7 @@ export class NullLogger implements ILogger {
         new Promise(r => r(callback(this.item))).then(noop, noop);
         return this.item;
     }
-
-    async export(): Promise<ILogExport | undefined> {
-        return undefined;
-    }
-
+    
     get level(): typeof LogLevel {
         return LogLevel;
     }
@@ -61,13 +75,19 @@ export class NullLogItem implements ILogItem {
     }
 
     wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T {
+        return this.run(callback);
+    }
+
+    run<T>(callback: LogCallback<T>): T {
         return callback(this);
     }
 
-    log(): ILogItem {
+
+    log(labelOrValues: LabelOrValues): ILogItem {
         return this;
     }
-    set(): ILogItem { return this; }
+    
+    set(labelOrValues: LabelOrValues): ILogItem { return this; }
 
     runDetached(_: LabelOrValues, callback: LogCallback<unknown>): ILogItem {
         new Promise(r => r(callback(this))).then(noop, noop);
@@ -99,6 +119,7 @@ export class NullLogItem implements ILogItem {
     }
 
     finish(): void {}
+    forceFinish(): void {}
 
     serialize(): undefined {
         return undefined;

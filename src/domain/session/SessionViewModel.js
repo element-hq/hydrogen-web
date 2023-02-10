@@ -30,6 +30,7 @@ import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
 import {SyncStatus} from "../../matrix/Sync.js";
+import {ToastCollectionViewModel} from "./toast/ToastCollectionViewModel";
 
 export class SessionViewModel extends ViewModel {
     constructor(options) {
@@ -47,6 +48,9 @@ export class SessionViewModel extends ViewModel {
         this._gridViewModel = null;
         this._createRoomViewModel = null;
         this._joinRoomViewModel = null;
+        this._toastCollectionViewModel = this.track(new ToastCollectionViewModel(this.childOptions({
+            session: this._client.session,
+        })));
         this._setupNavigation();
         this._setupForcedLogoutOnAccessTokenInvalidation();
     }
@@ -126,6 +130,11 @@ export class SessionViewModel extends ViewModel {
 
     start() {
         this._sessionStatusViewModel.start();
+        if (this.features.calls) {
+            this._client.session.callHandler.loadCalls("m.ring");
+            // TODO: only do this when opening the room
+            this._client.session.callHandler.loadCalls("m.prompt");
+        }
     }
 
     get activeMiddleViewModel() {
@@ -170,6 +179,10 @@ export class SessionViewModel extends ViewModel {
         return this._joinRoomViewModel;
     }
 
+    get toastCollectionViewModel() {
+        return this._toastCollectionViewModel;
+    }
+
     _updateGrid(roomIds) {
         const changed = !(this._gridViewModel && roomIds);
         const currentRoomId = this.navigation.path.get("room");
@@ -211,7 +224,7 @@ export class SessionViewModel extends ViewModel {
     _createRoomViewModelInstance(roomId) {
         const room = this._client.session.rooms.get(roomId);
         if (room) {
-            const roomVM = new RoomViewModel(this.childOptions({room}));
+            const roomVM = new RoomViewModel(this.childOptions({room, session: this._client.session}));
             roomVM.load();
             return roomVM;
         }
@@ -228,7 +241,7 @@ export class SessionViewModel extends ViewModel {
     async _createArchivedRoomViewModel(roomId) {
         const room = await this._client.session.loadArchivedRoom(roomId);
         if (room) {
-            const roomVM = new RoomViewModel(this.childOptions({room}));
+            const roomVM = new RoomViewModel(this.childOptions({room, session: this._client.session}));
             roomVM.load();
             return roomVM;
         }

@@ -22,36 +22,69 @@ import {
     iterateCursor,
     fetchResults,
 } from "../matrix/storage/idb/utils";
-import {BaseLogger} from "./BaseLogger";
 import type {Interval} from "../platform/web/dom/Clock";
 import type {Platform} from "../platform/web/Platform.js";
 import type {BlobHandle} from "../platform/web/dom/BlobHandle.js";
-import type {ILogItem, ILogExport, ISerializedItem} from "./types";
-import type {LogFilter} from "./LogFilter";
+import type {ILogItem, ILogger, ILogReporter, ISerializedItem} from "./types";
+import {LogFilter} from "./LogFilter";
 
 type QueuedItem = {
     json: string;
     id?: number;
 }
 
-export class IDBLogger extends BaseLogger {
-    private readonly _name: string;
-    private readonly _limit: number;
+type Options = {
+    name: string,
+    flushInterval?: number,
+    limit?: number,
+    platform: Platform,
+    serializedTransformer?: (item: ISerializedItem) => ISerializedItem
+}
+
+export class IDBLogPersister implements ILogReporter {
     private readonly _flushInterval: Interval;
     private _queuedItems: QueuedItem[];
+    private readonly options: Options;
+    private logger?: ILogger;
 
-    constructor(options: {name: string, flushInterval?: number, limit?: number, platform: Platform, serializedTransformer?: (item: ISerializedItem) => ISerializedItem}) {
-        super(options);
-        const {name, flushInterval = 60 * 1000, limit = 3000} = options;
-        this._name = name;
-        this._limit = limit;
+    constructor(options: Options) {
+        this.options = options;
         this._queuedItems = this._loadQueuedItems();
         // TODO: also listen for unload just in case sync keeps on running after pagehide is fired?
         window.addEventListener("pagehide", this, false);
-        this._flushInterval = this._platform.clock.createInterval(() => this._tryFlush(), flushInterval);
+        this._flushInterval = this.options.platform.clock.createInterval(
+            () => this._tryFlush(),
+            this.options.flushInterval ?? 60 * 1000
+        );
     }
 
-    // TODO: move dispose to ILogger, listen to pagehide elsewhere and call dispose from there, which calls _finishAllAndFlush
+    setLogger(logger: ILogger): void {
+        this.logger = logger;
+    }
+
+    reportItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
+        const queuedItem = this.prepareItemForQueue(logItem, filter, forced);
+        if (queuedItem) {
+            this._queuedItems.push(queuedItem);
+        }
+    }
+
+    async export(): Promise<IDBLogExport> {
+        const db = await this._openDB();
+        try {
+            const txn = db.transaction(["logs"], "readonly");
+            const logs = txn.objectStore("logs");
+            const storedItems: QueuedItem[] = await fetchResults(logs.openCursor(), () => false);
+            const openItems = this.getSerializedOpenItems();
+            const allItems = storedItems.concat(this._queuedItems).concat(openItems);
+            return new IDBLogExport(allItems, this, this.options.platform);
+        } finally {
+            try {
+                db.close();
+            } catch (e) {}
+        }
+    }
+    
     dispose(): void {
         window.removeEventListener("pagehide", this, false);
         this._flushInterval.dispose();
@@ -63,7 +96,7 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    async _tryFlush(): Promise<void> {
+    private async _tryFlush(): Promise<void> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
@@ -73,9 +106,10 @@ export class IDBLogger extends BaseLogger {
                 logs.add(i);
             }
             const itemCount = await reqAsPromise(logs.count());
-            if (itemCount > this._limit) {
+            const limit = this.options.limit ?? 3000;
+            if (itemCount > limit) {
                 // delete an extra 10% so we don't need to delete every time we flush
-                let deleteAmount = (itemCount - this._limit) + Math.round(0.1 * this._limit);
+                let deleteAmount = (itemCount - limit) + Math.round(0.1 * limit);
                 await iterateCursor(logs.openCursor(), (_, __, cursor) => {
                     cursor.delete();
                     deleteAmount -= 1;
@@ -93,14 +127,16 @@ export class IDBLogger extends BaseLogger {
         }
     }
 
-    _finishAllAndFlush(): void {
-        this._finishOpenItems();
-        this.log({l: "pagehide, closing logs", t: "navigation"});
+    private _finishAllAndFlush(): void {
+        if (this.logger) {
+            this.logger.log({l: "pagehide, closing logs", t: "navigation"});
+            this.logger.forceFinish();
+        }
         this._persistQueuedItems(this._queuedItems);
     }
 
-    _loadQueuedItems(): QueuedItem[] {
-        const key = `${this._name}_queuedItems`;
+    private _loadQueuedItems(): QueuedItem[] {
+        const key = `${this.options.name}_queuedItems`;
         try {
             const json = window.localStorage.getItem(key);
             if (json) {
@@ -113,44 +149,32 @@ export class IDBLogger extends BaseLogger {
         return [];
     }
 
-    _openDB(): Promise<IDBDatabase> {
-        return openDatabase(this._name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
+    private _openDB(): Promise<IDBDatabase> {
+        return openDatabase(this.options.name, db => db.createObjectStore("logs", {keyPath: "id", autoIncrement: true}), 1);
     }
-    
-    _persistItem(logItem: ILogItem, filter: LogFilter, forced: boolean): void {
-        const serializedItem = logItem.serialize(filter, undefined, forced);
+
+    private prepareItemForQueue(logItem: ILogItem, filter: LogFilter, forced: boolean): QueuedItem | undefined {
+        let serializedItem = logItem.serialize(filter, undefined, forced);
         if (serializedItem) {
-            const transformedSerializedItem = this._serializedTransformer(serializedItem);
-            this._queuedItems.push({
-                json: JSON.stringify(transformedSerializedItem)
-            });
+            if (this.options.serializedTransformer) {
+                serializedItem = this.options.serializedTransformer(serializedItem);
+            }
+            return {
+                json: JSON.stringify(serializedItem)
+            };
         }
     }
 
-    _persistQueuedItems(items: QueuedItem[]): void {
+    private _persistQueuedItems(items: QueuedItem[]): void {
         try {
-            window.localStorage.setItem(`${this._name}_queuedItems`, JSON.stringify(items));
+            window.localStorage.setItem(`${this.options.name}_queuedItems`, JSON.stringify(items));
         } catch (e) {
             console.error("Could not persist queued log items in localStorage, they will likely be lost", e);
         }
     }
 
-    async export(): Promise<ILogExport> {
-        const db = await this._openDB();
-        try {
-            const txn = db.transaction(["logs"], "readonly");
-            const logs = txn.objectStore("logs");
-            const storedItems: QueuedItem[] = await fetchResults(logs.openCursor(), () => false);
-            const allItems = storedItems.concat(this._queuedItems);
-            return new IDBLogExport(allItems, this, this._platform);
-        } finally {
-            try {
-                db.close();
-            } catch (e) {}
-        }
-    }
-
-    async _removeItems(items: QueuedItem[]): Promise<void> {
+    /** @internal called by ILogExport.removeFromStore */
+    async removeItems(items: QueuedItem[]): Promise<void> {
         const db = await this._openDB();
         try {
             const txn = db.transaction(["logs"], "readwrite");
@@ -173,14 +197,29 @@ export class IDBLogger extends BaseLogger {
             } catch (e) {}
         }
     }
+
+    private getSerializedOpenItems(): QueuedItem[] {
+        const openItems: QueuedItem[] = [];
+        if (!this.logger) {
+            return openItems;
+        }
+        const filter = new LogFilter();
+        for(const item of this.logger!.getOpenRootItems()) {
+            const openItem = this.prepareItemForQueue(item, filter, false);
+            if (openItem) {
+                openItems.push(openItem);
+            }
+        }
+        return openItems;
+    }
 }
 
-class IDBLogExport implements ILogExport {
+export class IDBLogExport {
     private readonly _items: QueuedItem[];
-    private readonly _logger: IDBLogger;
+    private readonly _logger: IDBLogPersister;
     private readonly _platform: Platform;
 
-    constructor(items: QueuedItem[], logger: IDBLogger, platform: Platform) {
+    constructor(items: QueuedItem[], logger: IDBLogPersister, platform: Platform) {
         this._items = items;
         this._logger = logger;
         this._platform = platform;
@@ -194,10 +233,17 @@ class IDBLogExport implements ILogExport {
      * @return {Promise}
      */
     removeFromStore(): Promise<void> {
-        return this._logger._removeItems(this._items);
+        return this._logger.removeItems(this._items);
     }
 
     asBlob(): BlobHandle {
+        const json = this.toJSON();
+        const buffer: Uint8Array = this._platform.encoding.utf8.encode(json);
+        const blob: BlobHandle = this._platform.createBlob(buffer, "application/json");
+        return blob;
+    }
+
+    toJSON(): string {
         const log = {
             formatVersion: 1,
             appVersion: this._platform.updateService?.version,
@@ -205,8 +251,6 @@ class IDBLogExport implements ILogExport {
             items: this._items.map(i => JSON.parse(i.json))
         };
         const json = JSON.stringify(log);
-        const buffer: Uint8Array = this._platform.encoding.utf8.encode(json);
-        const blob: BlobHandle = this._platform.createBlob(buffer, "application/json");
-        return blob;
+        return json;
     }
 }

@@ -45,14 +45,16 @@ import {
     keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
 } from "./ssss/index";
 import {SecretStorage} from "./ssss/SecretStorage";
-import {ObservableValue, RetainedObservableValue} from "../observable/ObservableValue";
+import {ObservableValue, RetainedObservableValue} from "../observable/value";
+import {CallHandler} from "./calls/CallHandler";
+import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
 
 const PICKLE_KEY = "DEFAULT_KEY";
 const PUSHER_KEY = "pusher";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeserver
-    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
+    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository, features}) {
         this._platform = platform;
         this._storage = storage;
         this._hsApi = hsApi;
@@ -73,7 +75,8 @@ export class Session {
         };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
-        this._deviceMessageHandler = new DeviceMessageHandler({storage});
+        this._roomStateHandler = new RoomStateHandlerSet();
+        this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
         this._e2eeAccount = null;
@@ -100,6 +103,10 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+
+        if (features.calls) {
+            this._setupCallHandler();
+        }
     }
 
     get fingerprintKey() {
@@ -116,6 +123,42 @@ export class Session {
 
     get userId() {
         return this._sessionInfo.userId;
+    }
+
+    get callHandler() {
+        return this._callHandler;
+    }
+
+    _setupCallHandler() {
+        this._callHandler = new CallHandler({
+            clock: this._platform.clock,
+            random: this._platform.random,
+            hsApi: this._hsApi,
+            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
+                if (!this._deviceTracker || !this._olmEncryption) {
+                    log.set("encryption_disabled", true);
+                    return;
+                }
+                const device = await log.wrap("get device key", async log => {
+                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
+                    if (!device) {
+                        log.set("not_found", true);
+                    }
+                    return device;
+                });
+                if (device) {
+                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
+                    return encryptedMessages;
+                }
+            },
+            storage: this._storage,
+            webRTC: this._platform.webRTC,
+            ownDeviceId: this._sessionInfo.deviceId,
+            ownUserId: this._sessionInfo.userId,
+            logger: this._platform.logger,
+            forceTURN: false,
+        });
+        this.observeRoomState(this._callHandler);
     }
 
     // called once this._e2eeAccount is assigned
@@ -452,6 +495,8 @@ export class Session {
         this._megolmDecryption = undefined;
         this._e2eeAccount?.dispose();
         this._e2eeAccount = undefined;
+        this._callHandler?.dispose();
+        this._callHandler = undefined;
         for (const room of this._rooms.values()) {
             room.dispose();
         }
@@ -562,7 +607,8 @@ export class Session {
             pendingEvents,
             user: this._user,
             createRoomEncryption: this._createRoomEncryption,
-            platform: this._platform
+            platform: this._platform,
+            roomStateHandler: this._roomStateHandler
         });
     }
 
@@ -649,7 +695,9 @@ export class Session {
     async writeSync(syncResponse, syncFilterId, preparation, txn, log) {
         const changes = {
             syncInfo: null,
-            e2eeAccountChanges: null
+            e2eeAccountChanges: null,
+            hasNewRoomKeys: false,
+            deviceMessageDecryptionResults: null,
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -670,7 +718,9 @@ export class Session {
         }
 
         if (preparation) {
-            changes.hasNewRoomKeys = await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
+            const {hasNewRoomKeys, decryptionResults} = await log.wrap("deviceMsgs", log => this._deviceMessageHandler.writeSync(preparation, txn, log));
+            changes.hasNewRoomKeys = hasNewRoomKeys;
+            changes.deviceMessageDecryptionResults = decryptionResults;
         }
 
         // store account data
@@ -711,6 +761,9 @@ export class Session {
         if (changes.hasNewRoomKeys) {
             this._keyBackup.get()?.flush(log);
         }
+        if (changes.deviceMessageDecryptionResults) {
+            await this._deviceMessageHandler.afterSyncCompleted(changes.deviceMessageDecryptionResults, this._deviceTracker, this._hsApi, log);
+        }
     }
 
     _tryReplaceRoomBeingCreated(roomId, log) {
@@ -730,7 +783,7 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
+    async applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
@@ -894,14 +947,26 @@ export class Session {
     async observeRoomStatus(roomId) {
         let observable = this._observedRoomStatus.get(roomId);
         if (!observable) {
-            const status = await this.getRoomStatus(roomId);
+            let status = undefined;
+            // Create and set the observable with value = undefined, so that
+            // we don't loose any sync changes that come in while we are busy
+            // calculating the current room status.
             observable = new RetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);
             });
-
             this._observedRoomStatus.set(roomId, observable);
+            status = await this.getRoomStatus(roomId);
+            // If observable.value is not undefined anymore, then some
+            // change has come through the sync.
+            if (observable.get() === undefined) {
+                observable.set(status);
+            }
         }
         return observable;
+    }
+
+    observeRoomState(roomStateHandler) {
+        return this._roomStateHandler.subscribe(roomStateHandler);
     }
 
     /**
@@ -950,6 +1015,7 @@ export class Session {
     }
 }
 
+import {FeatureSet} from "../features";
 export function tests() {
     function createStorageMock(session, pendingEvents = []) {
         return {
@@ -983,9 +1049,19 @@ export function tests() {
 
     return {
         "session data is not modified until after sync": async (assert) => {
-            const session = new Session({storage: createStorageMock({
+            const storage = createStorageMock({
                 sync: {token: "a", filterId: 5}
-            }), sessionInfo: {userId: ""}});
+            });
+            const session = new Session({
+                storage,
+                sessionInfo: {userId: ""},
+                platform: {
+                    clock: {
+                        createTimeout: () => undefined
+                    }
+                },
+                features: new FeatureSet(0)
+            });
             await session.load();
             let syncSet = false;
             const syncTxn = {

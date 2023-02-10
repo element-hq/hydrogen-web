@@ -86,15 +86,15 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
         return this._values.size;
     }
 
-    [Symbol.iterator](): Iterator<[K, V]> {
+    [Symbol.iterator](): IterableIterator<[K, V]> {
         return this._values.entries();
     }
 
-    values(): Iterator<V> {
+    values(): IterableIterator<V> {
         return this._values.values();
     }
 
-    keys(): Iterator<K> {
+    keys(): IterableIterator<K> {
         return this._values.keys();
     }
 }

@@ -17,23 +17,33 @@ limitations under the License.
 
 import {LogItem} from "./LogItem";
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {ILogger, ILogExport, FilterCreator, LabelOrValues, LogCallback, ILogItem, ISerializedItem} from "./types";
+import type {ILogger, ILogReporter, FilterCreator, LabelOrValues, LogCallback, ILogItem, ISerializedItem} from "./types";
 import type {Platform} from "../platform/web/Platform.js";
 
-export abstract class BaseLogger implements ILogger {
+export class Logger implements ILogger {
     protected _openItems: Set<LogItem> = new Set();
     protected _platform: Platform;
     protected _serializedTransformer: (item: ISerializedItem) => ISerializedItem;
+    public readonly reporters: ILogReporter[] = [];
 
-    constructor({platform, serializedTransformer = (item: ISerializedItem) => item}) {
+    constructor({platform}) {
         this._platform = platform;
-        this._serializedTransformer = serializedTransformer;
     }
 
-    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): void {
+    log(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info): ILogItem {
         const item = new LogItem(labelOrValues, logLevel, this);
         item.end = item.start;
         this._persistItem(item, undefined, false);
+        return item;
+    }
+
+    /** Prefer `run()` or `log()` above this method; only use it if you have a long-running operation
+     *  *without* a single call stack that should be logged into one sub-tree.
+     *  You need to call `finish()` on the returned item or it will stay open until the app unloads. */
+    child(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info, filterCreator?: FilterCreator): ILogItem {
+        const item = new DeferredPersistRootLogItem(labelOrValues, logLevel, this, filterCreator);
+        this._openItems.add(item);
+        return item;
     }
 
     /** if item is a log item, wrap the callback in a child of it, otherwise start a new root log item. */
@@ -70,10 +80,10 @@ export abstract class BaseLogger implements ILogger {
         return this._run(item, callback, logLevel, true, filterCreator);
     }
 
-    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
+    private _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: true, filterCreator?: FilterCreator): T;
     // we don't return if we don't throw, as we don't have anything to return when an error is caught but swallowed for the fire-and-forget case.
-    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
-    _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
+    private _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: false, filterCreator?: FilterCreator): void;
+    private _run<T>(item: LogItem, callback: LogCallback<T>, logLevel: LogLevel, wantResult: boolean, filterCreator?: FilterCreator): T | void {
         this._openItems.add(item);
 
         const finishItem = () => {
@@ -125,9 +135,18 @@ export abstract class BaseLogger implements ILogger {
         }
     }
 
-    _finishOpenItems() {
+    addReporter(reporter: ILogReporter): void {
+        reporter.setLogger(this);
+        this.reporters.push(reporter);
+    }
+
+    getOpenRootItems(): Iterable<ILogItem> {
+        return this._openItems;
+    }
+
+    forceFinish() {
         for (const openItem of this._openItems) {
-            openItem.finish();
+            openItem.forceFinish();
             try {
                 // for now, serialize with an all-permitting filter
                 // as the createFilter function would get a distorted image anyway
@@ -141,20 +160,43 @@ export abstract class BaseLogger implements ILogger {
         this._openItems.clear();
     }
 
-    abstract _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void;
+    /** @internal */
+    _removeItemFromOpenList(item: LogItem): void {
+        this._openItems.delete(item);
+    }
 
-    abstract export(): Promise<ILogExport | undefined>;
+    /** @internal */
+    _persistItem(item: LogItem, filter?: LogFilter, forced?: boolean): void {
+        for (var i = 0; i < this.reporters.length; i += 1) {
+            this.reporters[i].reportItem(item, filter, forced);
+        }
+    }
 
     // expose log level without needing 
     get level(): typeof LogLevel {
         return LogLevel;
     }
 
+    /** @internal */
     _now(): number {
         return this._platform.clock.now();
     }
 
+    /** @internal */
     _createRefId(): number {
         return Math.round(this._platform.random() * Number.MAX_SAFE_INTEGER);
+    }
+}
+
+class DeferredPersistRootLogItem extends LogItem {
+    finish() {
+        super.finish();
+        (this._logger as Logger)._persistItem(this, undefined, false);
+        (this._logger as Logger)._removeItemFromOpenList(this);
+    }
+
+    forceFinish() {
+        super.finish();
+        /// no need to persist when force-finishing as _finishOpenItems above will do it
     }
 }

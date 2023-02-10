@@ -14,33 +14,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export const ErrorValue = Symbol("ErrorBoundary:Error");
-
 export class ErrorBoundary {
     private _error?: Error;
 
-    constructor(private readonly errorCallback: (Error) => void) {}
+    constructor(private readonly errorCallback: (err: Error) => void) {}
 
     /**
      * Executes callback() and then runs errorCallback() on error.
-     * This will never throw but instead return `errorValue` if an error occured.
+     * This will never throw but instead return `errorValue` if an error occurred.
      */
-    try<T>(callback: () => T): T | typeof ErrorValue;
-    try<T>(callback: () => Promise<T>): Promise<T | typeof ErrorValue> | typeof ErrorValue {
+    try<T, E>(callback: () => T, errorValue?: E): T | typeof errorValue;
+    try<T, E>(callback: () => Promise<T>, errorValue?: E): Promise<T | typeof errorValue> | typeof errorValue {
         try {
-            let result: T | Promise<T | typeof ErrorValue> = callback();
+            let result: T | Promise<T | typeof errorValue> = callback();
             if (result instanceof Promise) {
                 result = result.catch(err => {
                     this._error = err;
-                    this.errorCallback(err);
-                    return ErrorValue;
+                    this.reportError(err);
+                    return errorValue;
                 });
             }
             return result;
         } catch (err) {
             this._error = err;
+            this.reportError(err);
+            return errorValue;
+        }
+    }
+
+    reportError(err: Error) {
+        try {
             this.errorCallback(err);
-            return ErrorValue;
+        } catch (err) {
+            console.error("error in ErrorBoundary callback", err);
         }
     }
 
@@ -56,9 +62,9 @@ export function tests() {
             const boundary = new ErrorBoundary(() => emitted = true);
             const result = boundary.try(() => {
                 throw new Error("fail!");
-            });
+            }, 0);
             assert(emitted);
-            assert.strictEqual(result, ErrorValue);
+            assert.strictEqual(result, 0);
         },
         "return value of callback is forwarded": assert => {
             let emitted = false;
@@ -74,9 +80,18 @@ export function tests() {
             const boundary = new ErrorBoundary(() => emitted = true);
             const result = await boundary.try(async () => {
                 throw new Error("fail!");
-            });
+            }, 0);
             assert(emitted);
-            assert.strictEqual(result, ErrorValue);
+            assert.strictEqual(result, 0);
+        },
+        "exception in error callback is swallowed": async assert => {
+            let emitted = false;
+            const boundary = new ErrorBoundary(() => { throw new Error("bug in errorCallback"); });
+            assert.doesNotThrow(() => {
+                boundary.try(() => {
+                    throw new Error("fail!");
+                });
+            });
         }
     }
 }

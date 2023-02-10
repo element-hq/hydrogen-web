@@ -237,7 +237,7 @@ room.sendEvent(eventEntry.eventType, replacement);
 ## Replies
 
 ```js
-const reply = eventEntry.reply({});
+const reply = eventEntry.createReplyContent({});
 room.sendEvent("m.room.message", reply);
 ```
 

@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue} from "../observable/ObservableValue";
+import {ObservableValue} from "../observable/value";
 import {createEnum} from "../utils/enum";
 
 const INCREMENTAL_TIMEOUT = 30000;
@@ -218,6 +218,7 @@ export class Sync {
     _openPrepareSyncTxn() {
         const storeNames = this._storage.storeNames;
         return this._storage.readTxn([
+            storeNames.deviceIdentities, // to read device from olm messages
             storeNames.olmSessions,
             storeNames.inboundGroupSessions,
             // to read fragments when loading sync writer when rejoining archived room
@@ -337,6 +338,7 @@ export class Sync {
             // to decrypt and store new room keys
             storeNames.olmSessions,
             storeNames.inboundGroupSessions,
+            storeNames.calls,
         ]);
     }
     

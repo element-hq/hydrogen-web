@@ -399,6 +399,60 @@ export class DeviceTracker {
         return this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
     }
 
+    /** gets a single device */
+    async deviceForId(userId, deviceId, hsApi, log) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.deviceIdentities,
+        ]);
+        let device = await txn.deviceIdentities.get(userId, deviceId);
+        if (device) {
+            log.set("existingDevice", true);
+        } else {
+            //// BEGIN EXTRACT (deviceKeysMap)
+            const deviceKeyResponse = await hsApi.queryKeys({
+                "timeout": 10000,
+                "device_keys": {
+                    [userId]: [deviceId]
+                },
+                "token": this._getSyncToken()
+            }, {log}).response();
+            // verify signature
+            const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
+            //// END EXTRACT
+            // TODO: what if verifiedKeysPerUser is empty or does not contain userId?
+            const verifiedKeys = verifiedKeysPerUser
+                .find(vkpu => vkpu.userId === userId).verifiedKeys
+                .find(vk => vk["device_id"] === deviceId);
+            // user hasn't uploaded keys for device?
+            if (!verifiedKeys) {
+                return undefined;
+            }
+            device = deviceKeysAsDeviceIdentity(verifiedKeys);
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.deviceIdentities,
+            ]);
+            // check again we don't have the device already.
+            // when updating all keys for a user we allow updating the
+            // device when the key hasn't changed so the device display name
+            // can be updated, but here we don't.
+            const existingDevice = await txn.deviceIdentities.get(userId, deviceId);
+            if (existingDevice) {
+                device = existingDevice;
+                log.set("existingDeviceAfterFetch", true);
+            } else {
+                try {
+                    txn.deviceIdentities.set(device);
+                    log.set("newDevice", true);
+                } catch (err) {
+                    txn.abort();
+                    throw err;
+                }
+                await txn.complete();
+            }
+        }
+        return device;
+    }
+
     /**
      * Gets all the device identities with which keys should be shared for a set of users in a tracked room.
      * If any userIdentities are outdated, it will fetch them from the homeserver.

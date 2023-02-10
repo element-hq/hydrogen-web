@@ -181,7 +181,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         this._templateView._addEventListener(node, name, fn, useCapture);
     }
 
-    _addAttributeBinding(node: Element, name: string, fn: (value: T) => boolean | string): void {
+    _addAttributeBinding(node: Element, name: string, fn: AttributeBinding<T>): void {
         let prevValue: string | boolean | undefined = undefined;
         const binding = () => {
             const newValue = fn(this._value);
@@ -337,7 +337,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode | undefined): ViewNode {
         return this.mapView(mapFn, mappedValue => {
             return new InlineTemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
@@ -371,17 +371,17 @@ export class TemplateBuilder<T extends IObservableValue> {
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
     instead use tags from html.ts to help you construct any DOM you need. */
-    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
+    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined, value: T) => void) {
         let prevValue = mapFn(this._value);
         const binding = () => {
             const newValue = mapFn(this._value);
             if (prevValue !== newValue) {
-                sideEffect(newValue, prevValue);
+                sideEffect(newValue, prevValue, this._value);
                 prevValue = newValue;
             }
         };
         this._addBinding(binding);
-        sideEffect(prevValue, undefined);
+        sideEffect(prevValue, undefined, this._value);
     }
 }
 

@@ -440,4 +440,38 @@ only loads when the top comes into view*/
     background-color: var(--background-color-primary);
     border-radius: 8px;
     text-align: center;
-  }
+}
+
+.CallTileView > div > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.CallTileView_members > * {
+    margin-right: -16px;
+}
+
+.CallTileView_members {
+    display: flex;
+}
+
+.CallTileView_title {
+    font-weight: bold;
+}
+
+.CallTileView_subtitle {
+    font-size: 12px;
+}
+
+.CallTileView_memberCount::before {
+    content: "";
+    background-image: url('./icons/room-members.svg?primary=text-color');
+    background-repeat: no-repeat;
+    background-size: 16px 16px;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    vertical-align: bottom;
+    margin-right: 4px;
+}

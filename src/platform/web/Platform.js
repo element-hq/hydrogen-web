@@ -21,8 +21,9 @@ import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionI
 import {SettingsStorage} from "./dom/SettingsStorage.js";
 import {Encoding} from "./utils/Encoding.js";
 import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
-import {IDBLogger} from "../../logging/IDBLogger";
-import {ConsoleLogger} from "../../logging/ConsoleLogger";
+import {IDBLogPersister} from "../../logging/IDBLogPersister";
+import {ConsoleReporter} from "../../logging/ConsoleReporter";
+import {Logger} from "../../logging/Logger";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -38,6 +39,8 @@ import {downloadInIframe} from "./dom/download.js";
 import {Disposables} from "../../utils/Disposables";
 import {parseHTML} from "./parsehtml.js";
 import {handleAvatarError} from "./ui/avatar";
+import {MediaDevicesWrapper} from "./dom/MediaDevices";
+import {DOMWebRTC} from "./dom/WebRTC";
 import {ThemeLoader} from "./theming/ThemeLoader";
 import {TimeFormatter} from "./dom/TimeFormatter";
 
@@ -128,7 +131,7 @@ function adaptUIOnVisualViewportResize(container) {
 }
 
 export class Platform {
-    constructor({ container, assetPaths, config, configURL, options = null, cryptoExtras = null }) {
+    constructor({ container, assetPaths, config, configURL, logger, options = null, cryptoExtras = null }) {
         this._container = container;
         this._assetPaths = assetPaths;
         this._config = config;
@@ -137,7 +140,7 @@ export class Platform {
         this.clock = new Clock();
         this.encoding = new Encoding();
         this.random = Math.random;
-        this._createLogger(options?.development);
+        this.logger = logger ?? this._createLogger(options?.development);
         this.history = new History();
         this.onlineStatus = new OnlineStatus();
         this.timeFormatter = new TimeFormatter();
@@ -167,6 +170,8 @@ export class Platform {
         this._disposables = new Disposables();
         this._olmPromise = undefined;
         this._workerPromise = undefined;
+        this.mediaDevices = new MediaDevicesWrapper(navigator.mediaDevices);
+        this.webRTC = new DOMWebRTC();
         this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
     }
 
@@ -204,6 +209,7 @@ export class Platform {
     }
 
     _createLogger(isDevelopment) {
+        const logger = new Logger({platform: this});
         // Make sure that loginToken does not end up in the logs
         const transformer = (item) => {
             if (item.e?.stack) {
@@ -211,11 +217,12 @@ export class Platform {
             }
             return item;
         };
+        const logPersister = new IDBLogPersister({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
+        logger.addReporter(logPersister);
         if (isDevelopment) {
-            this.logger = new ConsoleLogger({platform: this});
-        } else {
-            this.logger = new IDBLogger({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
+            logger.addReporter(new ConsoleReporter());
         }
+        return logger;
     }
 
     get updateService() {
@@ -274,6 +281,10 @@ export class Platform {
         } else {
             downloadInIframe(this._container, this._assetPaths.downloadSandbox, blobHandle, filename, this.isIOS);
         }
+    }
+
+    restart() {
+        document.location.reload();
     }
 
     openFile(mimeType = null) {
@@ -378,24 +389,22 @@ import {LogItem} from "../../logging/LogItem";
 export function tests() {
     return {
         "loginToken should not be in logs": (assert) => {
-            const transformer = (item) => {
-                if (item.e?.stack) {
-                    item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+            const logPersister = Object.create(IDBLogPersister.prototype);
+            logPersister._queuedItems = [];
+            logPersister.options = {
+                serializedTransformer: (item) => {
+                    if (item.e?.stack) {
+                        item.e.stack = item.e.stack.replace(/(?<=\/\?loginToken=).+/, "<snip>");
+                    }
+                    return item;
                 }
-                return item;
             };
-            const logger = {
-                _queuedItems: [],
-                _serializedTransformer: transformer,
-                _now: () => {}
-            };
-            logger.persist = IDBLogger.prototype._persistItem.bind(logger);
+            const logger = { _now() {return 5;} };
             const logItem = new LogItem("test", 1, logger);
             logItem.error = new Error();
             logItem.error.stack = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26"
-            logger.persist(logItem, null, false);
-            const item = logger._queuedItems.pop();
-            console.log(item);
+            logPersister.reportItem(logItem, null, false);
+            const item = logPersister._queuedItems.pop();
             assert.strictEqual(item.json.search("secret"), -1);
         }
     };

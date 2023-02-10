@@ -16,11 +16,7 @@ limitations under the License.
 
 import type { ITimeFormatter } from "../../types/types";
 import {Clock} from "./Clock";
-
-enum TimeScope {
-    Minute = 60 * 1000,
-    Day = 24 * 60 * 60 * 1000,
-}
+import {formatDuration, TimeScope} from "../../../utils/timeFormatting";
 
 export class TimeFormatter implements ITimeFormatter {
 
@@ -74,6 +70,10 @@ export class TimeFormatter implements ITimeFormatter {
             // Friday, November 5, 2021
             return this.otherYearFormatter.format(date);
         }
+    }
+
+    formatDuration(milliseconds: number): string {
+        return formatDuration(milliseconds);
     }
 }
 

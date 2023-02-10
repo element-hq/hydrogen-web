@@ -36,6 +36,7 @@ import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
+import {CallStore} from "./stores/CallStore";
 import type {ILogger, ILogItem} from "../../../logging/types";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
@@ -166,6 +167,10 @@ export class Transaction {
 
     get accountData(): AccountDataStore {
         return this._store(StoreNames.accountData, idbStore => new AccountDataStore(idbStore));
+    }
+    
+    get calls(): CallStore {
+        return this._store(StoreNames.calls, idbStore => new CallStore(idbStore));
     }
 
     async complete(log?: ILogItem): Promise<void> {

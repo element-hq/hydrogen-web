@@ -48,14 +48,6 @@ export class BaseMessageTile extends SimpleTile {
         return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
-    get displayName() {
-        return this._entry.displayName || this.sender;
-    }
-
-    get sender() {
-        return this._entry.sender;
-    }
-
     get memberPanelLink() {
         return `${this.urlRouter.urlUntilSegment("room")}/member/${this.sender}`;
     }
@@ -134,7 +126,7 @@ export class BaseMessageTile extends SimpleTile {
             if (action?.shouldReplace || !this._replyTile) {
                 this.disposeTracked(this._replyTile);
                 const tileClassForEntry = this._options.tileClassForEntry;
-                const ReplyTile = tileClassForEntry(replyEntry);
+                const ReplyTile = tileClassForEntry(replyEntry, this._options);
                 if (ReplyTile) {
                     this._replyTile = new ReplyTile(replyEntry, this._options);
                 }
@@ -149,8 +141,8 @@ export class BaseMessageTile extends SimpleTile {
         this._roomVM.startReply(this._entry);
     }
 
-    reply(msgtype, body, log = null) {
-        return this._room.sendEvent("m.room.message", this._entry.reply(msgtype, body), null, log);
+    createReplyContent(msgtype, body) {
+        return this._entry.createReplyContent(msgtype, body);
     }
 
     redact(reason, log) {

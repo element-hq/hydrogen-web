@@ -16,7 +16,8 @@ export enum TileShape {
     MissingAttachment = "missing-attachment",
     Redacted = "redacted",
     Video = "video",
-    DateHeader = "date-header"
+    DateHeader = "date-header",
+    Call = "call",
 }
 
 // TODO: should we imply inheriting from view model here?
