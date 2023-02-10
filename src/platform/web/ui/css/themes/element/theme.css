@@ -769,6 +769,11 @@ a {
   margin: 0;
 }
 
+
+.FeatureView p {
+  margin: 8px 0;
+}
+
 .error {
     color: var(--error-color);
     font-weight: 600;
