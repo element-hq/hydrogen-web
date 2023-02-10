@@ -1015,6 +1015,7 @@ export class Session {
     }
 }
 
+import {FeatureSet} from "../features";
 export function tests() {
     function createStorageMock(session, pendingEvents = []) {
         return {
@@ -1058,7 +1059,8 @@ export function tests() {
                     clock: {
                         createTimeout: () => undefined
                     }
-                }
+                },
+                features: new FeatureSet(0)
             });
             await session.load();
             let syncSet = false;
