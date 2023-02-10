@@ -16,6 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "../../ViewModel";
 import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
+import {FeaturesViewModel} from "./FeaturesViewModel";
 import {submitLogsFromSessionToDefaultServer} from "../../../domain/rageshake";
 
 class PushNotificationStatus {
@@ -53,6 +54,7 @@ export class SettingsViewModel extends ViewModel {
         this.pushNotifications = new PushNotificationStatus();
         this._activeTheme = undefined;
         this._logsFeedbackMessage = undefined;
+        this._featuresViewModel = new FeaturesViewModel(this.childOptions());
     }
 
     get _session() {
@@ -123,6 +125,10 @@ export class SettingsViewModel extends ViewModel {
 
     get keyBackupViewModel() {
         return this._keyBackupViewModel;
+    }
+
+    get featuresViewModel() {
+        return this._featuresViewModel;
     }
 
     get storageQuota() {
