@@ -52,11 +52,11 @@ limitations under the License.
     align-items: center;
 }
 
-.GapView {
+.GapView_container {
     display: flex;
 }
 
-.GapView > :nth-child(2) {
+.GapView_container > span {
     flex: 1;
 }
 
