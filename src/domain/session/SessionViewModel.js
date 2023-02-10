@@ -130,9 +130,11 @@ export class SessionViewModel extends ViewModel {
 
     start() {
         this._sessionStatusViewModel.start();
-        this._client.session.callHandler.loadCalls("m.ring");
-        // TODO: only do this when opening the room
-        this._client.session.callHandler.loadCalls("m.prompt");
+        if (this.features.calls) {
+            this._client.session.callHandler.loadCalls("m.ring");
+            // TODO: only do this when opening the room
+            this._client.session.callHandler.loadCalls("m.prompt");
+        }
     }
 
     get activeMiddleViewModel() {

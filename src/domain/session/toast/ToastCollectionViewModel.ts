@@ -33,8 +33,10 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     constructor(options: Options) {
         super(options);
         const session = this.getOption("session");
-        const callsObservableMap = session.callHandler.calls;
-        this.track(callsObservableMap.subscribe(this));
+        if (this.features.calls) {
+            const callsObservableMap = session.callHandler.calls;
+            this.track(callsObservableMap.subscribe(this));
+        }
     }
 
     async onAdd(_, call: GroupCall) {

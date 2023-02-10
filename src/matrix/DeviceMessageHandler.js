@@ -74,29 +74,31 @@ export class DeviceMessageHandler {
     }
 
     async afterSyncCompleted(decryptionResults, deviceTracker, hsApi, log) {
-        // if we don't have a device, we need to fetch the device keys the message claims
-        // and check the keys, and we should only do network requests during
-        // sync processing in the afterSyncCompleted step.
-        const callMessages = decryptionResults.filter(dr => this._callHandler.handlesDeviceMessageEventType(dr.event?.type));
-        if (callMessages.length) {
-            await log.wrap("process call signalling messages", async log => {
-                for (const dr of callMessages) {
-                    // serialize device loading, so subsequent messages for the same device take advantage of the cache
-                    const device = await deviceTracker.deviceForId(dr.event.sender, dr.event.content.device_id, hsApi, log);
-                    dr.setDevice(device);
-                    if (dr.isVerified) {
-                        this._callHandler.handleDeviceMessage(dr.event, dr.userId, dr.deviceId, log);
-                    } else {
-                        log.log({
-                            l: "could not verify olm fingerprint key matches, ignoring",
-                            ed25519Key: dr.device.ed25519Key,
-                            claimedEd25519Key: dr.claimedEd25519Key,
-                            deviceId: device.deviceId,
-                            userId: device.userId,
-                        });
+        if (this._callHandler) {
+            // if we don't have a device, we need to fetch the device keys the message claims
+            // and check the keys, and we should only do network requests during
+            // sync processing in the afterSyncCompleted step.
+            const callMessages = decryptionResults.filter(dr => this._callHandler.handlesDeviceMessageEventType(dr.event?.type));
+            if (callMessages.length) {
+                await log.wrap("process call signalling messages", async log => {
+                    for (const dr of callMessages) {
+                        // serialize device loading, so subsequent messages for the same device take advantage of the cache
+                        const device = await deviceTracker.deviceForId(dr.event.sender, dr.event.content.device_id, hsApi, log);
+                        dr.setDevice(device);
+                        if (dr.isVerified) {
+                            this._callHandler.handleDeviceMessage(dr.event, dr.userId, dr.deviceId, log);
+                        } else {
+                            log.log({
+                                l: "could not verify olm fingerprint key matches, ignoring",
+                                ed25519Key: dr.device.ed25519Key,
+                                claimedEd25519Key: dr.claimedEd25519Key,
+                                deviceId: device.deviceId,
+                                userId: device.userId,
+                            });
+                        }
                     }
-                }
-            });
+                });
+            }
         }
     }
 }

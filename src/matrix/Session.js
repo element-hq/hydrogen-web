@@ -54,7 +54,7 @@ const PUSHER_KEY = "pusher";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeserver
-    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
+    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository, features}) {
         this._platform = platform;
         this._storage = storage;
         this._hsApi = hsApi;
@@ -75,36 +75,7 @@ export class Session {
         };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
-        this._callHandler = new CallHandler({
-            clock: this._platform.clock,
-            random: this._platform.random,
-            hsApi: this._hsApi,
-            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
-                if (!this._deviceTracker || !this._olmEncryption) {
-                    log.set("encryption_disabled", true);
-                    return;
-                }
-                const device = await log.wrap("get device key", async log => {
-                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
-                    if (!device) {
-                        log.set("not_found", true);
-                    }
-                    return device;
-                });
-                if (device) {
-                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
-                    return encryptedMessages;
-                }
-            },
-            storage: this._storage,
-            webRTC: this._platform.webRTC,
-            ownDeviceId: sessionInfo.deviceId,
-            ownUserId: sessionInfo.userId,
-            logger: this._platform.logger,
-            forceTURN: false,
-        });
         this._roomStateHandler = new RoomStateHandlerSet();
-        this.observeRoomState(this._callHandler);
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
@@ -132,6 +103,10 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+
+        if (features.calls) {
+            this._setupCallHandler();
+        }
     }
 
     get fingerprintKey() {
@@ -152,6 +127,38 @@ export class Session {
 
     get callHandler() {
         return this._callHandler;
+    }
+
+    _setupCallHandler() {
+        this._callHandler = new CallHandler({
+            clock: this._platform.clock,
+            random: this._platform.random,
+            hsApi: this._hsApi,
+            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
+                if (!this._deviceTracker || !this._olmEncryption) {
+                    log.set("encryption_disabled", true);
+                    return;
+                }
+                const device = await log.wrap("get device key", async log => {
+                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
+                    if (!device) {
+                        log.set("not_found", true);
+                    }
+                    return device;
+                });
+                if (device) {
+                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
+                    return encryptedMessages;
+                }
+            },
+            storage: this._storage,
+            webRTC: this._platform.webRTC,
+            ownDeviceId: this._sessionInfo.deviceId,
+            ownUserId: this._sessionInfo.userId,
+            logger: this._platform.logger,
+            forceTURN: false,
+        });
+        this.observeRoomState(this._callHandler);
     }
 
     // called once this._e2eeAccount is assigned
@@ -1008,6 +1015,7 @@ export class Session {
     }
 }
 
+import {FeatureSet} from "../features";
 export function tests() {
     function createStorageMock(session, pendingEvents = []) {
         return {
@@ -1051,7 +1059,8 @@ export function tests() {
                     clock: {
                         createTimeout: () => undefined
                     }
-                }
+                },
+                features: new FeatureSet(0)
             });
             await session.load();
             let syncSet = false;

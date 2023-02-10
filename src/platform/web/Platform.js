@@ -283,6 +283,10 @@ export class Platform {
         }
     }
 
+    restart() {
+        document.location.reload();
+    }
+
     openFile(mimeType = null) {
         const input = document.createElement("input");
         input.setAttribute("type", "file");

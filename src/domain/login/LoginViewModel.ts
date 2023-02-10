@@ -55,7 +55,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         const {ready, defaultHomeserver, loginToken} = options;
         this._ready = ready;
         this._loginToken = loginToken;
-        this._client = new Client(this.platform);
+        this._client = new Client(this.platform, this.features);
         this._homeserver = defaultHomeserver;
         this._initViewModels();
     }

@@ -50,6 +50,9 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     _setupCallViewModel() {
+        if (!this.features.calls) {
+            return;
+        }
         // pick call for this room with lowest key
         const calls = this.getOption("session").callHandler.calls;
         this._callObservable = new PickMapObservableValue(calls.filterValues(c => {
@@ -209,7 +212,7 @@ export class RoomViewModel extends ErrorReportViewModel {
 
     _createTile(entry) {
         if (this._tileOptions) {
-            const Tile = this._tileOptions.tileClassForEntry(entry);
+            const Tile = this._tileOptions.tileClassForEntry(entry, this._tileOptions);
             if (Tile) {
                 return new Tile(entry, this._tileOptions);
             }
@@ -421,6 +424,10 @@ export class RoomViewModel extends ErrorReportViewModel {
 
     startCall() {
         return this.logAndCatch("RoomViewModel.startCall", async log => {
+            if (!this.features.calls) {
+                log.set("feature_disbled", true);
+                return;
+            }
             log.set("roomId", this._room.id);
             let localMedia;
             try {

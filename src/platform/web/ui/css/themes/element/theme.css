@@ -751,6 +751,24 @@ a {
     margin-bottom: 0;
 }
 
+.FeatureView {
+  display: flex;
+  gap: 8px;
+}
+
+.FeaturesView ul {
+  list-style: none;
+  padding: 8px 16px;
+}
+
+.FeaturesView input[type="checkbox"] {
+  align-self: start;
+}
+
+.FeatureView h4 {
+  margin: 0;
+}
+
 .error {
     color: var(--error-color);
     font-weight: 600;
