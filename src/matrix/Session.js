@@ -153,8 +153,8 @@ export class Session {
             },
             storage: this._storage,
             webRTC: this._platform.webRTC,
-            ownDeviceId: sessionInfo.deviceId,
-            ownUserId: sessionInfo.userId,
+            ownDeviceId: this._sessionInfo.deviceId,
+            ownUserId: this._sessionInfo.userId,
             logger: this._platform.logger,
             forceTURN: false,
         });
