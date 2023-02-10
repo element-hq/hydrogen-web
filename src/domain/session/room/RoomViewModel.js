@@ -292,7 +292,7 @@ export class RoomViewModel extends ErrorReportViewModel {
                 this.reportError(new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`));
                 message = undefined;
         }
-        return {type: msgtype, message: message};
+        return {msgtype, message: message};
     }
 
     _pickAndSendFile() {
