@@ -29,7 +29,12 @@ export class FeaturesViewModel extends ViewModel {
                 name: this.i18n`Audio/video calls`,
                 description: this.i18n`Allows starting and participating in A/V calls compatible with Element Call (MSC3401). Look for the start call option in the room menu ((...) in the right corner) to start a call.`,
                 feature: FeatureFlag.Calls
-            })),            
+            })),
+            new FeatureViewModel(this.childOptions({
+                name: this.i18n`Cross-Signing`,
+                description: this.i18n`Allows.verifying the identity of people you chat with`,
+                feature: FeatureFlag.CrossSigning
+            })),
         ];
     }
 }

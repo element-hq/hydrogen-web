@@ -18,6 +18,7 @@ import type {SettingsStorage} from "./platform/web/dom/SettingsStorage";
 
 export enum FeatureFlag {
     Calls = 1 << 0,
+    CrossSigning = 1 << 1
 }
 
 export class FeatureSet {
@@ -37,6 +38,10 @@ export class FeatureSet {
 
     get calls(): boolean {
         return this.isFeatureEnabled(FeatureFlag.Calls);
+    }
+
+    get crossSigning(): boolean {
+        return this.isFeatureEnabled(FeatureFlag.CrossSigning);
     }
 
     static async load(settingsStorage: SettingsStorage): Promise<FeatureSet> {
