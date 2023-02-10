@@ -63,6 +63,13 @@ export class GapTile extends SimpleTile {
     }
 
     async notifyVisible() {
+        // if any error happened before (apart from being offline),
+        // let the user dismiss the error before trying to backfill
+        // again so we don't try to do backfill the don't succeed
+        // in quick succession
+        if (this.errorViewModel) {
+            return;
+        }
         // we do (up to 10) backfills while no new tiles have been added to the timeline
         // because notifyVisible won't be called again until something gets added to the timeline
         let depth = 0;
