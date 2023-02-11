@@ -232,14 +232,14 @@ export class SessionViewModel extends ViewModel {
     }
 
     async _createUnknownRoomViewModel(roomIdOrAlias) {
-        const peekable = await this._client.session.canPeekInRoom(roomIdOrAlias);
+        const worldReadable = await this._client.session.isWorldReadableRoom(roomIdOrAlias);
         let vm = new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
             session: this._client.session,
-            peekable: peekable
+            worldReadable: worldReadable
         }));
-        if ( peekable ) {
-            await vm.peek();
+        if (worldReadable) {
+            await vm.load();
         }
         return vm;
     }

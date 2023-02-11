@@ -658,7 +658,7 @@ export class Session {
     }
 
     /** @internal */
-    _createPeekableRoom(roomId) {
+    _createWorldReadableRoom(roomId) {
         return new Room({
             roomId,
             getSyncToken: this._getSyncToken,
@@ -1048,15 +1048,15 @@ export class Session {
         });
     }
 
-    loadPeekableRoom(roomId, log = null) {
-        return this._platform.logger.wrapOrRun(log, "loadPeekableRoom", async log => {
+    loadWorldReadableRoom(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "loadWorldReadableRoom", async log => {
             log.set("id", roomId);
 
-            const room = this._createPeekableRoom(roomId);
-            let response = await this._loadEventsPeekableRoom(roomId, 100, 'b', null, log);
+            const room = this._createWorldReadableRoom(roomId);
+            let response = await this._fetchWorldReadableRoomEvents(roomId, 100, 'b', null, log);
             // Note: response.end to be used in the next call for sync functionality
 
-            let summary = await this._preparePeekableRoomSummary(roomId, log);
+            let summary = await this._prepareWorldReadableRoomSummary(roomId, log);
             const txn = await this._storage.readTxn([
                 this._storage.storeNames.timelineFragments,
                 this._storage.storeNames.timelineEvents,
@@ -1068,8 +1068,8 @@ export class Session {
         });
     }
 
-    async _preparePeekableRoomSummary(roomId, log = null) {
-        return this._platform.logger.wrapOrRun(log, "preparePeekableRoomSummary", async log => {
+    async _prepareWorldReadableRoomSummary(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "prepareWorldReadableRoomSummary", async log => {
             log.set("id", roomId);
 
             let summary = {};
@@ -1088,8 +1088,8 @@ export class Session {
         });
     }
 
-    async _loadEventsPeekableRoom(roomId, limit = 30, dir = 'b', end = null, log = null) {
-        return this._platform.logger.wrapOrRun(log, "loadEventsPeekableRoom", async log => {
+    async _fetchWorldReadableRoomEvents(roomId, limit = 30, dir = 'b', end = null, log = null) {
+        return this._platform.logger.wrapOrRun(log, "fetchWorldReadableRoomEvents", async log => {
             log.set("id", roomId);
             let options = {
                 limit: limit,
@@ -1147,8 +1147,8 @@ export class Session {
         });
     }
 
-    canPeekInRoom(roomIdOrAlias, log = null) {
-        return this._platform.logger.wrapOrRun(log, "canPeekInRoom", async log => {
+    isWorldReadableRoom(roomIdOrAlias, log = null) {
+        return this._platform.logger.wrapOrRun(log, "isWorldReadableRoom", async log => {
             let roomId;
             if (roomIdOrAlias[0] !== "!") {
                 let response = await this._hsApi.resolveRoomAlias(roomIdOrAlias).response();

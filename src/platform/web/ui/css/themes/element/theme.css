@@ -975,7 +975,7 @@ button.link {
     width: 100%;
 }
 
-.DisabledComposerView, .PeekableRoomComposerView {
+.DisabledComposerView, .WorldReadableRoomComposerView {
     padding: 12px;
     background-color: var(--background-color-secondary);
 }
@@ -1002,17 +1002,17 @@ button.link {
     width: 100%;
 }
 
-.PeekableRoomView .Timeline_message:hover > .Timeline_messageOptions{
+.WorldReadableRoomView .Timeline_message:hover > .Timeline_messageOptions{
     display: none;
 }
-.PeekableRoomView .Timeline_messageAvatar {
+.WorldReadableRoomView .Timeline_messageAvatar {
     pointer-events: none; /* Prevent user panel from opening when clicking on avatars in the timeline. */
 }
-.PeekableRoomComposerView h3 {
+.WorldReadableRoomComposerView h3 {
     display: inline-block;
     margin: 0;
 }
-.PeekableRoomComposerView .joinRoomButton {
+.WorldReadableRoomComposerView .joinRoomButton {
     float: right;
 }
 

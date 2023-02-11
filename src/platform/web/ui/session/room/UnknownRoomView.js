@@ -27,8 +27,8 @@ export class UnknownRoomView extends TemplateView {
     }
 
     render(t, vm) {
-        if (vm.kind === 'peekable') {
-            return t.main({className: "RoomView PeekableRoomView middle"}, [
+        if (vm.kind === 'worldReadableRoom') {
+            return t.main({className: "RoomView WorldReadableRoomView middle"}, [
                 t.div({className: "RoomHeader middle-header"}, [
                     t.view(new AvatarView(vm, 32)),
                     t.div({className: "room-description"}, [
@@ -48,7 +48,7 @@ export class UnknownRoomView extends TemplateView {
                             new TimelineView(timelineViewModel, this._viewClassForTile) :
                             new TimelineLoadingView(vm);    // vm is just needed for i18n
                     }),
-                    t.div({className: "PeekableRoomComposerView"}, [
+                    t.div({className: "WorldReadableRoomComposerView"}, [
                         t.h3(vm => vm.i18n`Join the room to participate`),
                         t.button({className: "joinRoomButton", onClick: () => vm.join()}, vm.i18n`Join Room`)
                     ])

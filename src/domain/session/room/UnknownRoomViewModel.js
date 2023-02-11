@@ -22,10 +22,10 @@ import {getAvatarHttpUrl} from "../../avatar";
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {roomIdOrAlias, session, peekable} = options;
+        const {roomIdOrAlias, session, worldReadable} = options;
         this._session = session;
         this.roomIdOrAlias = roomIdOrAlias;
-        this._peekable = peekable;
+        this._worldReadable = worldReadable;
         this._error = null;
         this._busy = false;
     }
@@ -61,7 +61,7 @@ export class UnknownRoomViewModel extends ViewModel {
     }
 
     get kind() {
-        return this._peekable ? "peekable" : "unknown";
+        return this._worldReadable ? "worldReadableRoom" : "unknown";
     }
 
     get timelineViewModel() {
@@ -72,12 +72,12 @@ export class UnknownRoomViewModel extends ViewModel {
         return getAvatarHttpUrl(this._room.avatarUrl, size, this.platform, this._room.mediaRepository);
     }
 
-    async peek() {
-        if ( !this._peekable ) {
+    async load() {
+        if (!this._worldReadable) {
             return;
         }
         try {
-            this._room = await this._session.loadPeekableRoom(this.roomIdOrAlias);
+            this._room = await this._session.loadWorldReadableRoom(this.roomIdOrAlias);
             const timeline = await this._room.openTimeline();
             this._tileOptions = this.childOptions({
                 roomVM: this,
