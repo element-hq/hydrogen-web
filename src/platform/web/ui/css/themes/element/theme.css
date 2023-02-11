@@ -1005,6 +1005,9 @@ button.link {
 .PeekableRoomView .Timeline_message:hover > .Timeline_messageOptions{
     display: none;
 }
+.PeekableRoomView .Timeline_messageAvatar {
+    pointer-events: none; /* Prevent user panel from opening when clicking on avatars in the timeline. */
+}
 .PeekableRoomComposerView h3 {
     display: inline-block;
     margin: 0;
