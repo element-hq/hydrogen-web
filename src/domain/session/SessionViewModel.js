@@ -232,15 +232,7 @@ export class SessionViewModel extends ViewModel {
     }
 
     async _createUnknownRoomViewModel(roomIdOrAlias) {
-        let roomId;
-        if ( roomIdOrAlias[0] !== "!" ) {
-            let response = await this._client._requestScheduler.hsApi.resolveRoomAlias(roomIdOrAlias).response();
-            roomId = response.room_id;
-        } else {
-            roomId = roomIdOrAlias;
-        }
-        const peekable = await this._client.session.canPeekInRoom(roomId);
-
+        const peekable = await this._client.session.canPeekInRoom(roomIdOrAlias);
         let vm = new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
             session: this._client.session,

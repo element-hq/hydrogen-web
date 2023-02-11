@@ -1147,8 +1147,15 @@ export class Session {
         });
     }
 
-    canPeekInRoom(roomId, log = null) {
+    canPeekInRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "canPeekInRoom", async log => {
+            let roomId;
+            if (roomIdOrAlias[0] !== "!") {
+                let response = await this._hsApi.resolveRoomAlias(roomIdOrAlias).response();
+                roomId = response.room_id;
+            } else {
+                roomId = roomIdOrAlias;
+            }
             const body = await this._hsApi.state(roomId, 'm.room.history_visibility', '', {log}).response();
             return body.history_visibility === 'world_readable';
         });
