@@ -1150,7 +1150,7 @@ export class Session {
     isWorldReadableRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "isWorldReadableRoom", async log => {
             let roomId;
-            if (roomIdOrAlias[0] !== "!") {
+            if (!roomIdOrAlias.startsWith("!")) {
                 let response = await this._hsApi.resolveRoomAlias(roomIdOrAlias).response();
                 roomId = response.room_id;
             } else {
