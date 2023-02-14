@@ -223,6 +223,10 @@ export class HomeServerApi {
         return this._post(path, {}, payload, options);
     }
 
+    uploadSignatures(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post("/keys/signatures/upload", {}, payload, options);
+    }
+
     queryKeys(queryRequest: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post("/keys/query", {}, queryRequest, options);
     }

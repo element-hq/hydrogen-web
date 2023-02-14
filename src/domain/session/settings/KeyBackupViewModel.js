@@ -92,6 +92,18 @@ export class KeyBackupViewModel extends ViewModel {
         return this._session.crossSigning?.isMasterKeyTrusted ?? false;
     }
 
+    get canSignOwnDevice() {
+        return !!this._session.crossSigning;
+    }
+
+    async signOwnDevice() {
+        if (this._session.crossSigning) {
+            await this.logger.run("KeyBackupViewModel.signOwnDevice", async log => {
+                await this._session.crossSigning.signOwnDevice(log);
+            });
+        }
+    }
+
     get backupWriteStatus() {
         const keyBackup = this._session.keyBackup.get();
         if (!keyBackup) {
