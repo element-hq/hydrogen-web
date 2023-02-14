@@ -88,6 +88,10 @@ export class KeyBackupViewModel extends ViewModel {
         return this._session.keyBackup.get()?.version;
     }
 
+    get isMasterKeyTrusted() {
+        return this._session.crossSigning?.isMasterKeyTrusted ?? false;
+    }
+
     get backupWriteStatus() {
         const keyBackup = this._session.keyBackup.get();
         if (!keyBackup) {

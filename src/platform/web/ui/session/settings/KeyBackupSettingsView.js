@@ -53,6 +53,9 @@ export class KeyBackupSettingsView extends TemplateView {
                     default:
                         return null;
                 }
+            }),
+            t.if(vm => vm.isMasterKeyTrusted, t => {
+                return t.p("Cross-signing master key found and trusted.")
             })
         ]);
     }
