@@ -32,7 +32,7 @@ export class FeaturesViewModel extends ViewModel {
             })),
             new FeatureViewModel(this.childOptions({
                 name: this.i18n`Cross-Signing`,
-                description: this.i18n`Allows.verifying the identity of people you chat with`,
+                description: this.i18n`Allows verifying the identity of people you chat with. This feature is still evolving constantly, expect things to break.`,
                 feature: FeatureFlag.CrossSigning
             })),
         ];
