@@ -341,7 +341,8 @@ export class Session {
                             olm: this._olm,
                             deviceTracker: this._deviceTracker,
                             hsApi: this._hsApi,
-                            ownUserId: this.userId
+                            ownUserId: this.userId,
+                            e2eeAccount: this._e2eeAccount
                         });
                         await log.wrap("enable cross-signing", log => {
                             return this._crossSigning.init(log);

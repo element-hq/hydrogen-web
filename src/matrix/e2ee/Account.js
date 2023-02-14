@@ -246,7 +246,7 @@ export class Account {
         }
     }
 
-    _deviceKeysPayload(identityKeys) {
+    _keysAsSignableObject(identityKeys) {
         const obj = {
             user_id: this._userId,
             device_id: this._deviceId,
@@ -256,6 +256,16 @@ export class Account {
         for (const [algorithm, pubKey] of Object.entries(identityKeys)) {
             obj.keys[`${algorithm}:${this._deviceId}`] = pubKey;
         }
+        return obj;
+    }
+
+    getDeviceKeysToSignWithCrossSigning() {
+        const identityKeys = JSON.parse(this._account.identity_keys());
+        return this._keysAsSignableObject(identityKeys);
+    }
+
+    _deviceKeysPayload(identityKeys) {
+        const obj = this._keysAsSignableObject(identityKeys);
         this.signObject(obj);
         return obj;
     }
