@@ -49,7 +49,7 @@ export class SettingsView extends TemplateView {
             }, vm.i18n`Log out`)),
         );
         settingNodes.push(
-            t.h3("Key backup"),
+            t.h3("Key backup & security"),
             t.view(new KeyBackupSettingsView(vm.keyBackupViewModel))
         );
 

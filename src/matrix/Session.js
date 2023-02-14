@@ -31,6 +31,7 @@ import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
+import {CrossSigning} from "./verification/CrossSigning";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
@@ -59,6 +60,7 @@ export class Session {
         this._storage = storage;
         this._hsApi = hsApi;
         this._mediaRepository = mediaRepository;
+        this._features = features;
         this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
@@ -88,6 +90,7 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._keyBackup = new ObservableValue(undefined);
+        this._crossSigning = undefined;
         this._observedRoomStatus = new Map();
 
         if (olm) {
@@ -330,6 +333,20 @@ export class Session {
                     txn
                 );
                 if (keyBackup) {
+                    if (this._features.crossSigning) {
+                        this._crossSigning = new CrossSigning({
+                            storage: this._storage,
+                            secretStorage,
+                            platform: this._platform,
+                            olm: this._olm,
+                            deviceTracker: this._deviceTracker,
+                            hsApi: this._hsApi,
+                            ownUserId: this.userId
+                        });
+                        await log.wrap("enable cross-signing", log => {
+                            return this._crossSigning.init(log);
+                        });
+                    }
                     for (const room of this._rooms.values()) {
                         if (room.isEncrypted) {
                             room.enableKeyBackup(keyBackup);
@@ -337,6 +354,8 @@ export class Session {
                     }
                     this._keyBackup.set(keyBackup);
                     return true;
+                } else {
+                    log.set("no_backup", true);
                 }
             } catch (err) {
                 log.catch(err);
@@ -352,6 +371,10 @@ export class Session {
      */
     get keyBackup() {
         return this._keyBackup;
+    }
+
+    get crossSigning() {
+        return this._crossSigning;
     }
 
     get hasIdentity() {

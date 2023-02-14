@@ -25,6 +25,7 @@ function createUserIdentity(userId, initialRoomId = undefined) {
     return {
         userId: userId,
         roomIds: initialRoomId ? [initialRoomId] : [],
+        masterKey: undefined,
         deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
     };
 }
@@ -152,6 +153,26 @@ export class DeviceTracker {
         }
     }
 
+    async getMasterKeyForUser(userId, hsApi, log) {
+        return await log.wrap("DeviceTracker.getMasterKeyForUser", async log => {
+            let txn = await this._storage.readTxn([
+                this._storage.storeNames.userIdentities
+            ]);
+            let userIdentity = await txn.userIdentities.get(userId);
+            if (userIdentity && userIdentity.deviceTrackingStatus !== TRACKING_STATUS_OUTDATED) {
+                return userIdentity.masterKey;
+            }   
+            // fetch from hs
+            await this._queryKeys([userId], hsApi, log);
+            // Retreive from storage now
+            txn = await this._storage.readTxn([
+                this._storage.storeNames.userIdentities
+            ]);
+            userIdentity = await txn.userIdentities.get(userId);
+            return userIdentity?.masterKey;
+        });
+    }
+
     async writeHistoryVisibility(room, historyVisibility, syncTxn, log) {
         const added = [];
         const removed = [];
@@ -224,6 +245,7 @@ export class DeviceTracker {
             "token": this._getSyncToken()
         }, {log}).response();
 
+        const masterKeys = log.wrap("master keys", log => this._filterValidMasterKeys(deviceKeyResponse, log));
         const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
@@ -233,7 +255,7 @@ export class DeviceTracker {
         try {
             const devicesIdentitiesPerUser = await Promise.all(verifiedKeysPerUser.map(async ({userId, verifiedKeys}) => {
                 const deviceIdentities = verifiedKeys.map(deviceKeysAsDeviceIdentity);
-                return await this._storeQueriedDevicesForUserId(userId, deviceIdentities, txn);
+                return await this._storeQueriedDevicesForUserId(userId, masterKeys.get(userId), deviceIdentities, txn);
             }));
             deviceIdentities = devicesIdentitiesPerUser.reduce((all, devices) => all.concat(devices), []);
             log.set("devices", deviceIdentities.length);
@@ -245,7 +267,7 @@ export class DeviceTracker {
         return deviceIdentities;
     }
 
-    async _storeQueriedDevicesForUserId(userId, deviceIdentities, txn) {
+    async _storeQueriedDevicesForUserId(userId, masterKey, deviceIdentities, txn) {
         const knownDeviceIds = await txn.deviceIdentities.getAllDeviceIds(userId);
         // delete any devices that we know off but are not in the response anymore.
         // important this happens before checking if the ed25519 key changed,
@@ -286,9 +308,37 @@ export class DeviceTracker {
             identity = createUserIdentity(userId);
         }
         identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
+        identity.masterKey = masterKey;
         txn.userIdentities.set(identity);
 
         return allDeviceIdentities;
+    }
+
+    _filterValidMasterKeys(keyQueryResponse, parentLog) {
+        const masterKeys = new Map();
+        const masterKeysResponse = keyQueryResponse["master_keys"];
+        if (!masterKeysResponse) {
+            return masterKeys;
+        }
+        const validMasterKeyResponses = Object.entries(masterKeysResponse).filter(([userId, keyInfo]) => {
+            if (keyInfo["user_id"] !== userId) {
+                return false;
+            }
+            if (!Array.isArray(keyInfo.usage) || !keyInfo.usage.includes("master")) {
+                return false;
+            }
+            return true;
+        });
+        validMasterKeyResponses.reduce((msks, [userId, keyInfo]) => {
+            const keyIds = Object.keys(keyInfo.keys);
+            if (keyIds.length !== 1) {
+                return false;
+            }
+            const masterKey = keyInfo.keys[keyIds[0]];
+            msks.set(userId, masterKey);
+            return msks;
+        }, masterKeys);
+        return masterKeys;
     }
 
     /**
@@ -631,12 +681,14 @@ export function tests() {
             const txn = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
                 userId: "@alice:hs.tld",
+                masterKey: undefined,
                 roomIds: [roomId],
                 deviceTrackingStatus: TRACKING_STATUS_OUTDATED
             });
             assert.deepEqual(await txn.userIdentities.get("@bob:hs.tld"), {
                 userId: "@bob:hs.tld",
                 roomIds: [roomId],
+                masterKey: undefined,
                 deviceTrackingStatus: TRACKING_STATUS_OUTDATED
             });
             assert.equal(await txn.userIdentities.get("@charly:hs.tld"), undefined);
