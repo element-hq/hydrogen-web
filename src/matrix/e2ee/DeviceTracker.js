@@ -315,9 +315,10 @@ export class DeviceTracker {
     }
 
     _filterValidMasterKeys(keyQueryResponse, parentLog) {
+        const masterKeys = new Map();
         const masterKeysResponse = keyQueryResponse["master_keys"];
         if (!masterKeysResponse) {
-            return [];
+            return masterKeys;
         }
         const validMasterKeyResponses = Object.entries(masterKeysResponse).filter(([userId, keyInfo]) => {
             if (keyInfo["user_id"] !== userId) {
@@ -328,7 +329,7 @@ export class DeviceTracker {
             }
             return true;
         });
-        const masterKeys = validMasterKeyResponses.reduce((msks, [userId, keyInfo]) => {
+        validMasterKeyResponses.reduce((msks, [userId, keyInfo]) => {
             const keyIds = Object.keys(keyInfo.keys);
             if (keyIds.length !== 1) {
                 return false;
@@ -336,7 +337,7 @@ export class DeviceTracker {
             const masterKey = keyInfo.keys[keyIds[0]];
             msks.set(userId, masterKey);
             return msks;
-        }, new Map());
+        }, masterKeys);
         return masterKeys;
     }
 
@@ -680,12 +681,14 @@ export function tests() {
             const txn = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
                 userId: "@alice:hs.tld",
+                masterKey: undefined,
                 roomIds: [roomId],
                 deviceTrackingStatus: TRACKING_STATUS_OUTDATED
             });
             assert.deepEqual(await txn.userIdentities.get("@bob:hs.tld"), {
                 userId: "@bob:hs.tld",
                 roomIds: [roomId],
+                masterKey: undefined,
                 deviceTrackingStatus: TRACKING_STATUS_OUTDATED
             });
             assert.equal(await txn.userIdentities.get("@charly:hs.tld"), undefined);
