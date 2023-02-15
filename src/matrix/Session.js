@@ -1149,15 +1149,19 @@ export class Session {
 
     isWorldReadableRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "isWorldReadableRoom", async log => {
-            let roomId;
-            if (!roomIdOrAlias.startsWith("!")) {
-                let response = await this._hsApi.resolveRoomAlias(roomIdOrAlias).response();
-                roomId = response.room_id;
-            } else {
-                roomId = roomIdOrAlias;
+            try {
+                let roomId;
+                if (!roomIdOrAlias.startsWith("!")) {
+                    let response = await this._hsApi.resolveRoomAlias(roomIdOrAlias).response();
+                    roomId = response.room_id;
+                } else {
+                    roomId = roomIdOrAlias;
+                }
+                const body = await this._hsApi.state(roomId, 'm.room.history_visibility', '', {log}).response();
+                return body.history_visibility === 'world_readable';
+            } catch {
+                return false;
             }
-            const body = await this._hsApi.state(roomId, 'm.room.history_visibility', '', {log}).response();
-            return body.history_visibility === 'world_readable';
         });
     }
 }
