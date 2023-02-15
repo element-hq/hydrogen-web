@@ -1002,6 +1002,18 @@ button.link {
     width: 100%;
 }
 
+.UnknownRoomView .checkingPreviewCapability {
+    display: flex;
+    flex-direction: row;  /* make main axis vertical */
+    justify-content: center; /* center items vertically, in this case */
+    align-items: center;     /* center items horizontally, in this case */
+    margin-top: 5px;
+}
+
+.UnknownRoomView .checkingPreviewCapability p {
+    margin-left: 5px;
+}
+
 .WorldReadableRoomView .Timeline_message:hover > .Timeline_messageOptions{
     display: none;
 }

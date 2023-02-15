@@ -61,7 +61,7 @@ export class SessionView extends TemplateView {
                     } else if (vm.currentRoomViewModel.kind === "roomBeingCreated") {
                         return new RoomBeingCreatedView(vm.currentRoomViewModel);
                     } else {
-                        return new UnknownRoomView(vm.currentRoomViewModel, viewClassForTile);
+                        return new UnknownRoomView(vm.currentRoomViewModel);
                     }
                 } else {
                     return new StaticView(t => t.div({className: "room-placeholder"}, t.h2(vm.i18n`Choose a room on the left side.`)));

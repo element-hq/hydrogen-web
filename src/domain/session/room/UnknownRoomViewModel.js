@@ -22,12 +22,13 @@ import {getAvatarHttpUrl} from "../../avatar";
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {roomIdOrAlias, session, worldReadable} = options;
+        const {roomIdOrAlias, session} = options;
         this._session = session;
         this.roomIdOrAlias = roomIdOrAlias;
-        this._worldReadable = worldReadable;
         this._error = null;
         this._busy = false;
+        this._worldReadable = false; // won't know until load() finishes with isWorldReadableRoom() call
+        this._checkingPreviewCapability = false; // won't know until load() finishes with isWorldReadableRoom() call
     }
 
     get room() {
@@ -60,6 +61,10 @@ export class UnknownRoomViewModel extends ViewModel {
         return this._busy;
     }
 
+    get checkingPreviewCapability() {
+        return this._checkingPreviewCapability;
+    }
+
     get kind() {
         return this._worldReadable ? "worldReadableRoom" : "unknown";
     }
@@ -73,9 +78,15 @@ export class UnknownRoomViewModel extends ViewModel {
     }
 
     async load() {
+        this._checkingPreviewCapability = true;
+        this._worldReadable = await this._session.isWorldReadableRoom(this.roomIdOrAlias);
+        this._checkingPreviewCapability = false;
+
         if (!this._worldReadable) {
+            this.emitChange("checkingPreviewCapability");
             return;
         }
+
         try {
             this._room = await this._session.loadWorldReadableRoom(this.roomIdOrAlias);
             const timeline = await this._room.openTimeline();

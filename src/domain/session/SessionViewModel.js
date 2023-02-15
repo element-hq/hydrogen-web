@@ -232,16 +232,12 @@ export class SessionViewModel extends ViewModel {
     }
 
     async _createUnknownRoomViewModel(roomIdOrAlias) {
-        const worldReadable = await this._client.session.isWorldReadableRoom(roomIdOrAlias);
-        let vm = new UnknownRoomViewModel(this.childOptions({
+        const roomVM = new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
             session: this._client.session,
-            worldReadable: worldReadable
         }));
-        if (worldReadable) {
-            await vm.load();
-        }
-        return vm;
+        void roomVM.load();
+        return roomVM;
     }
 
     async _createArchivedRoomViewModel(roomId) {
