@@ -30,7 +30,10 @@ import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 
 // const SAS_LIST = Object.keys(sasGenerators);
 export class StartVerificationStage extends BaseSASVerificationStage {
-    
+
+    private readyMessagePromise: Promise<any>;
+    private startMessagePromise: Promise<any>;
+
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
             const content = {
@@ -41,8 +44,36 @@ export class StartVerificationStage extends BaseSASVerificationStage {
                 "to": this.otherUserId,
             };
             await this.room.sendEvent("m.room.message", content, null, log);
+            const [readyContent, startContent] = await this.fetchMessageEventsFromTimeline();
+            console.log("readyContent", readyContent, "startContent", startContent);
+            this.dispose();
         });
         return true;
+    }
+
+    private fetchMessageEventsFromTimeline() {
+        let readyResolve, startResolve;
+        this.readyMessagePromise = new Promise(r => { readyResolve = r; });
+        this.startMessagePromise = new Promise(r => { startResolve = r; });
+        this.track(
+            this.room._timeline.entries.subscribe({
+                onAdd: (_, entry) => {
+                    if (entry.eventType === "m.key.verification.ready") {
+                        readyResolve(entry.content);
+                    }
+                    else if (entry.eventType === "m.key.verification.start") {
+                        startResolve(entry.content);
+                    }
+                },
+                onRemove: () => {
+                    
+                },
+                onUpdate: () => {
+                    
+                },
+            })
+        );
+        return Promise.all([this.readyMessagePromise, this.startMessagePromise]);
     }
 
     get type() {

@@ -254,6 +254,7 @@ export class Timeline {
 
     /** @package */
     addEntries(newEntries) {
+        console.log("addEntries", newEntries);
         this._addLocalRelationsToNewRemoteEntries(newEntries);
         this._updateEntriesFetchedFromHomeserver(newEntries);
         this._moveEntryToRemoteEntries(newEntries);

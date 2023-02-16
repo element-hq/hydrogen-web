@@ -15,21 +15,47 @@ limitations under the License.
 */
 import type {ILogItem} from "../../../../lib.js";
 import type {Room} from "../../../room/Room.js";
+import {Disposables} from "../../../../utils/Disposables";
 
 export type UserData = {
     userId: string;
     deviceId: string;
 }
 
-export abstract class BaseSASVerificationStage {
-    constructor(protected room: Room,
-        protected ourUser: UserData,
-        protected otherUserId: string,
-        protected log: ILogItem) {
+export type Options = {
+    room: Room;
+    ourUser: UserData;
+    otherUserId: string;
+    log: ILogItem;
+}
 
+export abstract class BaseSASVerificationStage extends Disposables {
+    protected room: Room;
+    protected ourUser: UserData;
+    protected otherUserId: string;
+    protected log: ILogItem;
+    protected requestEventId: string;
+    protected previousResult: undefined | any;
+
+    constructor(options: Options) {
+        super();
+        this.room = options.room;
+        this.ourUser = options.ourUser;
+        this.otherUserId = options.otherUserId;
+        this.log = options.log; 
+    }
+
+    setRequestEventId(id: string) {
+        this.requestEventId = id;
+        // todo: can this race with incoming message?
+        this.nextStage?.setRequestEventId(id);
+    }
+
+    setResultFromPreviousStage(result?: any) {
+        this.previousResult = result;
     }
 
     abstract get type(): string;
-    abstract completeStage(): boolean | Promise<boolean>;
+    abstract completeStage(): undefined | Record<string, any>;
     abstract get nextStage(): BaseSASVerificationStage;
 }
