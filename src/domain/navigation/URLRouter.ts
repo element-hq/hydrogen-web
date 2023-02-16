@@ -33,6 +33,7 @@ export interface IURLRouter<T> {
     openRoomActionUrl(roomId: string): string;
     createSSOCallbackURL(): string;
     createOIDCRedirectURL(): string;
+    createOIDCPostLogoutRedirectURL(): string;
     absoluteAppUrl(): string;
     absoluteUrlForAsset(asset: string): string;
     normalizeUrl(): void;
@@ -156,6 +157,10 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
     }
 
     createOIDCRedirectURL(): string {
+        return window.location.origin;
+    }
+
+    createOIDCPostLogoutRedirectURL(): string {
         return window.location.origin;
     }
 

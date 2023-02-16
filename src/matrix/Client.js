@@ -211,6 +211,10 @@ export class Client {
                     sessionInfo.expiresIn = loginData.expires_in;
                 }
 
+                if (loginData.id_token) {
+                    sessionInfo.idToken = loginData.id_token;
+                }
+
                 if (loginData.oidc_issuer) {
                     sessionInfo.oidcIssuer = loginData.oidc_issuer;
                     sessionInfo.oidcClientId = loginData.oidc_client_id;
@@ -238,7 +242,7 @@ export class Client {
         });
     }
 
-    async _createSessionAfterAuth({deviceId, userId, accessToken, refreshToken, homeserver, expiresIn, oidcIssuer, oidcClientId, accountManagementUrl}, inspectAccountSetup, log) {
+    async _createSessionAfterAuth({deviceId, userId, accessToken, refreshToken, homeserver, expiresIn, idToken, oidcIssuer, oidcClientId, accountManagementUrl}, inspectAccountSetup, log) {
         const id = this.createNewSessionId();
         const lastUsed = this._platform.clock.now();
         const sessionInfo = {
@@ -253,6 +257,7 @@ export class Client {
             oidcIssuer,
             oidcClientId,
             accountManagementUrl,
+            idToken,
         };
         if (expiresIn) {
             sessionInfo.accessTokenExpiresAt = lastUsed + expiresIn * 1000;
@@ -500,7 +505,7 @@ export class Client {
         return !this._reconnector;
     }
 
-    startLogout(sessionId) {
+    startLogout(sessionId, urlRouter) {
         return this._platform.logger.run("logout", async log => {
             this._sessionId = sessionId;
             log.set("id", this._sessionId);
@@ -508,26 +513,43 @@ export class Client {
             if (!sessionInfo) {
                 throw new Error(`Could not find session for id ${this._sessionId}`);
             }
+            let endSessionRedirectEndpoint;
             try {
-                const hsApi = new HomeServerApi({
-                    homeserver: sessionInfo.homeServer,
-                    accessToken: sessionInfo.accessToken,
-                    request: this._platform.request
-                });
-                await hsApi.logout({log}).response();
-                const oidcApi = new OidcApi({
-                    issuer: sessionInfo.oidcIssuer,
-                    clientId: sessionInfo.oidcClientId,
-                    request: this._platform.request,
-                    encoding: this._platform.encoding,
-                    crypto: this._platform.crypto,
-                });
-                await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
-                if (sessionInfo.refreshToken) {
-                    await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                if (sessionInfo.oidcClientId) {
+                    // OIDC logout
+                    const oidcApi = new OidcApi({
+                        issuer: sessionInfo.oidcIssuer,
+                        clientId: sessionInfo.oidcClientId,
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                        crypto: this._platform.crypto,
+                        urlRouter,
+                    });
+                    await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
+                    if (sessionInfo.refreshToken) {
+                        await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                    }
+                    endSessionRedirectEndpoint = await oidcApi.endSessionEndpoint({
+                        idTokenHint: sessionInfo.idToken,
+                        logoutHint: sessionInfo.userId,
+                    })
+                } else {
+                    // regular logout
+                    const hsApi = new HomeServerApi({
+                        homeserver: sessionInfo.homeServer,
+                        accessToken: sessionInfo.accessToken,
+                        request: this._platform.request
+                    });
+                    await hsApi.logout({log}).response();
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.error(err);
+            }
             await this.deleteSession(log);
+            // OIDC might have given us a redirect URI to go to do tell the OP we are signing out
+            if (endSessionRedirectEndpoint) {
+                this._platform.openUrl(endSessionRedirectEndpoint);
+            }
         });
     }
 

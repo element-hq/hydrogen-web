@@ -26,6 +26,7 @@ interface ISessionInfo {
     oidcIssuer?: string;
     accountManagementUrl?: string;
     lastUsed: number;
+    idToken?: string;
 }
 
 // todo: this should probably be in platform/types?

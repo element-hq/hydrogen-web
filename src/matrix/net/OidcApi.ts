@@ -30,6 +30,7 @@ type BearerToken = {
     access_token: string,
     refresh_token?: string,
     expires_in?: number,
+    id_token?: string,
 }
 
 const isValidBearerToken = (t: any): t is BearerToken =>
@@ -46,6 +47,28 @@ type AuthorizationParams = {
     redirectUri: string,
     nonce?: string,
     codeVerifier?: string,
+};
+
+/**
+ * @see https://openid.net/specs/openid-connect-rpinitiated-1_0.html
+ */
+type LogoutParams = {
+    /**
+     * Maps to the `id_token_hint` parameter.
+     */
+    idTokenHint?: string,
+    /**
+     * Maps to the `state` parameter.
+     */
+    state?: string,
+    /**
+     * Maps to the `post_logout_redirect_uri` parameter.
+     */
+    redirectUri?: string,
+    /**
+     * Maps to the `logout_hint` parameter.
+     */
+    logoutHint?: string,
 };
 
 function assert(condition: any, message: string): asserts condition {
@@ -97,6 +120,7 @@ export class OidcApi<N extends object = SegmentType> {
             redirect_uris: [this._urlRouter.createOIDCRedirectURL()],
             id_token_signed_response_alg: "RS256",
             token_endpoint_auth_method: "none",
+            post_logout_redirect_uris: [this._urlRouter.createOIDCPostLogoutRedirectURL()],
         };
     }
 
@@ -226,6 +250,30 @@ export class OidcApi<N extends object = SegmentType> {
         return metadata["revocation_endpoint"];
     }
 
+    async endSessionEndpoint({idTokenHint, logoutHint, redirectUri, state}: LogoutParams): Promise<string | undefined> {
+        const metadata = await this.metadata();
+        const endpoint = metadata["end_session_endpoint"];
+        if (!endpoint) {
+            return undefined;
+        }
+        if (!redirectUri) {
+            redirectUri =  this._urlRouter.createOIDCPostLogoutRedirectURL();
+        }
+        const url = new URL(endpoint);
+        url.searchParams.append("client_id", await this.clientId());
+        url.searchParams.append("post_logout_redirect_uri", redirectUri);
+        if (idTokenHint) {
+            url.searchParams.append("id_token_hint", idTokenHint);
+        }
+        if (logoutHint) {
+            url.searchParams.append("logout_hint", logoutHint);
+        }
+        if (state) {
+            url.searchParams.append("state", state);
+        }
+        return url.href;
+    }
+
     async isGuestAvailable(): Promise<boolean> {
         const metadata = await this.metadata();
         return metadata["scopes_supported"]?.includes("urn:matrix:org.matrix.msc2967.client:api:guest");
@@ -331,7 +379,6 @@ export class OidcApi<N extends object = SegmentType> {
         const req = this._requestFn(revocationEndpoint, {
             method: "POST",
             headers,
-            format: "json",
             body,
         });
 
