@@ -36,13 +36,14 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected log: ILogItem;
     protected requestEventId: string;
     protected previousResult: undefined | any;
+    protected _nextStage: BaseSASVerificationStage;
 
     constructor(options: Options) {
         super();
         this.room = options.room;
         this.ourUser = options.ourUser;
         this.otherUserId = options.otherUserId;
-        this.log = options.log; 
+        this.log = options.log;
     }
 
     setRequestEventId(id: string) {
@@ -55,7 +56,14 @@ export abstract class BaseSASVerificationStage extends Disposables {
         this.previousResult = result;
     }
 
+    setNextStage(stage: BaseSASVerificationStage) {
+        this._nextStage = stage;
+    }
+
+    get nextStage(): BaseSASVerificationStage {
+        return this._nextStage;
+    }
+
     abstract get type(): string;
-    abstract completeStage(): undefined | Record<string, any>;
-    abstract get nextStage(): BaseSASVerificationStage;
+    abstract completeStage(): Promise<any>;
 }

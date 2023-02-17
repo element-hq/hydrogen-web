@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
+import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
 
 // From element-web
 // type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
@@ -31,9 +32,6 @@ import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 // const SAS_LIST = Object.keys(sasGenerators);
 export class StartVerificationStage extends BaseSASVerificationStage {
 
-    private readyMessagePromise: Promise<any>;
-    private startMessagePromise: Promise<any>;
-
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
             const content = {
@@ -43,44 +41,38 @@ export class StartVerificationStage extends BaseSASVerificationStage {
                 "msgtype": "m.key.verification.request",
                 "to": this.otherUserId,
             };
+            const promise = this.trackEventId();
             await this.room.sendEvent("m.room.message", content, null, log);
-            const [readyContent, startContent] = await this.fetchMessageEventsFromTimeline();
-            console.log("readyContent", readyContent, "startContent", startContent);
+            const eventId = await promise;
+            console.log("eventId", eventId);
+            this.setRequestEventId(eventId);
             this.dispose();
         });
-        return true;
     }
 
-    private fetchMessageEventsFromTimeline() {
-        let readyResolve, startResolve;
-        this.readyMessagePromise = new Promise(r => { readyResolve = r; });
-        this.startMessagePromise = new Promise(r => { startResolve = r; });
-        this.track(
-            this.room._timeline.entries.subscribe({
-                onAdd: (_, entry) => {
-                    if (entry.eventType === "m.key.verification.ready") {
-                        readyResolve(entry.content);
-                    }
-                    else if (entry.eventType === "m.key.verification.start") {
-                        startResolve(entry.content);
-                    }
-                },
-                onRemove: () => {
-                    
-                },
-                onUpdate: () => {
-                    
-                },
-            })
-        );
-        return Promise.all([this.readyMessagePromise, this.startMessagePromise]);
+    private trackEventId(): Promise<string> {
+        return new Promise(resolve => {
+            this.track(
+                this.room._timeline.entries.subscribe({
+                    onAdd: (_, entry) => {
+                        if (entry instanceof FragmentBoundaryEntry) {
+                            return;
+                        }
+                        if (!entry.isPending &&
+                            entry.content["msgtype"] === "m.key.verification.request" &&
+                            entry.content["from_device"] === this.ourUser.deviceId) {
+                                console.log("found event", entry);
+                            resolve(entry.id);
+                        }
+                    },
+                    onRemove: () => { /**noop*/ },
+                    onUpdate: () => { /**noop*/ },
+                })
+            );
+        });
     }
 
     get type() {
         return "m.key.verification.request";
-    }
-
-    get nextStage(): BaseSASVerificationStage {
-        return this;    
     }
 }

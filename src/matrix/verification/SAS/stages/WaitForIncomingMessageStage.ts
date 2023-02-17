@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage, Options} from "./BaseSASVerificationStage";
+import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
 
 export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
     constructor(private messageType: string, options: Options) {
@@ -30,7 +31,6 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
             });
             this.dispose();
         });
-        return true;
     }
 
     private fetchMessageEventsFromTimeline() {
@@ -43,7 +43,7 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
                             // We only care about incoming / remote message events
                             return;
                         }
-                        if (entry.eventType === this.messageType &&
+                        if (entry.type === this.messageType &&
                             entry.content["m.relates_to"]["event_id"] === this.requestEventId) {
                             resolve(entry.content);
                         }
@@ -55,7 +55,10 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
             const remoteEntries = this.room._timeline.remoteEntries;
             // In case we were slow and the event is already added to the timeline,
             for (const entry of remoteEntries) {
-                if (entry.eventType === this.messageType &&
+                if (entry instanceof FragmentBoundaryEntry) {
+                    return;
+                }
+                if (entry.type === this.messageType &&
                     entry.content["m.relates_to"]["event_id"] === this.requestEventId) {
                     resolve(entry.content);
                 }
@@ -65,10 +68,6 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
 
     get type() {
         return this.messageType;
-    }
-
-    get nextStage(): BaseSASVerificationStage {
-        return this;    
     }
 }
 

@@ -17,17 +17,28 @@ import {StartVerificationStage} from "./stages/StartVerificationStage";
 import type {ILogItem} from "../../../logging/types";
 import type {Room} from "../../room/Room.js";
 import type {BaseSASVerificationStage, UserData} from "./stages/BaseSASVerificationStage";
+import {WaitForIncomingMessageStage} from "./stages/WaitForIncomingMessageStage";
 
 export class SASVerification {
-    private stages: BaseSASVerificationStage[] = [];
+    private startStage: BaseSASVerificationStage;
    
     constructor(private room: Room, private ourUser: UserData, otherUserId: string, log: ILogItem) {
-        this.stages.push(new StartVerificationStage(room, ourUser, otherUserId, log));
+        const options = { room, ourUser, otherUserId, log };
+        let stage: BaseSASVerificationStage = new StartVerificationStage(options);
+        this.startStage = stage;
+        
+        stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.ready", options));
+        stage = stage.nextStage;
+
+        stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.start", options));
+        stage = stage.nextStage;
     }
 
     async start() {
-        for (const stage of this.stages) {
-            await stage.completeStage(); 
-        }
+        let stage = this.startStage;
+        do {
+            await stage.completeStage();
+            stage = stage.nextStage;
+        } while (stage);
     }
 }
