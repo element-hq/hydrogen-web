@@ -51,7 +51,12 @@ export class SettingsView extends TemplateView {
 
         settingNodes.push(
             t.if(vm => vm.accountManagementUrl, t => {
-                return t.p([vm.i18n`You can manage your account `, t.a({href: vm.accountManagementUrl, target: "_blank"}, vm.i18n`here`), "."]);
+                const url = new URL(vm.accountManagementUrl);
+                return t.div([
+                    t.h3("Account"),
+                    t.p([vm.i18n`Your account details are managed separately at `, t.code(url.hostname), "."]),
+                    t.button({ onClick: () => window.open(vm.accountManagementUrl, '_blank') }, vm.i18n`Manage account`),
+                ]);
             }),
         );
 
