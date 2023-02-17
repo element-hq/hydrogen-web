@@ -41,6 +41,8 @@ async function getWellKnownResponse(homeserver, request) {
 
 export async function lookupHomeserver(homeserver, request) {
     homeserver = normalizeHomeserver(homeserver);
+    let issuer = null;
+    let account = null;
     const wellKnownResponse = await getWellKnownResponse(homeserver, request);
     if (wellKnownResponse && wellKnownResponse.status === 200) {
         const {body} = wellKnownResponse;
@@ -48,6 +50,16 @@ export async function lookupHomeserver(homeserver, request) {
         if (typeof wellKnownHomeserver === "string") {
             homeserver = normalizeHomeserver(wellKnownHomeserver);
         }
+
+        const wellKnownIssuer = body["org.matrix.msc2965.authentication"]?.["issuer"];
+        if (typeof wellKnownIssuer === "string") {
+            issuer = wellKnownIssuer;
+        }
+
+        const wellKnownAccount = body["org.matrix.msc2965.authentication"]?.["account"];
+        if (typeof wellKnownAccount === "string") {
+            account = wellKnownAccount;
+        }
     }
-    return homeserver;
+    return {homeserver, issuer, account};
 }

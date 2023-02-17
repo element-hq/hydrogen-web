@@ -25,6 +25,7 @@ export interface IRequestOptions {
     cache?: boolean;
     method?: string;
     format?: string;
+    accessTokenOverride?: string;
 }
 
 export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;

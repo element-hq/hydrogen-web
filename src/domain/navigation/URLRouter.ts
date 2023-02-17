@@ -32,6 +32,10 @@ export interface IURLRouter<T> {
     urlForPath(path: Path<T>): string;
     openRoomActionUrl(roomId: string): string;
     createSSOCallbackURL(): string;
+    createOIDCRedirectURL(): string;
+    createOIDCPostLogoutRedirectURL(): string;
+    absoluteAppUrl(): string;
+    absoluteUrlForAsset(asset: string): string;
     normalizeUrl(): void;
 }
 
@@ -150,6 +154,22 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
 
     createSSOCallbackURL(): string {
         return window.location.origin;
+    }
+
+    createOIDCRedirectURL(): string {
+        return window.location.origin;
+    }
+
+    createOIDCPostLogoutRedirectURL(): string {
+        return window.location.origin;
+    }
+
+    absoluteAppUrl(): string {
+        return window.location.origin;
+    }
+
+    absoluteUrlForAsset(asset: string): string {
+        return (new URL('/assets/' + asset, window.location.origin)).toString();
     }
 
     normalizeUrl(): void {

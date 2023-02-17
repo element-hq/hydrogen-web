@@ -48,6 +48,18 @@ export class SettingsView extends TemplateView {
                 disabled: vm => vm.isLoggingOut
             }, vm.i18n`Log out`)),
         );
+
+        settingNodes.push(
+            t.if(vm => vm.accountManagementUrl, t => {
+                const url = new URL(vm.accountManagementUrl);
+                return t.div([
+                    t.h3("Account"),
+                    t.p([vm.i18n`Your account details are managed separately at `, t.code(url.hostname), "."]),
+                    t.button({ onClick: () => window.open(vm.accountManagementUrl, '_blank') }, vm.i18n`Manage account`),
+                ]);
+            }),
+        );
+
         settingNodes.push(
             t.h3("Key backup & security"),
             t.view(new KeyBackupSettingsView(vm.keyBackupViewModel))

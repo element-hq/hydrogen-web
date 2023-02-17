@@ -154,7 +154,7 @@ export class SessionLoadViewModel extends ViewModel {
     }
 
     async logout() {
-        await this._client.startLogout(this.navigation.path.get("session").value);
+        await this._client.startLogout(this.navigation.path.get("session")?.value, this.urlRouter);
         this.navigation.push("session", true);
     }
 

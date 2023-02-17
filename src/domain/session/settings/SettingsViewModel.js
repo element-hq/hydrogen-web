@@ -55,6 +55,7 @@ export class SettingsViewModel extends ViewModel {
         this._activeTheme = undefined;
         this._logsFeedbackMessage = undefined;
         this._featuresViewModel = new FeaturesViewModel(this.childOptions());
+        this._accountManagementUrl = null;
     }
 
     get _session() {
@@ -84,7 +85,14 @@ export class SettingsViewModel extends ViewModel {
         if (!import.meta.env.DEV) {
             this._activeTheme = await this.platform.themeLoader.getActiveTheme();
         }
+        const {accountManagementUrl} = await this.platform.sessionInfoStorage.get(this._client._sessionId);
+        this._accountManagementUrl = accountManagementUrl;
         this.emitChange("");
+    }
+
+
+    get accountManagementUrl() {
+        return this._accountManagementUrl;
     }
 
     get closeUrl() {

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type { StaticOidcClientsConfig } from "../../matrix/net/OidcApi";
+
 export type Config = {
     /**
      * The default homeserver used by Hydrogen; auto filled in the login UI.
@@ -61,4 +63,12 @@ export type Config = {
         // See pushkey in above link
         applicationServerKey: string;
     };
+
+    /**
+     * Configuration for OIDC issuers where a static client_id has been issued for the app.
+     * Otherwise dynamic client registration is attempted.
+     * The issuer URL must have a trailing `/`.
+     * OPTIONAL
+     */
+    staticOidcClients?: StaticOidcClientsConfig;
 };

@@ -52,7 +52,7 @@ export class LogoutViewModel extends ViewModel<SegmentType, Options> {
         this.emitChange("busy");
         try {
             const client = new Client(this.platform);
-            await client.startLogout(this._sessionId);
+            await client.startLogout(this._sessionId, this.urlRouter);
             this.navigation.push("session", true);
         } catch (err) {
             this._error = err;
