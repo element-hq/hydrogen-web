@@ -206,19 +206,6 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this.emitChange("errorMessage");
     }
 
-    // async _showOIDCLogin() {
-    //     this._startOIDCLoginViewModel = this.track(
-    //         new StartOIDCLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
-    //     );
-    //     this.emitChange("startOIDCLoginViewModel");
-    //     try {
-    //         await this._startOIDCLoginViewModel.discover();
-    //     } catch (err) {
-    //         this._showError(err.message);
-    //         this._disposeViewModels();
-    //     }
-    // }
-
     private _setBusy(status: boolean): void {
         this._isBusy = status;
         this._passwordLoginViewModel?.setBusy(status);
