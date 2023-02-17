@@ -35,11 +35,13 @@ To stop the container, simply hit `ctrl+c`.
 
 In this repository, create a Docker image:
 
-```
+```sh
+# Enable BuildKit https://docs.docker.com/develop/develop-images/build_enhancements/
+export DOCKER_BUILDKIT=1
 docker build -t hydrogen .
 ```
 
-Or, pull the Docker image from the GitHub Container Registry:
+Or, pull the docker image from GitHub Container Registry:
 
 ```
 docker pull ghcr.io/vector-im/hydrogen-web
