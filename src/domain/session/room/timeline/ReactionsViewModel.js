@@ -369,5 +369,5 @@ export function tests() {
                 redactionIndex = index;
             }
         },
-    }
+    };
 }

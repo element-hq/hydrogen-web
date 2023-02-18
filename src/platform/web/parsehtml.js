@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import DOMPurify from "dompurify"
+import DOMPurify from "dompurify";
 
 class HTMLParseResult {
     constructor(bodyNode) {
@@ -58,7 +58,7 @@ const sanitizeConfig = {
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|xxx|mxc):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
     FORBID_TAGS: ['mx-reply'],
     KEEP_CONTENT: false,
-}
+};
 
 export function parseHTML(html) {
     // If DOMPurify uses DOMParser, can't we just get the built tree from it

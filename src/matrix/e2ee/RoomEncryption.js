@@ -605,7 +605,7 @@ export function tests() {
             };
             const olmMock = {
                 async encrypt() { return []; }
-            }
+            };
             let isRoomTracked = false;
             let isDevicesRequested = false;
             const deviceTracker = {
@@ -625,7 +625,7 @@ export function tests() {
                 async devicesForRoomMembers() {
                     return [];
                 }
-            }
+            };
             const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
             writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
                 history_visibility: "invited"
@@ -655,7 +655,7 @@ export function tests() {
             };
             const olmMock = {
                 async encrypt() { return []; }
-            }
+            };
             let isRoomTracked = false;
             let isDevicesRequested = false;
             const deviceTracker = {
@@ -675,7 +675,7 @@ export function tests() {
                 async devicesForRoomMembers() {
                     return [];
                 }
-            }
+            };
             const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
             writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
                 history_visibility: "invited"
@@ -709,7 +709,7 @@ export function tests() {
                 async devicesForRoomMembers() {
                     return [];
                 }
-            }
+            };
             const writeTxn = await storage.readWriteTxn([storage.storeNames.roomState]);
             writeTxn.roomState.set(roomId, {state_key: "", type: ROOM_HISTORY_VISIBILITY_TYPE, content: {
                 history_visibility: "invited"
@@ -725,5 +725,5 @@ export function tests() {
             await roomEncryption.writeSync(roomResponse, memberChanges, txn, NullLoggerInstance.item);
             assert(isMemberChangesCalled);
         },
-    }
+    };
 }

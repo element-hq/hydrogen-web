@@ -156,5 +156,5 @@ export function tests() {
             assert.equal(pl.canRedactFromSender(alice), false);
             assert.equal(pl.canSendType("m.room.message"), false);
         },
-    }
+    };
 }

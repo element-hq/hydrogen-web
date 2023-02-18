@@ -219,7 +219,7 @@ export function tests() {
                     members.set(member.userId, member);
                 }
             }
-        }
+        };
     }
 
     function member(...args) {

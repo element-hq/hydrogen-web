@@ -304,7 +304,7 @@ export class Platform {
                 } else {
                     resolve();
                 }
-            }
+            };
             input.addEventListener("change", checkFile, true);
         });
         // IE11 needs the input to be attached to the document
@@ -402,7 +402,7 @@ export function tests() {
             const logger = { _now() {return 5;} };
             const logItem = new LogItem("test", 1, logger);
             logItem.error = new Error();
-            logItem.error.stack = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26"
+            logItem.error.stack = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26";
             logPersister.reportItem(logItem, null, false);
             const item = logPersister._queuedItems.pop();
             assert.strictEqual(item.json.search("secret"), -1);

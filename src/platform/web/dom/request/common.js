@@ -48,5 +48,5 @@ export function tests() {
             assert.equal(addCacheBuster("http://foo", random), "http://foo?_cacheBuster=4503599627370496");
             assert.equal(addCacheBuster("http://foo?bar=baz", random), "http://foo?bar=baz&_cacheBuster=4503599627370496");
         }
-    }
+    };
 }

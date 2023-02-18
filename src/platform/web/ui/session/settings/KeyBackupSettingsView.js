@@ -56,7 +56,7 @@ export class KeyBackupSettingsView extends TemplateView {
                 }
             }),
             t.if(vm => vm.isMasterKeyTrusted, t => {
-                return t.p("Cross-signing master key found and trusted.")
+                return t.p("Cross-signing master key found and trusted.");
             }),
             t.if(vm => vm.canSignOwnDevice, t => {
                 return t.button({
@@ -136,7 +136,7 @@ function renderError(t) {
         return t.div([
             t.p({className: "error"}, vm => vm.i18n`Could not enable key backup: ${vm.error}.`),
             t.p(vm.i18n`Try double checking that you did not mix up your security key, security phrase and login password as explained above.`)
-        ])
+        ]);
     });
 }
 

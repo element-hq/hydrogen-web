@@ -21,7 +21,7 @@ export class MemberTileViewModel extends ViewModel {
     constructor(options) {
         super(options);
         this._member = this._options.member;
-        this._mediaRepository = options.mediaRepository
+        this._mediaRepository = options.mediaRepository;
         this._previousName = null;
         this._nameChanged = true;
     }
@@ -76,7 +76,7 @@ export class MemberTileViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this.userId)
+        return getIdentifierColorNumber(this.userId);
     }
 
     avatarUrl(size) {

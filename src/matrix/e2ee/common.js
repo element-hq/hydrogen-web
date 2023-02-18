@@ -67,7 +67,7 @@ export function createRoomEncryptionEvent() {
             "rotation_period_ms": 604800000,
             "rotation_period_msgs": 100
         }
-    }
+    };
 }
 
 

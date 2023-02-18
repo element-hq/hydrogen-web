@@ -72,7 +72,7 @@ export class Session {
             if (rbc.isCancelled) {
                 this._roomsBeingCreated.remove(rbc.id);
             } else {
-                this._roomsBeingCreated.update(rbc.id, params)
+                this._roomsBeingCreated.update(rbc.id, params);
             }
         };
         this._roomsBeingCreated = new ObservableMap();
@@ -228,7 +228,7 @@ export class Session {
             encryptionParams,
             notifyMissingMegolmSession: () => {
                 if (!this._keyBackup.get()) {
-                    this.needsKeyBackup.set(true)
+                    this.needsKeyBackup.set(true);
                 }
             },
             clock: this._platform.clock
@@ -1107,5 +1107,5 @@ export function tests() {
             assert.equal(session.syncToken, "b");
             assert.equal(session.syncFilterId, 6);
         }
-    }
+    };
 }

@@ -20,7 +20,7 @@ import {GapWriter} from "./timeline/persistence/GapWriter.js";
 import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
-import {WrappedError} from "../error.js"
+import {WrappedError} from "../error.js";
 import {fetchOrLoadMembers, fetchOrLoadMember} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";

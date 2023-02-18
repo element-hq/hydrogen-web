@@ -27,7 +27,7 @@ export async function downloadInIframe(container, iframeSrc, blobHandle, filenam
             detach = () => {
                 iframe.removeEventListener("load", resolve);
                 iframe.removeEventListener("error", reject);    
-            }
+            };
             iframe.addEventListener("load", resolve);
             iframe.addEventListener("error", reject);
         });

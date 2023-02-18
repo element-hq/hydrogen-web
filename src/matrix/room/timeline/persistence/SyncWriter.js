@@ -285,5 +285,5 @@ export function tests() {
             // fake-indexeddb still aborts the transaction when preventDefault is called by tryInsert, so don't await as it will abort
             // await txn.complete();
         },
-    }
+    };
 }

@@ -149,5 +149,5 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
         }
 
         return result;
-    }   
+    };   
 }

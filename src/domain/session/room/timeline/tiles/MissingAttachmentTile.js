@@ -18,7 +18,7 @@ import {BaseMessageTile} from "./BaseMessageTile.js";
 
 export class MissingAttachmentTile extends BaseMessageTile {
     get shape() {
-        return "missing-attachment"
+        return "missing-attachment";
     }
 
     get label() {

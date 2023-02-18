@@ -52,7 +52,7 @@ export class Disambiguator {
                 value.push(vm);
                 return value;
             } else if(vm.userId !== value.userId) {
-                const array = [value, vm]
+                const array = [value, vm];
                 this._map.set(name, array);
                 return array;
             }

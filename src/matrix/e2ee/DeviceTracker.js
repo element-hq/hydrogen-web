@@ -246,7 +246,7 @@ export class DeviceTracker {
         }, {log}).response();
 
         const masterKeys = log.wrap("master keys", log => this._filterValidMasterKeys(deviceKeyResponse, log));
-        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], "self_signing", masterKeys, log))
+        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], "self_signing", masterKeys, log));
         const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
@@ -620,7 +620,7 @@ export function tests() {
                     map.set(member.userId, member);
                     return map;
                 }, new Map());
-                return {members: memberMap, release() {}}
+                return {members: memberMap, release() {}};
             },
             writeIsTrackingMembers(isTrackingMembers) {
                 if (this.isTrackingMembers !== isTrackingMembers) {
@@ -633,7 +633,7 @@ export function tests() {
                     this.isTrackingMembers = isTrackingMembers;
                 }
             },
-        }
+        };
     }
 
     function createQueryKeysHSApiMock(createKey = (algorithm, userId, deviceId) => `${algorithm}:${userId}:${deviceId}:key`) {
@@ -965,5 +965,5 @@ export function tests() {
             const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
         }
-    }
+    };
 }

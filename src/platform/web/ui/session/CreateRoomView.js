@@ -33,7 +33,7 @@ export class CreateRoomView extends TemplateView {
                                     return new AvatarView(vm, 64);
                                 } else {
                                     return new StaticView(undefined, t => {
-                                        return t.div({className: "CreateRoomView_selectAvatarPlaceholder"})
+                                        return t.div({className: "CreateRoomView_selectAvatarPlaceholder"});
                                     });
                                 }
                             })

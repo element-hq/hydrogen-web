@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
+import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js";
 import {linkify} from "./linkify/linkify";
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
@@ -99,10 +99,10 @@ class Deserializer {
         if (!this._ensureElement(codeNode, "CODE")) {
             return new CodeBlock(language, this.result.getNodeText(node));
         }
-        const cl = result.getAttributeValue(codeNode, "class") || ""
+        const cl = result.getAttributeValue(codeNode, "class") || "";
         for (const clname of cl.split(" ")) {
             if (clname.startsWith("language-") && !clname.startsWith("language-_")) {
-                language = clname.substring(9) // "language-".length
+                language = clname.substring(9); // "language-".length
                 break;
             }
         }
@@ -231,7 +231,7 @@ class Deserializer {
             case "H5":
             case "H6": {
                 const inlines = this.parseInlineNodes(children);
-                return new HeaderBlock(parseInt(tag[1]), inlines)
+                return new HeaderBlock(parseInt(tag[1]), inlines);
             }
             case "UL":
             case "OL":
@@ -484,7 +484,7 @@ export async function tests() {
             test(assert, input, output);
         },
         "Text with code block but no <code> tag": assert => {
-            const code = 'main :: IO ()\nmain = putStrLn "Hello"'
+            const code = 'main :: IO ()\nmain = putStrLn "Hello"';
             const input = `<pre>${code}</pre>`;
             const output = [
                 new CodeBlock(null, code)
@@ -492,7 +492,7 @@ export async function tests() {
             test(assert, input, output);
         },
         "Text with code block and 'unsupported' tag": assert => {
-            const code = '<em>Hello, world</em>'
+            const code = '<em>Hello, world</em>';
             const input = `<pre>${code}</pre>`;
             const output = [
                 new CodeBlock(null, code)

@@ -59,7 +59,7 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this.userId)
+        return getIdentifierColorNumber(this.userId);
     }
 
     avatarUrl(size) {

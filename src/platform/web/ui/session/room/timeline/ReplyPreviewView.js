@@ -25,7 +25,7 @@ export class ReplyPreviewView extends TemplateView {
     render(t, vm) {
         const TileView = this._viewClassForTile(vm);
         if (!TileView) {
-            throw new Error(`Shape ${vm.shape} is unrecognized.`)
+            throw new Error(`Shape ${vm.shape} is unrecognized.`);
         }
         const view = new TileView(vm, this._viewClassForTile, { reply: true, interactive: false });
         return t.div(

@@ -59,12 +59,12 @@ export class RoomBeingCreatedTileViewModel extends BaseTileViewModel {
 export function tests() {
     return {
         "test compare with names": assert => {
-            const urlRouter = {openRoomActionUrl() { return "";}}
+            const urlRouter = {openRoomActionUrl() { return "";}};
             const vm1 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "A", id: "1"}, urlRouter});
             const vm2 = new RoomBeingCreatedTileViewModel({roomBeingCreated: {name: "B", id: "2"}, urlRouter});
             assert(vm1.compare(vm2) < 0);
             assert(vm2.compare(vm1) > 0);
             assert.equal(vm1.compare(vm1), 0);
         },
-    }
+    };
 }

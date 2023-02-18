@@ -500,5 +500,5 @@ export function tests() {
             assert.equal(tilesArray.length, 2);
             assert.equal(removals, 2);
         }
-    }
+    };
 }

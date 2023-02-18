@@ -35,7 +35,7 @@ class Target {
 }
 
 function handleMethod(target, name, ...args) {
-    let requests = target.requests[name]
+    let requests = target.requests[name];
     if (!requests) {
         target.requests[name] = requests = [];
     }

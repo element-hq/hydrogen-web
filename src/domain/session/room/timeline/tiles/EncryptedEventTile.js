@@ -30,7 +30,7 @@ export class EncryptedEventTile extends BaseTextTile {
     }
 
     get shape() {
-        return "message-status"
+        return "message-status";
     }
 
     _getBody() {

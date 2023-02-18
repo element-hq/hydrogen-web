@@ -117,7 +117,7 @@ export class Heroes {
     get roomAvatarColorId() {
         if (this._members.size === 1) {
             for (const member of this._members.keys()) {
-                return member
+                return member;
             }
         }
         return null;

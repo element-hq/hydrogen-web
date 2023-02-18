@@ -53,12 +53,12 @@ export class InviteTileViewModel extends BaseTileViewModel {
 export function tests() {
     return {
         "test compare with timestamp": assert => {
-            const urlRouter = {openRoomActionUrl() { return "";}}
+            const urlRouter = {openRoomActionUrl() { return "";}};
             const vm1 = new InviteTileViewModel({invite: {timestamp: 500, id: "1"}, urlRouter});
             const vm2 = new InviteTileViewModel({invite: {timestamp: 250, id: "2"}, urlRouter});
             assert(vm1.compare(vm2) < 0);
             assert(vm2.compare(vm1) > 0);
             assert.equal(vm1.compare(vm1), 0);
         },
-    }
+    };
 }

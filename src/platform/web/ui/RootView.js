@@ -32,7 +32,7 @@ export class RootView extends TemplateView {
                         return t.div({className: "StatusView"}, [
                             t.h1("Something went wrong"),
                             t.p(vm.errorText),
-                        ])
+                        ]);
                     });
                 case "session":
                     return new SessionView(vm.sessionViewModel);

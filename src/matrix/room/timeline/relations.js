@@ -30,7 +30,7 @@ export function createAnnotation(targetId, key) {
 }
 
 export function getRelationTarget(relation) {
-    return relation.event_id || relation["m.in_reply_to"]?.event_id
+    return relation.event_id || relation["m.in_reply_to"]?.event_id;
 }
 
 export function setRelationTarget(relation, target) {

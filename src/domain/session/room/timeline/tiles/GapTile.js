@@ -169,5 +169,5 @@ export function tests() {
             await tile.fill();
             assert.equal(currentToken, 8);
         }
-    }
+    };
 }
