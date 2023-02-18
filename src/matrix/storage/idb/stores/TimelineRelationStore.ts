@@ -69,7 +69,7 @@ export class TimelineRelationStore {
 
     async getForTargetAndType(roomId: string, targetId: string, relType: string): Promise<RelationEntry[]> {
         // exclude both keys as they are theoretical min and max,
-        // but we should't have a match for just the room id, or room id with max
+        // but we shouldn't have a match for just the room id, or room id with max
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, targetId, relType, MIN_UNICODE),
             encodeKey(roomId, targetId, relType, MAX_UNICODE),
@@ -82,7 +82,7 @@ export class TimelineRelationStore {
 
     async getAllForTarget(roomId: string, targetId: string): Promise<RelationEntry[]> {
         // exclude both keys as they are theoretical min and max,
-        // but we should't have a match for just the room id, or room id with max
+        // but we shouldn't have a match for just the room id, or room id with max
         const range = this._store.IDBKeyRange.bound(
             encodeKey(roomId, targetId, MIN_UNICODE, MIN_UNICODE),
             encodeKey(roomId, targetId, MAX_UNICODE, MAX_UNICODE),

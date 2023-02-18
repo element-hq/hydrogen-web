@@ -72,7 +72,7 @@ async function loadOlm(olmPaths) {
     }
     return null;
 }
-// turn asset path to absolute path if it isn't already
+// turn asset path to absolute path if it isn't already,
 // so it can be loaded independent of base
 function assetAbsPath(assetPath) {
     if (!assetPath.startsWith("/")) {

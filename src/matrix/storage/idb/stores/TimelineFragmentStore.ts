@@ -71,8 +71,8 @@ export class TimelineFragmentStore {
         });
     }
 
-    // should generate an id an return it?
-    // depends if we want to do anything smart with fragment ids,
+    // should generate an id and return it?
+    // depends on if we want to do anything smart with fragment ids,
     // like give them meaning depending on range. not for now probably ...
     add(fragment: Fragment): void {
         (fragment as FragmentEntry).key = encodeKey(fragment.roomId, fragment.id);

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// we return undefined so you can reassign any member
+// we return undefined, so you can reassign any member
 // that uses `member?: T` syntax in one statement.
 export type SubscriptionHandle = () => undefined;
 

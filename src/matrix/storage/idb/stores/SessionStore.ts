@@ -62,7 +62,7 @@ export class SessionStore {
     }
 
     _writeKeyToLocalStorage(key: string, value: any) {
-        // we backup to localStorage so when idb gets cleared for some reason, we don't lose our e2ee identity
+        // we back up to localStorage so when idb gets cleared for some reason, we don't lose our e2ee identity
         try {
             const lsKey = this._localStorageKeyPrefix + key;
             const lsValue = stringify(value);

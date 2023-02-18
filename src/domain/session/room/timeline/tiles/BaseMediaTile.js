@@ -186,7 +186,7 @@ export class BaseMediaTile extends BaseMessageTile {
         const scaleHeightFactor = MAX_HEIGHT / info?.h;
         const scaleWidthFactor = MAX_WIDTH / info?.w;
         // take the smallest scale factor, to respect all constraints
-        // we should not upscale images, so limit scale factor to 1 upwards
+        // we should not upscale images, so limit scale factor to 1
         return Math.min(scaleWidthFactor, scaleHeightFactor, 1);
     }
 

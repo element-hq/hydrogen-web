@@ -140,7 +140,7 @@ export class MemberSync {
                         // AND we haven't heard about it AND we haven't fetched all members yet (to avoid #470),
                         // this may be a lazy loading member (if it's not in a gap, we are certain
                         // it is a ll member, in a gap, we can't tell), so we pass in our own membership as
-                        // as the previous one so we won't consider it a join to not have false positives (to avoid #192).
+                        // the previous one, so we won't consider it a join to not have false positives (to avoid #192).
                         // see also MemberChange.hasJoined
                         const maybeLazyLoadingMember = !this._hasFetchedMembers && !memberChange.previousMembership;
                         if (maybeLazyLoadingMember) {
@@ -318,7 +318,7 @@ export function tests() {
             assert(!change.hasLeft);
             assert(!change.hasJoined);
         },
-        "lazy loaded member we already know about doens't return change": async assert => {
+        "lazy loaded member we already know about doesn't return change": async assert => {
             const writer = new MemberWriter(roomId);
             const txn = createStorage([member("join", alice, "Alice")]);
             const memberSync = writer.prepareMemberSync([createMemberEvent("join", alice, "Alice")], [], false);

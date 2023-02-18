@@ -54,7 +54,7 @@ export class Storage {
         try {
             const txn = this._db.transaction(storeNames, "readonly");
             // https://bugs.webkit.org/show_bug.cgi?id=222746 workaround,
-            // await a bogus idb request on the new txn so it doesn't close early if we await a microtask first
+            // await a bogus idb request on the new txn, so it doesn't close early if we await a microtask first
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }
@@ -69,7 +69,7 @@ export class Storage {
         try {
             const txn = this._db.transaction(storeNames, "readwrite");
             // https://bugs.webkit.org/show_bug.cgi?id=222746 workaround,
-            // await a bogus idb request on the new txn so it doesn't close early if we await a microtask first
+            // await a bogus idb request on the new txn, so it doesn't close early if we await a microtask first
             if (this._hasWebkitEarlyCloseTxnBug) {
                 await reqAsPromise(txn.objectStore(storeNames[0]).get(WEBKITEARLYCLOSETXNBUG_BOGUS_KEY));
             }

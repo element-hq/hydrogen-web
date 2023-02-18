@@ -101,13 +101,13 @@ export class RoomGridViewModel extends ViewModel {
     /** called from SessionViewModel */
     initializeRoomIdsAndTransferVM(roomIds, existingRoomVM) {
         roomIds = dedupeSparse(roomIds);
-        let transfered = false;
+        let transferred = false;
         if (existingRoomVM) {
             const index = roomIds.indexOf(existingRoomVM.id);
             if (index !== -1) {
                 this._viewModelsObservables[index] = this.track(existingRoomVM);
                 existingRoomVM.subscribe(viewModel => this._refreshRoomViewModel(viewModel));
-                transfered = true;
+                transferred = true;
             }
         }
         this.setRoomIds(roomIds);
@@ -119,7 +119,7 @@ export class RoomGridViewModel extends ViewModel {
                 this._selectedIndex = index;
             }
         }
-        return transfered;
+        return transferred;
     }
 
     /** called from SessionViewModel */
@@ -256,8 +256,8 @@ export function tests() {
                 height: 2,
             });
             const existingRoomVM = new RoomViewModelObservableMock(new RoomVMMock("a"));
-            const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
-            assert.equal(transfered, true);
+            const transferred = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
+            assert.equal(transferred, true);
             assert.equal(gridVM.focusIndex, 0);
             assert.equal(gridVM.roomViewModelAt(0).id, "a");
         },
@@ -270,8 +270,8 @@ export function tests() {
                 height: 2,
             });
             const existingRoomVM = new RoomViewModelObservableMock(new RoomVMMock("f"));
-            const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
-            assert.equal(transfered, false);
+            const transferred = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
+            assert.equal(transferred, false);
             assert.equal(gridVM.focusIndex, 0);
             assert.equal(gridVM.roomViewModelAt(0).id, "a");
         },
@@ -283,13 +283,13 @@ export function tests() {
                 width: 3,
                 height: 2,
             });
-            const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value);
-            assert.equal(transfered, false);
+            const transferred = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value);
+            assert.equal(transferred, false);
             const releasedVM = gridVM.releaseRoomViewModel("a");
             gridVM.dispose();
             assert.equal(releasedVM.get().disposed, false);
         },
-        "transfered & released room view model is not disposed": assert => {
+        "transferred & released room view model is not disposed": assert => {
             const navigation = createNavigationForRoom([undefined, "a"], "a");
             const gridVM = new RoomGridViewModel({
                 createRoomViewModelObservable: () => assert.fail("no vms should be created"),
@@ -298,8 +298,8 @@ export function tests() {
                 height: 2,
             });
             const existingRoomVM = new RoomViewModelObservableMock(new RoomVMMock("a"));
-            const transfered = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
-            assert.equal(transfered, true);
+            const transferred = gridVM.initializeRoomIdsAndTransferVM(navigation.path.get("rooms").value, existingRoomVM);
+            assert.equal(transferred, true);
             const releasedVM = gridVM.releaseRoomViewModel("a");
             gridVM.dispose();
             assert.equal(releasedVM.get().disposed, false);

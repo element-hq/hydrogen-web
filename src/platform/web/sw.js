@@ -99,7 +99,7 @@ async function handleRequest(request) {
             return handleStaleWhileRevalidateRequest(request);
         }
         const url = new URL(request.url);
-        // rewrite / to /index.html so it hits the cache
+        // rewrite / to /index.html, so it hits the cache
         if (url.origin === baseURL.origin && url.pathname === baseURL.pathname) {
             request = new Request(new URL("index.html", baseURL.href));
         }

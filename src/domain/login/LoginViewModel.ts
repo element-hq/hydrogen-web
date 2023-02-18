@@ -239,7 +239,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         // we don't need to reset things again here.
         // However, clear things set by setHomeserver:
         // if query is called before the typing timeout hits (e.g. field lost focus),
-        // cancel the timeout so we don't query again.
+        // cancel the timeout, so we don't query again.
         this._abortHomeserverQueryTimeout = this.disposeTracked(this._abortHomeserverQueryTimeout);
         // cancel ongoing query operation, if any
         this._abortQueryOperation = this.disposeTracked(this._abortQueryOperation);

@@ -33,7 +33,7 @@ export class SortedArray<T> extends BaseObservableList<T> {
 
     setManySorted(items: T[]): void {
         // TODO: we can make this way faster by only looking up the first and last key,
-        // and merging whatever is inbetween with items
+        // and merging whatever is in between with items
         // if items is not sorted, 💩🌀 will follow!
         // should we check?
         // Also, once bulk events are supported in collections,

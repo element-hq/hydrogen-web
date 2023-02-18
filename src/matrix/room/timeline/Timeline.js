@@ -264,14 +264,14 @@ export class Timeline {
     /**
      * Update entries based on newly received events.
      * This is specific to events that are not in the timeline but had to be fetched from the homeserver
-     * because they are context-events for other events in the timeline (i.e fetched from hs so that we
+     * because they are context-events for other events in the timeline (i.e. fetched from hs so that we
      * can render things like reply previews)
      */
     _updateEntriesFetchedFromHomeserver(entries) {
         /**
          * Updates for entries in timeline is handled by remoteEntries observable collection
          * Updates for entries not in timeline but fetched from storage is handled in this.replaceEntries()
-         * This code is specific to entries fetched from HomeServer i.e NonPersistedEventEntry
+         * This code is specific to entries fetched from HomeServer i.e. NonPersistedEventEntry
          */
         for (const entry of entries) {
             const relatedEntry = this._contextEntriesNotInTimeline.get(entry.relatedEventId);
@@ -608,7 +608,7 @@ export function tests() {
             }, new NullLogItem());
             txn.timelineRelations.add(roomId, messageId, ANNOTATION_RELATION_TYPE, reactionId);
             await txn.complete();
-            // 2. setup the timeline
+            // 2. set up the timeline
             const timeline = new Timeline({roomId, storage, closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
             await timeline.load(new User(bob), "join", new NullLogItem());
@@ -739,7 +739,7 @@ export function tests() {
             decryptedEntry.setDecryptionResult({
                 event: withTextBody("hi bob!", createEvent("m.room.message", encryptedEntry.id, encryptedEntry.sender))
             });
-            // 2. setup the timeline
+            // 2. set up the timeline
             const timeline = new Timeline({roomId, storage: await createMockStorage(), closeCallback: () => {},
                 fragmentIdComparer, pendingEvents: new ObservableArray(), clock: new MockClock()});
             await timeline.load(new User(alice), "join", new NullLogItem());

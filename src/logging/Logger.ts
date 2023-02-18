@@ -38,8 +38,8 @@ export class Logger implements ILogger {
     }
 
     /** Prefer `run()` or `log()` above this method; only use it if you have a long-running operation
-     *  *without* a single call stack that should be logged into one sub-tree.
-     *  You need to call `finish()` on the returned item or it will stay open until the app unloads. */
+     *  *without* a single call stack that should be logged into one subtree.
+     *  You need to call `finish()` on the returned item, or it will stay open until the app unloads. */
     child(labelOrValues: LabelOrValues, logLevel: LogLevel = LogLevel.Info, filterCreator?: FilterCreator): ILogItem {
         const item = new DeferredPersistRootLogItem(labelOrValues, logLevel, this, filterCreator);
         this._openItems.add(item);

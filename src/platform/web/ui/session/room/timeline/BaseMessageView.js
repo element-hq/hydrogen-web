@@ -54,9 +54,9 @@ export class BaseMessageView extends TemplateView {
         }, children);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it
-        // with a side-effect binding to not have to create sub views,
+        // with a side effect binding to not have to create sub views,
         // as the avatar or sender doesn't need any bindings or event handlers.
-        // don't use `t` from within the side-effect callback
+        // don't use `t` from within the side effect callback
         t.mapSideEffect(vm => vm.isContinuation, (isContinuation, wasContinuation) => {
             if (isContinuation && wasContinuation === false) {
                 li.removeChild(li.querySelector(".Timeline_messageAvatar"));

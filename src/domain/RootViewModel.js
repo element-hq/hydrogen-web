@@ -123,7 +123,7 @@ export class RootViewModel extends ViewModel {
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
                 ready: client => {
                     // we don't want to load the session container again,
-                    // but we also want the change of screen to go through the navigation
+                    // but we also want the change of screen to go through the navigation,
                     // so we store the session container in a temporary variable that will be
                     // consumed by _applyNavigation, triggered by the navigation change
                     //

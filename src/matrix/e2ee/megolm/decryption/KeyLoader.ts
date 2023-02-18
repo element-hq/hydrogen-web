@@ -397,7 +397,7 @@ export function tests() {
             // it will be returned from getCachedKey (as called from checkBetterThanKeyInStorage)
             key1.isBetter = true;
             const key2 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 3);
-            // this will hit cache of key 1 so we pass in null as txn
+            // this will hit cache of key 1, so we pass in null as txn
             const isBetter = await key2.checkBetterThanKeyInStorage(loader, null as any);
             assert.strictEqual(isBetter, false);
             assert.strictEqual(key2.isBetter, false);
@@ -408,7 +408,7 @@ export function tests() {
             key1.isBetter = true; // fake we've check with storage so far (not including key2) this is the best key
             await loader.useKey(key1, async session => {});
             const key2 = new MockRoomKey(roomId, aliceSenderKey, sessionId1, 1);
-            // this will hit cache of key 1 so we pass in null as txn
+            // this will hit cache of key 1, so we pass in null as txn
             const isBetter = await key2.checkBetterThanKeyInStorage(loader, null as any);
             assert.strictEqual(isBetter, true);
             assert.strictEqual(key2.isBetter, true);

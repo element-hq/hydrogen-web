@@ -43,7 +43,7 @@ export class RoomMember {
     }
     /**
      * Creates a (historical) member from a member event that is the next member event
-     * after the point in time where we need a member for. This will use `prev_content`.
+     * after the point in time when we need a member for. This will use `prev_content`.
      */
     static fromReplacingMemberEvent(roomId, memberEvent) {
         const userId = memberEvent && memberEvent.state_key;

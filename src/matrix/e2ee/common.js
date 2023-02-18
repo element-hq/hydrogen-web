@@ -19,7 +19,7 @@ import {createEnum} from "../../utils/enum";
 
 export const DecryptionSource = createEnum("Sync", "Timeline", "Retry");
 
-// use common prefix so it's easy to clear properties that are not e2ee related during session clear
+// use common prefix, so it's easy to clear properties that are not e2ee related during session clear
 export const SESSION_E2EE_KEY_PREFIX = "e2ee:";
 export const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
 export const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";

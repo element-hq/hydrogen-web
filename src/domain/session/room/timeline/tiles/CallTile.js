@@ -23,7 +23,7 @@ import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../
 // TODO: timeline entries for state events with the same state key and type
 // should also update previous entries in the timeline, so we can update the name of the call, whether it is terminated, etc ...
 
-// alternatively, we could just subscribe to the GroupCall and spontanously emit an update when it updates
+// alternatively, we could just subscribe to the GroupCall and spontaneously emit an update when it updates
 
 export class CallTile extends SimpleTile {
     constructor(entry, options) {

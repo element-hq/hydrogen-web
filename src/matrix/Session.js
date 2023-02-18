@@ -530,7 +530,7 @@ export class Session {
     /**
      * @internal called from session container when coming back online and catchup syncs have finished.
      * @param  {Object} lastVersionResponse a response from /versions, which is polled while offline,
-     *                                      and useful to store so we can later tell what capabilities
+     *                                      and useful to store, so we can later tell what capabilities
      *                                      our homeserver has.
      */
     async start(lastVersionResponse, dehydratedDevice, log) {
@@ -973,7 +973,7 @@ export class Session {
         if (!observable) {
             let status = undefined;
             // Create and set the observable with value = undefined, so that
-            // we don't loose any sync changes that come in while we are busy
+            // we don't lose any sync changes that come in while we are busy
             // calculating the current room status.
             observable = new RetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);

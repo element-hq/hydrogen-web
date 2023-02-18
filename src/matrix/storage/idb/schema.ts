@@ -100,7 +100,7 @@ async function migrateSession(db: IDBDatabase, txn: IDBTransaction, localStorage
         if (entry) {
             session.delete(PRE_MIGRATION_KEY);
             const {syncToken, syncFilterId, serverVersions} = entry.value;
-            // Cast ok here because only "set" is used and we don't look into return
+            // Cast ok here because only "set" is used, and we don't look into return
             const store = new SessionStore(session as any, localStorage);
             store.set("sync", {token: syncToken, filterId: syncFilterId});
             store.set("serverVersions", serverVersions);
@@ -190,7 +190,7 @@ function createTimelineRelationsStore(db: IDBDatabase) : void {
 // refactoring needed in the device tracker, which made it inconvenient to expose addRoomToIdentity
 function fixMissingRoomsInUserIdentities() {}
 
-// v12 move ssssKey to e2ee:ssssKey so it will get backed up in the next step
+// v12 move ssssKey to e2ee:ssssKey, so it will get backed up in the next step
 async function changeSSSSKeyPrefix(db: IDBDatabase, txn: IDBTransaction) {
     const session = txn.objectStore("session");
     const ssssKey = await reqAsPromise(session.get("ssssKey"));
@@ -204,7 +204,7 @@ async function backupAndRestoreE2EEAccountToLocalStorage(db: IDBDatabase, txn: I
     const sessionStore = new SessionStore(new Store(session, createDatabaseNameHelper(db)), localStorage);
     // if we already have an e2ee identity, write a backup to local storage.
     // further updates to e2ee keys in the session store will also write to local storage from 0.2.15 on,
-    // but here we make sure a backup is immediately created after installing the update and we don't wait until
+    // but here we make sure a backup is immediately created after installing the update, and we don't wait until
     // the olm account needs to change
     sessionStore.writeE2EEIdentityToLocalStorage();
     // and if we already have a backup, restore it now for any missing key in idb.
@@ -257,7 +257,7 @@ async function migrateBackupStatus(db: IDBDatabase, txn: IDBTransaction, localSt
             value.backup = BackupStatus.NotBackedUp;
             // we'll also have backup keys in here, we can't tell,
             // but the worst thing that can happen is that we try
-            // to backup keys that were already in backup, which
+            // to back up keys that were already in backup, which
             // the server will ignore
             value.source = KeySource.DeviceMessage;
             cursor.update(value);

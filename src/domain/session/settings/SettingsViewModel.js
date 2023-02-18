@@ -184,7 +184,7 @@ export class SettingsViewModel extends ViewModel {
         this._logsFeedbackMessage = this.i18n`Sending logs…`;
         try {
             await submitLogsFromSessionToDefaultServer(this._session, this.platform);
-            this._logsFeedbackMessage = this.i18n`Logs sent succesfully!`;
+            this._logsFeedbackMessage = this.i18n`Logs sent successfully!`;
         } catch (err) {
             this._logsFeedbackMessage = err.message;
             this.emitChange();
