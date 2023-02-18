@@ -42,7 +42,7 @@ class SessionItemViewModel extends ViewModel {
     }
 
     get label() {
-        const {userId, comment} =  this._sessionInfo;
+        const {userId, comment} = this._sessionInfo;
         if (comment) {
             return `${userId} (${comment})`;
         } else {

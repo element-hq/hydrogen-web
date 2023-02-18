@@ -48,30 +48,30 @@ limitations under the License.
 //   text/html, text/xhtml, image/svg, image/svg+xml, image/pdf, and similar.
 
 const ALLOWED_BLOB_MIMETYPES = {
-    'image/jpeg': true,
-    'image/gif': true,
-    'image/png': true,
+    "image/jpeg": true,
+    "image/gif": true,
+    "image/png": true,
 
-    'video/mp4': true,
-    'video/webm': true,
-    'video/ogg': true,
-    'video/quicktime': true,
-    'video/VP8': true,
+    "video/mp4": true,
+    "video/webm": true,
+    "video/ogg": true,
+    "video/quicktime": true,
+    "video/VP8": true,
 
-    'audio/mp4': true,
-    'audio/webm': true,
-    'audio/aac': true,
-    'audio/mpeg': true,
-    'audio/ogg': true,
-    'audio/wave': true,
-    'audio/wav': true,
-    'audio/x-wav': true,
-    'audio/x-pn-wav': true,
-    'audio/flac': true,
-    'audio/x-flac': true,
+    "audio/mp4": true,
+    "audio/webm": true,
+    "audio/aac": true,
+    "audio/mpeg": true,
+    "audio/ogg": true,
+    "audio/wave": true,
+    "audio/wav": true,
+    "audio/x-wav": true,
+    "audio/x-pn-wav": true,
+    "audio/flac": true,
+    "audio/x-flac": true,
 };
 
-const DEFAULT_MIMETYPE = 'application/octet-stream';
+const DEFAULT_MIMETYPE = "application/octet-stream";
 
 export class BlobHandle {
     constructor(blob, buffer = null) {
@@ -81,7 +81,7 @@ export class BlobHandle {
     }
 
     static fromBuffer(buffer, mimetype) {
-        mimetype = mimetype ? mimetype.split(";")[0].trim() : '';
+        mimetype = mimetype ? mimetype.split(";")[0].trim() : "";
         if (!ALLOWED_BLOB_MIMETYPES[mimetype]) {
             mimetype = DEFAULT_MIMETYPE;
         }

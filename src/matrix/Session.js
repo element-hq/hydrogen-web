@@ -72,7 +72,7 @@ export class Session {
             if (rbc.isCancelled) {
                 this._roomsBeingCreated.remove(rbc.id);
             } else {
-                this._roomsBeingCreated.update(rbc.id, params)
+                this._roomsBeingCreated.update(rbc.id, params);
             }
         };
         this._roomsBeingCreated = new ObservableMap();
@@ -228,7 +228,7 @@ export class Session {
             encryptionParams,
             notifyMissingMegolmSession: () => {
                 if (!this._keyBackup.get()) {
-                    this.needsKeyBackup.set(true)
+                    this.needsKeyBackup.set(true);
                 }
             },
             clock: this._platform.clock
@@ -795,7 +795,7 @@ export class Session {
             if (roomBeingCreated.roomId === roomId) {
                 const observableStatus = this._observedRoomStatus.get(roomBeingCreated.id);
                 if (observableStatus) {
-                    log.log(`replacing room being created`)
+                    log.log("replacing room being created")
                        .set("localId", roomBeingCreated.id)
                        .set("roomId", roomBeingCreated.roomId);
                     observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
@@ -1107,5 +1107,5 @@ export function tests() {
             assert.equal(session.syncToken, "b");
             assert.equal(session.syncFilterId, 6);
         }
-    }
+    };
 }

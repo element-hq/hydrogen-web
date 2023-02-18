@@ -24,7 +24,7 @@ export class BaseTextTile extends BaseMessageTile {
     constructor(entry, options) {
         super(entry, options);
         this._messageBody = null;
-        this._format = null
+        this._format = null;
     }
 
     get shape() {

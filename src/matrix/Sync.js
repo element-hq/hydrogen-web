@@ -259,7 +259,7 @@ export class Sync {
                     await rs.room.load(null, prepareTxn, log);
                 }
                 return rs.room.prepareSync(
-                    rs.roomResponse, rs.membership, newKeys, prepareTxn, log)
+                    rs.roomResponse, rs.membership, newKeys, prepareTxn, log);
             }, log.level.Detail);
         }));
 

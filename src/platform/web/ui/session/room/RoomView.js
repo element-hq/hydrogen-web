@@ -42,9 +42,9 @@ export class RoomView extends TemplateView {
                     t.h2(vm => vm.name),
                 ]),
                 t.button({
-                    className: "button-utility room-options",
+                    "className": "button-utility room-options",
                     "aria-label":vm.i18n`Room options`,
-                    onClick: evt => this._toggleOptionsMenu(evt)
+                    "onClick": evt => this._toggleOptionsMenu(evt)
                 })
             ]),
             t.div({className: "RoomView_body"}, [

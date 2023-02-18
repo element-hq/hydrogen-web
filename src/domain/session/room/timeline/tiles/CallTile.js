@@ -110,21 +110,21 @@ export class CallTile extends SimpleTile {
             }
         } else {
             if (this.type === CallType.Video) {
-                return `Video call ended`;
+                return "Video call ended";
             } else {
-                return `Voice call ended`;
+                return "Voice call ended";
             }
         }
     }
 
     get typeLabel() {
         if (this._call && this._call.usesFoci) {
-            return `This call uses a stream-forwarding unit, which isn't supported yet, so you can't join this call.`;
+            return "This call uses a stream-forwarding unit, which isn't supported yet, so you can't join this call.";
         }
         if (this.type === CallType.Video) {
-            return `Video call`;
+            return "Video call";
         } else {
-            return `Voice call`;
+            return "Voice call";
         }
     }
 

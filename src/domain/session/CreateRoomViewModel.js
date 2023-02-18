@@ -86,7 +86,7 @@ export class CreateRoomViewModel extends ViewModel {
                 info: this._avatarInfo,
                 name: this._avatarFileName,
                 blob: this._avatarScaledBlob
-            }
+            };
         }
         const roomBeingCreated = this._session.createRoom({
             type: this.isPublic ? RoomType.Public : RoomType.Private,

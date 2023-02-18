@@ -446,5 +446,5 @@ export function tests() {
             assert.equal(queue.pendingEvents.length, 2);
         },
         
-    }
+    };
 }

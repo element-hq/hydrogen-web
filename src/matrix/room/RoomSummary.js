@@ -189,7 +189,7 @@ export class SummaryData {
     changedKeys(other) {
         const props = Object.getOwnPropertyNames(this);
         return props.filter(prop => {
-            return prop !== "cloned" && this[prop] !== other[prop]
+            return prop !== "cloned" && this[prop] !== other[prop];
         });
     }
 
@@ -317,5 +317,5 @@ export function tests() {
             const nullCount = Object.values(serialized).reduce((count, value) => count + value === null ? 1 : 0, 0);
             assert.strictEqual(nullCount, 0);
         }
-    }
+    };
 }

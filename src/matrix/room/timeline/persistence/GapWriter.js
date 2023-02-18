@@ -315,7 +315,7 @@ export function tests() {
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertFilledLink(assert, firstFragment, secondFragment)
+            assertFilledLink(assert, firstFragment, secondFragment);
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
             const secondEvents = await allFragmentEvents(mocks, secondFragmentEntry.fragmentId);
@@ -333,7 +333,7 @@ export function tests() {
 
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertGapLink(assert, firstFragment, secondFragment)
+            assertGapLink(assert, firstFragment, secondFragment);
             const firstEvents = await allFragmentEvents(mocks, firstFragmentEntry.fragmentId);
             assert.deepEqual(firstEvents.map(e => e.event_id), eventIds(0, 10));
             const secondEvents = await allFragmentEvents(mocks, secondFragmentEntry.fragmentId);
@@ -371,8 +371,8 @@ export function tests() {
             assert.deepEqual(secondEvents.map(e => e.event_id), [...eventIds(21,26), ...eventIds(10, 21)]);
             const firstFragment = await fetchFragment(mocks, firstFragmentEntry.fragmentId);
             const secondFragment = await fetchFragment(mocks, secondFragmentEntry.fragmentId);
-            assertFilledLink(assert, firstFragment, secondFragment)
+            assertFilledLink(assert, firstFragment, secondFragment);
             await mocks.txn.complete();
         }
-    }
+    };
 }

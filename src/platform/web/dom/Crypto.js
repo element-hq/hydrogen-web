@@ -42,15 +42,15 @@ class HMACCrypto {
      */
     async verify(key, mac, data, hash) {
         const opts = {
-            name: 'HMAC',
+            name: "HMAC",
             hash: {name: hashName(hash)},
         };
         const hmacKey = await subtleCryptoResult(this._subtleCrypto.importKey(
-            'raw',
+            "raw",
             key,
             opts,
             false,
-            ['verify'],
+            ["verify"],
         ), "importKey");
         const isVerified = await subtleCryptoResult(this._subtleCrypto.verify(
             opts,
@@ -63,15 +63,15 @@ class HMACCrypto {
 
     async compute(key, data, hash) {
         const opts = {
-            name: 'HMAC',
+            name: "HMAC",
             hash: {name: hashName(hash)},
         };
         const hmacKey = await subtleCryptoResult(this._subtleCrypto.importKey(
-            'raw',
+            "raw",
             key,
             opts,
             false,
-            ['sign'],
+            ["sign"],
         ), "importKey");
         const buffer = await subtleCryptoResult(this._subtleCrypto.sign(
             opts,
@@ -102,15 +102,15 @@ class DeriveCrypto {
             throw new Error("PBKDF2 is not supported");
         }
         const key = await subtleCryptoResult(this._subtleCrypto.importKey(
-            'raw',
+            "raw",
             password,
-            {name: 'PBKDF2'},
+            {name: "PBKDF2"},
             false,
-            ['deriveBits'],
+            ["deriveBits"],
         ), "importKey");
         const keybits = await subtleCryptoResult(this._subtleCrypto.deriveBits(
             {
-                name: 'PBKDF2',
+                name: "PBKDF2",
                 salt,
                 iterations,
                 hash: hashName(hash),
@@ -135,7 +135,7 @@ class DeriveCrypto {
             return this._cryptoExtras.hkdf(this._crypto, key, salt, info, hash, length);
         }
         const hkdfkey = await subtleCryptoResult(this._subtleCrypto.importKey(
-            'raw',
+            "raw",
             key,
             {name: "HKDF"},
             false,
@@ -183,7 +183,7 @@ class AESCrypto {
                 selectedKey,
                 opts,
                 false,
-                ['decrypt'],
+                ["decrypt"],
             ), "importKey");
         } catch (err) {
             throw new Error(`Could not import key for AES-CTR decryption: ${err.message}`);
@@ -216,7 +216,7 @@ class AESCrypto {
                 selectedKey,
                 opts,
                 false,
-                ['encrypt'],
+                ["encrypt"],
             ), "importKey");
         } catch (err) {
             throw new Error(`Could not import key for AES-CTR encryption: ${err.message}`);
@@ -265,7 +265,7 @@ function jwkKeyToRaw(jwkKey) {
         throw new Error(`Unknown algorithm: ${jwkKey.alg}`);
     }
     if (!jwkKey.key_ops.includes("decrypt")) {
-        throw new Error(`decrypt missing from key_ops`);
+        throw new Error("decrypt missing from key_ops");
     }
     if (jwkKey.kty !== "oct") {
         throw new Error(`Invalid key type, "oct" expected: ${jwkKey.kty}`);

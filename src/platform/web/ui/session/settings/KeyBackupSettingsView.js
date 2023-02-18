@@ -37,7 +37,7 @@ export class KeyBackupSettingsView extends TemplateView {
                             max: 100,
                             value: vm => vm.backupPercentage,
                         });
-                        return t.div([`Backup in progress `, progress, " ", vm => vm.backupInProgressLabel]);
+                        return t.div(["Backup in progress ", progress, " ", vm => vm.backupInProgressLabel]);
                     }
                     case "Stopped": {
                         let label;
@@ -45,27 +45,26 @@ export class KeyBackupSettingsView extends TemplateView {
                         if (error) {
                             label = `Backup has stopped because of an error: ${vm.backupError}`;
                         } else {
-                            label = `Backup has stopped`;
+                            label = "Backup has stopped";
                         }
-                        return t.p(label, " ", t.button({onClick: () => vm.startBackup()}, `Backup now`));
+                        return t.p(label, " ", t.button({onClick: () => vm.startBackup()}, "Backup now"));
                     }
                     case "Done":
-                        return t.p(`All keys are backed up.`);
+                        return t.p("All keys are backed up.");
                     default:
                         return null;
                 }
             }),
             t.if(vm => vm.isMasterKeyTrusted, t => {
-                return t.p("Cross-signing master key found and trusted.")
+                return t.p("Cross-signing master key found and trusted.");
             }),
             t.if(vm => vm.canSignOwnDevice, t => {
                 return t.button({
-                    onClick: disableTargetCallback(async evt => {
+                    onClick: disableTargetCallback(async () => {
                         await vm.signOwnDevice();
                     })
                 }, "Sign own device");
             }),
-
         ]);
     }
 }
@@ -125,7 +124,7 @@ function renderEnableFieldRow(t, vm, label, callback) {
             t.label({for: setupDehydrationCheck.id}, [vm.i18n`Back up my device as well (`, moreInfo, ")"])
         ]));
     }
-    return t.div({className: `row`}, [
+    return t.div({className: "row"}, [
         t.div({className: "label"}, label),
         t.div({className: "content"}, children),
     ]);
@@ -136,7 +135,7 @@ function renderError(t) {
         return t.div([
             t.p({className: "error"}, vm => vm.i18n`Could not enable key backup: ${vm.error}.`),
             t.p(vm.i18n`Try double checking that you did not mix up your security key, security phrase and login password as explained above.`)
-        ])
+        ]);
     });
 }
 

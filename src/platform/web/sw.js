@@ -22,10 +22,10 @@ const HASHED_PRECACHED_ASSETS = DEFINE_HASHED_PRECACHED_ASSETS;
 const HASHED_CACHED_ON_REQUEST_ASSETS = DEFINE_HASHED_CACHED_ON_REQUEST_ASSETS;
 
 const unhashedCacheName = `hydrogen-assets-${DEFINE_GLOBAL_HASH}`;
-const hashedCacheName = `hydrogen-assets`;
-const mediaThumbnailCacheName = `hydrogen-media-thumbnails-v2`;
+const hashedCacheName = "hydrogen-assets";
+const mediaThumbnailCacheName = "hydrogen-media-thumbnails-v2";
 
-self.addEventListener('install', function(e) {
+self.addEventListener("install", function(e) {
     e.waitUntil((async () => {
         const unhashedCache = await caches.open(unhashedCacheName);
         await unhashedCache.addAll(UNHASHED_PRECACHED_ASSETS);
@@ -38,7 +38,7 @@ self.addEventListener('install', function(e) {
     })());
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
     // on a first page load/sw install,
     // start using the service worker on all pages straight away
     self.clients.claim();
@@ -68,7 +68,7 @@ async function purgeOldCaches() {
     }
 }
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
     /*
     service worker shouldn't handle xhr uploads because otherwise
     the progress events won't fire.
@@ -198,7 +198,7 @@ async function readCache(request) {
     return response;
 }
 
-self.addEventListener('message', (event) => {
+self.addEventListener("message", (event) => {
     const reply = payload => event.source.postMessage({replyTo: event.data.id, payload});
     const {replyTo} = event.data;
     if (replyTo) {
@@ -245,7 +245,7 @@ async function openClientFromNotif(event) {
         console.log("notificationclick: client has session open, showing room there");
         // use a message rather than clientWithSession.navigate here as this refreshes the page on chrome
         clientWithSession.postMessage({type: "openRoom", payload: {roomId}});
-        if ('focus' in clientWithSession) {
+        if ("focus" in clientWithSession) {
             try {
                 await clientWithSession.focus();
             } catch (err) { console.error(err); } // I've had this throw on me on Android
@@ -257,7 +257,7 @@ async function openClientFromNotif(event) {
     }
 }
 
-self.addEventListener('notificationclick', event => {
+self.addEventListener("notificationclick", event => {
     event.notification.close();
     event.waitUntil(openClientFromNotif(event));
 });
@@ -315,7 +315,7 @@ async function handlePushNotification(n) {
     // when no client is visible, see https://goo.gl/yqv4Q4
 }
 
-self.addEventListener('push', event => {
+self.addEventListener("push", event => {
     event.waitUntil(handlePushNotification(event.data.json()));
 });
 

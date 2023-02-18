@@ -56,7 +56,7 @@ export class InviteViewModel extends ViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._invite.avatarColorId)
+        return getIdentifierColorNumber(this._invite.avatarColorId);
     }
 
     avatarUrl(size) {
@@ -74,7 +74,7 @@ export class InviteViewModel extends ViewModel {
         if (this._invite.canonicalAlias) {
             parts.push(this._invite.canonicalAlias);
         }
-        return parts.join(" • ")
+        return parts.join(" • ");
     }
 
     get roomDescription() {

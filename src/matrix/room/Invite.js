@@ -263,7 +263,7 @@ export function tests() {
                     invitesMap.delete(roomId);
                 }
             }
-        }
+        };
     }
 
     const roomId = "!123:hs.tld";
@@ -352,5 +352,5 @@ export function tests() {
             assert.equal(invite.rejected, false);
             assert.equal(invite.accepted, true);
         }
-    }
+    };
 }

@@ -24,6 +24,6 @@ export class RoomNameTile extends SimpleTile {
 
     get announcement() {
         const content = this._entry.content;
-        return `${this._entry.displayName || this._entry.sender} named the room "${content?.name}"`
+        return `${this._entry.displayName || this._entry.sender} named the room "${content?.name}"`;
     }
 }

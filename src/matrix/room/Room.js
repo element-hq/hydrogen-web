@@ -19,7 +19,7 @@ import {SyncWriter} from "./timeline/persistence/SyncWriter.js";
 import {MemberWriter} from "./timeline/persistence/MemberWriter.js";
 import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {SendQueue} from "./sending/SendQueue.js";
-import {WrappedError} from "../error.js"
+import {WrappedError} from "../error.js";
 import {Heroes} from "./members/Heroes.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common.js";

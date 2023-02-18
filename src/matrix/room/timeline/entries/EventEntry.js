@@ -240,5 +240,5 @@ export function tests() {
             "🚀");
             assert.equal(false, e8.haveAnnotation("🚀"));
         }
-    }
+    };
 }

@@ -191,7 +191,7 @@ export class Encryption {
             // chain_index is ignored by element-web if not all clients
             // but let's send it anyway, as element-web does so
             chain_index: session.message_index()
-        }
+        };
     }
 }
 

@@ -20,7 +20,7 @@ import {GapWriter} from "./timeline/persistence/GapWriter.js";
 import {RelationWriter} from "./timeline/persistence/RelationWriter.js";
 import {Timeline} from "./timeline/Timeline.js";
 import {FragmentIdComparer} from "./timeline/FragmentIdComparer.js";
-import {WrappedError} from "../error.js"
+import {WrappedError} from "../error.js";
 import {fetchOrLoadMembers, fetchOrLoadMember} from "./members/load.js";
 import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
@@ -379,7 +379,7 @@ export class BaseRoom extends EventEmitter {
     allow sub classes to integrate in the gap fill lifecycle.
     JoinedRoom uses this update remote echos.
     */
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
     async _writeGapFill(chunk, txn, log) {}
     _applyGapFill() {}
 
@@ -428,7 +428,7 @@ export class BaseRoom extends EventEmitter {
 
     get isLowPriority() {
         const tags = this._summary.data.tags;
-        return !!(tags && tags['m.lowpriority']);
+        return !!(tags && tags["m.lowpriority"]);
     }
 
     get isEncrypted() {

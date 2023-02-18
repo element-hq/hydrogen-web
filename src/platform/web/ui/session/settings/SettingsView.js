@@ -16,8 +16,8 @@ limitations under the License.
 
 import {TemplateView} from "../../general/TemplateView";
 import {disableTargetCallback} from "../../general/utils";
-import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
-import {FeaturesView} from "./FeaturesView"
+import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js";
+import {FeaturesView} from "./FeaturesView";
 
 export class SettingsView extends TemplateView {
     render(t, vm) {

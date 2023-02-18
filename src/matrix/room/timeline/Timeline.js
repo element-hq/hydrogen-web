@@ -228,7 +228,7 @@ export class Timeline {
         for (const entry of entries) {
             try {
                 this._remoteEntries.getAndUpdate(entry, Timeline._entryUpdater);
-                const oldEntry = this._contextEntriesNotInTimeline.get(entry.id)
+                const oldEntry = this._contextEntriesNotInTimeline.get(entry.id);
                 if (oldEntry) {
                     Timeline._entryUpdater(oldEntry, entry);
                     this._contextEntriesNotInTimeline.set(entry.id, entry);

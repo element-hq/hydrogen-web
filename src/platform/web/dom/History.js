@@ -72,11 +72,11 @@ export class History extends BaseObservableValue {
 
     onSubscribeFirst() {
         this._lastSessionHash = window.localStorage?.getItem("hydrogen_last_url_hash");
-        window.addEventListener('hashchange', this);
+        window.addEventListener("hashchange", this);
     }
 
     onUnsubscribeLast() {
-        window.removeEventListener('hashchange', this);
+        window.removeEventListener("hashchange", this);
     }
 
     _storeHash(hash) {

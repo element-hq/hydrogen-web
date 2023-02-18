@@ -77,7 +77,7 @@ export class BaseMediaTile extends BaseMessageTile {
                 return this.i18n`Error: ${pendingEvent.error.message}`;
             default:
                 if (this._downloadError) {
-                    return `Download failed`;
+                    return "Download failed";
                 }
                 if (this._downloading) {
                     return this.i18n`Downloading…`;

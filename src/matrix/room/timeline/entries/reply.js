@@ -65,10 +65,10 @@ export function createReplyContent(entry, msgtype, body) {
 
     const plainBody = nonTextual || entry.content.body || "";
     const bodyLines = plainBody.split("\n");
-    bodyLines[0] = `> ${prefix}<${sender}> ${bodyLines[0]}`
+    bodyLines[0] = `> ${prefix}<${sender}> ${bodyLines[0]}`;
     const plainFallback = bodyLines.join("\n> ");
 
-    const newBody = plainFallback + '\n\n' + body;
+    const newBody = plainFallback + "\n\n" + body;
     const newFormattedBody = formattedFallback + htmlEscape(body);
     return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody);
 }

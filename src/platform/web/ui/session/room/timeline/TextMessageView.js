@@ -24,7 +24,7 @@ export class TextMessageView extends BaseMessageView {
         const container = t.div({
             className: {
                 "Timeline_messageBody": true,
-                statusMessage: vm => vm.shape === "message-status",
+                "statusMessage": vm => vm.shape === "message-status",
             }
         }, t.mapView(vm => vm.replyTile, replyTile => {
             if (this._isReplyPreview) {
@@ -71,10 +71,10 @@ function renderList(listBlock) {
 
 function renderImage(imagePart) {
     const attributes = { src: imagePart.src };
-    if (imagePart.width) { attributes.width = imagePart.width }
-    if (imagePart.height) { attributes.height = imagePart.height }
-    if (imagePart.alt) { attributes.alt = imagePart.alt }
-    if (imagePart.title) { attributes.title = imagePart.title }
+    if (imagePart.width) { attributes.width = imagePart.width; }
+    if (imagePart.height) { attributes.height = imagePart.height; }
+    if (imagePart.alt) { attributes.alt = imagePart.alt; }
+    if (imagePart.title) { attributes.title = imagePart.title; }
     return tag.img(attributes);
 }
 
@@ -94,7 +94,7 @@ function renderTable(tablePart) {
     if (tablePart.head) {
         const headers = tablePart.head
             .map(cell => tag.th(renderParts(cell)));
-        children.push(tag.thead(tag.tr(headers)))
+        children.push(tag.thead(tag.tr(headers)));
     }
     const rows = [];
     for (const row of tablePart.body) {

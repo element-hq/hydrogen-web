@@ -33,7 +33,7 @@ export class CreateRoomView extends TemplateView {
                                     return new AvatarView(vm, 64);
                                 } else {
                                     return new StaticView(undefined, t => {
-                                        return t.div({className: "CreateRoomView_selectAvatarPlaceholder"})
+                                        return t.div({className: "CreateRoomView_selectAvatarPlaceholder"});
                                     });
                                 }
                             })
@@ -65,11 +65,11 @@ export class CreateRoomView extends TemplateView {
                             t.label({for: "isPublic"}, vm.i18n`Public room, anyone can join`)
                         ]),
                     ]),
-                    t.div({className: {"form-row check": true, hidden: vm => vm.isPublic}}, [
+                    t.div({className: {"form-row check": true, "hidden": vm => vm.isPublic}}, [
                         t.input({type: "checkbox", name: "isEncrypted", id: "isEncrypted", checked: vm.isEncrypted}),
                         t.label({for: "isEncrypted"}, vm.i18n`Enable end-to-end encryption`)
                     ]),
-                    t.div({className: {"form-row text": true, hidden: vm => !vm.isPublic}}, [
+                    t.div({className: {"form-row text": true, "hidden": vm => !vm.isPublic}}, [
                         t.label({for: "roomAlias"}, vm.i18n`Room alias`),
                         t.input({
                             onInput: evt => vm.setRoomAlias(evt.target.value),
@@ -79,7 +79,7 @@ export class CreateRoomView extends TemplateView {
                     t.div({className: "form-group"}, [
                         t.div(t.button({className: "link", type: "button", onClick: () => vm.toggleAdvancedShown()},
                             vm => vm.isAdvancedShown ? vm.i18n`Hide advanced settings` : vm.i18n`Show advanced settings`)),
-                        t.div({className: {"form-row check": true, hidden: vm => !vm.isAdvancedShown}}, [
+                        t.div({className: {"form-row check": true, "hidden": vm => !vm.isAdvancedShown}}, [
                             t.input({type: "checkbox", name: "isFederationDisabled", id: "isFederationDisabled", checked: vm.isFederationDisabled}),
                             t.label({for: "isFederationDisabled"}, [
                                 vm.i18n`Disable federation`,

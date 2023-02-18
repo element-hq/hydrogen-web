@@ -256,5 +256,5 @@ export function tests() {
             fridayTile.updatePreviousSibling(undefined);
             assert.equal(fridayTile.needsDateSeparator, true);
         },
-    }
+    };
 }

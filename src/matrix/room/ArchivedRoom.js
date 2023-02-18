@@ -230,5 +230,5 @@ export function tests() {
             const kickDetails = findKickDetails({state: {events: [leaveEvent]}}, bob);
             assert.equal(kickDetails, null);
         }
-    }
+    };
 }

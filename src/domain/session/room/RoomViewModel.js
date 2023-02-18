@@ -16,8 +16,8 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js"
-import {CallViewModel} from "./CallViewModel"
+import {ComposerViewModel} from "./ComposerViewModel.js";
+import {CallViewModel} from "./CallViewModel";
 import {PickMapObservableValue} from "../../../observable/value";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ErrorReportViewModel} from "../../ErrorReportViewModel";
@@ -107,7 +107,7 @@ export class RoomViewModel extends ErrorReportViewModel {
             else {
                 this._composerVM = this.track(new LowerPowerLevelViewModel(this.childOptions()));
             }
-            this.emitChange("powerLevelObservable")
+            this.emitChange("powerLevelObservable");
         };
         this.track(powerLevelObservable.subscribe(() => {
             const newCanSendMessage = canSendMessage();
@@ -175,7 +175,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.avatarColorId)
+        return getIdentifierColorNumber(this._room.avatarColorId);
     }
 
     avatarUrl(size) {

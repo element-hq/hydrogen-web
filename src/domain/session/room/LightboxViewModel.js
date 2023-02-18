@@ -79,7 +79,7 @@ export class LightboxViewModel extends ViewModel {
     }
 
     get date() {
-        return this._date && this._date.toLocaleDateString({}, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        return this._date && this._date.toLocaleDateString({}, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     }
 
     get time() {

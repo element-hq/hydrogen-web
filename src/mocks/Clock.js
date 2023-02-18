@@ -131,5 +131,5 @@ export function tests() {
             assert.strictEqual(counter, 3);
             interval.dispose();
         }
-    }
+    };
 }

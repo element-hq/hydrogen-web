@@ -314,5 +314,5 @@ export function tests() {
             index.prepend(1, 2);
             assert(index.compare(1, 2) < 0);
         }
-    }
+    };
 }

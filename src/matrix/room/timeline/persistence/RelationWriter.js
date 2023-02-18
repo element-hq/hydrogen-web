@@ -341,5 +341,5 @@ export function tests() {
             assert.equal(storedMessage.annotations["🐶"].count, 1);
         },
         
-    }
+    };
 }

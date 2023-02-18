@@ -97,7 +97,7 @@ export function hasReadPixelPermission() {
         Math.round(Math.random() * 255),
         Math.round(Math.random() * 255),
         Math.round(Math.random() * 255),
-    ]
+    ];
     ctx.fillStyle = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
     ctx.fillRect(0, 0, 1, 1);
     const data = ctx.getImageData(0, 0, 1, 1).data;

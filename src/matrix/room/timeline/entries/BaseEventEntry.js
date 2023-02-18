@@ -18,7 +18,7 @@ import {BaseEntry} from "./BaseEntry";
 import {REDACTION_TYPE} from "../../common";
 import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
-import {createReplyContent} from "./reply.js"
+import {createReplyContent} from "./reply.js";
 
 /** Deals mainly with local echo for relations and redactions,
  * so it is shared between PendingEventEntry and EventEntry */

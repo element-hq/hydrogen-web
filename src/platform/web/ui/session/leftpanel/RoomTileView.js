@@ -29,7 +29,7 @@ export class RoomTileView extends TemplateView {
             t.a({href: vm.url}, [
                 t.view(new AvatarView(vm, 32), {parentProvidesUpdates: true}),
                 t.div({className: "description"}, [
-                    t.div({className: {"name": true, unread: vm => vm.isUnread}}, vm => vm.name),
+                    t.div({className: {"name": true, "unread": vm => vm.isUnread}}, vm => vm.name),
                     t.map(vm => vm.busy, busy => {
                         if (busy) {
                             return spinner(t);

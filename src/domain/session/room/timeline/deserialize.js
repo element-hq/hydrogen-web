@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js"
+import { MessageBody, HeaderBlock, TableBlock, ListBlock, CodeBlock, PillPart, FormatPart, NewLinePart, RulePart, TextPart, LinkPart, ImagePart } from "./MessageBody.js";
 import {linkify} from "./linkify/linkify";
 
 /* At the time of writing (Jul 1 2021), Matrix Spec recommends
@@ -30,7 +30,7 @@ import {linkify} from "./linkify/linkify";
 const basicInline = ["EM", "STRONG", "CODE", "DEL", "SPAN" ];
 const basicBlock = ["DIV", "BLOCKQUOTE"];
 const safeSchemas = ["https", "http", "ftp", "mailto", "magnet"].map(name => `${name}://`);
-const baseUrl = 'https://matrix.to';
+const baseUrl = "https://matrix.to";
 const linkPrefix = `${baseUrl}/#/`;
 
 class Deserializer {
@@ -44,7 +44,7 @@ class Deserializer {
             return null;
         }
         const contents = link.substring(linkPrefix.length);
-        if (contents[0] === '@') {
+        if (contents[0] === "@") {
             return contents;
         }
         return null;
@@ -99,10 +99,10 @@ class Deserializer {
         if (!this._ensureElement(codeNode, "CODE")) {
             return new CodeBlock(language, this.result.getNodeText(node));
         }
-        const cl = result.getAttributeValue(codeNode, "class") || ""
+        const cl = result.getAttributeValue(codeNode, "class") || "";
         for (const clname of cl.split(" ")) {
             if (clname.startsWith("language-") && !clname.startsWith("language-_")) {
-                language = clname.substring(9) // "language-".length
+                language = clname.substring(9); // "language-".length
                 break;
             }
         }
@@ -231,7 +231,7 @@ class Deserializer {
             case "H5":
             case "H6": {
                 const inlines = this.parseInlineNodes(children);
-                return new HeaderBlock(parseInt(tag[1]), inlines)
+                return new HeaderBlock(parseInt(tag[1]), inlines);
             }
             case "UL":
             case "OL":
@@ -432,7 +432,7 @@ export async function tests() {
             test(assert, input, output);
         },
         "Text with ordered list starting at 3": assert => {
-            const input = '<ol start="3"><li>Lorem</li><li>Ipsum</li></ol>';
+            const input = "<ol start=\"3\"><li>Lorem</li><li>Ipsum</li></ol>";
             const output = [
                 new ListBlock(3, [
                     [ new TextPart("Lorem") ],
@@ -442,7 +442,7 @@ export async function tests() {
             test(assert, input, output);
         },
         "Text with unordered list": assert => {
-            const input = '<ul start="3"><li>Lorem</li><li>Ipsum</li></ul>';
+            const input = "<ul start=\"3\"><li>Lorem</li><li>Ipsum</li></ul>";
             const output = [
                 new ListBlock(null, [
                     [ new TextPart("Lorem") ],
@@ -452,7 +452,7 @@ export async function tests() {
             test(assert, input, output);
         },
         "Auto-closed tags": assert => {
-            const input = '<p>hello<p>world</p></p>';
+            const input = "<p>hello<p>world</p></p>";
             const output = [
                 new FormatPart("p", [new TextPart("hello")]),
                 new FormatPart("p", [new TextPart("world")])
@@ -460,14 +460,14 @@ export async function tests() {
             test(assert, input, output);
         },
         "Block elements ignored inside inline elements": assert => {
-            const input = '<span><p><code>Hello</code></p></span>';
+            const input = "<span><p><code>Hello</code></p></span>";
             const output = [
                 new FormatPart("span", [new FormatPart("code", [new TextPart("Hello")])])
             ];
             test(assert, input, output);
         },
         "Unknown tags are ignored, but their children are kept": assert => {
-            const input = '<span><dfn><code>Hello</code></dfn><footer><em>World</em></footer></span>';
+            const input = "<span><dfn><code>Hello</code></dfn><footer><em>World</em></footer></span>";
             const output = [
                 new FormatPart("span", [
                     new FormatPart("code", [new TextPart("Hello")]),
@@ -477,14 +477,14 @@ export async function tests() {
             test(assert, input, output);
         },
         "Unknown and invalid attributes are stripped": assert => {
-            const input = '<em onmouseover=alert("Bad code!")>Hello</em>';
+            const input = "<em onmouseover=alert(\"Bad code!\")>Hello</em>";
             const output = [
                 new FormatPart("em", [new TextPart("Hello")])
             ];
             test(assert, input, output);
         },
         "Text with code block but no <code> tag": assert => {
-            const code = 'main :: IO ()\nmain = putStrLn "Hello"'
+            const code = "main :: IO ()\nmain = putStrLn \"Hello\"";
             const input = `<pre>${code}</pre>`;
             const output = [
                 new CodeBlock(null, code)
@@ -492,7 +492,7 @@ export async function tests() {
             test(assert, input, output);
         },
         "Text with code block and 'unsupported' tag": assert => {
-            const code = '<em>Hello, world</em>'
+            const code = "<em>Hello, world</em>";
             const input = `<pre>${code}</pre>`;
             const output = [
                 new CodeBlock(null, code)
@@ -500,11 +500,11 @@ export async function tests() {
             test(assert, input, output);
         },
         "Reply fallback is always stripped": assert => {
-            const input = 'Hello, <em><mx-reply>World</mx-reply></em>!';
+            const input = "Hello, <em><mx-reply>World</mx-reply></em>!";
             const output = [
-                new TextPart('Hello, '),
+                new TextPart("Hello, "),
                 new FormatPart("em", []),
-                new TextPart('!'),
+                new TextPart("!"),
             ];
             assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(input, output));
         }
