@@ -9,12 +9,12 @@
 
 ## TODO
  - DONE: implement receiving hangup
- - DONE: implement cloning the localMedia so it works in safari?
+ - DONE: implement cloning the localMedia, so it works in safari?
  - DONE: implement 3 retries per peer
  - DONE: implement muting tracks with m.call.sdp_stream_metadata_changed
  - DONE: implement renegotiation
  - DONE: finish session id support
-    - call peers are essentially identified by (userid, deviceid, sessionid). If see a new session id, we first disconnect from the current member so we're ready to connect with a clean slate again (in a member event, also in to_device? no harm I suppose, given olm encryption ensures you can't spoof the deviceid).
+    - call peers are essentially identified by (userid, deviceid, sessionid). If you see a new session id, we first disconnect from the current member, so we're ready to connect with a clean slate again (in a member event, also in to_device? no harm I suppose, given olm encryption ensures you can't spoof the deviceid).
  - DONE: making logging better
  - figure out why sometimes leave button does not work
  - get correct members and avatars in call
@@ -41,7 +41,7 @@
  - support screen sharing
     - add button to enable, disable
     - support showing stream view with large screen share video element and small camera video element (if present)
- - don't load all members when loading calls to know whether they are ringing and joined by ourself
+ - don't load all members when loading calls to know whether they are ringing and joined by ourselves
     - only load our own member once, then have a way to load additional members on a call.
  - see if we remove partyId entirely, it is only used for detecting remote echo which is not an issue for group calls? see https://github.com/matrix-org/matrix-spec-proposals/blob/dbkr/msc2746/proposals/2746-reliable-voip.md#add-party_id-to-all-voip-events
  - remove PeerCall.waitForState ?
@@ -68,9 +68,9 @@
     - implement terminate
     - implement waitForState
     
-        - find out if we need to do something different when renegotation is triggered (a subsequent onnegotiationneeded event) whether
+        - find out if we need to do something different when renegotiation is triggered (a subsequent onnegotiationneeded event) whether
           we sent the invite/offer or answer. e.g. do we always do createOffer/setLocalDescription and then send it over a matrix negotiation event? even if we before called createAnswer.
-    - handle receiving offer and send anwser
+    - handle receiving offer and send answer
     - handle sending ice candidates
         - handle ice candidates finished (iceGatheringState === 'complete')
     - handle receiving ice candidates
@@ -104,9 +104,9 @@ we wait for other participants to add their user and device (in the sources)
 for each (userid, deviceid)
     - if userId < ourUserId
         - get local media
-        - we setup a peer connection
+        - we set up a peer connection
         - add local tracks
-        - we wait for negotation event to get sdp
+        - we wait for negotiation event to get sdp
         - peerConn.createOffer
         - peerConn.setLocalDescription
         - we send an m.call.invite 
@@ -128,17 +128,17 @@ answering incoming call
     - peerConn.setLocalDescription
 
 in some cases, we will actually send the invite to all devices (e.g. SFU), so
-we probably still need to handle multiple anwsers?
+we probably still need to handle multiple answers?
 
 so we would send an invite to multiple devices and pick the one for which we
-received the anwser first. between invite and anwser, we could already receive
+received the answer first. between invite and answer, we could already receive
 ice candidates that we need to buffer.
 
 
 
 updating the metadata:
 
-if we're renegotiating: use m.call.negotatie
+if we're renegotiating: use m.call.negotiate
 if just muting: use m.call.sdp_stream_metadata_changed
 
 
@@ -206,11 +206,11 @@ Fledgling                                           Fledgling
  V                                                   V `answer()`
 CreateOffer                                          V
  V add local tracks                                  V
- V wait for negotionneeded events                    V add local tracks
+ V wait for negotiationneeded events                 V add local tracks
  V setLocalDescription()                            CreateAnswer
  V send invite event                                 V setLocalDescription(createAnswer())
 InviteSent                                           |
- V receive anwser, setRemoteDescription()            |
+ V receive answer, setRemoteDescription()            |
  \___________________________________________________/
                              V
                             Connecting

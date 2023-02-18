@@ -367,7 +367,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     /** You probably are looking for something else, like map or mapView.
     This is an escape hatch that allows you to do manual DOM manipulations
     as a reaction to a binding change.
-    This should only be used if the side-effect won't add any bindings,
+    This should only be used if the side effect won't add any bindings,
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
     instead use tags from html.ts to help you construct any DOM you need. */

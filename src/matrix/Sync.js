@@ -202,7 +202,7 @@ export class Sync {
         } finally {
             sessionState.dispose();
         }
-        // sync txn comitted, emit updates and apply changes to in-memory state
+        // sync txn committed, emit updates and apply changes to in-memory state
         log.wrap("after", log => this._afterSync(
             sessionState, inviteStates, roomStates, archivedRoomStates, log));
 
@@ -253,7 +253,7 @@ export class Sync {
         await Promise.all(roomStates.map(async rs => {
             const newKeys = newKeysByRoom?.get(rs.room.id);
             rs.preparation = await log.wrap("room", async log => {
-                // if previously joined and we still have the timeline for it,
+                // if previously joined, and we still have the timeline for it,
                 // this loads the syncWriter at the correct position to continue writing the timeline
                 if (rs.isNewRoom) {
                     await rs.room.load(null, prepareTxn, log);

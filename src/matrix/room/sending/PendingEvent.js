@@ -171,7 +171,7 @@ export class PendingEvent {
         this._status = SendStatus.UploadingAttachments;
         this._emitUpdate("status");
         const entries = Object.entries(this._attachments);
-        // upload smallest attachments first
+        // upload the smallest attachments first
         entries.sort(([, a1], [, a2]) => a1.size - a2.size);
         for (const [urlPath, attachment] of entries) {
             await log.wrap("upload", log => {

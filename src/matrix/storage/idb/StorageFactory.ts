@@ -34,7 +34,7 @@ interface ServiceWorkerHandler {
 }
 
 async function requestPersistedStorage(): Promise<boolean> {
-    // don't assume browser so we can run in node with fake-idb
+    // don't assume browser, so we can run in node with fake-idb
     const glob = this;
     if (glob?.navigator?.storage?.persist) {
         return await glob.navigator.storage.persist();

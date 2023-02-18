@@ -157,7 +157,7 @@ class Path<T> {
             }
             index -= 1;
         } while(index >= -1);
-        // allow -1 as well so we check if the segment is allowed as root
+        // allow -1 as well, so we check if the segment is allowed as root
         return undefined;
     }
 

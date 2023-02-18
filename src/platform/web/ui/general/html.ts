@@ -24,7 +24,7 @@ export type BasicAttributes<T> = { [attribute: string]: ClassNames<T> | boolean 
 export type Child = string | Text | ViewNode;
 
 export function isChildren(children: object | Child | Child[]): children is Child | Child[] {
-    // children should be an not-object (that's the attributes), or a domnode, or an array
+    // children should be a not-object (that's the attributes), or a domnode, or an array
     return typeof children !== "object" || "nodeType" in children || Array.isArray(children);
 }
 

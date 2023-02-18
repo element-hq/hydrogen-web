@@ -53,7 +53,7 @@ export class RoomViewModel extends ErrorReportViewModel {
         if (!this.features.calls) {
             return;
         }
-        // pick call for this room with lowest key
+        // pick call for this room with the lowest key
         const calls = this.getOption("session").callHandler.calls;
         this._callObservable = new PickMapObservableValue(calls.filterValues(c => {
             return c.roomId === this._room.id && c.hasJoined;

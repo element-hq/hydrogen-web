@@ -87,7 +87,7 @@ export class PeerCall implements IDisposable {
     private candidateSendQueue: Array<RTCIceCandidate> = [];
     // If candidates arrive before we've picked an opponent (which, in particular,
     // will happen if the opponent sends candidates eagerly before the user answers
-    // the call) we buffer them up here so we can then add the ones from the party we pick
+    // the call) we buffer them up here, so we can then add the ones from the party we pick
     private remoteCandidateBuffer? = new Map<PartyId, RTCIceCandidate[]>();
 
     private remoteSDPStreamMetadata?: SDPStreamMetadata;
@@ -314,7 +314,7 @@ export class PeerCall implements IDisposable {
     }
 
     handleIncomingSignallingMessage<B extends MCallBase>(message: SignallingMessage<B>, partyId: PartyId, log: ILogItem): ILogItem {
-        // return logItem item immediately so it can be referenced by the sync log
+        // return logItem item immediately, so it can be referenced by the sync log
         let logItem;
         log.wrap({
             l: "receive signalling message",
@@ -435,7 +435,7 @@ export class PeerCall implements IDisposable {
             await timeoutLog.run(async log => {
                 try { await this.delay(CALL_TIMEOUT_MS); }
                 catch (err) { return; } // return when delay is cancelled by throwing an AbortError
-                // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+                // @ts-ignore TS doesn't take to await above into account to know that the state could have changed in between
                 if (this._state === CallState.InviteSent) {
                     await this._hangup(CallErrorCode.InviteTimeout, log);
                 }
@@ -484,7 +484,7 @@ export class PeerCall implements IDisposable {
 
     private handleHangupReceived(content: MCallHangupReject<MCallBase>, log: ILogItem) {
         // party ID must match (our chosen partner hanging up the call) or be undefined (we haven't chosen
-        // a partner yet but we're treating the hangup as a reject as per VoIP v0)
+        // a partner yet, but we're treating the hangup as a reject as per VoIP v0)
         // if (this.state === CallState.Ringing) {
             // default reason is user_hangup
         this.terminate(CallParty.Remote, content.reason || CallErrorCode.UserHangup, log);
@@ -504,7 +504,7 @@ export class PeerCall implements IDisposable {
     private async handleInvite(content: MCallInvite<MCallBase>, partyId: PartyId, log: ILogItem): Promise<void> {
 
         // we must set the party ID before await-ing on anything: the call event
-        // handler will start giving us more call events (eg. candidates) so if
+        // handler will start giving us more call events (e.g. candidates) so if
         // we haven't set the party ID, we'll ignore them.
         this.opponentPartyId = partyId;
         this.direction = CallDirection.Inbound;
@@ -529,7 +529,7 @@ export class PeerCall implements IDisposable {
         }
 
         // According to previous comments in this file, firefox at some point did not
-        // add streams until media started arriving on them. Testing latest firefox
+        // add streams until media started arriving at them. Testing latest firefox
         // (81 at time of writing), this is no longer a problem, so let's do it the correct way.
         if (this.peerConnection.getReceivers().length === 0) {
             await log.wrap(`Call no remote stream or no tracks after setting remote description!`, async log => {
@@ -542,7 +542,7 @@ export class PeerCall implements IDisposable {
 
         try { await this.delay(content.lifetime ?? CALL_TIMEOUT_MS); }
         catch (err) { return; }
-        // @ts-ignore TS doesn't take the await above into account to know that the state could have changed in between
+        // @ts-ignore TS doesn't take to await above into account to know that the state could have changed in between
         if (this._state === CallState.Ringing) {
             log.log(`Invite has expired. Hanging up.`);
             this.hangupParty = CallParty.Remote; // effectively
@@ -593,7 +593,7 @@ export class PeerCall implements IDisposable {
         if (state === 'complete' && !this.sentEndOfCandidates) {
             // If we didn't get an empty-string candidate to signal the end of candidates,
             // create one ourselves now gathering has finished.
-            // We cast because the interface lists all the properties as required but we
+            // We cast because the interface lists all the properties as required, but we
             // only want to send 'candidate'
             // XXX: We probably want to send either sdpMid or sdpMLineIndex, as it's not strictly
             // correct to have a candidate that lacks both of these. We'd have to figure out what
@@ -758,7 +758,7 @@ export class PeerCall implements IDisposable {
         log.refDetached(this.flushCandidatesLog);
         const {flushCandidatesLog} = this;
         // MSC2746 recommends these values (can be quite long when calling because the
-        // callee will need a while to answer the call)
+        // callee will need awhile to answer the call)
         try { await this.delay(this.direction === CallDirection.Inbound ? 500 : 2000); }
         catch (err) { return; }
         this.sendCandidateQueue(flushCandidatesLog);
@@ -1130,7 +1130,7 @@ export class PeerCall implements IDisposable {
 
 //import { randomString } from '../randomstring';
 
-// null is used as a special value meaning that the we're in a legacy 1:1 call
+// null is used as a special value meaning that we're in a legacy 1:1 call
 // without MSC2746 that doesn't provide an id which device sent the message.
 type PartyId = string | null;
 

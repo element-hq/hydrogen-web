@@ -86,8 +86,8 @@ export class DeviceTracker {
         }));
     }
 
-    /** @return Promise<{added: string[], removed: string[]}> the user ids for who the room was added or removed to the userIdentity,
-     *                                                        and with who a key should be now be shared
+    /** @return Promise<{added: string[], removed: string[]}> the user ids for whom the room was added or removed to the userIdentity,
+     *                                                        and with whom a key should be now be shared
      **/
     async writeMemberChanges(room, memberChanges, historyVisibility, txn) {
         const added = [];
@@ -274,7 +274,7 @@ export class DeviceTracker {
 
     async _storeQueriedDevicesForUserId(userId, crossSigningKeys, deviceIdentities, txn) {
         const knownDeviceIds = await txn.deviceIdentities.getAllDeviceIds(userId);
-        // delete any devices that we know off but are not in the response anymore.
+        // delete any devices that we know turned off but are not in the response anymore.
         // important this happens before checking if the ed25519 key changed,
         // otherwise we would end up deleting existing devices with changed keys.
         for (const deviceId of knownDeviceIds) {
@@ -568,8 +568,8 @@ export class DeviceTracker {
         return devices;
     }
 
-    /** Gets the device identites for a set of user identities that
-     * are known to be up to date, and a set of userIds that are known
+    /** Gets the device identities for a set of user identities that
+     * are known to be up-to-date, and a set of userIds that are known
      * to be absent from our store our outdated. The outdated user ids
      * will have their keys fetched from the homeserver. */
     async _devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log) {

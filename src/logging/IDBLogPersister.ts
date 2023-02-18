@@ -108,7 +108,7 @@ export class IDBLogPersister implements ILogReporter {
             const itemCount = await reqAsPromise(logs.count());
             const limit = this.options.limit ?? 3000;
             if (itemCount > limit) {
-                // delete an extra 10% so we don't need to delete every time we flush
+                // delete an extra 10%, so we don't need to delete every time we flush
                 let deleteAmount = (itemCount - limit) + Math.round(0.1 * limit);
                 await iterateCursor(logs.openCursor(), (_, __, cursor) => {
                     cursor.delete();

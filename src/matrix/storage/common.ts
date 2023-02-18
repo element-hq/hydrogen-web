@@ -57,17 +57,17 @@ export class StorageError extends Error {
 
 export const KeyLimits = {
     get minStorageKey(): number {
-        // for indexeddb, we use unsigned 32 bit integers as keys
+        // for indexeddb, we use unsigned 32-bit integers as keys
         return 0;
     },
     
     get middleStorageKey(): number {
-        // for indexeddb, we use unsigned 32 bit integers as keys
+        // for indexeddb, we use unsigned 32-bit integers as keys
         return 0x7FFFFFFF;
     },
 
     get maxStorageKey(): number {
-        // for indexeddb, we use unsigned 32 bit integers as keys
+        // for indexeddb, we use unsigned 32-bit integers as keys
         return 0xFFFFFFFF;
     }
 }

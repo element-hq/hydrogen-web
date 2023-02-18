@@ -33,7 +33,7 @@ export class ObservableMap<K, V> extends BaseObservableMap<K, V> {
     update(key: K, params?: any): boolean {
         const value = this._values.get(key);
         if (value !== undefined) {
-            // could be the same value, so it's already updated
+            // could be the same value, so it's already updated,
             // but we don't assume this here
             this._values.set(key, value);
             this.emitUpdate(key, value, params);

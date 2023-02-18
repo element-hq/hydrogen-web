@@ -59,7 +59,7 @@ export abstract class IncomingRoomKey extends RoomKey {
     }
 
     async write(loader: KeyLoader, txn: Transaction): Promise<boolean> {
-        // we checked already and we had a better session in storage, so don't write
+        // we checked already, and we had a better session in storage, so don't write
         let pickledSession: string | undefined;
         if (this.isBetter === undefined) {
             // if this key wasn't used to decrypt any messages in the same sync,
@@ -73,7 +73,7 @@ export abstract class IncomingRoomKey extends RoomKey {
         if (this.isBetter === false) {
             return false;
         }
-        // before calling write in parallel, we need to check loader.running is false so we are sure our transaction will not be closed
+        // before calling write in parallel, we need to check loader.running is false, so we are sure our transaction will not be closed
         if (!pickledSession) {
             pickledSession = await loader.useKey(this, (session, pickleKey) => session.pickle(pickleKey));
         }
@@ -114,7 +114,7 @@ export abstract class IncomingRoomKey extends RoomKey {
             await loader.useKey(this, async newSession => {
                 await loader.useKey(key, (existingSession, pickleKey) => {
                     // set isBetter as soon as possible, on both keys compared, 
-                    // as it is is used to determine whether a key can be used for the cache
+                    // as it is used to determine whether a key can be used for the cache
                     this.isBetter = isBetterThan(newSession, existingSession);
                     key.isBetter = !this.isBetter;
                     if (this.isBetter && callback) {

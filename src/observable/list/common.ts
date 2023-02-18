@@ -26,7 +26,7 @@ export function findAndUpdateInArray<T>(
     const index = array.findIndex(predicate);
     if (index !== -1) {
         const value = array[index];
-        // allow bailing out of sending an emit if updater determined its not needed
+        // allow bailing out of sending an emit if updater determined it's not needed
         const params = updater(value);
         if (params !== false) {
             observable.emitUpdate(index, value, params);

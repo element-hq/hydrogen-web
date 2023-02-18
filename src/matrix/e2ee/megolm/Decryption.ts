@@ -70,7 +70,7 @@ export class Decryption {
 
     /**
      * Reads all the state from storage to be able to decrypt the given events.
-     * Decryption can then happen outside of a storage transaction.
+     * Decryption can then happen outside a storage transaction.
      * @param  {[type]} roomId       [description]
      * @param  {[type]} events       [description]
      * @param  {RoomKey[]?} newKeys  keys as returned from extractRoomKeys, but not yet committed to storage. May be undefined.
@@ -114,7 +114,7 @@ export class Decryption {
                 return key;
             }
         }
-        // look only in the cache after looking into newKeys as it may contains that are better
+        // look only in the cache after looking into newKeys as it may contain that are better
         const cachedKey = this.keyLoader.getCachedKey(roomId, senderKey, sessionId);
         if (cachedKey) {
             return cachedKey;

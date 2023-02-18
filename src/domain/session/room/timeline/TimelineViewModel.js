@@ -87,7 +87,7 @@ export class TimelineViewModel extends ViewModel {
             this._topLoadingPromise = this._timeline.loadAtTop(10).then(hasReachedEnd => {
                 this._topLoadingPromise = null;
                 if (!hasReachedEnd) {
-                    // check if more items need to be loaded by recursing
+                    // check if more items need to be loaded with recursion
                     // use the requested start / end tile,
                     // so we don't end up overwriting a newly requested visible range here
                     this.setVisibleTileRange(this._requestedStartTile, this._requestedEndTile);

@@ -91,7 +91,7 @@ export class BuiltThemeParser {
             }
             else {
                 /**
-                 * If only one default variant is found (i.e only dark default or light default but not both),
+                 * If only one default variant is found (i.e. only dark default or light default but not both),
                  * treat it like any other variant.
                  */
                 const variant = defaultDarkVariant.id ? defaultDarkVariant : defaultLightVariant;

@@ -97,7 +97,7 @@ export class BaseRoom extends EventEmitter {
 
     _getAdditionalTimelineRetryEntries(otherRetryEntries, roomKeys) {
         let retryTimelineEntries = this._roomEncryption.filterUndecryptedEventEntriesForKeys(this._timeline.remoteEntries, roomKeys);
-        // filter out any entries already in retryEntries so we don't decrypt them twice
+        // filter out any entries already in retryEntries, so we don't decrypt them twice
         const existingIds = otherRetryEntries.reduce((ids, e) => {ids.add(e.id); return ids;}, new Set());
         retryTimelineEntries = retryTimelineEntries.filter(e => !existingIds.has(e.id));
         return retryTimelineEntries;
@@ -193,7 +193,7 @@ export class BaseRoom extends EventEmitter {
                 this._observedEvents.updateEvents(entries);
             }
             if (isTimelineOpen && decryption.hasUnverifiedSenders) {
-                // verify missing senders async and update timeline once done so we don't delay rendering with network requests
+                // verify missing senders async and update timeline once done, so we don't delay rendering with network requests
                 log.wrapDetached("fetch unknown senders keys", async log => {
                     const newlyVerifiedDecryption = await decryption.fetchAndVerifyRemainingSenders(this._hsApi, log);
                     const verifiedEntries = [];
@@ -221,7 +221,7 @@ export class BaseRoom extends EventEmitter {
         // at them when the timeline is open
         if (this._timeline) {
             const retryTimelineEntries = this._getAdditionalTimelineRetryEntries(retryEntries, newKeys);
-            // make copies so we don't modify the original entry in writeSync, before the afterSync stage
+            // make copies, so we don't modify the original entry in writeSync, before the afterSync stage
             const retryTimelineEntriesCopies = retryTimelineEntries.map(e => e.clone());
             // add to other retry entries
             retryEntries = retryEntries.concat(retryTimelineEntriesCopies);
@@ -376,7 +376,7 @@ export class BaseRoom extends EventEmitter {
     }
 
     /**
-    allow sub classes to integrate in the gap fill lifecycle.
+    allow subclasses to integrate in the gap fill lifecycle.
     JoinedRoom uses this update remote echos.
     */
     // eslint-disable-next-line no-unused-vars
@@ -414,7 +414,7 @@ export class BaseRoom extends EventEmitter {
 
     /**
      * Retrieve the identifier that should be used to color
-     * this room's avatar. By default this is the room's
+     * this room's avatar. By default, this is the room's
      * ID, but DM rooms should be the same color as their
      * user's avatar.
      */

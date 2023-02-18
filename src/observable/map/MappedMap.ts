@@ -19,7 +19,7 @@ import {SubscriptionHandle} from "../BaseObservable";
 
 
 /*
-so a mapped value can emit updates on it's own with this._emitSpontaneousUpdate that is passed in the mapping function
+so a mapped value can emit updates on its own with this._emitSpontaneousUpdate that is passed in the mapping function
 how should the mapped value be notified of an update though? and can it then decide to not propagate the update?
 */
 /*

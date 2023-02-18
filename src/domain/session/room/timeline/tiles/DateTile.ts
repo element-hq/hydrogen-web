@@ -37,7 +37,7 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
 
     /** the entry reference by this datetile, e.g. the entry of the first tile for this day */
     private get refEntry(): BaseEventEntry {
-        // lowerEntry is the first entry... i think?
+        // lowerEntry is the first entry... I think?
         // so given the date header always comes before,
         // this is our closest entry.
         return this._firstTileInDay.lowerEntry;
@@ -84,7 +84,7 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
  * used for emitting spontanous updates, but that should also not be
  * needed for a DateTile.
  * The problem is basically that _findTileIdx maps an entry to
- * a tile, and DateTile adopts the entry of it's sibling tile (_firstTileInDay)
+ * a tile, and DateTile adopts the entry of its sibling tile (_firstTileInDay)
  * so now we have the entry pointing to two tiles. So we should avoid
  * returning the DateTile itself from the compare method.
  * We will always return -1 or 1 from here to signal an entry comes before or after us,
@@ -130,7 +130,7 @@ export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
     // let item know it has a new sibling
     updatePreviousSibling(prev: ITile<BaseEntry> | undefined): void {
         // forward the sibling update to our next tile, so it is informed
-        // about it's previous sibling beyond the date header (which is it's direct previous sibling)
+        // about its previous sibling beyond the date header (which is its direct previous sibling)
         // so it can recalculate whether it still needs a date header
         this._firstTileInDay.updatePreviousSibling(prev);
     }

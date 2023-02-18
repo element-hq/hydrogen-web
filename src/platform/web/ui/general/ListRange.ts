@@ -188,7 +188,7 @@ export class ListRange extends Range {
             const value = getIteratorValueAtIdx(list[Symbol.iterator](), addIdx)!;
             return {type: ResultType.RemoveAndAdd, removeIdx, value, addIdx, newRange: this.deriveRange(-1, 0)};
         } else if (this.start !== 0) {
-            // move the range 1 item up so we still display a viewport full of items
+            // move the range 1 item up, so we still display a viewport full of items
             const newRange = this.deriveRange(-1, 0, 1);
             const addIdx = newRange.start;
             // we assume the value has already been removed from the list,

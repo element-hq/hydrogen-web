@@ -35,8 +35,8 @@ export class UnknownRoomViewModel extends ViewModel {
         this.emitChange("busy");
         try {
             const roomId = await this._session.joinRoom(this.roomIdOrAlias);
-            // navigate to roomId if we were at the alias
-            // so we're subscribed to the right room status
+            // navigate to roomId if we were at the alias,
+            // so we're subscribed to the right room status,
             // and we'll switch to the room view model once
             // the join is synced
             this.navigation.push("room", roomId);

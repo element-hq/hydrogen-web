@@ -236,7 +236,7 @@ export function tests() {
             const sync2 = timeline.sync(sync1.next_batch);
             assert.equal(sync1.next_batch, sync2.next_batch);
         }, 
-        "An event inserted at the staart still shows up in a sync": assert => {
+        "An event inserted at the start still shows up in a sync": assert => {
             const timeline = new TimelineMock(SENDER);
             timeline.append(30);
             const sync1 = timeline.sync(undefined, 10);

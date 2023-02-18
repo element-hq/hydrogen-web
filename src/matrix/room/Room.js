@@ -153,7 +153,7 @@ export class Room extends BaseRoom {
         summaryChanges = summaryChanges.applyTimelineEntries(
             allEntries, isInitialSync, !this._isTimelineOpen, this._user.id);
         
-        // if we've have left the room, remove the summary
+        // if we've left the room, remove the summary
         if (summaryChanges.membership !== "join") {
             txn.roomSummary.remove(this.id);
         } else {

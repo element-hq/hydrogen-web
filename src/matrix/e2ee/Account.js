@@ -17,7 +17,7 @@ limitations under the License.
 import anotherjson from "another-json";
 import {SESSION_E2EE_KEY_PREFIX, OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./common.js";
 
-// use common prefix so it's easy to clear properties that are not e2ee related during session clear
+// use common prefix, so it's easy to clear properties that are not e2ee related during session clear
 const ACCOUNT_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "olmAccount";
 const DEVICE_KEY_FLAG_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "areDeviceKeysUploaded";
 const SERVER_OTK_COUNT_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "serverOTKCount";
@@ -160,7 +160,7 @@ export class Account {
         const maxOTKs = this._account.max_number_of_one_time_keys();
         // Try to keep at most half that number on the server. This leaves the
         // rest of the slots free to hold keys that have been claimed from the
-        // server but we haven't recevied a message for.
+        // server, but we haven't received a message for.
         // If we run out of slots when generating new keys then olm will
         // discard the oldest private keys first. This will eventually clean
         // out stale private keys that won't receive a message.
@@ -221,7 +221,7 @@ export class Account {
     }
 
     writeRemoveOneTimeKey(session, txn) {
-        // this is side-effecty and will have applied the change if the txn fails,
+        // this is side effect and will have applied the change if the txn fails,
         // but don't want to clone the account for now
         // and it is not the worst thing to think we have used a OTK when
         // decrypting the message that actually used it threw for some reason.

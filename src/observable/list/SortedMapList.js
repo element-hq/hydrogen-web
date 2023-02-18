@@ -19,30 +19,30 @@ import {sortedIndex} from "../../utils/sortedIndex";
 
 /*
 
-when a value changes, it sorting order can change. It would still be at the old index prior to firing an onUpdate event.
+when a value changes, its sorting order can change. It would still be at the old index prior to firing an onUpdate event.
 So how do you know where it was before it changed, if not by going over all values?
 
 how to make this fast?
 
-seems hard to solve with an array, because you need to map the key to it's previous location somehow, to efficiently find it,
+seems hard to solve with an array, because you need to map the key to its previous location somehow, to efficiently find it,
 and move it.
 
 I wonder if we could do better with a binary search tree (BST).
 The tree has a value with {key, value}. There is a plain Map mapping keys to this tuple,
 for easy lookup. Now how do we find the index of this tuple in the BST?
 
-either we store in every node the amount of nodes on the left and right, or we decend into the part
+either we store in every node the amount of nodes on the left and right, or we descend into the part
 of the tree preceding the node we want to know about. Updating the counts upwards would probably be fine as this is log2 of
 the size of the container.
 
-to be able to go from a key to an index, the value would have the have a link with the tree node though
+to be able to go from a key to an index, the value would have a link with the tree node though
 
 so key -> Map<key,value> -> value -> node -> *parentNode -> rootNode
 with a node containing {value, leftCount, rightCount, leftNode, rightNode, parentNode}
 */
 
 // does not assume whether or not the values are reference
-// types modified outside of the collection (and affecting sort order) or not
+// types modified outside the collection (and affecting sort order) or not
 
 // no duplicates allowed for now
 export class SortedMapList extends BaseObservableList {
@@ -76,7 +76,7 @@ export class SortedMapList extends BaseObservableList {
         }
         // TODO: suboptimal for performance, see above for idea with BST to speed this up if we need to
         const oldIdx = this._sortedPairs.findIndex(p => p.key === key);
-        // neccesary to remove pair from array before
+        // necessary to remove pair from array before
         // doing sortedIndex as it relies on being sorted
         this._sortedPairs.splice(oldIdx, 1);
         const pair = {key, value};
@@ -260,7 +260,7 @@ export function tests() {
                 }
             });
             assert.deepEqual(Array.from(list).map(v => v.number), [1, 3, 11]);
-            // asume some part of a that doesn't affect
+            // assume some part of a that doesn't affect
             // sorting order has changed here
             map.update("a", "number");
             assert.equal(moveFired, 0);

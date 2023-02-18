@@ -84,10 +84,10 @@ export class Decryption {
     // we need decryptAll because there is some parallelization we can do for decrypting different sender keys at once
     // but for the same sender key we need to do one by one
     // 
-    // also we want to store the room key, etc ... in the same txn as we remove the pending encrypted event
+    // also we want to store the room key, etc ... in the same txn as we remove the pending encrypted event,
     // 
     // so we need to decrypt events in a batch (so we can decide which ones can run in parallel and which one one by one)
-    // and also can avoid side-effects before all can be stored this way
+    // and also can avoid side effects before all can be stored this way
     // 
     // doing it one by one would be possible, but we would lose the opportunity for parallelization
     // 
@@ -249,7 +249,7 @@ class SenderKeyDecryption {
         for (const session of this.sessions) {
             const plaintext = this.decryptWithSession(session, message);
             if (typeof plaintext === "string") {
-                // keep them sorted so will try the same session first for other messages
+                // keep them sorted so will try the same session first for other messages,
                 // and so we can assume the excess ones are at the end
                 // if they grow too large
                 sortSessions(this.sessions);

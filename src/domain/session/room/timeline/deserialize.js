@@ -161,7 +161,7 @@ class Deserializer {
     }
 
     parseTable(node) {
-        // We are only assuming iterable, so convert to arrary for indexing.
+        // We are only assuming iterable, so convert to array for indexing.
         const children = Array.from(this.result.getChildNodes(node));
         let head, body;
         if (this._ensureElement(children[0], "THEAD") && this._ensureElement(children[1], "TBODY")) {
@@ -508,7 +508,7 @@ export async function tests() {
             ];
             assert.deepEqual(parseHTMLBody(platform, null, input), new MessageBody(input, output));
         }
-        /* Doesnt work: HTML library doesn't handle <pre><code> properly.
+        /* Doesn't work: HTML library doesn't handle <pre><code> properly.
         "Text with code block": assert => {
             const code = 'main :: IO ()\nmain = putStrLn "Hello"'
             const input = `<pre><code>${code}</code></pre>`;

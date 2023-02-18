@@ -1,4 +1,4 @@
-## Integratation within the sync lifetime cycle
+## Integration within the sync lifetime cycle
 
 ### session.prepareSync
 

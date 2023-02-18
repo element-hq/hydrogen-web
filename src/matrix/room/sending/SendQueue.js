@@ -303,7 +303,7 @@ export class SendQueue {
 
     async _tryUpdateEventWithTxn(pendingEvent, txn) {
         // pendingEvent might have been removed already here
-        // by a racing remote echo, so check first so we don't recreate it
+        // by a racing remote echo, so check first, so we don't recreate it
         if (await txn.pendingEvents.exists(pendingEvent.roomId, pendingEvent.queueIndex)) {
             txn.pendingEvents.update(pendingEvent.data);
         }

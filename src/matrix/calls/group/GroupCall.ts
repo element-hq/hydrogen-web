@@ -242,7 +242,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             this.joinedData.localPreviewMedia?.dispose();
             this.joinedData.localPreviewMedia = localMedia.asPreview();
             // reflect the fact we gained or lost local tracks in the local mute settings
-            // and update the track info so PeerCall can use it to send up to date metadata,
+            // and update the track info so PeerCall can use it to send up-to-date metadata,
             this.joinedData.localMuteSettings.updateTrackInfo(localMedia.userMedia);
             this.emitChange(); //allow listeners to see new media/mute settings
             // TODO: if setMedia fails on one of the members, we should revert to the old media
@@ -263,7 +263,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
         const prevMuteSettings = joinedData.localMuteSettings;
         // we still update the mute settings if nothing changed because
         // you might be muted because you don't have a track or because
-        // you actively chosen to mute
+        // you have actively chosen to mute
         // (which we want to respect in the future when you add a track)
         muteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
         joinedData.localMuteSettings = muteSettings;

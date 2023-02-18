@@ -231,7 +231,7 @@ export class RoomEncryption {
                 }, new Set()));
                 log.set("senders", sendersWithoutDevice);
                 // Fetch the devices, ignore return value, and just reuse
-                // _verifyDecryptionResults method so we only have one impl how to verify.
+                // _verifyDecryptionResults method, so we only have one impl how to verify.
                 // Use devicesForUsers rather than devicesForRoomMembers as the room might not be tracked yet
                 await this._deviceTracker.devicesForUsers(sendersWithoutDevice, hsApi, log);
                 // now that we've fetched the missing devices, try verifying the results again

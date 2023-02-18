@@ -156,7 +156,7 @@ export class CallHandler implements RoomStateHandler {
 
             try {
                 await call.create(type, log);
-                // store call info so it will ring again when reopening the app
+                // store call info, so it will ring again when reopening the app
                 const txn = await this.options.storage.readWriteTxn([this.options.storage.storeNames.calls]);
                 txn.calls.add({
                     intent: call.intent,
@@ -230,7 +230,7 @@ export class CallHandler implements RoomStateHandler {
                 txn.calls.remove(call.intent, roomId, call.id);
             }
         } else if(!event.content["m.terminated"]) {
-            // We don't have this call already and it isn't terminated, so create the call:
+            // We don't have this call already, and it isn't terminated, so create the call:
             call = new GroupCall(
                 event.state_key, // id
                 false, // isLoadedFromStorage

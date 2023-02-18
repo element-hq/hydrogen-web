@@ -72,7 +72,7 @@ export class GapWriter {
     async _storeEvents(events, startKey, direction, state, txn, log) {
         const entries = [];
         const updatedEntries = [];
-        // events is in reverse chronological order for backwards pagination,
+        // events are in reverse chronological order for backwards pagination,
         // e.g. order is moving away from the `from` point.
         let key = startKey;
         for (let i = 0; i < events.length; ++i) {
@@ -188,7 +188,7 @@ export class GapWriter {
             return {entries: [fragmentEntry], updatedEntries: [], fragments: []};
         }
 
-        // find last event in fragment so we get the eventIndex to begin creating keys at
+        // find last event in fragment, so we get the eventIndex to begin creating keys at
         let lastKey = await this._findFragmentEdgeEventKey(fragmentEntry, txn);
         log.set("lastKey", lastKey.toString());
         // find out if any event in chunk is already present using findFirstOrLastOccurringEventId

@@ -151,7 +151,7 @@ export class Member {
 
     /**
      * Gives access the log item for this item once joined to the group call.
-     * The signalling for this member will be log in this item.
+     * The signalling for this member will be logged in this item.
      * Can be used for call diagnostics while in the call.
      **/
     get logItem(): ILogItem | undefined {
@@ -247,7 +247,7 @@ export class Member {
                 return;
             }
             let disconnectLogItem: ILogItem | undefined;
-            // if if not sending the hangup, still log disconnect
+            // if it is not sending the hangup, still log disconnect
             await connection.logItem.wrap("disconnect", async log => {
                 disconnectLogItem = log;
                 if (hangup && connection.peerCall) {
@@ -352,7 +352,7 @@ export class Member {
                         log.refDetached(logItem);
                         return;
                     }
-                    // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it 
+                    // if there is no peerCall, we either create it with an invite and Handle is implied or we'll ignore it
                     if (connection.peerCall) {
                         const action = connection.peerCall.getMessageAction(message);
                         // deal with glare and replacing the call before creating new calls
@@ -496,7 +496,7 @@ export function tests() {
     }
     return {
         "test queue doesn't get blocked by enqueued, then ignored device message": assert => {
-            // XXX we might want to refactor the queue code a bit so it's easier to test
+            // XXX we might want to refactor the queue code a bit, so it's easier to test
             // without having to provide so many mocks
             const clock = new MockClock();
             // setup logging
@@ -550,8 +550,8 @@ export function tests() {
                 }
             } as SignallingMessage<MGroupCallBase>;
             member.handleDeviceMessage(hangup, logger.child("handle hangup"));
-            // Send an invite with seq=4, this will create a new peer call with a the call id
-            // when dequeueing the hangup from before, it'll get ignored because it is
+            // Send an invite with seq=4, this will create a new peer call with a call id
+            // during dequeue of the hangup from before, it'll get ignored because it is
             // for the previous call id.
             const invite = {
                 type: EventType.Invite,

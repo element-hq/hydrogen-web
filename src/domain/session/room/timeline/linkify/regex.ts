@@ -30,7 +30,7 @@ See point 1 below.
 const host = `${hostCharacter}*(?=${hostCharacter})${noSpaceNorPunctuation}`;
 
 /*
-Use sub groups so we accept just / or #; but if anything comes after it,
+Use subgroups, so we accept just / or #; but if anything comes after it,
 it should not end with punctuation or space.
 */
 const pathOrFragment = `(?:[\\/#](?:[^\\s]*${noSpaceNorPunctuation})?)`;

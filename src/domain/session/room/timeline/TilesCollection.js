@@ -218,15 +218,15 @@ export class TilesCollection extends BaseObservableList {
             }
         }
         // technically we should handle adding a tile here as well
-        // in case before we didn't have a tile for it but now we do
+        // in case before we didn't have a tile for it, but now we do
         // but in reality we don't have this use case as the type and msgtype
         // doesn't change. Decryption maybe is the exception?
 
 
         // outcomes here can be
-        //   tiles should be removed (got redacted and we don't want it in the timeline)
+        //   tiles should be removed (got redacted, and we don't want it in the timeline)
         //   tile should be added where there was none before ... ?
-        //   entry should get it's own tile now
+        //   entry should get its own tile now
         //   merge with neighbours? ... hard to imagine use case for this  ...
     }
 
@@ -277,7 +277,7 @@ export class TilesCollection extends BaseObservableList {
     onMove(/*fromIdx, toIdx, value*/) {
         // this ... cannot happen in the timeline?
         // perhaps we can use this event to support a local echo (in a different fragment)
-        // to be moved to the key of the remote echo, so we don't loose state ... ?
+        // to be moved to the key of the remote echo, so we don't lose state ... ?
     }
 
     [Symbol.iterator]() {
