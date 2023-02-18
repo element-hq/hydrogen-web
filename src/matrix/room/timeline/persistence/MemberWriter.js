@@ -192,15 +192,15 @@ export function tests() {
     function createMemberEvent(membership, userId, displayName, avatarUrl) {
         idCounter += 1;
         return {
-            content: {
+            "content": {
                 membership,
                 "displayname": displayName,
                 "avatar_url": avatarUrl
             },
-            event_id: `$${idCounter}`,
-            sender: userId,
+            "event_id": `$${idCounter}`,
+            "sender": userId,
             "state_key": userId,
-            type: "m.room.member"
+            "type": "m.room.member"
         };
     }
 

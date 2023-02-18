@@ -42,13 +42,13 @@ export class BaseMessageView extends TemplateView {
             children.push(t.button({className: "Timeline_messageOptions"}, "⋯"));
         }
         const li = t.el(this._tagName, {
-            className: {
+            "className": {
                 "Timeline_message": true,
-                own: vm.isOwn,
-                unsent: vm.isUnsent,
-                unverified: vm => vm.isUnverified,
-                disabled: !this._interactive,
-                continuation: vm => vm.isContinuation,
+                "own": vm.isOwn,
+                "unsent": vm.isUnsent,
+                "unverified": vm => vm.isUnverified,
+                "disabled": !this._interactive,
+                "continuation": vm => vm.isContinuation,
             },
             'data-event-id': vm.eventId
         }, children);

@@ -24,7 +24,7 @@ export class TextMessageView extends BaseMessageView {
         const container = t.div({
             className: {
                 "Timeline_messageBody": true,
-                statusMessage: vm => vm.shape === "message-status",
+                "statusMessage": vm => vm.shape === "message-status",
             }
         }, t.mapView(vm => vm.replyTile, replyTile => {
             if (this._isReplyPreview) {

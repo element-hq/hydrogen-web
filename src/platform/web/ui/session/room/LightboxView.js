@@ -21,14 +21,14 @@ export class LightboxView extends TemplateView {
     render(t, vm) {
         const close = t.a({href: vm.closeUrl, title: vm.i18n`Close`, className: "close"});
         const image = t.div({
-            role: "img",
+            "role": "img",
             "aria-label": vm => vm.name,
-            title: vm => vm.name,
-            className: {
+            "title": vm => vm.name,
+            "className": {
                 picture: true,
                 hidden: vm => !vm.imageUrl,
             },
-            style: vm => `background-image: url('${vm.imageUrl}'); max-width: ${vm.imageWidth}px; max-height: ${vm.imageHeight}px;`
+            "style": vm => `background-image: url('${vm.imageUrl}'); max-width: ${vm.imageWidth}px; max-height: ${vm.imageHeight}px;`
         });
         const loading = t.div({
             className: {

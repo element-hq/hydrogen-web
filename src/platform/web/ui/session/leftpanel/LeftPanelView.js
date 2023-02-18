@@ -29,23 +29,23 @@ class FilterField extends TemplateView {
             options.clear();
         };
         const filterInput = t.input({
-            type: "text",
-            placeholder: options?.label,
+            "type": "text",
+            "placeholder": options?.label,
             "aria-label": options?.label,
-            autocomplete: options?.autocomplete,
-            enterkeyhint: 'search',
-            name: options?.name,
-            onInput: event => options.set(event.target.value),
-            onKeydown: event => {
+            "autocomplete": options?.autocomplete,
+            "enterkeyhint": 'search',
+            "name": options?.name,
+            "onInput": event => options.set(event.target.value),
+            "onKeydown": event => {
                 if (event.key === "Escape" || event.key === "Esc") {
                     clear();
                 }
             },
-            onFocus: () => filterInput.select()
+            "onFocus": () => filterInput.select()
         });
         const clearButton = t.button({
-            onClick: clear,
-            title: options.i18n`Clear`,
+            "onClick": clear,
+            "title": options.i18n`Clear`,
             "aria-label": options.i18n`Clear`
         });
         return t.div({className: "FilterField"}, [filterInput, clearButton]);
@@ -72,7 +72,7 @@ export class LeftPanelView extends TemplateView {
             tileVM => new RoomTileView(tileVM)
         ));
         const utilitiesRow = t.div({className: "utilities"}, [
-            t.a({className: "button-utility close-session", href: vm.closeUrl, "aria-label": vm.i18n`Back to account list`, title: vm.i18n`Back to account list`}),
+            t.a({"className": "button-utility close-session", "href": vm.closeUrl, "aria-label": vm.i18n`Back to account list`, "title": vm.i18n`Back to account list`}),
             t.view(new FilterField({
                 i18n: vm.i18n,
                 label: vm.i18n`Filter rooms…`,
@@ -87,20 +87,20 @@ export class LeftPanelView extends TemplateView {
                 clear: () => vm.clearFilter()
             })),
             t.button({
-                onClick: () => vm.toggleGrid(),
-                className: {
+                "onClick": () => vm.toggleGrid(),
+                "className": {
                     "button-utility": true,
-                    grid: true,
-                    on: vm => vm.gridEnabled
+                    "grid": true,
+                    "on": vm => vm.gridEnabled
                 },
-                title: gridButtonLabel,
+                "title": gridButtonLabel,
                 "aria-label": gridButtonLabel
             }),
-            t.a({className: "button-utility settings", href: vm.settingsUrl, "aria-label": vm.i18n`Settings`, title: vm.i18n`Settings`}),
+            t.a({"className": "button-utility settings", "href": vm.settingsUrl, "aria-label": vm.i18n`Settings`, "title": vm.i18n`Settings`}),
             t.button({
-                className: "button-utility create",
+                "className": "button-utility create",
                 "aria-label": vm.i18n`Create room`,
-                onClick: evt => this._toggleCreateMenu(evt)
+                "onClick": evt => this._toggleCreateMenu(evt)
             }),
         ]);
 
