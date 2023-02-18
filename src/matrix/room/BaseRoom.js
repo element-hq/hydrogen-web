@@ -379,7 +379,7 @@ export class BaseRoom extends EventEmitter {
     allow sub classes to integrate in the gap fill lifecycle.
     JoinedRoom uses this update remote echos.
     */
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
     async _writeGapFill(chunk, txn, log) {}
     _applyGapFill() {}
 

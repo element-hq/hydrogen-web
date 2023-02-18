@@ -319,7 +319,7 @@ export class DeviceTracker {
         return allDeviceIdentities;
     }
 
-    _filterValidMasterKeys(keyQueryResponse, log) {
+    _filterValidMasterKeys(keyQueryResponse) {
         const masterKeys = new Map();
         const masterKeysResponse = keyQueryResponse["master_keys"];
         if (!masterKeysResponse) {
