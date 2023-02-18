@@ -36,12 +36,12 @@ export class OnlineStatus extends BaseObservableValue {
     }
 
     onSubscribeFirst() {
-        window.addEventListener('offline', this._onOffline);
-        window.addEventListener('online', this._onOnline);
+        window.addEventListener("offline", this._onOffline);
+        window.addEventListener("online", this._onOnline);
     }
 
     onUnsubscribeLast() {
-        window.removeEventListener('offline', this._onOffline);
-        window.removeEventListener('online', this._onOnline);
+        window.removeEventListener("offline", this._onOffline);
+        window.removeEventListener("online", this._onOnline);
     }
 }

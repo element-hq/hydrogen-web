@@ -99,12 +99,12 @@ function adaptUIOnVisualViewportResize(container) {
         return;
     }
     const handler = () => {
-        const sessionView = container.querySelector('.SessionView');
+        const sessionView = container.querySelector(".SessionView");
         if (!sessionView) {
             return;
         }
 
-        const scrollable = container.querySelector('.bottom-aligned-scroll');
+        const scrollable = container.querySelector(".bottom-aligned-scroll");
         let scrollTopBefore, heightBefore, heightAfter;
 
         if (scrollable) {
@@ -116,17 +116,17 @@ function adaptUIOnVisualViewportResize(container) {
         // behind (last tested on iOS 14.4 simulator) so we have to compute the offset manually
         const offsetTop = sessionView.offsetTop + sessionView.offsetHeight - window.visualViewport.height;
 
-        container.style.setProperty('--ios-viewport-height', window.visualViewport.height.toString() + 'px');
-        container.style.setProperty('--ios-viewport-top', offsetTop.toString() + 'px');
+        container.style.setProperty("--ios-viewport-height", window.visualViewport.height.toString() + "px");
+        container.style.setProperty("--ios-viewport-top", offsetTop.toString() + "px");
 
         if (scrollable) {
             heightAfter = scrollable.offsetHeight;
             scrollable.scrollTop = scrollTopBefore + heightBefore - heightAfter;
         }
     };
-    window.visualViewport.addEventListener('resize', handler);
+    window.visualViewport.addEventListener("resize", handler);
     return () => {
-        window.visualViewport.removeEventListener('resize', handler);
+        window.visualViewport.removeEventListener("resize", handler);
     };
 }
 
@@ -165,7 +165,7 @@ export class Platform {
         const isIE11 = !!window.MSInputMethodContext && !!document.documentMode;
         this.isIE11 = isIE11;
         // From https://stackoverflow.com/questions/9038625/detect-if-device-is-ios/9039885
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) && !window.MSStream;
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) && !window.MSStream;
         this.isIOS = isIOS;
         this._disposables = new Disposables();
         this._olmPromise = undefined;

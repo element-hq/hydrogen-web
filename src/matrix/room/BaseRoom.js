@@ -428,7 +428,7 @@ export class BaseRoom extends EventEmitter {
 
     get isLowPriority() {
         const tags = this._summary.data.tags;
-        return !!(tags && tags['m.lowpriority']);
+        return !!(tags && tags["m.lowpriority"]);
     }
 
     get isEncrypted() {

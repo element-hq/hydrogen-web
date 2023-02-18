@@ -33,7 +33,7 @@ class FilterField extends TemplateView {
             "placeholder": options?.label,
             "aria-label": options?.label,
             "autocomplete": options?.autocomplete,
-            "enterkeyhint": 'search',
+            "enterkeyhint": "search",
             "name": options?.name,
             "onInput": event => options.set(event.target.value),
             "onKeydown": event => {

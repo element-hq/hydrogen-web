@@ -50,7 +50,7 @@ export class BaseMessageView extends TemplateView {
                 "disabled": !this._interactive,
                 "continuation": vm => vm.isContinuation,
             },
-            'data-event-id': vm.eventId
+            "data-event-id": vm.eventId
         }, children);
         // given that there can be many tiles, we don't add
         // unneeded DOM nodes in case of a continuation, and we add it

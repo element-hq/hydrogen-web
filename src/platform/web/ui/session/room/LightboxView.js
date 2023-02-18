@@ -91,6 +91,6 @@ function trapFocus(t, element) {
 }
 
 function focusables(element) {
-    return element.querySelectorAll('a[href], button, textarea, input, select');
+    return element.querySelectorAll("a[href], button, textarea, input, select");
 }
 

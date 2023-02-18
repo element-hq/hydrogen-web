@@ -30,7 +30,7 @@ export class InviteView extends TemplateView {
         } else if (vm.inviter) {
             inviterNodes = [renderStaticAvatar(vm.inviter, 24), t.strong(vm.inviter.name), ` (${vm.inviter.id}) invited you.`];
         } else {
-            inviterNodes = `You were invited to join.`;
+            inviterNodes = "You were invited to join.";
         }
         inviteNodes.push(t.p({className: "InviteView_inviter"}, inviterNodes));
         if (!vm.isDirectMessage) {

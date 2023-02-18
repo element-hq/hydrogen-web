@@ -795,7 +795,7 @@ export class Session {
             if (roomBeingCreated.roomId === roomId) {
                 const observableStatus = this._observedRoomStatus.get(roomBeingCreated.id);
                 if (observableStatus) {
-                    log.log(`replacing room being created`)
+                    log.log("replacing room being created")
                        .set("localId", roomBeingCreated.id)
                        .set("roomId", roomBeingCreated.roomId);
                     observableStatus.set(observableStatus.get() | RoomStatus.Replaced);
