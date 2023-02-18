@@ -8,8 +8,8 @@ module.exports = {
         // "plugin:@typescript-eslint/recommended",
         // "plugin:@typescript-eslint/recommended-requiring-type-checking"
     ],
-    parser: '@typescript-eslint/parser',
-    plugins: ["@typescript-eslint"],
+    "parser": '@typescript-eslint/parser',
+    "plugins": ["@typescript-eslint"],
     "parserOptions": {
         "ecmaVersion": 2020,
         "sourceType": "module",
@@ -22,6 +22,7 @@ module.exports = {
         "no-prototype-builtins": "off",
         "no-unused-vars": "warn",
         "@typescript-eslint/no-unused-vars": "warn",
+        "quote-props": ["warn", "consistent"]
         // "@typescript-eslint/no-misused-promises": "error",
         // "no-undef": "off",
         // "@typescript-eslint/no-floating-promises": 2,
