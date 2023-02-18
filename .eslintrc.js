@@ -8,7 +8,7 @@ module.exports = {
         // "plugin:@typescript-eslint/recommended",
         // "plugin:@typescript-eslint/recommended-requiring-type-checking"
     ],
-    "parser": '@typescript-eslint/parser',
+    "parser": "@typescript-eslint/parser",
     "plugins": ["@typescript-eslint"],
     "parserOptions": {
         "ecmaVersion": 2020,
@@ -17,6 +17,7 @@ module.exports = {
     },
     "rules": {
         "semi": "error",
+        "quotes": "error",
         "no-console": "off",
         "no-empty": "off",
         "no-prototype-builtins": "off",
