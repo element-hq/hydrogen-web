@@ -23,6 +23,7 @@ module.exports = {
         "no-prototype-builtins": "off",
         "no-unused-vars": "warn",
         "quote-props": ["warn", "consistent"],
+        "no-multi-spaces": ["warn", { "ignoreEOLComments": true }],
         "@typescript-eslint/no-unused-vars": "warn"
         // "@typescript-eslint/no-misused-promises": "error",
         // "@typescript-eslint/no-floating-promises": 2,
