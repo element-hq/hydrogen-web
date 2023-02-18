@@ -22,10 +22,9 @@ module.exports = {
         "no-empty": "off",
         "no-prototype-builtins": "off",
         "no-unused-vars": "warn",
-        "@typescript-eslint/no-unused-vars": "warn",
-        "quote-props": ["warn", "consistent"]
+        "quote-props": ["warn", "consistent"],
+        "@typescript-eslint/no-unused-vars": "warn"
         // "@typescript-eslint/no-misused-promises": "error",
-        // "no-undef": "off",
         // "@typescript-eslint/no-floating-promises": 2,
         // "@typescript-eslint/explicit-function-return-type": "error"
     },
