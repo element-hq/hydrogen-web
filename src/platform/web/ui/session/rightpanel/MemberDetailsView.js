@@ -20,7 +20,7 @@ import {TemplateView} from "../../general/TemplateView";
 export class MemberDetailsView extends TemplateView {
     render(t, vm) {
         return t.div({className: "MemberDetailsView"},
-            [   t.view(new AvatarView(vm, 128)),
+            [ t.view(new AvatarView(vm, 128)),
                 t.div({className: "MemberDetailsView_name"}, t.h2(vm => vm.name)),
                 t.div({className: "MemberDetailsView_id"}, vm.userId),
                 this._createSection(t, vm.i18n`Role`, vm => vm.role),

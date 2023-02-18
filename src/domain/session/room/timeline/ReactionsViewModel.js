@@ -88,7 +88,7 @@ class ReactionViewModel {
     _tryUpdate(annotation) {
         const oneSetAndOtherNot = !!this._annotation !== !!annotation;
         const bothSet = this._annotation && annotation;
-        const areDifferent = bothSet &&  (
+        const areDifferent = bothSet && (
             annotation.me !== this._annotation.me ||
             annotation.count !== this._annotation.count ||
             annotation.firstTimestamp !== this._annotation.firstTimestamp

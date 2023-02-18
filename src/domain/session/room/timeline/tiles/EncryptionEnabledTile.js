@@ -22,7 +22,7 @@ export class EncryptionEnabledTile extends SimpleTile {
     }
 
     get announcement() {
-        const senderName =  this._entry.displayName || this._entry.sender;
+        const senderName = this._entry.displayName || this._entry.sender;
         return this.i18n`${senderName} has enabled end-to-end encryption`;
     }
 }

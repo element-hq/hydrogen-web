@@ -24,7 +24,7 @@ export class RoomMemberTile extends SimpleTile {
 
     get announcement() {
         const {sender, content, prevContent, stateKey} = this._entry;
-        const senderName =  this._entry.displayName || sender;
+        const senderName = this._entry.displayName || sender;
         const targetName = sender === stateKey ? senderName : (this._entry.content?.displayname || stateKey);
         const membership = content && content.membership;
         const prevMembership = prevContent && prevContent.membership;
