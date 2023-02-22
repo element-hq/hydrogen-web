@@ -16,20 +16,6 @@ limitations under the License.
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
 
-// From element-web
-// type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
-// type MacMethod = "hkdf-hmac-sha256.v2" | "org.matrix.msc3783.hkdf-hmac-sha256" | "hkdf-hmac-sha256" | "hmac-sha256";
-
-// const KEY_AGREEMENT_LIST: KeyAgreement[] = ["curve25519-hkdf-sha256", "curve25519"];
-// const HASHES_LIST = ["sha256"];
-// const MAC_LIST: MacMethod[] = [
-//     "hkdf-hmac-sha256.v2",
-//     "org.matrix.msc3783.hkdf-hmac-sha256",
-//     "hkdf-hmac-sha256",
-//     "hmac-sha256",
-// ];
-
-// const SAS_LIST = Object.keys(sasGenerators);
 export class StartVerificationStage extends BaseSASVerificationStage {
 
     async completeStage() {
