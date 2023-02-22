@@ -53,8 +53,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     async _startCrossSigning(otherUserId) {
         await this.logAndCatch("startCrossSigning", async log => {
             const session = this.getOption("session");
-            const { userId, deviceId } = session;
-            const sas = new SASVerification(this.room, { userId, deviceId }, otherUserId, log);
+            const sas = session.crossSigning?.startVerification(this._room, otherUserId, log);
             await sas.start();
         });
     }

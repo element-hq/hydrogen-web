@@ -21,9 +21,11 @@ import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type * as OlmNamespace from "@matrix-org/olm";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
+import type {Room} from "../room/Room.js";
 import { ILogItem } from "../../lib";
 import {pkSign} from "./common";
 import type {ISignatures} from "./common";
+import {SASVerification} from "./SAS/SASVerification";
 
 type Olm = typeof OlmNamespace;
 
@@ -33,10 +35,12 @@ export class CrossSigning {
     private readonly platform: Platform;
     private readonly deviceTracker: DeviceTracker;
     private readonly olm: Olm;
+    private readonly olmUtil: Olm.Utility;
     private readonly hsApi: HomeServerApi;
     private readonly ownUserId: string;
     private readonly e2eeAccount: Account;
     private _isMasterKeyTrusted: boolean = false;
+    private readonly deviceId: string;
 
     constructor(options: {
         storage: Storage,
@@ -44,7 +48,9 @@ export class CrossSigning {
         deviceTracker: DeviceTracker,
         platform: Platform,
         olm: Olm,
+        olmUtil: Olm.Utility,
         ownUserId: string,
+        deviceId: string,
         hsApi: HomeServerApi,
         e2eeAccount: Account
     }) {
@@ -53,8 +59,10 @@ export class CrossSigning {
         this.platform = options.platform;
         this.deviceTracker = options.deviceTracker;
         this.olm = options.olm;
+        this.olmUtil = options.olmUtil;
         this.hsApi = options.hsApi;
         this.ownUserId = options.ownUserId;
+        this.deviceId = options.deviceId;
         this.e2eeAccount = options.e2eeAccount
     }
 
@@ -108,5 +116,10 @@ export class CrossSigning {
     get isMasterKeyTrusted(): boolean {
         return this._isMasterKeyTrusted;
     }
+
+    startVerification(room: Room, userId: string, log: ILogItem): SASVerification {
+        return new SASVerification(room, this.olm, this.olmUtil, { userId: this.ownUserId, deviceId: this.deviceId }, userId, log);
+    }
 }
+
 

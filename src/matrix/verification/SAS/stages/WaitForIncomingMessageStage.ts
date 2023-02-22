@@ -23,11 +23,11 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
 
     async completeStage() {
         await this.log.wrap("WaitForIncomingMessageStage.completeStage", async (log) => {
-            const content = await this.fetchMessageEventsFromTimeline();
-            console.log("content found", content);
-            this.nextStage.setResultFromPreviousStage({
+            const entry = await this.fetchMessageEventsFromTimeline();
+            console.log("content", entry);
+            this.nextStage?.setResultFromPreviousStage({
                 ...this.previousResult,
-                [this.messageType]: content
+                [this.messageType]: entry
             });
             this.dispose();
         });
@@ -39,13 +39,9 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
             this.track(
                 this.room._timeline.entries.subscribe({
                     onAdd: (_, entry) => {
-                        if (entry.sender === this.ourUser.userId) {
-                            // We only care about incoming / remote message events
-                            return;
-                        }
-                        if (entry.type === this.messageType &&
-                            entry.content["m.relates_to"]["event_id"] === this.requestEventId) {
-                            resolve(entry.content);
+                        if (entry.eventType === this.messageType &&
+                            entry.relatedEventId === this.requestEventId) {
+                            resolve(entry);
                         }
                     },
                     onRemove: () => { },
@@ -58,9 +54,9 @@ export class WaitForIncomingMessageStage extends BaseSASVerificationStage {
                 if (entry instanceof FragmentBoundaryEntry) {
                     return;
                 }
-                if (entry.type === this.messageType &&
-                    entry.content["m.relates_to"]["event_id"] === this.requestEventId) {
-                    resolve(entry.content);
+                if (entry.eventType === this.messageType &&
+                    entry.relatedEventId === this.requestEventId) {
+                    resolve(entry);
                 }
             }
         });

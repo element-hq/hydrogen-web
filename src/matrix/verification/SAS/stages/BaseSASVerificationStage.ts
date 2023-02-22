@@ -15,7 +15,10 @@ limitations under the License.
 */
 import type {ILogItem} from "../../../../lib.js";
 import type {Room} from "../../../room/Room.js";
+import type * as OlmNamespace from "@matrix-org/olm";
 import {Disposables} from "../../../../utils/Disposables";
+
+type Olm = typeof OlmNamespace;
 
 export type UserData = {
     userId: string;
@@ -27,6 +30,8 @@ export type Options = {
     ourUser: UserData;
     otherUserId: string;
     log: ILogItem;
+    olmSas: Olm.SAS;
+    olmUtil: Olm.Utility;
 }
 
 export abstract class BaseSASVerificationStage extends Disposables {
@@ -34,6 +39,8 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected ourUser: UserData;
     protected otherUserId: string;
     protected log: ILogItem;
+    protected olmSAS: Olm.SAS;
+    protected olmUtil: Olm.Utility;
     protected requestEventId: string;
     protected previousResult: undefined | any;
     protected _nextStage: BaseSASVerificationStage;
@@ -44,6 +51,8 @@ export abstract class BaseSASVerificationStage extends Disposables {
         this.ourUser = options.ourUser;
         this.otherUserId = options.otherUserId;
         this.log = options.log;
+        this.olmSAS = options.olmSas;
+        this.olmUtil = options.olmUtil;
     }
 
     setRequestEventId(id: string) {

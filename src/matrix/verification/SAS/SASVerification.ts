@@ -14,24 +14,45 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {StartVerificationStage} from "./stages/StartVerificationStage";
+import {WaitForIncomingMessageStage} from "./stages/WaitForIncomingMessageStage";
+import {AcceptVerificationStage} from "./stages/AcceptVerificationStage";
+import {SendKeyStage} from "./stages/SendKeyStage";
 import type {ILogItem} from "../../../logging/types";
 import type {Room} from "../../room/Room.js";
 import type {BaseSASVerificationStage, UserData} from "./stages/BaseSASVerificationStage";
-import {WaitForIncomingMessageStage} from "./stages/WaitForIncomingMessageStage";
+import type * as OlmNamespace from "@matrix-org/olm";
+
+type Olm = typeof OlmNamespace;
 
 export class SASVerification {
     private startStage: BaseSASVerificationStage;
    
-    constructor(private room: Room, private ourUser: UserData, otherUserId: string, log: ILogItem) {
-        const options = { room, ourUser, otherUserId, log };
-        let stage: BaseSASVerificationStage = new StartVerificationStage(options);
-        this.startStage = stage;
+    constructor(private room: Room, private olm: Olm, private olmUtil: Olm.Utility, private ourUser: UserData, otherUserId: string, log: ILogItem) {
+        const olmSas = new olm.SAS();
+        try {
+            const options = { room, ourUser, otherUserId, log, olmSas, olmUtil };
+            let stage: BaseSASVerificationStage = new StartVerificationStage(options);
+            this.startStage = stage;
         
-        stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.ready", options));
-        stage = stage.nextStage;
+            stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.ready", options));
+            stage = stage.nextStage;
 
-        stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.start", options));
-        stage = stage.nextStage;
+            stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.start", options));
+            stage = stage.nextStage;
+
+            stage.setNextStage(new AcceptVerificationStage(options));
+            stage = stage.nextStage;
+
+            stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.key", options));
+            stage = stage.nextStage;
+
+            stage.setNextStage(new SendKeyStage(options));
+            stage = stage.nextStage;
+            console.log("startStage", this.startStage);
+        }
+        finally {
+            olmSas.free();
+        }
     }
 
     async start() {
