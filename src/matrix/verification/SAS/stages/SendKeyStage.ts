@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import anotherjson from "another-json";
+import {generateEmojiSas} from "../generator";
+import {ILogItem} from "../../../../lib";
 
 // From element-web
 type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
@@ -73,44 +74,52 @@ export class SendKeyStage extends BaseSASVerificationStage {
 
     async completeStage() {
         await this.log.wrap("SendKeyStage.completeStage", async (log) => {
-            const event = this.previousResult["m.key.verification.key"];
-            const content = event.content;
-            const theirKey = content.key;
-            const ourSasKey = this.previousResult["our_pub_key"];
-            console.log("ourSasKey", ourSasKey);
-            const contentToSend = {
-                key: ourSasKey,
-                "m.relates_to": {
-                    event_id: this.requestEventId,
-                    rel_type: "m.reference",
-                },
-            };
-            await this.room.sendEvent("m.key.verification.key", contentToSend, null, log);
-            const keyAgreement = this.previousResult["m.key.verification.accept"].key_agreement_protocol;
-            const otherUserDeviceId = this.previousResult["m.key.verification.start"].content.from_device;
-            this.olmSAS.set_their_key(theirKey);
-            const sasBytes = calculateKeyAgreement[keyAgreement]({
-                our: {
-                    userId: this.ourUser.userId,
-                    deviceId: this.ourUser.deviceId,
-                    publicKey: ourSasKey,
-                },
-                their: {
-                    userId: this.otherUserId,
-                    deviceId: otherUserDeviceId,
-                    publicKey: theirKey,
-                },
-                requestId: this.requestEventId,
-            }, this.olmSAS, 6);
+            this.olmSAS.set_their_key(this.theirKey);
+            const ourSasKey = this.olmSAS.get_pubkey();
+            await this.sendKey(ourSasKey, log);
+            const sasBytes = this.generateSASBytes();
             const emoji = generateEmojiSas(Array.from(sasBytes));
             console.log("emoji", emoji);
             this.dispose();
         });
     }
 
+    private async sendKey(key: string, log: ILogItem): Promise<void> {
+        const contentToSend = {
+            key,
+            "m.relates_to": {
+                event_id: this.requestEventId,
+                rel_type: "m.reference",
+            },
+        };
+        await this.room.sendEvent("m.key.verification.key", contentToSend, null, log);
+    }
+
+    private generateSASBytes(): Uint8Array {
+        const keyAgreement = this.previousResult["m.key.verification.accept"].key_agreement_protocol;
+        const otherUserDeviceId = this.previousResult["m.key.verification.start"].content.from_device;
+        const sasBytes = calculateKeyAgreement[keyAgreement]({
+            our: {
+                userId: this.ourUser.userId,
+                deviceId: this.ourUser.deviceId,
+                publicKey: this.olmSAS.get_pubkey(),
+            },
+            their: {
+                userId: this.otherUserId,
+                deviceId: otherUserDeviceId,
+                publicKey: this.theirKey,
+            },
+            requestId: this.requestEventId,
+        }, this.olmSAS, 6);
+        return sasBytes;
+    }
 
     get type() {
         return "m.key.verification.accept";
+    }
+
+    get theirKey(): string {
+        return this.previousResult["m.key.verification.key"].content.key;
     }
 }
 
@@ -128,86 +137,3 @@ function intersection<T>(anArray: T[], aSet: Set<T>): T[] {
 //     }
 //     return sas;
 // }
-
-type EmojiMapping = [emoji: string, name: string];
-
-const emojiMapping: EmojiMapping[] = [
-    ["🐶", "dog"], //  0
-    ["🐱", "cat"], //  1
-    ["🦁", "lion"], //  2
-    ["🐎", "horse"], //  3
-    ["🦄", "unicorn"], //  4
-    ["🐷", "pig"], //  5
-    ["🐘", "elephant"], //  6
-    ["🐰", "rabbit"], //  7
-    ["🐼", "panda"], //  8
-    ["🐓", "rooster"], //  9
-    ["🐧", "penguin"], // 10
-    ["🐢", "turtle"], // 11
-    ["🐟", "fish"], // 12
-    ["🐙", "octopus"], // 13
-    ["🦋", "butterfly"], // 14
-    ["🌷", "flower"], // 15
-    ["🌳", "tree"], // 16
-    ["🌵", "cactus"], // 17
-    ["🍄", "mushroom"], // 18
-    ["🌏", "globe"], // 19
-    ["🌙", "moon"], // 20
-    ["☁️", "cloud"], // 21
-    ["🔥", "fire"], // 22
-    ["🍌", "banana"], // 23
-    ["🍎", "apple"], // 24
-    ["🍓", "strawberry"], // 25
-    ["🌽", "corn"], // 26
-    ["🍕", "pizza"], // 27
-    ["🎂", "cake"], // 28
-    ["❤️", "heart"], // 29
-    ["🙂", "smiley"], // 30
-    ["🤖", "robot"], // 31
-    ["🎩", "hat"], // 32
-    ["👓", "glasses"], // 33
-    ["🔧", "spanner"], // 34
-    ["🎅", "santa"], // 35
-    ["👍", "thumbs up"], // 36
-    ["☂️", "umbrella"], // 37
-    ["⌛", "hourglass"], // 38
-    ["⏰", "clock"], // 39
-    ["🎁", "gift"], // 40
-    ["💡", "light bulb"], // 41
-    ["📕", "book"], // 42
-    ["✏️", "pencil"], // 43
-    ["📎", "paperclip"], // 44
-    ["✂️", "scissors"], // 45
-    ["🔒", "lock"], // 46
-    ["🔑", "key"], // 47
-    ["🔨", "hammer"], // 48
-    ["☎️", "telephone"], // 49
-    ["🏁", "flag"], // 50
-    ["🚂", "train"], // 51
-    ["🚲", "bicycle"], // 52
-    ["✈️", "aeroplane"], // 53
-    ["🚀", "rocket"], // 54
-    ["🏆", "trophy"], // 55
-    ["⚽", "ball"], // 56
-    ["🎸", "guitar"], // 57
-    ["🎺", "trumpet"], // 58
-    ["🔔", "bell"], // 59
-    ["⚓️", "anchor"], // 60
-    ["🎧", "headphones"], // 61
-    ["📁", "folder"], // 62
-    ["📌", "pin"], // 63
-];
-
-function generateEmojiSas(sasBytes: number[]): EmojiMapping[] {
-    const emojis = [
-        // just like base64 encoding
-        sasBytes[0] >> 2,
-        ((sasBytes[0] & 0x3) << 4) | (sasBytes[1] >> 4),
-        ((sasBytes[1] & 0xf) << 2) | (sasBytes[2] >> 6),
-        sasBytes[2] & 0x3f,
-        sasBytes[3] >> 2,
-        ((sasBytes[3] & 0x3) << 4) | (sasBytes[4] >> 4),
-        ((sasBytes[4] & 0xf) << 2) | (sasBytes[5] >> 6),
-    ];
-    return emojis.map((num) => emojiMapping[num]);
-}
