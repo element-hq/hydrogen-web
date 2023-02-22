@@ -26,9 +26,11 @@ type Olm = typeof OlmNamespace;
 
 export class SASVerification {
     private startStage: BaseSASVerificationStage;
+    private olmSas: Olm.SAS;
    
     constructor(private room: Room, private olm: Olm, private olmUtil: Olm.Utility, private ourUser: UserData, otherUserId: string, log: ILogItem) {
         const olmSas = new olm.SAS();
+        this.olmSas = olmSas;
         try {
             const options = { room, ourUser, otherUserId, log, olmSas, olmUtil };
             let stage: BaseSASVerificationStage = new StartVerificationStage(options);
@@ -51,15 +53,19 @@ export class SASVerification {
             console.log("startStage", this.startStage);
         }
         finally {
-            olmSas.free();
         }
     }
 
     async start() {
-        let stage = this.startStage;
-        do {
-            await stage.completeStage();
-            stage = stage.nextStage;
-        } while (stage);
+        try {
+            let stage = this.startStage;
+            do {
+                await stage.completeStage();
+                stage = stage.nextStage;
+            } while (stage);
+        }
+        finally {
+            this.olmSas.free();
+        }
     }
 }
