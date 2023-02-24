@@ -30,6 +30,7 @@ import {TimelineFragmentStore} from "./stores/TimelineFragmentStore";
 import {PendingEventStore} from "./stores/PendingEventStore";
 import {UserIdentityStore} from "./stores/UserIdentityStore";
 import {DeviceIdentityStore} from "./stores/DeviceIdentityStore";
+import {CrossSigningKeyStore} from "./stores/CrossSigningKeyStore";
 import {OlmSessionStore} from "./stores/OlmSessionStore";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
@@ -143,6 +144,10 @@ export class Transaction {
 
     get deviceIdentities(): DeviceIdentityStore {
         return this._store(StoreNames.deviceIdentities, idbStore => new DeviceIdentityStore(idbStore));
+    }
+    
+    get crossSigningKeys(): CrossSigningKeyStore {
+        return this._store(StoreNames.crossSigningKeys, idbStore => new CrossSigningKeyStore(idbStore));
     }
     
     get olmSessions(): OlmSessionStore {

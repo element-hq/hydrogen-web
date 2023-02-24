@@ -33,7 +33,8 @@ export enum StoreNames {
     groupSessionDecryptions = "groupSessionDecryptions",
     operations = "operations",
     accountData = "accountData",
-    calls = "calls"
+    calls = "calls",
+    crossSigningKeys = "crossSigningKeys"
 }
 
 export const STORE_NAMES: Readonly<StoreNames[]> = Object.values(StoreNames);

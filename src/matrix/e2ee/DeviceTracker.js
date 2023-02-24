@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {verifyEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
+import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
 import {HistoryVisibility, shouldShareKey} from "./common.js";
 import {RoomMember} from "../room/members/RoomMember.js";
+import {getKeyUsage, getKeyEd25519Key, getKeyUserId, KeyUsage} from "../verification/CrossSigning";
 
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
@@ -153,7 +154,7 @@ export class DeviceTracker {
         }
     }
 
-    async getCrossSigningKeysForUser(userId, hsApi, log) {
+    async getCrossSigningKeyForUser(userId, usage, hsApi, log) {
         return await log.wrap("DeviceTracker.getMasterKeyForUser", async log => {
             let txn = await this._storage.readTxn([
                 this._storage.storeNames.userIdentities
@@ -163,13 +164,16 @@ export class DeviceTracker {
                 return userIdentity.crossSigningKeys;
             }
             // fetch from hs
-            await this._queryKeys([userId], hsApi, log);
-            // Retreive from storage now
-            txn = await this._storage.readTxn([
-                this._storage.storeNames.userIdentities
-            ]);
-            userIdentity = await txn.userIdentities.get(userId);
-            return userIdentity?.crossSigningKeys;
+            const keys = await this._queryKeys([userId], hsApi, log);
+            switch (usage) {
+                case KeyUsage.Master:
+                    return keys.masterKeys.get(userId);
+                case KeyUsage.SelfSigning:
+                    return keys.selfSigningKeys.get(userId);
+                case KeyUsage.UserSigning:
+                    return keys.userSigningKeys.get(userId);
+                
+            }
         });
     }
 
@@ -245,22 +249,29 @@ export class DeviceTracker {
             "token": this._getSyncToken()
         }, {log}).response();
 
-        const masterKeys = log.wrap("master keys", log => this._filterValidMasterKeys(deviceKeyResponse, log));
-        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], "self_signing", masterKeys, log))
-        const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
+        const masterKeys = log.wrap("master keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["master_keys"], KeyUsage.Master, undefined, log));
+        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], KeyUsage.SelfSigning, masterKeys, log));
+        const userSigningKeys = log.wrap("user-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["user_signing_keys"], KeyUsage.UserSigning, masterKeys, log));
+        const verifiedKeysPerUser = log.wrap("device keys", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
             this._storage.storeNames.deviceIdentities,
+            this._storage.storeNames.crossSigningKeys,
         ]);
         let deviceIdentities;
         try {
+            for (const key of masterKeys.values()) {
+                txn.crossSigningKeys.set(key);
+            }
+            for (const key of selfSigningKeys.values()) {
+                txn.crossSigningKeys.set(key);
+            }
+            for (const key of userSigningKeys.values()) {
+                txn.crossSigningKeys.set(key);
+            }
             const devicesIdentitiesPerUser = await Promise.all(verifiedKeysPerUser.map(async ({userId, verifiedKeys}) => {
                 const deviceIdentities = verifiedKeys.map(deviceKeysAsDeviceIdentity);
-                const crossSigningKeys = {
-                    masterKey: masterKeys.get(userId),
-                    selfSigningKey: selfSigningKeys.get(userId),
-                };
-                return await this._storeQueriedDevicesForUserId(userId, crossSigningKeys, deviceIdentities, txn);
+                return await this._storeQueriedDevicesForUserId(userId, deviceIdentities, txn);
             }));
             deviceIdentities = devicesIdentitiesPerUser.reduce((all, devices) => all.concat(devices), []);
             log.set("devices", deviceIdentities.length);
@@ -269,10 +280,15 @@ export class DeviceTracker {
             throw err;
         }
         await txn.complete();
-        return deviceIdentities;
+        return {
+            deviceIdentities,
+            masterKeys,
+            selfSigningKeys,
+            userSigningKeys
+        };
     }
 
-    async _storeQueriedDevicesForUserId(userId, crossSigningKeys, deviceIdentities, txn) {
+    async _storeQueriedDevicesForUserId(userId, deviceIdentities, txn) {
         const knownDeviceIds = await txn.deviceIdentities.getAllDeviceIds(userId);
         // delete any devices that we know off but are not in the response anymore.
         // important this happens before checking if the ed25519 key changed,
@@ -313,65 +329,61 @@ export class DeviceTracker {
             identity = createUserIdentity(userId);
         }
         identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
-        identity.crossSigningKeys = crossSigningKeys;
         txn.userIdentities.set(identity);
 
         return allDeviceIdentities;
     }
 
-    _filterValidMasterKeys(keyQueryResponse, log) {
-        const masterKeys = new Map();
-        const masterKeysResponse = keyQueryResponse["master_keys"];
-        if (!masterKeysResponse) {
-            return masterKeys;
-        }
-        const validMasterKeyResponses = Object.entries(masterKeysResponse).filter(([userId, keyInfo]) => {
-            if (keyInfo["user_id"] !== userId) {
-                return false;
-            }
-            if (!Array.isArray(keyInfo.usage) || !keyInfo.usage.includes("master")) {
-                return false;
-            }
-            return true;
-        });
-        validMasterKeyResponses.reduce((msks, [userId, keyInfo]) => {
-            const keyIds = Object.keys(keyInfo.keys);
-            if (keyIds.length !== 1) {
-                return false;
-            }
-            const masterKey = keyInfo.keys[keyIds[0]];
-            msks.set(userId, masterKey);
-            return msks;
-        }, masterKeys);
-        return masterKeys;
-    }
-
-    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse, usage, masterKeys, log) {
+    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse, usage, parentKeys, log) {
         const keys = new Map();
         if (!crossSigningKeysResponse) {
             return keys;
         }
-        const validKeysResponses = Object.entries(crossSigningKeysResponse).filter(([userId, keyInfo]) => {
-            if (keyInfo["user_id"] !== userId) {
-                return false;
-            }
-            if (!Array.isArray(keyInfo.usage) || !keyInfo.usage.includes(usage)) {
-                return false;
-            }
-            // verify with master key
-            const masterKey = masterKeys.get(userId);
-            return verifyEd25519Signature(this._olmUtil, userId, masterKey, masterKey, keyInfo, log);
-        });
-        validKeysResponses.reduce((keys, [userId, keyInfo]) => {
-            const keyIds = Object.keys(keyInfo.keys);
-            if (keyIds.length !== 1) {
-                return false;
-            }
-            const key = keyInfo.keys[keyIds[0]];
-            keys.set(userId, key);
-            return keys;
-        }, keys);
+        for (const [userId, keyInfo] of Object.entries(crossSigningKeysResponse)) {
+            log.wrap({l: userId}, log => {
+                const parentKeyInfo = parentKeys?.get(userId);
+                const parentKey = parentKeyInfo && getKeyEd25519Key(parentKeyInfo);
+                if (this._validateCrossSigningKey(userId, keyInfo, usage, parentKey, log)) {
+                    keys.set(getKeyUserId(keyInfo), keyInfo);
+                }
+            });
+        }
         return keys;
+    }
+
+    _validateCrossSigningKey(userId, keyInfo, usage, parentKey, log) {
+        if (getKeyUserId(keyInfo) !== userId) {
+            log.log({l: "user_id mismatch", userId: keyInfo["user_id"]});
+            return false;
+        }
+        if (getKeyUsage(keyInfo) !== usage) {
+            log.log({l: "usage mismatch", usage: keyInfo.usage});
+            return false;
+        }
+        const publicKey = getKeyEd25519Key(keyInfo);
+        if (!publicKey) {
+            log.log({l: "no ed25519 key", keys: keyInfo.keys});
+            return false;
+        }
+        const isSelfSigned = usage === "master";
+        const keyToVerifyWith = isSelfSigned ? publicKey : parentKey;
+        if (!keyToVerifyWith) {
+            log.log("signing_key not found");
+            return false;
+        }
+        const hasSignature = !!getEd25519Signature(keyInfo, userId, keyToVerifyWith);
+        // self-signature is optional for now, not all keys seem to have it
+        if (!hasSignature && keyToVerifyWith !== publicKey) {
+            log.log({l: "signature not found", key: keyToVerifyWith});
+            return false;
+        }
+        if (hasSignature) {
+            if(!verifyEd25519Signature(this._olmUtil, userId, keyToVerifyWith, keyToVerifyWith, keyInfo, log)) {
+                log.log("signature mismatch");
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -580,7 +592,8 @@ export class DeviceTracker {
             // TODO: ignore the race between /sync and /keys/query for now,
             // where users could get marked as outdated or added/removed from the room while
             // querying keys
-            queriedDevices = await this._queryKeys(outdatedUserIds, hsApi, log);
+            const {deviceIdentities} = await this._queryKeys(outdatedUserIds, hsApi, log);
+            queriedDevices = deviceIdentities;
         }
 
         const deviceTxn = await this._storage.readTxn([

@@ -27,6 +27,12 @@ import type {ISignatures} from "./common";
 
 type Olm = typeof OlmNamespace;
 
+export enum KeyUsage {
+    Master = "master",
+    SelfSigning = "self_signing",
+    UserSigning = "user_signing"
+};
+
 export class CrossSigning {
     private readonly storage: Storage;
     private readonly secretStorage: SecretStorage;
@@ -72,9 +78,9 @@ export class CrossSigning {
             } finally {
                 signing.free();
             }
-            const publishedKeys = await this.deviceTracker.getCrossSigningKeysForUser(this.ownUserId, this.hsApi, log);
-            log.set({publishedMasterKey: publishedKeys.masterKey, derivedPublicKey});
-            this._isMasterKeyTrusted = publishedKeys.masterKey === derivedPublicKey;
+            const masterKey = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log);
+            log.set({publishedMasterKey: masterKey, derivedPublicKey});
+            this._isMasterKeyTrusted = masterKey === derivedPublicKey;
             log.set("isMasterKeyTrusted", this.isMasterKeyTrusted);
         });
     }
@@ -86,7 +92,7 @@ export class CrossSigning {
                 return;
             }
             const deviceKey = this.e2eeAccount.getDeviceKeysToSignWithCrossSigning();
-            const signedDeviceKey = await this.signDevice(deviceKey);
+            const signedDeviceKey = await this.signDeviceData(deviceKey);
             const payload = {
                 [signedDeviceKey["user_id"]]: {
                     [signedDeviceKey["device_id"]]: signedDeviceKey
@@ -97,7 +103,15 @@ export class CrossSigning {
         });
     }
 
-    private async signDevice<T extends object>(data: T): Promise<T & { signatures: ISignatures }> {
+    signDevice(deviceId: string) {
+        // need to get the device key for the device
+    }
+
+    signUser(userId: string) {
+        // need to be able to get the msk for the user
+    }
+
+    private async signDeviceData<T extends object>(data: T): Promise<T & { signatures: ISignatures }> {
         const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
         const seedStr = await this.secretStorage.readSecret(`m.cross_signing.self_signing`, txn);
         const seed = new Uint8Array(this.platform.encoding.base64.decode(seedStr));
@@ -110,3 +124,30 @@ export class CrossSigning {
     }
 }
 
+export function getKeyUsage(keyInfo): KeyUsage | undefined {
+    if (!Array.isArray(keyInfo.usage) || keyInfo.usage.length !== 1) {
+        return undefined;
+    }
+    const usage = keyInfo.usage[0];
+    if (usage !== KeyUsage.Master && usage !== KeyUsage.SelfSigning && usage !== KeyUsage.UserSigning) {
+        return undefined;
+    }
+    return usage;
+}
+
+const algorithm = "ed25519";
+const prefix = `${algorithm}:`;
+
+export function getKeyEd25519Key(keyInfo): string | undefined {
+    const ed25519KeyIds = Object.keys(keyInfo.keys).filter(keyId => keyId.startsWith(prefix));
+    if (ed25519KeyIds.length !== 1) {
+        return undefined;
+    }
+    const keyId = ed25519KeyIds[0];
+    const publicKey = keyInfo.keys[keyId];
+    return publicKey;
+}
+
+export function getKeyUserId(keyInfo): string | undefined {
+    return keyInfo["user_id"];
+}

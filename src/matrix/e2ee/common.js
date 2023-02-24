@@ -35,16 +35,21 @@ export class DecryptionError extends Error {
 
 export const SIGNATURE_ALGORITHM = "ed25519";
 
+export function getEd25519Signature(signedValue, userId, deviceOrKeyId) {
+    return signedValue?.signatures?.[userId]?.[`${SIGNATURE_ALGORITHM}:${deviceOrKeyId}`];
+}
+
 export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Key, value, log = undefined) {
+    const signature = getEd25519Signature(value, userId, deviceOrKeyId);
+    if (!signature) {
+        log?.set("no_signature", true);
+        return false;
+    }
     const clone = Object.assign({}, value);
     delete clone.unsigned;
     delete clone.signatures;
     const canonicalJson = anotherjson.stringify(clone);
-    const signature = value?.signatures?.[userId]?.[`${SIGNATURE_ALGORITHM}:${deviceOrKeyId}`];
     try {
-        if (!signature) {
-            throw new Error("no signature");
-        }
         // throws when signature is invalid
         olmUtil.ed25519_verify(ed25519Key, canonicalJson, signature);
         return true;
