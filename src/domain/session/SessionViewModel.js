@@ -18,6 +18,7 @@ limitations under the License.
 import {LeftPanelViewModel} from "./leftpanel/LeftPanelViewModel.js";
 import {RoomViewModel} from "./room/RoomViewModel.js";
 import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
+import {WorldReadableRoomViewModel} from "./room/WorldReadableRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
 import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel.js";
 import {LightboxViewModel} from "./room/LightboxViewModel.js";
@@ -231,12 +232,20 @@ export class SessionViewModel extends ViewModel {
         return null;
     }
 
-    async _createUnknownRoomViewModel(roomIdOrAlias) {
-        const roomVM = new UnknownRoomViewModel(this.childOptions({
+    _createUnknownRoomViewModel(roomIdOrAlias, isWorldReadablePromise) {
+        return new UnknownRoomViewModel(this.childOptions({
             roomIdOrAlias,
             session: this._client.session,
+            isWorldReadablePromise: isWorldReadablePromise
         }));
-        void roomVM.load();
+    }
+
+    async _createWorldReadableRoomViewModel(roomIdOrAlias) {
+        const roomVM = new WorldReadableRoomViewModel(this.childOptions({
+            room: await this._client.session.loadWorldReadableRoom(roomIdOrAlias),
+            session: this._client.session,
+        }));
+        roomVM.load();
         return roomVM;
     }
 

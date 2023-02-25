@@ -668,7 +668,8 @@ export class Session {
             mediaRepository: this._mediaRepository,
             pendingEvents: [],
             user: this._user,
-            platform: this._platform
+            platform: this._platform,
+            roomStateHandler: this._roomStateHandler
         });
     }
 
@@ -1106,14 +1107,12 @@ export class Session {
             const response = await this._hsApi.messages(roomId, options, {log}).response();
             log.set("/messages endpoint response", response);
 
+            await this.deleteWorldReadableRoomData(roomId, log);
+
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.timelineFragments,
                 this._storage.storeNames.timelineEvents,
             ]);
-
-            // clear old records for this room
-            txn.timelineFragments.removeAllForRoom(roomId);
-            txn.timelineEvents.removeAllForRoom(roomId);
 
             // insert fragment and event records for this room
             const fragment = {
@@ -1140,6 +1139,21 @@ export class Session {
         });
     }
 
+    async deleteWorldReadableRoomData(roomId, log = null) {
+        return this._platform.logger.wrapOrRun(log, "deleteWorldReadableRoomData", async log => {
+            log.set("id", roomId);
+
+            const txn = await this._storage.readWriteTxn([
+                this._storage.storeNames.timelineFragments,
+                this._storage.storeNames.timelineEvents,
+            ]);
+
+            // clear old records for this room
+            txn.timelineFragments.removeAllForRoom(roomId);
+            txn.timelineEvents.removeAllForRoom(roomId);
+        });
+    }
+
     joinRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "joinRoom", async log => {
             const body = await this._hsApi.joinIdOrAlias(roomIdOrAlias, {log}).response();
@@ -1147,7 +1161,7 @@ export class Session {
         });
     }
 
-    isWorldReadableRoom(roomIdOrAlias, log = null) {
+    async isWorldReadableRoom(roomIdOrAlias, log = null) {
         return this._platform.logger.wrapOrRun(log, "isWorldReadableRoom", async log => {
             try {
                 let roomId;
