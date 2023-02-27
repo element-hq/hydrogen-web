@@ -235,7 +235,7 @@ export class RoomEncryption {
                 // Use devicesForUsers rather than devicesForRoomMembers as the room might not be tracked yet
                 await this._deviceTracker.devicesForUsers(sendersWithoutDevice, hsApi, log);
                 // now that we've fetched the missing devices, try verifying the results again
-                const txn = await this._storage.readTxn([this._storage.storeNames.deviceIdentities]);
+                const txn = await this._storage.readTxn([this._storage.storeNames.deviceKeys]);
                 await this._verifyDecryptionResults(resultsWithoutDevice, txn);
                 const resultsWithFoundDevice = resultsWithoutDevice.filter(r => !r.isVerificationUnknown);
                 const resultsToEventIdMap = resultsWithFoundDevice.reduce((map, r) => {

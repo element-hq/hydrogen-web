@@ -173,7 +173,7 @@ export class BaseRoom extends EventEmitter {
             const isTimelineOpen = this._isTimelineOpen;
             if (isTimelineOpen) {
                 // read to fetch devices if timeline is open
-                stores.push(this._storage.storeNames.deviceIdentities);
+                stores.push(this._storage.storeNames.deviceKeys);
             }
             const writeTxn = await this._storage.readWriteTxn(stores);
             let decryption;

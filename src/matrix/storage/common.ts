@@ -26,7 +26,7 @@ export enum StoreNames {
     timelineFragments = "timelineFragments",
     pendingEvents = "pendingEvents",
     userIdentities = "userIdentities",
-    deviceIdentities = "deviceIdentities",
+    deviceKeys = "deviceKeys",
     olmSessions = "olmSessions",
     inboundGroupSessions = "inboundGroupSessions",
     outboundGroupSessions = "outboundGroupSessions",

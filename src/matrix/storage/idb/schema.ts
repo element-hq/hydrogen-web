@@ -35,7 +35,7 @@ export const schema: MigrationFunc[] = [
     addInboundSessionBackupIndex,
     migrateBackupStatus,
     createCallStore,
-    createCrossSigningKeyStore
+    createCrossSigningKeyStoreAndRenameDeviceIdentities
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -277,7 +277,10 @@ function createCallStore(db: IDBDatabase) : void {
     db.createObjectStore("calls", {keyPath: "key"});
 }
 
-//v18 create calls store
-function createCrossSigningKeyStore(db: IDBDatabase) : void {
+//v18 create calls store and rename deviceIdentities to deviceKeys
+function createCrossSigningKeyStoreAndRenameDeviceIdentities(db: IDBDatabase) : void {
     db.createObjectStore("crossSigningKeys", {keyPath: "key"});
+    db.deleteObjectStore("deviceIdentities");
+    const deviceKeys = db.createObjectStore("deviceKeys", {keyPath: "key"});
+    deviceKeys.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
 }

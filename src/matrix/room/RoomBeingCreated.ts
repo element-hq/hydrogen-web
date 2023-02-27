@@ -20,7 +20,7 @@ import {MediaRepository} from "../net/MediaRepository";
 import {EventEmitter} from "../../utils/EventEmitter";
 import {AttachmentUpload} from "./AttachmentUpload";
 import {loadProfiles, Profile, UserIdProfile} from "../profile";
-import {RoomType} from "./common";
+import {RoomType, UnsentStateEvent} from "./common";
 
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ILogItem} from "../../logging/types";
@@ -37,7 +37,7 @@ type CreateRoomPayload = {
     invite?: string[];
     room_alias_name?: string;
     creation_content?: {"m.federate": boolean};
-    initial_state: { type: string; state_key: string; content: Record<string, any> }[];
+    initial_state: UnsentStateEvent[];
     power_level_content_override?: Record<string, any>;
 }
 

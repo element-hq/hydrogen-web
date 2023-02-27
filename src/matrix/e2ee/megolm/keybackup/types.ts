@@ -42,7 +42,7 @@ export type SessionInfo = {
 }
 
 export type MegOlmSessionKeyInfo = {
-    algorithm: MEGOLM_ALGORITHM,
+    algorithm: typeof MEGOLM_ALGORITHM,
     sender_key: string,
     sender_claimed_keys: {[algorithm: string]: string},
     forwarding_curve25519_key_chain: string[],

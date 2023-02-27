@@ -15,9 +15,15 @@ limitations under the License.
 */
 
 import anotherjson from "another-json";
-import {createEnum} from "../../utils/enum";
 
-export const DecryptionSource = createEnum("Sync", "Timeline", "Retry");
+import type {UnsentStateEvent} from "../room/common";
+import type {ILogItem} from "../../logging/types";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
+
+export enum DecryptionSource {
+    Sync, Timeline, Retry
+};
 
 // use common prefix so it's easy to clear properties that are not e2ee related during session clear
 export const SESSION_E2EE_KEY_PREFIX = "e2ee:";
@@ -25,29 +31,52 @@ export const OLM_ALGORITHM = "m.olm.v1.curve25519-aes-sha2";
 export const MEGOLM_ALGORITHM = "m.megolm.v1.aes-sha2";
 
 export class DecryptionError extends Error {
-    constructor(code, event, detailsObj = null) {
+    constructor(private readonly code: string, private readonly event: object, private readonly detailsObj?: object) {
         super(`Decryption error ${code}${detailsObj ? ": "+JSON.stringify(detailsObj) : ""}`);
-        this.code = code;
-        this.event = event;
-        this.details = detailsObj;
     }
 }
 
 export const SIGNATURE_ALGORITHM = "ed25519";
 
-export function getEd25519Signature(signedValue, userId, deviceOrKeyId) {
+export type SignedValue = {
+    signatures: {[userId: string]: {[keyId: string]: string}}
+    unsigned?: object
+}
+
+// we store device keys (and cross-signing) in the format we get them from the server
+// as that is what the signature is calculated on, so to verify and sign, we need
+// it in this format anyway.
+export type DeviceKey = SignedValue & {
+    readonly user_id: string;
+    readonly device_id: string;
+    readonly algorithms: ReadonlyArray<string>;
+    readonly keys: {[keyId: string]: string};
+    readonly unsigned: {
+        device_display_name?: string
+    }
+}
+
+export function getDeviceEd25519Key(deviceKey: DeviceKey): string {
+    return deviceKey.keys[`ed25519:${deviceKey.device_id}`];
+}
+
+export function getDeviceCurve25519Key(deviceKey: DeviceKey): string {
+    return deviceKey.keys[`curve25519:${deviceKey.device_id}`];
+}
+
+export function getEd25519Signature(signedValue: SignedValue, userId: string, deviceOrKeyId: string) {
     return signedValue?.signatures?.[userId]?.[`${SIGNATURE_ALGORITHM}:${deviceOrKeyId}`];
 }
 
-export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Key, value, log = undefined) {
+export function verifyEd25519Signature(olmUtil: Olm.Utility, userId: string, deviceOrKeyId: string, ed25519Key: string, value: SignedValue, log?: ILogItem) {
     const signature = getEd25519Signature(value, userId, deviceOrKeyId);
     if (!signature) {
         log?.set("no_signature", true);
         return false;
     }
-    const clone = Object.assign({}, value);
-    delete clone.unsigned;
-    delete clone.signatures;
+    const clone = Object.assign({}, value) as object;
+    delete clone["unsigned"];
+    delete clone["signatures"];
     const canonicalJson = anotherjson.stringify(clone);
     try {
         // throws when signature is invalid
@@ -63,7 +92,7 @@ export function verifyEd25519Signature(olmUtil, userId, deviceOrKeyId, ed25519Ke
     }
 }
 
-export function createRoomEncryptionEvent() {
+export function createRoomEncryptionEvent(): UnsentStateEvent {
     return {
         "type": "m.room.encryption",
         "state_key": "",
@@ -75,16 +104,14 @@ export function createRoomEncryptionEvent() {
     }
 }
 
+export enum HistoryVisibility {
+    Joined = "joined",
+    Invited = "invited",
+    WorldReadable = "world_readable",
+    Shared = "shared",
+};
 
-// Use enum when converting to TS
-export const HistoryVisibility = Object.freeze({
-    Joined: "joined",
-    Invited: "invited",
-    WorldReadable: "world_readable",
-    Shared: "shared",
-});
-
-export function shouldShareKey(membership, historyVisibility) {
+export function shouldShareKey(membership: string, historyVisibility: HistoryVisibility) {
     switch (historyVisibility) {
         case HistoryVisibility.WorldReadable:
             return true;

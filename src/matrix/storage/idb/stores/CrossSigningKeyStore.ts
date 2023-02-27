@@ -16,15 +16,15 @@ limitations under the License.
 
 import {MAX_UNICODE, MIN_UNICODE} from "./common";
 import {Store} from "../Store";
+import type {SignedValue} from "../../../e2ee/common";
 
-// we store cross-signing keys in the format we get them from the server
-// as that is what the signature is calculated on, so to verify, we need
+// we store cross-signing (and device) keys in the format we get them from the server
+// as that is what the signature is calculated on, so to verify and sign, we need
 // it in this format anyway.
-export type CrossSigningKey = {
+export type CrossSigningKey = SignedValue & {
     readonly user_id: string;
     readonly usage: ReadonlyArray<string>;
     readonly keys: {[keyId: string]: string};
-    readonly signatures: {[userId: string]: {[keyId: string]: string}}
 }
 
 type CrossSigningKeyEntry = CrossSigningKey & {
