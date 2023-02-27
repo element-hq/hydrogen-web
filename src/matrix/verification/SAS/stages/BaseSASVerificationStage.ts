@@ -17,6 +17,7 @@ import type {ILogItem} from "../../../../lib.js";
 import type {Room} from "../../../room/Room.js";
 import type * as OlmNamespace from "@matrix-org/olm";
 import {Disposables} from "../../../../utils/Disposables";
+import {IChannel} from "../channel/Channel.js";
 
 type Olm = typeof OlmNamespace;
 
@@ -32,6 +33,7 @@ export type Options = {
     log: ILogItem;
     olmSas: Olm.SAS;
     olmUtil: Olm.Utility;
+    channel: IChannel;
 }
 
 export abstract class BaseSASVerificationStage extends Disposables {
@@ -44,6 +46,7 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected requestEventId: string;
     protected previousResult: undefined | any;
     protected _nextStage: BaseSASVerificationStage;
+    protected channel: IChannel;
 
     constructor(options: Options) {
         super();
@@ -53,6 +56,7 @@ export abstract class BaseSASVerificationStage extends Disposables {
         this.log = options.log;
         this.olmSAS = options.olmSas;
         this.olmUtil = options.olmUtil;
+        this.channel = options.channel;
     }
 
     setRequestEventId(id: string) {

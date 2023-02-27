@@ -344,7 +344,8 @@ export class Session {
                             hsApi: this._hsApi,
                             ownUserId: this.userId,
                             deviceId: this.deviceId,
-                            e2eeAccount: this._e2eeAccount
+                            e2eeAccount: this._e2eeAccount,
+                            deviceMessageHandler: this._deviceMessageHandler,
                         });
                         await log.wrap("enable cross-signing", log => {
                             return this._crossSigning.init(log);

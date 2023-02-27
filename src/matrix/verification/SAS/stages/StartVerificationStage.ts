@@ -21,14 +21,16 @@ export class StartVerificationStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
             const content = {
-                "body": `${this.ourUser.userId} is requesting to verify your device, but your client does not support verification, so you may need to use a different verification method.`,
+                // "body": `${this.ourUser.userId} is requesting to verify your device, but your client does not support verification, so you may need to use a different verification method.`,
                 "from_device": this.ourUser.deviceId,
                 "methods": ["m.sas.v1"],
-                "msgtype": "m.key.verification.request",
-                "to": this.otherUserId,
+                // "msgtype": "m.key.verification.request",
+                // "to": this.otherUserId,
             };
             const promise = this.trackEventId();
-            await this.room.sendEvent("m.room.message", content, null, log);
+           // await this.room.sendEvent("m.room.message", content, null, log);
+            await this.channel.send("m.key.verification.request", content, log);
+            const c = await this.channel.waitForEvent("m.key.verification.ready");
             const eventId = await promise;
             console.log("eventId", eventId);
             this.setRequestEventId(eventId);

@@ -26,6 +26,8 @@ import { ILogItem } from "../../lib";
 import {pkSign} from "./common";
 import type {ISignatures} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
+import {ToDeviceChannel} from "./SAS/channel/Channel";
+import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 
 type Olm = typeof OlmNamespace;
 
@@ -39,6 +41,7 @@ export class CrossSigning {
     private readonly hsApi: HomeServerApi;
     private readonly ownUserId: string;
     private readonly e2eeAccount: Account;
+    private readonly deviceMessageHandler: DeviceMessageHandler;
     private _isMasterKeyTrusted: boolean = false;
     private readonly deviceId: string;
 
@@ -52,7 +55,8 @@ export class CrossSigning {
         ownUserId: string,
         deviceId: string,
         hsApi: HomeServerApi,
-        e2eeAccount: Account
+        e2eeAccount: Account,
+        deviceMessageHandler: DeviceMessageHandler,
     }) {
         this.storage = options.storage;
         this.secretStorage = options.secretStorage;
@@ -64,6 +68,7 @@ export class CrossSigning {
         this.ownUserId = options.ownUserId;
         this.deviceId = options.deviceId;
         this.e2eeAccount = options.e2eeAccount
+        this.deviceMessageHandler = options.deviceMessageHandler;
     }
 
     async init(log: ILogItem) {
@@ -118,7 +123,23 @@ export class CrossSigning {
     }
 
     startVerification(room: Room, userId: string, log: ILogItem): SASVerification {
-        return new SASVerification(room, this.olm, this.olmUtil, { userId: this.ownUserId, deviceId: this.deviceId }, userId, log);
+        const channel = new ToDeviceChannel({
+            deviceTracker: this.deviceTracker,
+            hsApi: this.hsApi,
+            otherUserId: userId,
+            platform: this.platform,
+            deviceMessageHandler: this.deviceMessageHandler,
+        });
+        return new SASVerification({
+            room,
+            platform: this.platform,
+            olm: this.olm,
+            olmUtil: this.olmUtil,
+            ourUser: { userId: this.ownUserId, deviceId: this.deviceId },
+            otherUserId: userId,
+            log,
+            channel
+        });
     }
 }
 

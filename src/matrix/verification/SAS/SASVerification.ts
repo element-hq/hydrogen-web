@@ -19,20 +19,35 @@ import {AcceptVerificationStage} from "./stages/AcceptVerificationStage";
 import {SendKeyStage} from "./stages/SendKeyStage";
 import type {ILogItem} from "../../../logging/types";
 import type {Room} from "../../room/Room.js";
+import type {Platform} from "../../../platform/web/Platform.js";
 import type {BaseSASVerificationStage, UserData} from "./stages/BaseSASVerificationStage";
 import type * as OlmNamespace from "@matrix-org/olm";
+import {IChannel} from "./channel/Channel";
 
 type Olm = typeof OlmNamespace;
+
+type Options = {
+    room: Room;
+    platform: Platform;
+    olm: Olm;
+    olmUtil: Olm.Utility;
+    ourUser: UserData;
+    otherUserId: string;
+    channel: IChannel;
+    log: ILogItem;
+}
 
 export class SASVerification {
     private startStage: BaseSASVerificationStage;
     private olmSas: Olm.SAS;
    
-    constructor(private room: Room, private olm: Olm, private olmUtil: Olm.Utility, private ourUser: UserData, otherUserId: string, log: ILogItem) {
+    constructor(options: Options) {
+        const { room, ourUser, otherUserId, log, olmUtil, olm, channel } = options;
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
+        // channel.send("m.key.verification.request", {}, log);
         try {
-            const options = { room, ourUser, otherUserId, log, olmSas, olmUtil };
+            const options = { room, ourUser, otherUserId, log, olmSas, olmUtil, channel };
             let stage: BaseSASVerificationStage = new StartVerificationStage(options);
             this.startStage = stage;
         
