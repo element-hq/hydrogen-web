@@ -24,6 +24,7 @@ import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
 import {IDBLogPersister} from "../../logging/IDBLogPersister";
 import {ConsoleReporter} from "../../logging/ConsoleReporter";
 import {Logger} from "../../logging/Logger";
+import {OTELLogger} from "../../logging/OTELLogger";
 import {RootView} from "./ui/RootView.js";
 import {Clock} from "./dom/Clock.js";
 import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
@@ -43,6 +44,14 @@ import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
 import {ThemeLoader} from "./theming/ThemeLoader";
 import {TimeFormatter} from "./dom/TimeFormatter";
+
+import { browserDetector } from '@opentelemetry/opentelemetry-browser-detector';
+import { Resource, detectResources } from '@opentelemetry/resources';
+import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { WebTracerProvider } from '@opentelemetry/sdk-trace-web';
+import { JaegerPropagator } from "@opentelemetry/propagator-jaeger";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -176,6 +185,17 @@ export class Platform {
     }
 
     async init() {
+        const resource = new Resource({
+            [SemanticResourceAttributes.SERVICE_NAME]: 'hydrogen-web',
+        });
+        const detectedResources = await detectResources({ detectors: [browserDetector] });
+
+        const provider = new WebTracerProvider({ 
+            resource: resource.merge(detectedResources),
+        });
+        provider.addSpanProcessor(new BatchSpanProcessor(new OTLPTraceExporter()));
+        provider.register({ propagator: new JaegerPropagator() });
+
         try {
             await this.logger.run("Platform init", async (log) => {
                 if (!this._config) {
@@ -209,7 +229,12 @@ export class Platform {
     }
 
     _createLogger(isDevelopment) {
+        const logger = new OTELLogger({clock: this.clock});
+        return logger;
+
+        /*
         const logger = new Logger({platform: this});
+
         // Make sure that loginToken does not end up in the logs
         const transformer = (item) => {
             if (item.e?.stack) {
@@ -223,6 +248,7 @@ export class Platform {
             logger.addReporter(new ConsoleReporter());
         }
         return logger;
+            */
     }
 
     get updateService() {

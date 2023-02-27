@@ -86,6 +86,7 @@ export class HomeServerApi {
             uploadProgress: options?.uploadProgress,
             format: "json",  // response format
             cache: method !== "GET",
+            log: options?.log,
         });
 
         const hsRequest = new HomeServerRequest(method, url, requestResult, options);
