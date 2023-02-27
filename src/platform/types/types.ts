@@ -16,6 +16,7 @@ limitations under the License.
 
 import type {RequestResult} from "../web/dom/request/fetch.js";
 import type {RequestBody} from "../../matrix/net/common";
+import type {ILogItem} from "../../logging/types.js";
 
 export interface IRequestOptions {
     uploadProgress?: (loadedBytes: number) => void;
@@ -25,6 +26,7 @@ export interface IRequestOptions {
     cache?: boolean;
     method?: string;
     format?: string;
+    log?: ILogItem;
 }
 
 export type RequestFunction = (url: string, options: IRequestOptions) => RequestResult;

@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { OTELLogItem } from "../../../../logging/OTELLogger";
 import {
     AbortError,
     ConnectionError
@@ -99,13 +100,20 @@ export function createFetchRequest(createTimeout, serviceWorkerHandler) {
             // cache: "no-store",
             cache: "default",
         });
+
+        const fetchHeaders = new Headers();
         if (headers) {
-            const fetchHeaders = new Headers();
             for(const [name, value] of headers.entries()) {
                 fetchHeaders.append(name, value);
             }
-            options.headers = fetchHeaders;
         }
+
+        if (requestOptions?.log?.injectHeaders) {
+            requestOptions.log.injectHeaders(fetchHeaders);
+        }
+
+        options.headers = fetchHeaders;
+
         const promise = fetch(url, options).then(async response => {
             const {status} = response;
             let body;
