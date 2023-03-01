@@ -15,30 +15,18 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import anotherjson from "another-json";
-
-// From element-web
-type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
-type MacMethod = "hkdf-hmac-sha256.v2" | "org.matrix.msc3783.hkdf-hmac-sha256" | "hkdf-hmac-sha256" | "hmac-sha256";
-
-const KEY_AGREEMENT_LIST: KeyAgreement[] = ["curve25519-hkdf-sha256", "curve25519"];
-const HASHES_LIST = ["sha256"];
-const MAC_LIST: MacMethod[] = [
-    "hkdf-hmac-sha256.v2",
-    "org.matrix.msc3783.hkdf-hmac-sha256",
-    "hkdf-hmac-sha256",
-    "hmac-sha256",
-];
-const SAS_LIST = ["decimal", "emoji"];
-const SAS_SET = new Set(SAS_LIST);
-
-export class AcceptVerificationStage extends BaseSASVerificationStage {
+import type { KeyAgreement, MacMethod } from "./constants";
+import {HASHES_LIST, MAC_LIST, SAS_SET, KEY_AGREEMENT_LIST} from "./constants";
+import { VerificationEventTypes } from "../channel/types";
+import { SendKeyStage } from "./SendKeyStage";
+export class SendAcceptVerificationStage extends BaseSASVerificationStage {
 
     async completeStage() {
-        await this.log.wrap("AcceptVerificationStage.completeStage", async (log) => {
-            const event = this.previousResult["m.key.verification.start"];
+        await this.log.wrap("SAcceptVerificationStage.completeStage", async (log) => {
+            const event = this.channel.startMessage;
             const content = {
                 ...event.content,
-                "m.relates_to": event.relation,
+                // "m.relates_to": event.relation,
             };
             console.log("content from event", content);
             const keyAgreement = intersection(KEY_AGREEMENT_LIST, new Set(content.key_agreement_protocols))[0];
@@ -63,12 +51,16 @@ export class AcceptVerificationStage extends BaseSASVerificationStage {
                     rel_type: "m.reference",
                 }
             };
-            await this.room.sendEvent("m.key.verification.accept", contentToSend, null, log);
-            this.nextStage?.setResultFromPreviousStage({
-                ...this.previousResult,
-                [this.type]: contentToSend,
-                "our_pub_key": ourPubKey, 
-            });
+            // await this.room.sendEvent("m.key.verification.accept", contentToSend, null, log);
+            await this.channel.send(VerificationEventTypes.Accept, contentToSend, log);
+            this.channel.localMessages.set("our_pub_key", ourPubKey);
+            await this.channel.waitForEvent(VerificationEventTypes.Key);
+            this._nextStage = new SendKeyStage(this.options);
+            // this.nextStage?.setResultFromPreviousStage({
+            //     ...this.previousResult,
+            //     [this.type]: contentToSend,
+            //     "our_pub_key": ourPubKey, 
+            // });
             this.dispose();
         });
     }

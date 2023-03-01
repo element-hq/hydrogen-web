@@ -129,6 +129,7 @@ export class CrossSigning {
             otherUserId: userId,
             platform: this.platform,
             deviceMessageHandler: this.deviceMessageHandler,
+            log
         });
         return new SASVerification({
             room,

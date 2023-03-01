@@ -20,21 +20,38 @@ import type {ILogItem} from "../../../../logging/types";
 import type {Platform} from "../../../../platform/web/Platform.js";
 import type {DeviceMessageHandler} from "../../../DeviceMessageHandler.js";
 import {makeTxnId} from "../../../common.js";
+import {CancelTypes, VerificationEventTypes} from "./types";
+
+const messageFromErrorType = {
+    [CancelTypes.UserCancelled]: "User cancelled this request.",
+    [CancelTypes.InvalidMessage]: "Invalid Message.",
+    [CancelTypes.KeyMismatch]: "Key Mismatch.",
+    [CancelTypes.OtherUserAccepted]: "Another device has accepted this request.",
+    [CancelTypes.TimedOut]: "Timed Out",
+    [CancelTypes.UnexpectedMessage]: "Unexpected Message.",
+    [CancelTypes.UnknownMethod]: "Unknown method.",
+    [CancelTypes.UnknownTransaction]: "Unknown Transaction.",
+    [CancelTypes.UserMismatch]: "User Mismatch",
+}
 
 const enum ChannelType {
     MessageEvent,
     ToDeviceMessage,
 }
 
-const enum VerificationEventTypes {
-    Request = "m.key.verification.request",
-    Ready = "m.key.verification.ready",
-}
-
 export interface IChannel {
     send(eventType: string, content: any, log: ILogItem): Promise<void>;
-    waitForEvent(eventType: string): any;
+    waitForEvent(eventType: string): Promise<any>;
     type: ChannelType;
+    id: string;
+    sentMessages: Map<string, any>;
+    receivedMessages: Map<string, any>;
+    localMessages: Map<string, any>;
+    setStartMessage(content: any): void;
+    setInitiatedByUs(value: boolean): void;
+    initiatedByUs: boolean;
+    startMessage: any;
+    cancelVerification(cancellationType: CancelTypes): Promise<void>;
 } 
 
 type Options = {
@@ -43,6 +60,7 @@ type Options = {
     otherUserId: string;
     platform: Platform;
     deviceMessageHandler: DeviceMessageHandler;
+    log: ILogItem;
 }
 
 export class ToDeviceChannel implements IChannel {
@@ -51,15 +69,22 @@ export class ToDeviceChannel implements IChannel {
     private readonly otherUserId: string;
     private readonly platform: Platform;
     private readonly deviceMessageHandler: DeviceMessageHandler;
-    private readonly sentMessages: Map<string, any> = new Map();
-    private readonly receivedMessages: Map<string, any> = new Map();
+    public readonly sentMessages: Map<string, any> = new Map();
+    public readonly receivedMessages: Map<string, any> = new Map();
+    public readonly localMessages: Map<string, any> = new Map();
     private readonly waitMap: Map<string, {resolve: any, promise: Promise<any>}> = new Map();
+    private readonly log: ILogItem;
+    private otherUserDeviceId: string;
+    public startMessage: any;
+    public id: string;
+    private _initiatedByUs: boolean;
 
     constructor(options: Options) {
         this.hsApi = options.hsApi;
         this.deviceTracker = options.deviceTracker;
         this.otherUserId = options.otherUserId;
         this.platform = options.platform;
+        this.log = options.log;
         this.deviceMessageHandler = options.deviceMessageHandler;
         // todo: find a way to dispose this subscription
         this.deviceMessageHandler.on("message", ({unencrypted}) => this.handleDeviceMessage(unencrypted))
@@ -74,17 +99,28 @@ export class ToDeviceChannel implements IChannel {
             if (eventType === VerificationEventTypes.Request) {
                 // Handle this case specially
                 await this.handleRequestEventSpecially(eventType, content, log);
+                this.sentMessages.set(eventType, content);
                 return;
             }
+            Object.assign(content, { transaction_id: this.id });
+            const payload = {
+                messages: {
+                    [this.otherUserId]: {
+                        // check if the following is undefined?
+                        [this.otherUserDeviceId]: content
+                    }
+                }
+            }
+            await this.hsApi.sendToDevice(eventType, payload, this.id, { log }).response();
+            this.sentMessages.set(eventType, content);
         });
     }
 
     async handleRequestEventSpecially(eventType: string, content: any, log: ILogItem) {
         await log.wrap("ToDeviceChannel.handleRequestEventSpecially", async () => {
-            const devices = await this.deviceTracker.devicesForUsers([this.otherUserId], this.hsApi, log);
-            console.log("devices", devices);
             const timestamp = this.platform.clock.now();
             const txnId = makeTxnId();
+            this.id = txnId;
             Object.assign(content, { timestamp, transaction_id: txnId });
             const payload = {
                 messages: {
@@ -93,14 +129,64 @@ export class ToDeviceChannel implements IChannel {
                     }
                 }
             }
-            this.hsApi.sendToDevice(eventType, payload, txnId, { log });
+            await this.hsApi.sendToDevice(eventType, payload, txnId, { log }).response();
         });
     }
 
-    handleDeviceMessage(event) {
-        console.log("event", event);
-        this.resolveAnyWaits(event);
-        this.receivedMessages.set(event.type, event);
+
+    private handleDeviceMessage(event) {
+        this.log.wrap("ToDeviceChannel.handleDeviceMessage", (log) => {
+            console.log("event", event);
+            log.set("event", event);
+            this.resolveAnyWaits(event);
+            this.receivedMessages.set(event.type, event);
+            if (event.type === VerificationEventTypes.Ready) {
+                this.handleReadyMessage(event, log);
+            }
+        });
+    }
+
+    private async handleReadyMessage(event, log: ILogItem) {
+        try {
+            const fromDevice = event.content.from_device;
+            this.otherUserDeviceId = fromDevice;
+            // We need to send cancel messages to all other devices
+            const devices = await this.deviceTracker.devicesForUsers([this.otherUserId], this.hsApi, log);
+            const otherDevices = devices.filter(device => device.deviceId !== fromDevice);
+            const cancelMessage = {
+                code: CancelTypes.OtherUserAccepted,
+                reason: "An user already accepted this request!",
+                transaction_id: this.id,
+            };
+            const deviceMessages = otherDevices.reduce((acc, device) => { acc[device.deviceId] = cancelMessage; return acc; }, {});
+            const payload = {
+                messages: {
+                    [this.otherUserId]: deviceMessages
+                }
+            }
+            await this.hsApi.sendToDevice(VerificationEventTypes.Cancel, payload, this.id, { log }).response();
+        }
+        catch (e) {
+            console.log(e);
+            // Do something here
+        }
+    } 
+
+    async cancelVerification(cancellationType: CancelTypes) {
+        await this.log.wrap("Channel.cancelVerification", async log => {
+            const payload = {
+                messages: {
+                    [this.otherUserId]: {
+                        [this.otherUserDeviceId]: {
+                            code: cancellationType,
+                            reason: messageFromErrorType[cancellationType],
+                            transaction_id: this.id,
+                        }
+                    }
+                }
+            }
+            await this.hsApi.sendToDevice(VerificationEventTypes.Cancel, payload, this.id, { log }).response();
+        });
     }
 
     private resolveAnyWaits(event) {
@@ -113,15 +199,34 @@ export class ToDeviceChannel implements IChannel {
     }
 
     waitForEvent(eventType: string): Promise<any> {
+        // Check if we already received the message
+        const receivedMessage = this.receivedMessages.get(eventType);
+        if (receivedMessage) {
+            return Promise.resolve(receivedMessage);
+        }
+        // Check if we're already waiting for this message
         const existingWait = this.waitMap.get(eventType);
         if (existingWait) {
             return existingWait.promise;
         }
         let resolve;
+        // Add to wait map
         const promise = new Promise(r => {
             resolve = r;
         });
         this.waitMap.set(eventType, { resolve, promise });
         return promise;
     }
+
+    setStartMessage(event) {
+        this.startMessage = event;
+    }
+
+    setInitiatedByUs(value: boolean): void {
+        this._initiatedByUs = value;
+    }
+
+    get initiatedByUs(): boolean {
+        return this._initiatedByUs;
+    };
 } 

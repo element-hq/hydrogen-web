@@ -16,6 +16,7 @@ limitations under the License.
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {generateEmojiSas} from "../generator";
 import {ILogItem} from "../../../../lib";
+import { VerificationEventTypes } from "../channel/types";
 
 // From element-web
 type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
@@ -41,31 +42,30 @@ type SASUserInfo = {
 type SASUserInfoCollection = {
     our: SASUserInfo;
     their: SASUserInfo;
-    requestId: string;
+    id: string;
+    initiatedByMe: boolean;
 };
 
 const calculateKeyAgreement = {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     "curve25519-hkdf-sha256": function (sas: SASUserInfoCollection, olmSAS: Olm.SAS, bytes: number): Uint8Array {
-        console.log("sas.requestId", sas.requestId);
+        console.log("sas.requestId", sas.id);
         const ourInfo = `${sas.our.userId}|${sas.our.deviceId}|` + `${sas.our.publicKey}|`;
         const theirInfo = `${sas.their.userId}|${sas.their.deviceId}|${sas.their.publicKey}|`;
         console.log("ourInfo", ourInfo);
         console.log("theirInfo", theirInfo);
-        const initiatedByMe = false;
         const sasInfo =
             "MATRIX_KEY_VERIFICATION_SAS|" +
-            (initiatedByMe ? ourInfo + theirInfo : theirInfo + ourInfo) + sas.requestId;
+            (sas.initiatedByMe ? ourInfo + theirInfo : theirInfo + ourInfo) + sas.id;
         console.log("sasInfo", sasInfo);
         return olmSAS.generate_bytes(sasInfo, bytes);
     },
     "curve25519": function (sas: SASUserInfoCollection, olmSAS: Olm.SAS, bytes: number): Uint8Array {
         const ourInfo = `${sas.our.userId}${sas.our.deviceId}`;
         const theirInfo = `${sas.their.userId}${sas.their.deviceId}`;
-        const initiatedByMe = false;
         const sasInfo =
             "MATRIX_KEY_VERIFICATION_SAS" +
-            (initiatedByMe ? ourInfo + theirInfo : theirInfo + ourInfo) + sas.requestId;
+            (sas.initiatedByMe ? ourInfo + theirInfo : theirInfo + ourInfo) + sas.id;
         return olmSAS.generate_bytes(sasInfo, bytes);
     },
 } as const;
@@ -87,17 +87,18 @@ export class SendKeyStage extends BaseSASVerificationStage {
     private async sendKey(key: string, log: ILogItem): Promise<void> {
         const contentToSend = {
             key,
-            "m.relates_to": {
-                event_id: this.requestEventId,
-                rel_type: "m.reference",
-            },
+            // "m.relates_to": {
+            //     event_id: this.requestEventId,
+            //     rel_type: "m.reference",
+            // },
         };
-        await this.room.sendEvent("m.key.verification.key", contentToSend, null, log);
+        await this.channel.send(VerificationEventTypes.Key, contentToSend, log);
+        // await this.room.sendEvent("m.key.verification.key", contentToSend, null, log);
     }
 
     private generateSASBytes(): Uint8Array {
-        const keyAgreement = this.previousResult["m.key.verification.accept"].key_agreement_protocol;
-        const otherUserDeviceId = this.previousResult["m.key.verification.start"].content.from_device;
+        const keyAgreement = this.channel.sentMessages.get(VerificationEventTypes.Accept).key_agreement_protocol;
+        const otherUserDeviceId = this.channel.startMessage.content.from_device;
         const sasBytes = calculateKeyAgreement[keyAgreement]({
             our: {
                 userId: this.ourUser.userId,
@@ -109,7 +110,8 @@ export class SendKeyStage extends BaseSASVerificationStage {
                 deviceId: otherUserDeviceId,
                 publicKey: this.theirKey,
             },
-            requestId: this.requestEventId,
+            id: this.channel.id,
+            initiatedByMe: this.channel.initiatedByUs,
         }, this.olmSAS, 6);
         return sasBytes;
     }
@@ -119,7 +121,8 @@ export class SendKeyStage extends BaseSASVerificationStage {
     }
 
     get theirKey(): string {
-        return this.previousResult["m.key.verification.key"].content.key;
+        const { content } = this.channel.receivedMessages.get(VerificationEventTypes.Key);
+        return content.key;
     }
 }
 

@@ -13,10 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {StartVerificationStage} from "./stages/StartVerificationStage";
-import {WaitForIncomingMessageStage} from "./stages/WaitForIncomingMessageStage";
-import {AcceptVerificationStage} from "./stages/AcceptVerificationStage";
-import {SendKeyStage} from "./stages/SendKeyStage";
+import {RequestVerificationStage} from "./stages/RequestVerificationStage";
 import type {ILogItem} from "../../../logging/types";
 import type {Room} from "../../room/Room.js";
 import type {Platform} from "../../../platform/web/Platform.js";
@@ -48,23 +45,23 @@ export class SASVerification {
         // channel.send("m.key.verification.request", {}, log);
         try {
             const options = { room, ourUser, otherUserId, log, olmSas, olmUtil, channel };
-            let stage: BaseSASVerificationStage = new StartVerificationStage(options);
+            let stage: BaseSASVerificationStage = new RequestVerificationStage(options);
             this.startStage = stage;
         
-            stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.ready", options));
-            stage = stage.nextStage;
+            // stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.ready", options));
+            // stage = stage.nextStage;
 
-            stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.start", options));
-            stage = stage.nextStage;
+            // stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.start", options));
+            // stage = stage.nextStage;
 
-            stage.setNextStage(new AcceptVerificationStage(options));
-            stage = stage.nextStage;
+            // stage.setNextStage(new AcceptVerificationStage(options));
+            // stage = stage.nextStage;
 
-            stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.key", options));
-            stage = stage.nextStage;
+            // stage.setNextStage(new WaitForIncomingMessageStage("m.key.verification.key", options));
+            // stage = stage.nextStage;
 
-            stage.setNextStage(new SendKeyStage(options));
-            stage = stage.nextStage;
+            // stage.setNextStage(new SendKeyStage(options));
+            // stage = stage.nextStage;
             console.log("startStage", this.startStage);
         }
         finally {

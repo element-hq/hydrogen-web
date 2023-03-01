@@ -15,8 +15,10 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
+import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
+import {VerificationEventTypes} from "../channel/types";
 
-export class StartVerificationStage extends BaseSASVerificationStage {
+export class RequestVerificationStage extends BaseSASVerificationStage {
 
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
@@ -27,13 +29,14 @@ export class StartVerificationStage extends BaseSASVerificationStage {
                 // "msgtype": "m.key.verification.request",
                 // "to": this.otherUserId,
             };
-            const promise = this.trackEventId();
+            // const promise = this.trackEventId();
            // await this.room.sendEvent("m.room.message", content, null, log);
-            await this.channel.send("m.key.verification.request", content, log);
-            const c = await this.channel.waitForEvent("m.key.verification.ready");
-            const eventId = await promise;
-            console.log("eventId", eventId);
-            this.setRequestEventId(eventId);
+            await this.channel.send(VerificationEventTypes.Request, content, log);
+            this._nextStage = new SelectVerificationMethodStage(this.options);
+            const readyContent = await this.channel.waitForEvent("m.key.verification.ready");
+            // const eventId = await promise;
+            // console.log("eventId", eventId);
+            // this.setRequestEventId(eventId);
             this.dispose();
         });
     }

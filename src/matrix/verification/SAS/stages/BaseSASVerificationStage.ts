@@ -47,9 +47,11 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected previousResult: undefined | any;
     protected _nextStage: BaseSASVerificationStage;
     protected channel: IChannel;
+    protected options: Options;
 
     constructor(options: Options) {
         super();
+        this.options = options;
         this.room = options.room;
         this.ourUser = options.ourUser;
         this.otherUserId = options.otherUserId;
