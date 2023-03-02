@@ -18,7 +18,8 @@ import {MAX_UNICODE, MIN_UNICODE} from "./common";
 import {Store} from "../Store";
 import type {CrossSigningKey} from "../../../verification/CrossSigning";
 
-type CrossSigningKeyEntry = CrossSigningKey & {
+type CrossSigningKeyEntry = {
+    crossSigningKey: CrossSigningKey
     key: string; // key in storage, not a crypto key
 }
 
@@ -38,14 +39,15 @@ export class CrossSigningKeyStore {
         this._store = store;
     }
 
-    get(userId: string, deviceId: string): Promise<CrossSigningKey | undefined> {
-        return this._store.get(encodeKey(userId, deviceId));
+    async get(userId: string, deviceId: string): Promise<CrossSigningKey | undefined> {
+        return (await this._store.get(encodeKey(userId, deviceId)))?.crossSigningKey;
     }
 
     set(crossSigningKey: CrossSigningKey): void {
-        const deviceIdentityEntry = crossSigningKey as CrossSigningKeyEntry;
-        deviceIdentityEntry.key = encodeKey(crossSigningKey["user_id"], crossSigningKey.usage[0]);
-        this._store.put(deviceIdentityEntry);
+        this._store.put({
+            key:encodeKey(crossSigningKey["user_id"], crossSigningKey.usage[0]),
+            crossSigningKey
+        });
     }
 
     remove(userId: string, usage: string): void {
