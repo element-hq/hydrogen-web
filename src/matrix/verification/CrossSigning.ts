@@ -135,6 +135,10 @@ export class CrossSigning {
                 return;
             }
             // need to be able to get the msk for the user
+            // can't sign own user
+            if (userId === this.ownUserId) {
+                return;
+            }
             const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
             if (!keyToSign) {
                 return undefined;
