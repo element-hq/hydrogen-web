@@ -47,10 +47,10 @@ export class MemberDetailsView extends TemplateView {
         ];
         if (vm.features.crossSigning) {
             const onClick = () => {
-                    if (confirm("You don't want to do this with any account but a test account. This will cross-sign this user without verifying their keys first. You won't be able to undo this apart from resetting your cross-signing keys.")) {
-                        vm.signUser();
-                    }
+                if (confirm("You don't want to do this with any account but a test account. This will cross-sign this user without verifying their keys first. You won't be able to undo this apart from resetting your cross-signing keys.")) {
+                    vm.signUser();
                 }
+            };
             options.push(t.button({className: "text", onClick}, vm.i18n`Cross-sign user (DO NOT USE, TESTING ONLY)`))
         }
         return t.div({ className: "MemberDetailsView_section" },
