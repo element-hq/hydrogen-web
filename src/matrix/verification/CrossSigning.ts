@@ -117,7 +117,6 @@ export class CrossSigning {
                 log.set("mskNotTrusted", true);
                 return;
             }
-            // need to be able to get the msk for the user
             const keyToSign = await this.deviceTracker.deviceForId(this.ownUserId, deviceId, this.hsApi, log);
             if (!keyToSign) {
                 return undefined;
@@ -135,7 +134,6 @@ export class CrossSigning {
                 log.set("mskNotTrusted", true);
                 return;
             }
-            // need to be able to get the msk for the user
             // can't sign own user
             if (userId === this.ownUserId) {
                 return;
