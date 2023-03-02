@@ -7,6 +7,8 @@ From the user's perspective, this results in Hydrogen going back to the session 
 
 In this document, we propose a solution to address this limitation, making it possible to have the same session simultaneously open in multiple Hydrogen instances, while maintaining a fully-featured experience for the user.
 
+We would be making the changes behind a feature flag, which would allows us to spread the implementation across multiple PRs, and iterate on the feature until we're confident that it's stable.
+
 This proposal would also pave the way for having simultaneous ongoing syncs for multiple sessions (i.e. multiple accounts) in the future, though that's not a use case we would focus on at this point.
 
 ## Offload sync to worker
@@ -16,8 +18,6 @@ The general idea would be to have sync running in a [Web Worker](https://develop
 Since we don't want to tie the lifetime of the sync worker to a specific tab/window (we want the sync to happen for as long as there's at least one instance with that session open), the sync worker would be *owned* by the service worker. Note that this doesn't mean that the service worker would run the sync, but that it would spawn another worker dedicated to the sync.
 
 The UI thread would communicate with the sync worker through messages, possibly leveraging [`BroadcastChannel`](https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel).
-
-We would be making the changes behind a feature flag, which would allows us to spread the implementation across multiple PRs, and iterate on the feature until we're confident that it's stable.
 
 ## `SyncProxy` (UI side)
 
