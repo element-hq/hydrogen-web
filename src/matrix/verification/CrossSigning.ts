@@ -145,7 +145,7 @@ export class CrossSigning {
             }
             const signingKey = await this.getSigningKey(KeyUsage.UserSigning);
             // add signature to keyToSign
-            pkSign(this.olm, keyToSign, signingKey, userId, "");
+            pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
             const payload = {
                 [keyToSign.user_id]: {
                     [getKeyEd25519Key(keyToSign)!]: keyToSign
