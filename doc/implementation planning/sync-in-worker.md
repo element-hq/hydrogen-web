@@ -19,6 +19,19 @@ Since we don't want to tie the lifetime of the sync worker to a specific tab/win
 
 The UI thread would communicate with the sync worker through messages, possibly leveraging [`BroadcastChannel`](https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel).
 
+## Worker lifetime
+
+The sync worker must be active for as long as there's at least one tab/window/iframe with the session open. This means the sync worker must not be owned by a specific tab/window/iframe, since otherwise it would cease to run when its owner would be closed.
+
+There would be two strategies to address this:
+
+1. The sync worker is a [dedicated worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#dedicated_workers) and is spawned by the service worker. The sync worker would remain active for as long as the service worker is active. Since the service worker is always active, the sync worker would be guaranteed to be running at all times.
+2. The sync worker is a [`SharedWorker`](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#shared_workers) and is spawned by the first window/tab/iframe that creates an instance of it. Subsequent attempts to spawn the worker will return the already running instance. The sync worker would cease to run when all windows/tabs/iframes are closed.
+
+Since it must continue to be possible to run Hydrogen without a service worker, 1. is excluded, which leaves us with 2.: **sync worker is a `SharedWorker`**.
+
+At time of writing, `SharedWorkers` are still not available on many mobile environments (e.g. Chrome for Android), but it's fair to assume support for it will be coming in the (near?) future. Whenever `SharedWorkers` are not available, we would fallback to non-worker sync.
+
 ## `SyncProxy` (UI side)
 
 `SyncProxy` would be the equivalent of `Sync` but would be a thin layer that *proxies* method calls to the worker, something like the following:
