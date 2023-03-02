@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM} from "./common.js";
+import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM} from "./common";
 import {HistoryVisibility, shouldShareKey, DeviceKey, getDeviceEd25519Key, getDeviceCurve25519Key} from "./common";
 import {RoomMember} from "../room/members/RoomMember.js";
 import {getKeyUsage, getKeyEd25519Key, getKeyUserId, KeyUsage} from "../verification/CrossSigning";

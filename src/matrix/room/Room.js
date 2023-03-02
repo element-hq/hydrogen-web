@@ -22,7 +22,7 @@ import {SendQueue} from "./sending/SendQueue.js";
 import {WrappedError} from "../error.js"
 import {Heroes} from "./members/Heroes.js";
 import {AttachmentUpload} from "./AttachmentUpload.js";
-import {DecryptionSource} from "../e2ee/common.js";
+import {DecryptionSource} from "../e2ee/common";
 import {iterateResponseStateEvents} from "./common";
 import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
 

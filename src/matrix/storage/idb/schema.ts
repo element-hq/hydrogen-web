@@ -2,7 +2,7 @@ import {IDOMStorage} from "./types";
 import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
-import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
+import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
 import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";

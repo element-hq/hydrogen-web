@@ -26,7 +26,7 @@ import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
-import {DecryptionSource} from "../e2ee/common.js";
+import {DecryptionSource} from "../e2ee/common";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
 import {RetainedObservableValue} from "../../observable/value";

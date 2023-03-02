@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {groupByWithCreator} from "../../../utils/groupBy";
-import {verifyEd25519Signature, OLM_ALGORITHM, getDeviceCurve25519Key, getDeviceEd25519Key} from "../common.js";
+import {verifyEd25519Signature, OLM_ALGORITHM, getDeviceCurve25519Key, getDeviceEd25519Key} from "../common";
 import {createSessionEntry} from "./Session";
 
 import type {OlmMessage, OlmPayload, OlmEncryptedMessageContent} from "./types";
