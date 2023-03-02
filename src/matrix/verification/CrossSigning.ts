@@ -14,18 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { ILogItem } from "../../lib";
+import {pkSign} from "./common";
+
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
 import type {Platform} from "../../platform/web/Platform";
 import type {DeviceTracker} from "../e2ee/DeviceTracker";
-import type * as OlmNamespace from "@matrix-org/olm";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
-import { ILogItem } from "../../lib";
-import {pkSign} from "./common";
-import type {ISignatures} from "./common";
-
+import type {SignedValue, DeviceKey} from "../e2ee/common";
+import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
+
+// we store cross-signing (and device) keys in the format we get them from the server
+// as that is what the signature is calculated on, so to verify and sign, we need
+// it in this format anyway.
+export type CrossSigningKey = SignedValue & {
+    readonly user_id: string;
+    readonly usage: ReadonlyArray<string>;
+    readonly keys: {[keyId: string]: string};
+}
 
 export enum KeyUsage {
     Master = "master",
@@ -68,63 +77,108 @@ export class CrossSigning {
         log.wrap("CrossSigning.init", async log => {
             // TODO: use errorboundary here
             const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
-            
-            const mskSeed = await this.secretStorage.readSecret("m.cross_signing.master", txn);
+            const privateMasterKey = await this.getSigningKey(KeyUsage.Master);
             const signing = new this.olm.PkSigning();
             let derivedPublicKey;
             try {
-                const seed = new Uint8Array(this.platform.encoding.base64.decode(mskSeed));
-                derivedPublicKey = signing.init_with_seed(seed);    
+                derivedPublicKey = signing.init_with_seed(privateMasterKey);    
             } finally {
                 signing.free();
             }
-            const masterKey = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log);
-            log.set({publishedMasterKey: masterKey, derivedPublicKey});
-            this._isMasterKeyTrusted = masterKey === derivedPublicKey;
+            const publishedMasterKey = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log);
+            const publisedEd25519Key = publishedMasterKey && getKeyEd25519Key(publishedMasterKey);
+            log.set({publishedMasterKey: publisedEd25519Key, derivedPublicKey});
+            this._isMasterKeyTrusted = !!publisedEd25519Key && publisedEd25519Key === derivedPublicKey;
             log.set("isMasterKeyTrusted", this.isMasterKeyTrusted);
         });
-    }
-
-    async signOwnDevice(log: ILogItem) {
-        log.wrap("CrossSigning.signOwnDevice", async log => {
-            if (!this._isMasterKeyTrusted) {
-                log.set("mskNotTrusted", true);
-                return;
-            }
-            const deviceKey = this.e2eeAccount.getDeviceKeysToSignWithCrossSigning();
-            const signedDeviceKey = await this.signDeviceData(deviceKey);
-            const payload = {
-                [signedDeviceKey["user_id"]]: {
-                    [signedDeviceKey["device_id"]]: signedDeviceKey
-                }
-            };
-            const request = this.hsApi.uploadSignatures(payload, {log});
-            await request.response();
-        });
-    }
-
-    signDevice(deviceId: string) {
-        // need to get the device key for the device
-    }
-
-    signUser(userId: string) {
-        // need to be able to get the msk for the user
-    }
-
-    private async signDeviceData<T extends object>(data: T): Promise<T & { signatures: ISignatures }> {
-        const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
-        const seedStr = await this.secretStorage.readSecret(`m.cross_signing.self_signing`, txn);
-        const seed = new Uint8Array(this.platform.encoding.base64.decode(seedStr));
-        pkSign(this.olm, data, seed, this.ownUserId, "");
-        return data as T & { signatures: ISignatures };
     }
 
     get isMasterKeyTrusted(): boolean {
         return this._isMasterKeyTrusted;
     }
+
+    /** returns our own device key signed by our self-signing key. Other signatures will be missing. */
+    async signOwnDevice(log: ILogItem): Promise<DeviceKey | undefined> {
+        return log.wrap("CrossSigning.signOwnDevice", async log => {
+            if (!this._isMasterKeyTrusted) {
+                log.set("mskNotTrusted", true);
+                return;
+            }
+            const ownDeviceKey = this.e2eeAccount.getUnsignedDeviceKey() as DeviceKey;
+            return this.signDeviceKey(ownDeviceKey, log);
+        });
+    }
+
+    /** @return the signed device key for the given device id */
+    async signDevice(deviceId: string, log: ILogItem): Promise<DeviceKey | undefined> {
+        return log.wrap("CrossSigning.signDevice", async log => {
+            log.set("id", deviceId);
+            if (!this._isMasterKeyTrusted) {
+                log.set("mskNotTrusted", true);
+                return;
+            }
+            // need to be able to get the msk for the user
+            const keyToSign = await this.deviceTracker.deviceForId(this.ownUserId, deviceId, this.hsApi, log);
+            if (!keyToSign) {
+                return undefined;
+            }
+            return this.signDeviceKey(keyToSign, log);
+        });
+    }
+
+    /** @return the signed MSK for the given user id */
+    async signUser(userId: string, log: ILogItem): Promise<CrossSigningKey | undefined> {
+        return log.wrap("CrossSigning.signUser", async log => {
+            log.set("id", userId);
+            if (!this._isMasterKeyTrusted) {
+                log.set("mskNotTrusted", true);
+                return;
+            }
+            // need to be able to get the msk for the user
+            const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
+            if (!keyToSign) {
+                return undefined;
+            }
+            const signingKey = await this.getSigningKey(KeyUsage.UserSigning);
+            // add signature to keyToSign
+            pkSign(this.olm, keyToSign, signingKey, userId, "");
+            const payload = {
+                [keyToSign.user_id]: {
+                    [getKeyEd25519Key(keyToSign)!]: keyToSign
+                }
+            };
+            const request = this.hsApi.uploadSignatures(payload, {log});
+            await request.response();
+            return keyToSign;
+        });
+    }
+
+    private async signDeviceKey(keyToSign: DeviceKey, log: ILogItem): Promise<DeviceKey> {
+        const signingKey = await this.getSigningKey(KeyUsage.SelfSigning);
+        // add signature to keyToSign
+        pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
+        // so the payload format of a signature is a map from userid to key id of the signed key
+        // (without the algoritm prefix though according to example, e.g. just device id or base 64 public key)
+        // to the complete signed key with the signature of the signing key in the signatures section.
+        const payload = {
+            [keyToSign.user_id]: {
+                [keyToSign.device_id]: keyToSign
+            }
+        };
+        const request = this.hsApi.uploadSignatures(payload, {log});
+        await request.response();
+        return keyToSign;
+    }
+
+    private async getSigningKey(usage: KeyUsage): Promise<Uint8Array> {
+        const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
+        const seedStr = await this.secretStorage.readSecret(`m.cross_signing.${usage}`, txn);
+        const seed = new Uint8Array(this.platform.encoding.base64.decode(seedStr));
+        return seed;
+    }
 }
 
-export function getKeyUsage(keyInfo): KeyUsage | undefined {
+export function getKeyUsage(keyInfo: CrossSigningKey): KeyUsage | undefined {
     if (!Array.isArray(keyInfo.usage) || keyInfo.usage.length !== 1) {
         return undefined;
     }
@@ -138,7 +192,7 @@ export function getKeyUsage(keyInfo): KeyUsage | undefined {
 const algorithm = "ed25519";
 const prefix = `${algorithm}:`;
 
-export function getKeyEd25519Key(keyInfo): string | undefined {
+export function getKeyEd25519Key(keyInfo: CrossSigningKey): string | undefined {
     const ed25519KeyIds = Object.keys(keyInfo.keys).filter(keyId => keyId.startsWith(prefix));
     if (ed25519KeyIds.length !== 1) {
         return undefined;
@@ -148,6 +202,6 @@ export function getKeyEd25519Key(keyInfo): string | undefined {
     return publicKey;
 }
 
-export function getKeyUserId(keyInfo): string | undefined {
+export function getKeyUserId(keyInfo: CrossSigningKey): string | undefined {
     return keyInfo["user_id"];
 }

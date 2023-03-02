@@ -39,7 +39,7 @@ export class DecryptionError extends Error {
 export const SIGNATURE_ALGORITHM = "ed25519";
 
 export type SignedValue = {
-    signatures: {[userId: string]: {[keyId: string]: string}}
+    signatures?: {[userId: string]: {[keyId: string]: string}}
     unsigned?: object
 }
 
@@ -64,7 +64,7 @@ export function getDeviceCurve25519Key(deviceKey: DeviceKey): string {
     return deviceKey.keys[`curve25519:${deviceKey.device_id}`];
 }
 
-export function getEd25519Signature(signedValue: SignedValue, userId: string, deviceOrKeyId: string) {
+export function getEd25519Signature(signedValue: SignedValue, userId: string, deviceOrKeyId: string): string | undefined {
     return signedValue?.signatures?.[userId]?.[`${SIGNATURE_ALGORITHM}:${deviceOrKeyId}`];
 }
 

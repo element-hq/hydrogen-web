@@ -19,7 +19,7 @@ import {HistoryVisibility, shouldShareKey, DeviceKey, getDeviceEd25519Key, getDe
 import {RoomMember} from "../room/members/RoomMember.js";
 import {getKeyUsage, getKeyEd25519Key, getKeyUserId, KeyUsage} from "../verification/CrossSigning";
 import {MemberChange} from "../room/members/RoomMember";
-import type {CrossSigningKey} from "../storage/idb/stores/CrossSigningKeyStore";
+import type {CrossSigningKey} from "../verification/CrossSigning";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {ObservableMap} from "../../observable/map";
 import type {Room} from "../room/Room";
@@ -160,7 +160,7 @@ export class DeviceTracker {
         }
     }
 
-    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi, log: ILogItem) {
+    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return await log.wrap({l: "DeviceTracker.getCrossSigningKeyForUser", id: userId, usage}, async log => {
             let txn = await this._storage.readTxn([
                 this._storage.storeNames.userIdentities,
@@ -495,6 +495,7 @@ export class DeviceTracker {
     /** 
      * Can be used to decide which users to share keys with.
      * Assumes room is already tracked. Call `trackRoom` first if unsure.
+     * This will not return the device key for our own user, as we don't need to share keys with ourselves.
      */
     async devicesForRoomMembers(roomId: string, userIds: string[], hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey[]> {
         const txn = await this._storage.readTxn([
@@ -506,6 +507,7 @@ export class DeviceTracker {
     /** 
      * Cannot be used to decide which users to share keys with.
      * Does not assume membership to any room or whether any room is tracked.
+     * This will return device keys for our own user, including our own device.
      */
     async devicesForUsers(userIds: string[], hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey[]> {
         const txn = await this._storage.readTxn([
@@ -527,7 +529,7 @@ export class DeviceTracker {
         return this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
     }
 
-    /** gets a single device */
+    /** Gets a single device */
     async deviceForId(userId: string, deviceId: string, hsApi: HomeServerApi, log: ILogItem) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.deviceKeys,

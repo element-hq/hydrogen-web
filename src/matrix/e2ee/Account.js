@@ -259,7 +259,7 @@ export class Account {
         return obj;
     }
 
-    getDeviceKeysToSignWithCrossSigning() {
+    getUnsignedDeviceKey() {
         const identityKeys = JSON.parse(this._account.identity_keys());
         return this._keysAsSignableObject(identityKeys);
     }
