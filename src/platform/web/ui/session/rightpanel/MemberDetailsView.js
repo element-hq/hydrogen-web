@@ -41,14 +41,22 @@ export class MemberDetailsView extends TemplateView {
     }
 
     _createOptions(t, vm) {
+        const options = [
+            t.a({href: vm.linkToUser, target: "_blank", rel: "noopener"}, vm.i18n`Open Link to User`),
+            t.button({className: "text", onClick: () => vm.openDirectMessage()}, vm.i18n`Open direct message`)
+        ];
+        if (vm.features.crossSigning) {
+            const onClick = () => {
+                    if (confirm("You don't want to do this with any account but a test account. This will cross-sign this user without verifying their keys first. You won't be able to undo this apart from resetting your cross-signing keys.")) {
+                        vm.signUser();
+                    }
+                }
+            options.push(t.button({className: "text", onClick}, vm.i18n`Cross-sign user (DO NOT USE, TESTING ONLY)`))
+        }
         return t.div({ className: "MemberDetailsView_section" },
             [
                 t.div({className: "MemberDetailsView_label"}, vm.i18n`Options`),
-                t.div({className: "MemberDetailsView_options"},
-                    [
-                        t.a({href: vm.linkToUser, target: "_blank", rel: "noopener"}, vm.i18n`Open Link to User`),
-                        t.button({className: "text", onClick: () => vm.openDirectMessage()}, vm.i18n`Open direct message`)
-                    ])
+                t.div({className: "MemberDetailsView_options"}, options)
             ]);
     }
 }

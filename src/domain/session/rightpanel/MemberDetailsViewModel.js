@@ -54,6 +54,14 @@ export class MemberDetailsViewModel extends ViewModel {
         this.emitChange("role");
     }
 
+    async signUser() {
+        if (this._session.crossSigning) {
+            await this.logger.run("MemberDetailsViewModel.signUser", async log => {
+                await this._session.crossSigning.signUser(this.userId, log);
+            });
+        }
+    }
+
     get avatarLetter() {
         return avatarInitials(this.name);
     }
