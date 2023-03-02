@@ -122,6 +122,7 @@ export class CrossSigning {
             if (!keyToSign) {
                 return undefined;
             }
+            delete keyToSign.signatures;
             return this.signDeviceKey(keyToSign, log);
         });
     }
@@ -143,6 +144,7 @@ export class CrossSigning {
             if (!keyToSign) {
                 return undefined;
             }
+            delete keyToSign.signatures;
             const signingKey = await this.getSigningKey(KeyUsage.UserSigning);
             // add signature to keyToSign
             pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
