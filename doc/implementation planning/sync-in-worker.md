@@ -93,7 +93,7 @@ export class SyncWorker {
 }
 ```
 
-## Communicating *side effects* of sync
+## Propagating sync changes
 
 The sync process happens roughly as follows:
 
@@ -130,3 +130,6 @@ export class SyncProxy extends Sync {
     }
 }
 ```
+
+## No need to send changes from main thread to worker
+When an action happens in the main thread (sending a message, creating a room, etc), there is no need to communicate that change to the worker or other windows/tabs/iframe, as that change would be retrieved in the next sync, and then propagated as described in the previous section.
