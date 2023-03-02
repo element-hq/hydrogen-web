@@ -32,6 +32,20 @@ Since it must continue to be possible to run Hydrogen without a service worker, 
 
 At time of writing, `SharedWorkers` are still not available on many mobile environments (e.g. Chrome for Android), but it's fair to assume support for it will be coming in the (near?) future. Whenever `SharedWorkers` are not available, we would fallback to non-worker sync.
 
+## Gracefully closing sessions
+When the user closes a session (i.e. by opening a new session in the session picker), we cannot simply terminate the sync worker and re-spawn it for the new session, since it might be in the middle of a sync, which could corrupt the data in `indexedDB`.
+
+There would be ways to work around this on the UI side (i.e. by waiting for the sync to finish before opening the new session), but this would require the UI side to be aware of whether a sync is in progress, which ideally should not be necessary.
+
+An alternative solution would be to have a dedicated `Worker` per `sessionId`, which would be spawned by the `SharedWorker` described above. This would work as follows:
+
+1. There's a single "sync pool" `SharedWorker` that all UI instances get a reference to. Will run as long as there's a reference to it.
+2. The `SharedWorker` spawns one sync `Worker` per `sessionId`. This is the worker that will run the actual sync.
+3. UI communicates with the `SharedWorker` by sending messages to it's `port`, e.g. `startSync` for session X, `stopSync` for session Y, etc.
+4. Sync `Worker` communicates sync changes with UI through a `BroadcastChannel` scoped to a given `sessionId`. The UI side can then subscribe to that session's `BroadcastChanel`.
+
+Opting for this "double worker" solution would also automatically provide support for having multiple simultaneous sessions down the line.
+
 ## `SyncProxy` (UI side)
 
 `SyncProxy` would be the equivalent of `Sync` but would be a thin layer that *proxies* method calls to the worker, something like the following:
