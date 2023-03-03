@@ -19,15 +19,22 @@ import {TemplateView} from "../../general/TemplateView";
 
 export class MemberDetailsView extends TemplateView {
     render(t, vm) {
+        const securityNodes = [
+            t.p(vm.isEncrypted ?
+                vm.i18n`Messages in this room are end-to-end encrypted.` :
+                vm.i18n`Messages in this room are not end-to-end encrypted.`),
+        ]
+
+        if (vm.features.crossSigning) {
+            securityNodes.push(t.p(vm => vm.isTrusted ? vm.i18n`This user is trusted` : vm.i18n`This user is not trusted`));
+        }
+
         return t.div({className: "MemberDetailsView"},
             [   t.view(new AvatarView(vm, 128)),
                 t.div({className: "MemberDetailsView_name"}, t.h2(vm => vm.name)),
                 t.div({className: "MemberDetailsView_id"}, vm.userId),
                 this._createSection(t, vm.i18n`Role`, vm => vm.role),
-                this._createSection(t, vm.i18n`Security`, vm.isEncrypted ?
-                    vm.i18n`Messages in this room are end-to-end encrypted.` :
-                    vm.i18n`Messages in this room are not end-to-end encrypted.`
-                ),
+                this._createSection(t, vm.i18n`Security`, securityNodes),
                 this._createOptions(t, vm)
             ]);
     }

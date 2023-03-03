@@ -29,10 +29,22 @@ export class MemberDetailsViewModel extends ViewModel {
         this._session = options.session;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
+        this._isTrusted = false;
+        this.init(); // TODO: call this from parent view model and do something smart with error view model if it fails async?
+    }
+
+    async init() {
+        if (this.features.crossSigning) {
+            this._isTrusted = await this.logger.run({l: "MemberDetailsViewModel.verify user", id: this._member.userId}, log => {
+                return this._session.crossSigning.isUserTrusted(this._member.userId, log);
+            });
+            this.emitChange("isTrusted");
+        }
     }
 
     get name() { return this._member.name; }
     get userId() { return this._member.userId; }
+    get isTrusted() { return this._isTrusted; }
 
     get type() { return "member-details"; }
     get shouldShowBackButton() { return true; }
