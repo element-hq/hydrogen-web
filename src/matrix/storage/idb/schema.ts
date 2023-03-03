@@ -291,6 +291,7 @@ async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction) : 
     await iterateCursor<UserIdentity>(userIdentities.openCursor(), (value, key, cursor) => {
         delete value["deviceTrackingStatus"];
         value.keysTrackingStatus = KeysTrackingStatus.Outdated;
+        cursor.update(value);
         return NOT_DONE;
     });
 }
