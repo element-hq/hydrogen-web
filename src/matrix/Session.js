@@ -339,6 +339,7 @@ export class Session {
                             secretStorage,
                             platform: this._platform,
                             olm: this._olm,
+                            olmUtil: this._olmUtil,
                             deviceTracker: this._deviceTracker,
                             hsApi: this._hsApi,
                             ownUserId: this.userId,

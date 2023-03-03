@@ -16,6 +16,7 @@ limitations under the License.
 
 import { ILogItem } from "../../lib";
 import {pkSign} from "./common";
+import {verifyEd25519Signature} from "../e2ee/common";
 
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
@@ -48,6 +49,7 @@ export class CrossSigning {
     private readonly platform: Platform;
     private readonly deviceTracker: DeviceTracker;
     private readonly olm: Olm;
+    private readonly olmUtil: Olm.Utility;
     private readonly hsApi: HomeServerApi;
     private readonly ownUserId: string;
     private readonly e2eeAccount: Account;
@@ -68,13 +70,14 @@ export class CrossSigning {
         this.platform = options.platform;
         this.deviceTracker = options.deviceTracker;
         this.olm = options.olm;
+        this.olmUtil = options.olmUtil;
         this.hsApi = options.hsApi;
         this.ownUserId = options.ownUserId;
         this.e2eeAccount = options.e2eeAccount
     }
 
     async init(log: ILogItem) {
-        log.wrap("CrossSigning.init", async log => {
+        await log.wrap("CrossSigning.init", async log => {
             // TODO: use errorboundary here
             const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
             const privateMasterKey = await this.getSigningKey(KeyUsage.Master);
@@ -157,6 +160,34 @@ export class CrossSigning {
         });
     }
 
+    async isUserTrusted(userId: string, log: ILogItem): Promise<boolean> {
+        return log.wrap("isUserTrusted", async log => {
+            log.set("id", userId);
+            if (!this.isMasterKeyTrusted) {
+                return false;
+            }
+            const theirDeviceKeys = await log.wrap("get their devices", log => this.deviceTracker.devicesForUsers([userId], this.hsApi, log));
+            const theirSSK = await log.wrap("get their ssk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.SelfSigning, this.hsApi, log));
+            if (!theirSSK) {
+                return false;
+            }
+            const hasUnsignedDevice = theirDeviceKeys.some(dk => log.wrap({l: "verify device", id: dk.device_id}, log => !this.hasValidSignatureFrom(dk, theirSSK, log)));
+            if (hasUnsignedDevice) {
+                return false;
+            }
+            const theirMSK = await log.wrap("get their msk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log));
+            if (!theirMSK || !log.wrap("verify their ssk", log => this.hasValidSignatureFrom(theirSSK, theirMSK, log))) {
+                return false;
+            }
+            const ourUSK = await log.wrap("get our usk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.UserSigning, this.hsApi, log));
+            if (!ourUSK || !log.wrap("verify their msk", log => this.hasValidSignatureFrom(theirMSK, ourUSK, log))) {
+                return false;
+            }
+            const ourMSK = await log.wrap("get our msk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log));
+            return !!ourMSK && log.wrap("verify our usk", log => this.hasValidSignatureFrom(ourUSK, ourMSK, log));
+        });
+    }
+
     private async signDeviceKey(keyToSign: DeviceKey, log: ILogItem): Promise<DeviceKey> {
         const signingKey = await this.getSigningKey(KeyUsage.SelfSigning);
         // add signature to keyToSign
@@ -183,6 +214,14 @@ export class CrossSigning {
 
     private signKey(keyToSign: DeviceKey | CrossSigningKey, signingKey: Uint8Array) {
         pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
+    }
+
+    private hasValidSignatureFrom(key: DeviceKey | CrossSigningKey, signingKey: CrossSigningKey, log: ILogItem): boolean {
+        const pubKey = getKeyEd25519Key(signingKey);
+        if (!pubKey) {
+            return false;
+        }
+        return verifyEd25519Signature(this.olmUtil, signingKey.user_id, pubKey, pubKey, key, log);
     }
 }
 
