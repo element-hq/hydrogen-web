@@ -13,6 +13,7 @@ import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
 import {ILogItem} from "../../../logging/types";
 
+import type {UserIdentity} from "../../e2ee/DeviceTracker";
 
 export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) => Promise<void> | void;
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
@@ -35,7 +36,7 @@ export const schema: MigrationFunc[] = [
     addInboundSessionBackupIndex,
     migrateBackupStatus,
     createCallStore,
-    createCrossSigningKeyStoreAndRenameDeviceIdentities
+    applyCrossSigningChanges
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -277,10 +278,16 @@ function createCallStore(db: IDBDatabase) : void {
     db.createObjectStore("calls", {keyPath: "key"});
 }
 
-//v18 create calls store and rename deviceIdentities to deviceKeys
-function createCrossSigningKeyStoreAndRenameDeviceIdentities(db: IDBDatabase) : void {
+//v18  add crossSigningKeys store, rename deviceIdentities to deviceKeys and empties userIdentities 
+async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction) : Promise<void> {
     db.createObjectStore("crossSigningKeys", {keyPath: "key"});
     db.deleteObjectStore("deviceIdentities");
     const deviceKeys = db.createObjectStore("deviceKeys", {keyPath: "key"});
     deviceKeys.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
+    // mark all userIdentities as outdated as cross-signing keys won't be stored
+    const userIdentities = txn.objectStore("userIdentities");
+    await iterateCursor<UserIdentity>(userIdentities.openCursor(), (value, key, cursor) => {
+        value.deviceTrackingStatus = 0 // outdated;
+        return NOT_DONE;
+    });
 }
