@@ -279,8 +279,8 @@ function createCallStore(db: IDBDatabase) : void {
     db.createObjectStore("calls", {keyPath: "key"});
 }
 
-//v18  add crossSigningKeys store, rename deviceIdentities to deviceKeys and empties userIdentities 
-async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction) : Promise<void> {
+//v18 add crossSigningKeys store, rename deviceIdentities to deviceKeys and empties userIdentities 
+async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) : Promise<void> {
     db.createObjectStore("crossSigningKeys", {keyPath: "key"});
     db.deleteObjectStore("deviceIdentities");
     const deviceKeys = db.createObjectStore("deviceKeys", {keyPath: "key"});
@@ -288,10 +288,13 @@ async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction) : 
     // mark all userIdentities as outdated as cross-signing keys won't be stored
     // also rename the deviceTrackingStatus field to keysTrackingStatus
     const userIdentities = txn.objectStore("userIdentities");
+    let counter = 0;
     await iterateCursor<UserIdentity>(userIdentities.openCursor(), (value, key, cursor) => {
         delete value["deviceTrackingStatus"];
         value.keysTrackingStatus = KeysTrackingStatus.Outdated;
         cursor.update(value);
+        counter += 1;
         return NOT_DONE;
     });
+    log.set("marked_outdated", counter);
 }
