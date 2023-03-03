@@ -61,6 +61,7 @@ export class CrossSigning {
         deviceTracker: DeviceTracker,
         platform: Platform,
         olm: Olm,
+        olmUtil: Olm.Utility,
         ownUserId: string,
         hsApi: HomeServerApi,
         e2eeAccount: Account
