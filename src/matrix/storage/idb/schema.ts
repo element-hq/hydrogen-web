@@ -291,6 +291,7 @@ async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction, lo
     let counter = 0;
     await iterateCursor<UserIdentity>(userIdentities.openCursor(), (value, key, cursor) => {
         delete value["deviceTrackingStatus"];
+        delete value["crossSigningKeys"];
         value.keysTrackingStatus = KeysTrackingStatus.Outdated;
         cursor.update(value);
         counter += 1;
