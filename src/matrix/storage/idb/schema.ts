@@ -14,6 +14,7 @@ import {MAX_UNICODE} from "./stores/common";
 import {ILogItem} from "../../../logging/types";
 
 import type {UserIdentity} from "../../e2ee/DeviceTracker";
+import {KeysTrackingStatus} from "../../e2ee/DeviceTracker";
 
 export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) => Promise<void> | void;
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
@@ -285,9 +286,11 @@ async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction) : 
     const deviceKeys = db.createObjectStore("deviceKeys", {keyPath: "key"});
     deviceKeys.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
     // mark all userIdentities as outdated as cross-signing keys won't be stored
+    // also rename the deviceTrackingStatus field to keysTrackingStatus
     const userIdentities = txn.objectStore("userIdentities");
     await iterateCursor<UserIdentity>(userIdentities.openCursor(), (value, key, cursor) => {
-        value.deviceTrackingStatus = 0 // outdated;
+        delete value["deviceTrackingStatus"];
+        value.keysTrackingStatus = KeysTrackingStatus.Outdated;
         return NOT_DONE;
     });
 }

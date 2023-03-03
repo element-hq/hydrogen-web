@@ -29,7 +29,8 @@ import type {Transaction} from "../storage/idb/Transaction";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
 
-enum DeviceTrackingStatus {
+// tracking status for cross-signing and device keys
+export enum KeysTrackingStatus {
     Outdated = 0,
     UpToDate = 1
 }
@@ -37,14 +38,14 @@ enum DeviceTrackingStatus {
 export type UserIdentity = {
     userId: string,
     roomIds: string[],
-    deviceTrackingStatus: DeviceTrackingStatus,
+    keysTrackingStatus: KeysTrackingStatus,
 }
 
 function createUserIdentity(userId: string, initialRoomId?: string): UserIdentity {
     return {
         userId: userId,
         roomIds: initialRoomId ? [initialRoomId] : [],
-        deviceTrackingStatus: DeviceTrackingStatus.Outdated,
+        keysTrackingStatus: KeysTrackingStatus.Outdated,
     };
 }
 
@@ -89,7 +90,7 @@ export class DeviceTracker {
             const user = await userIdentities.get(userId);
             if (user) {
                 log.log({l: "outdated", id: userId});
-                user.deviceTrackingStatus = DeviceTrackingStatus.Outdated;
+                user.keysTrackingStatus = KeysTrackingStatus.Outdated;
                 userIdentities.set(user);
             }
         }));
@@ -169,7 +170,7 @@ export class DeviceTracker {
                 this._storage.storeNames.crossSigningKeys,
             ]);
             let userIdentity = await txn.userIdentities.get(userId);
-            if (userIdentity && userIdentity.deviceTrackingStatus !== DeviceTrackingStatus.Outdated) {
+            if (userIdentity && userIdentity.keysTrackingStatus !== KeysTrackingStatus.Outdated) {
                 return await txn.crossSigningKeys.get(userId, usage);
             }
             // fetch from hs
@@ -347,7 +348,7 @@ export class DeviceTracker {
             // checked, we could share keys with that user without them being in the room
             identity = createUserIdentity(userId);
         }
-        identity.deviceTrackingStatus = DeviceTrackingStatus.UpToDate;
+        identity.keysTrackingStatus = KeysTrackingStatus.UpToDate;
         txn.userIdentities.set(identity);
 
         return allDeviceKeys;
@@ -520,9 +521,9 @@ export class DeviceTracker {
         const outdatedUserIds: string[] = [];
         await Promise.all(userIds.map(async userId => {
             const i = await txn.userIdentities.get(userId);
-            if (i && i.deviceTrackingStatus === DeviceTrackingStatus.UpToDate) {
+            if (i && i.keysTrackingStatus === KeysTrackingStatus.UpToDate) {
                 upToDateIdentities.push(i);
-            } else if (!i || i.deviceTrackingStatus === DeviceTrackingStatus.Outdated) {
+            } else if (!i || i.keysTrackingStatus === KeysTrackingStatus.Outdated) {
                 // allow fetching for userIdentities we don't know about yet,
                 // as we don't assume the room is tracked here.
                 outdatedUserIds.push(userId);
@@ -601,9 +602,9 @@ export class DeviceTracker {
             // also exclude any userId which doesn't have a userIdentity yet.
             return identity && identity.roomIds.includes(roomId);
         }) as UserIdentity[]; // undefined has been filter out
-        const upToDateIdentities = identities.filter(i => i.deviceTrackingStatus === DeviceTrackingStatus.UpToDate);
+        const upToDateIdentities = identities.filter(i => i.keysTrackingStatus === KeysTrackingStatus.UpToDate);
         const outdatedUserIds = identities
-            .filter(i => i.deviceTrackingStatus === DeviceTrackingStatus.Outdated)
+            .filter(i => i.keysTrackingStatus === KeysTrackingStatus.Outdated)
             .map(i => i.userId);
         let devices = await this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
         // filter out our own device as we should never share keys with it.
@@ -763,12 +764,12 @@ export function tests() {
             assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
                 userId: "@alice:hs.tld",
                 roomIds: [roomId],
-                deviceTrackingStatus: DeviceTrackingStatus.Outdated
+                keysTrackingStatus: KeysTrackingStatus.Outdated
             });
             assert.deepEqual(await txn.userIdentities.get("@bob:hs.tld"), {
                 userId: "@bob:hs.tld",
                 roomIds: [roomId],
-                deviceTrackingStatus: DeviceTrackingStatus.Outdated
+                keysTrackingStatus: KeysTrackingStatus.Outdated
             });
             assert.equal(await txn.userIdentities.get("@charly:hs.tld"), undefined);
         },

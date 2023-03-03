@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {Store} from "../Store";
-
-interface UserIdentity {
-    userId: string;
-    roomIds: string[];
-    deviceTrackingStatus: number;
-}
+import type {UserIdentity} from "../../../e2ee/DeviceTracker";
 
 export class UserIdentityStore {
     private _store: Store<UserIdentity>;
