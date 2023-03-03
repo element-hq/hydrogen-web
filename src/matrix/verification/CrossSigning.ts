@@ -145,7 +145,7 @@ export class CrossSigning {
             delete keyToSign.signatures;
             const signingKey = await this.getSigningKey(KeyUsage.UserSigning);
             // add signature to keyToSign
-            pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
+            this.signKey(keyToSign, signingKey);
             const payload = {
                 [keyToSign.user_id]: {
                     [getKeyEd25519Key(keyToSign)!]: keyToSign
@@ -160,7 +160,7 @@ export class CrossSigning {
     private async signDeviceKey(keyToSign: DeviceKey, log: ILogItem): Promise<DeviceKey> {
         const signingKey = await this.getSigningKey(KeyUsage.SelfSigning);
         // add signature to keyToSign
-        pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
+        this.signKey(keyToSign, signingKey);
         // so the payload format of a signature is a map from userid to key id of the signed key
         // (without the algoritm prefix though according to example, e.g. just device id or base 64 public key)
         // to the complete signed key with the signature of the signing key in the signatures section.
@@ -179,6 +179,10 @@ export class CrossSigning {
         const seedStr = await this.secretStorage.readSecret(`m.cross_signing.${usage}`, txn);
         const seed = new Uint8Array(this.platform.encoding.base64.decode(seedStr));
         return seed;
+    }
+
+    private signKey(keyToSign: DeviceKey | CrossSigningKey, signingKey: Uint8Array) {
+        pkSign(this.olm, keyToSign, signingKey, this.ownUserId, "");
     }
 }
 
