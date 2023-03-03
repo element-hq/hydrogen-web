@@ -60,7 +60,7 @@ export class KeyBackupSettingsView extends TemplateView {
             }),
             t.if(vm => vm.canSignOwnDevice, t => {
                 return t.button({
-                    onClick: disableTargetCallback(async evt => {
+                    onClick: disableTargetCallback(async () => {
                         await vm.signOwnDevice();
                     })
                 }, "Sign own device");
