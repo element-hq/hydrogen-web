@@ -16,7 +16,8 @@ limitations under the License.
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {generateEmojiSas} from "../generator";
 import {ILogItem} from "../../../../lib";
-import { VerificationEventTypes } from "../channel/types";
+import {VerificationEventTypes} from "../channel/types";
+import {SendMacStage} from "./SendMacStage";
 
 // From element-web
 type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
@@ -71,15 +72,24 @@ const calculateKeyAgreement = {
 } as const;
 
 export class SendKeyStage extends BaseSASVerificationStage {
+    private resolve: () => void;
 
     async completeStage() {
         await this.log.wrap("SendKeyStage.completeStage", async (log) => {
+            const emojiConfirmationPromise: Promise<void> = new Promise(r => {
+                this.resolve = r;
+            });
             this.olmSAS.set_their_key(this.theirKey);
             const ourSasKey = this.olmSAS.get_pubkey();
             await this.sendKey(ourSasKey, log);
             const sasBytes = this.generateSASBytes();
             const emoji = generateEmojiSas(Array.from(sasBytes));
             console.log("emoji", emoji);
+            if (this.channel.initiatedByUs) {
+                await this.channel.waitForEvent(VerificationEventTypes.Key);
+            }
+            // await emojiConfirmationPromise;
+            this._nextStage = new SendMacStage(this.options);
             this.dispose();
         });
     }
@@ -97,7 +107,7 @@ export class SendKeyStage extends BaseSASVerificationStage {
     }
 
     private generateSASBytes(): Uint8Array {
-        const keyAgreement = this.channel.sentMessages.get(VerificationEventTypes.Accept).key_agreement_protocol;
+        const keyAgreement = this.channel.sentMessages.get(VerificationEventTypes.Accept).content.key_agreement_protocol;
         const otherUserDeviceId = this.channel.startMessage.content.from_device;
         const sasBytes = calculateKeyAgreement[keyAgreement]({
             our: {
@@ -114,6 +124,13 @@ export class SendKeyStage extends BaseSASVerificationStage {
             initiatedByMe: this.channel.initiatedByUs,
         }, this.olmSAS, 6);
         return sasBytes;
+    }
+
+    emojiMatch(match: boolean) {
+        if (!match) {
+            // cancel the verification
+        }
+
     }
 
     get type() {

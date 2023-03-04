@@ -44,6 +44,7 @@ export interface IChannel {
     waitForEvent(eventType: string): Promise<any>;
     type: ChannelType;
     id: string;
+    otherUserDeviceId: string;
     sentMessages: Map<string, any>;
     receivedMessages: Map<string, any>;
     localMessages: Map<string, any>;
@@ -74,7 +75,7 @@ export class ToDeviceChannel implements IChannel {
     public readonly localMessages: Map<string, any> = new Map();
     private readonly waitMap: Map<string, {resolve: any, promise: Promise<any>}> = new Map();
     private readonly log: ILogItem;
-    private otherUserDeviceId: string;
+    public otherUserDeviceId: string;
     public startMessage: any;
     public id: string;
     private _initiatedByUs: boolean;
@@ -99,7 +100,7 @@ export class ToDeviceChannel implements IChannel {
             if (eventType === VerificationEventTypes.Request) {
                 // Handle this case specially
                 await this.handleRequestEventSpecially(eventType, content, log);
-                this.sentMessages.set(eventType, content);
+                this.sentMessages.set(eventType, {content});
                 return;
             }
             Object.assign(content, { transaction_id: this.id });
@@ -112,7 +113,7 @@ export class ToDeviceChannel implements IChannel {
                 }
             }
             await this.hsApi.sendToDevice(eventType, payload, this.id, { log }).response();
-            this.sentMessages.set(eventType, content);
+            this.sentMessages.set(eventType, {content});
         });
     }
 

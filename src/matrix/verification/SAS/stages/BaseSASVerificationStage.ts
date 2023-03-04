@@ -16,8 +16,11 @@ limitations under the License.
 import type {ILogItem} from "../../../../lib.js";
 import type {Room} from "../../../room/Room.js";
 import type * as OlmNamespace from "@matrix-org/olm";
+import type {Account} from "../../../e2ee/Account.js";
+import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
 import {Disposables} from "../../../../utils/Disposables";
 import {IChannel} from "../channel/Channel.js";
+import {HomeServerApi} from "../../../net/HomeServerApi.js";
 
 type Olm = typeof OlmNamespace;
 
@@ -34,6 +37,9 @@ export type Options = {
     olmSas: Olm.SAS;
     olmUtil: Olm.Utility;
     channel: IChannel;
+    e2eeAccount: Account;
+    deviceTracker: DeviceTracker;
+    hsApi: HomeServerApi;
 }
 
 export abstract class BaseSASVerificationStage extends Disposables {
@@ -48,6 +54,9 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected _nextStage: BaseSASVerificationStage;
     protected channel: IChannel;
     protected options: Options;
+    protected e2eeAccount: Account;
+    protected deviceTracker: DeviceTracker;
+    protected hsApi: HomeServerApi;
 
     constructor(options: Options) {
         super();
@@ -59,6 +68,9 @@ export abstract class BaseSASVerificationStage extends Disposables {
         this.olmSAS = options.olmSas;
         this.olmUtil = options.olmUtil;
         this.channel = options.channel;
+        this.e2eeAccount = options.e2eeAccount;
+        this.deviceTracker = options.deviceTracker;
+        this.hsApi = options.hsApi;
     }
 
     setRequestEventId(id: string) {

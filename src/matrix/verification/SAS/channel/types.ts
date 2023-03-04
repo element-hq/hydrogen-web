@@ -5,6 +5,8 @@ export const enum VerificationEventTypes {
     Accept = "m.key.verification.accept",
     Key = "m.key.verification.key",
     Cancel = "m.key.verification.cancel",
+    Mac = "m.key.verification.mac",
+    Done = "m.key.verification.done",
 }
 
 export const enum CancelTypes {

@@ -139,7 +139,10 @@ export class CrossSigning {
             ourUser: { userId: this.ownUserId, deviceId: this.deviceId },
             otherUserId: userId,
             log,
-            channel
+            channel,
+            e2eeAccount: this.e2eeAccount,
+            deviceTracker: this.deviceTracker,
+            hsApi: this.hsApi,
         });
     }
 }
