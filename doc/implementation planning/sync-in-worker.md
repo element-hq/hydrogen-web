@@ -15,15 +15,9 @@ This proposal would also pave the way for having simultaneous ongoing syncs for 
 
 The general idea would be to have sync running in a [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) instead of the main thread, while making it **transparent to UI code** (i.e. code running in the main thread), which should not be aware of whether sync is running in a worker or in the main thread. Making it transparent to UI code is important since we need to fallback to non-worker sync in environments where Web Workers are not available (e.g. IE11).
 
-Since we don't want to tie the lifetime of the sync worker to a specific tab/window (we want the sync to happen for as long as there's at least one instance with that session open), the sync worker would be *owned* by the service worker. Note that this doesn't mean that the service worker would run the sync, but that it would spawn another worker dedicated to the sync.
-
 The UI thread would communicate with the sync worker through messages, possibly leveraging [`BroadcastChannel`](https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel).
 
-## Worker lifetime
-
-The sync worker must be active for as long as there's at least one tab/window/iframe with the session open. This means the sync worker must not be owned by a specific tab/window/iframe, since otherwise it would cease to run when its owner would be closed.
-
-There would be two strategies to address this:
+The worker must be active for as long as there's at least one tab/window/iframe with the session open. This means the sync worker must not be owned by a specific tab/window/iframe, since otherwise it would cease to run when its owner would be closed. There would be two strategies to address this:
 
 1. The sync worker is a [dedicated worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#dedicated_workers) and is spawned by the service worker. The sync worker would remain active for as long as the service worker is active. Since the service worker is always active, the sync worker would be guaranteed to be running at all times.
 2. The sync worker is a [`SharedWorker`](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#shared_workers) and is spawned by the first window/tab/iframe that creates an instance of it. Subsequent attempts to spawn the worker will return the already running instance. The sync worker would cease to run when all windows/tabs/iframes are closed.
