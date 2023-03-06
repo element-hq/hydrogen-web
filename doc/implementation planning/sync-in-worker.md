@@ -26,19 +26,22 @@ Since it must continue to be possible to run Hydrogen without a service worker, 
 
 At time of writing, `SharedWorkers` are still not available on many mobile environments (e.g. Chrome for Android), but it's fair to assume support for it will be coming in the (near?) future. Whenever `SharedWorkers` are not available, we would fallback to non-worker sync.
 
-## Gracefully closing sessions
-When the user closes a session (i.e. by opening a new session in the session picker), we cannot simply terminate the sync worker and re-spawn it for the new session, since it might be in the middle of a sync, which could corrupt the data in `indexedDB`.
+## `SharedWorker` per session
+Since it will now be possible to open different sessions in different tabs, there can be more than one ongoing sync (one per session). There would be two strategies to address this:
 
-There would be ways to work around this on the UI side (i.e. by waiting for the sync to finish before opening the new session), but this would require the UI side to be aware of whether a sync is in progress, which ideally should not be necessary.
+1. Have a single `SharedWorker` handling all sessions
+2. Have one `SharedWorker` per session
 
-An alternative solution would be to have a dedicated `Worker` per `sessionId`, which would be spawned by the `SharedWorker` described above. This would work as follows:
+Option 1. would require us to implement a mechanism so that the worker knows how many session are open at a given time. By going with 2. we could "outsource" this responsibility to the browser, and have the browser automatically despawn the worker when there are no more references to it, which is exactly the use case `SharedWorkers` are for.
 
-1. There's a single "sync pool" `SharedWorker` that all UI instances get a reference to. Will run as long as there's a reference to it.
-2. The `SharedWorker` spawns one sync `Worker` per `sessionId`. This is the worker that will run the actual sync.
-3. UI communicates with the `SharedWorker` by sending messages to it's `port`, e.g. `startSync` for session X, `stopSync` for session Y, etc.
-4. Sync `Worker` communicates sync changes with UI through a `BroadcastChannel` scoped to a given `sessionId`. The UI side can then subscribe to that session's `BroadcastChanel`.
+This means we need to be able to run different instances of the same `sync-worker.js` but with different context. To do so we can pass a [`name` option](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker/SharedWorker#parameters) to the `SharedWorker` constructor, so that there will be one worker per `sessionId`:
 
-Opting for this "double worker" solution would also automatically provide support for having multiple simultaneous sessions down the line.
+```typescript
+const sessionId = "foo";
+const worker = new SharedWorker(new URL('./sync-worker.js'), {
+    name: `sync-worker-${sessionId}`,
+})
+```
 
 ## `SyncProxy` (UI side)
 
