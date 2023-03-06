@@ -28,7 +28,6 @@ import {LocalMedia} from "../../../matrix/calls/LocalMedia";
 // this is a breaking SDK change though to make this option mandatory
 import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
 import {joinRoom} from "../../../matrix/room/joinRoom";
-import {SASVerification} from "../../../matrix/verification/SAS/SASVerification";
 
 export class RoomViewModel extends ErrorReportViewModel {
     constructor(options) {
@@ -53,7 +52,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     async _startCrossSigning(otherUserId) {
         await this.logAndCatch("startCrossSigning", async log => {
             const session = this.getOption("session");
-            const sas = session.crossSigning?.startVerification(this._room, otherUserId, log);
+            const sas = session.crossSigning?.startVerification(otherUserId, log);
             await sas.start();
         });
     }

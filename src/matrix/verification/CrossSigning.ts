@@ -28,6 +28,7 @@ import type {ISignatures} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/Channel";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
+import {VerificationEventTypes} from "./SAS/channel/types";
 
 type Olm = typeof OlmNamespace;
 
@@ -69,6 +70,17 @@ export class CrossSigning {
         this.deviceId = options.deviceId;
         this.e2eeAccount = options.e2eeAccount
         this.deviceMessageHandler = options.deviceMessageHandler;
+
+        this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
+            console.log("unencrypted event", unencryptedEvent);
+            if (unencryptedEvent.type === VerificationEventTypes.Request ||
+                unencryptedEvent.type === VerificationEventTypes.Start) {
+                await this.platform.logger.run("Start verification from request", async (log) => {
+                    const sas = this.startVerification(unencryptedEvent.sender, log, unencryptedEvent);
+                    await sas.start();
+                });
+            }
+        })
     }
 
     async init(log: ILogItem) {
@@ -122,7 +134,7 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(room: Room, userId: string, log: ILogItem): SASVerification {
+    startVerification(userId: string, log: ILogItem, event?: any): SASVerification {
         const channel = new ToDeviceChannel({
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
@@ -130,10 +142,8 @@ export class CrossSigning {
             platform: this.platform,
             deviceMessageHandler: this.deviceMessageHandler,
             log
-        });
+        }, event);
         return new SASVerification({
-            room,
-            platform: this.platform,
             olm: this.olm,
             olmUtil: this.olmUtil,
             ourUser: { userId: this.ownUserId, deviceId: this.deviceId },

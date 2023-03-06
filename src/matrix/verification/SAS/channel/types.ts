@@ -19,4 +19,7 @@ export const enum CancelTypes {
     UserMismatch = "m.user_mismatch",
     InvalidMessage = "m.invalid_message",
     OtherUserAccepted = "m.accepted",
+    // SAS specific
+    MismatchedCommitment = "m.mismatched_commitment",
+    MismatchedSAS = "m.mismatched_sas",
 }

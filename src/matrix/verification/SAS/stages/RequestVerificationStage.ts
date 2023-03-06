@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
+// import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
 import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
 import {VerificationEventTypes} from "../channel/types";
 
@@ -41,27 +41,27 @@ export class RequestVerificationStage extends BaseSASVerificationStage {
         });
     }
 
-    private trackEventId(): Promise<string> {
-        return new Promise(resolve => {
-            this.track(
-                this.room._timeline.entries.subscribe({
-                    onAdd: (_, entry) => {
-                        if (entry instanceof FragmentBoundaryEntry) {
-                            return;
-                        }
-                        if (!entry.isPending &&
-                            entry.content["msgtype"] === "m.key.verification.request" &&
-                            entry.content["from_device"] === this.ourUser.deviceId) {
-                                console.log("found event", entry);
-                            resolve(entry.id);
-                        }
-                    },
-                    onRemove: () => { /**noop*/ },
-                    onUpdate: () => { /**noop*/ },
-                })
-            );
-        });
-    }
+    // private trackEventId(): Promise<string> {
+    //     return new Promise(resolve => {
+    //         this.track(
+    //             this.room._timeline.entries.subscribe({
+    //                 onAdd: (_, entry) => {
+    //                     if (entry instanceof FragmentBoundaryEntry) {
+    //                         return;
+    //                     }
+    //                     if (!entry.isPending &&
+    //                         entry.content["msgtype"] === "m.key.verification.request" &&
+    //                         entry.content["from_device"] === this.ourUser.deviceId) {
+    //                             console.log("found event", entry);
+    //                         resolve(entry.id);
+    //                     }
+    //                 },
+    //                 onRemove: () => { /**noop*/ },
+    //                 onUpdate: () => { /**noop*/ },
+    //             })
+    //         );
+    //     });
+    // }
 
     get type() {
         return "m.key.verification.request";

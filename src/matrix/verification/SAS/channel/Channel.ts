@@ -32,6 +32,8 @@ const messageFromErrorType = {
     [CancelTypes.UnknownMethod]: "Unknown method.",
     [CancelTypes.UnknownTransaction]: "Unknown Transaction.",
     [CancelTypes.UserMismatch]: "User Mismatch",
+    [CancelTypes.MismatchedCommitment]: "Hash commitment does not match.",
+    [CancelTypes.MismatchedSAS]: "Emoji/decimal does not match.",
 }
 
 const enum ChannelType {
@@ -80,7 +82,11 @@ export class ToDeviceChannel implements IChannel {
     public id: string;
     private _initiatedByUs: boolean;
 
-    constructor(options: Options) {
+    /**
+     * 
+     * @param startingMessage Create the channel with existing message in the receivedMessage buffer
+     */
+    constructor(options: Options, startingMessage?: any) {
         this.hsApi = options.hsApi;
         this.deviceTracker = options.deviceTracker;
         this.otherUserId = options.otherUserId;
@@ -89,6 +95,16 @@ export class ToDeviceChannel implements IChannel {
         this.deviceMessageHandler = options.deviceMessageHandler;
         // todo: find a way to dispose this subscription
         this.deviceMessageHandler.on("message", ({unencrypted}) => this.handleDeviceMessage(unencrypted))
+        // Copy over request message
+        if (startingMessage) {
+            /**
+             * startingMessage may be the ready message or the start message.
+             */
+            const eventType = startingMessage.content.method ? VerificationEventTypes.Start : VerificationEventTypes.Request;
+            this.id = startingMessage.content.transaction_id;
+            this.receivedMessages.set(eventType, startingMessage);
+            this.otherUserDeviceId = startingMessage.content.from_device;
+        }
     }
 
     get type() {

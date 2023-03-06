@@ -36,6 +36,8 @@ export class SendMacStage extends BaseSASVerificationStage {
             const macMethod = acceptMessage.message_authentication_code;
             this.calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.sendMAC(log);
+            await this.channel.waitForEvent(VerificationEventTypes.Mac);
+            this._nextStage = new VerifyMacStage(this.options);
             this.dispose();
         });
     }
@@ -67,8 +69,6 @@ export class SendMacStage extends BaseSASVerificationStage {
         const keys = this.calculateMAC(keyList.sort().join(","), baseInfo + "KEY_IDS");
         console.log("result", mac, keys);
         await this.channel.send(VerificationEventTypes.Mac, { mac, keys }, log);
-        await this.channel.waitForEvent(VerificationEventTypes.Mac);
-        this._nextStage = new VerifyMacStage(this.options);
     }
 
     get type() {

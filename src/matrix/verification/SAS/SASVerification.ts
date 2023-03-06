@@ -15,20 +15,19 @@ limitations under the License.
 */
 import {RequestVerificationStage} from "./stages/RequestVerificationStage";
 import type {ILogItem} from "../../../logging/types";
-import type {Room} from "../../room/Room.js";
-import type {Platform} from "../../../platform/web/Platform.js";
 import type {BaseSASVerificationStage, UserData} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
 import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
 import {IChannel} from "./channel/Channel";
 import {HomeServerApi} from "../../net/HomeServerApi";
+import {VerificationEventTypes} from "./channel/types";
+import {SendReadyStage} from "./stages/SendReadyStage";
+import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 
 type Olm = typeof OlmNamespace;
 
 type Options = {
-    room: Room;
-    platform: Platform;
     olm: Olm;
     olmUtil: Olm.Utility;
     ourUser: UserData;
@@ -45,13 +44,22 @@ export class SASVerification {
     private olmSas: Olm.SAS;
    
     constructor(options: Options) {
-        const { room, ourUser, otherUserId, log, olmUtil, olm, channel, e2eeAccount, deviceTracker, hsApi } = options;
+        const { ourUser, otherUserId, log, olmUtil, olm, channel, e2eeAccount, deviceTracker, hsApi } = options;
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         // channel.send("m.key.verification.request", {}, log);
         try {
-            const options = { room, ourUser, otherUserId, log, olmSas, olmUtil, channel, e2eeAccount, deviceTracker, hsApi };
-            let stage: BaseSASVerificationStage = new RequestVerificationStage(options);
+            const options = { ourUser, otherUserId, log, olmSas, olmUtil, channel, e2eeAccount, deviceTracker, hsApi };
+            let stage: BaseSASVerificationStage;
+            if (channel.receivedMessages.get(VerificationEventTypes.Start)) {
+                stage = new SelectVerificationMethodStage(options);
+            }
+            else if (channel.receivedMessages.get(VerificationEventTypes.Request)) {
+                stage = new SendReadyStage(options);
+            }
+            else {
+                stage = new RequestVerificationStage(options);
+            }
             this.startStage = stage;
             console.log("startStage", this.startStage);
         }

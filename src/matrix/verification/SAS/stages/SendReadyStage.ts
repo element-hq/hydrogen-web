@@ -15,6 +15,7 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {VerificationEventTypes} from "../channel/types";
+import { SelectVerificationMethodStage } from "./SelectVerificationMethodStage";
 
 export class SendReadyStage extends BaseSASVerificationStage {
 
@@ -28,6 +29,7 @@ export class SendReadyStage extends BaseSASVerificationStage {
                 // "to": this.otherUserId,
             };
             await this.channel.send(VerificationEventTypes.Ready, content, log);
+            this._nextStage = new SelectVerificationMethodStage(this.options);
             this.dispose();
         });
     }

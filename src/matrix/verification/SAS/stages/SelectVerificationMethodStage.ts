@@ -88,6 +88,6 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
     }
 
     get type() {
-        return "m.key.verification.request";
+        return "SelectVerificationStage";
     }
 }

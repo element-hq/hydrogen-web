@@ -22,13 +22,12 @@ import { SendKeyStage } from "./SendKeyStage";
 export class SendAcceptVerificationStage extends BaseSASVerificationStage {
 
     async completeStage() {
-        await this.log.wrap("SAcceptVerificationStage.completeStage", async (log) => {
+        await this.log.wrap("SendAcceptVerificationStage.completeStage", async (log) => {
             const event = this.channel.startMessage;
             const content = {
                 ...event.content,
                 // "m.relates_to": event.relation,
             };
-            console.log("content from event", content);
             const keyAgreement = intersection(KEY_AGREEMENT_LIST, new Set(content.key_agreement_protocols))[0];
             const hashMethod = intersection(HASHES_LIST, new Set(content.hashes))[0];
             const macMethod = intersection(MAC_LIST, new Set(content.message_authentication_codes))[0];

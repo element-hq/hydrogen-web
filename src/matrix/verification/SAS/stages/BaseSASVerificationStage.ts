@@ -30,7 +30,6 @@ export type UserData = {
 }
 
 export type Options = {
-    room: Room;
     ourUser: UserData;
     otherUserId: string;
     log: ILogItem;
@@ -43,7 +42,6 @@ export type Options = {
 }
 
 export abstract class BaseSASVerificationStage extends Disposables {
-    protected room: Room;
     protected ourUser: UserData;
     protected otherUserId: string;
     protected log: ILogItem;
@@ -61,7 +59,6 @@ export abstract class BaseSASVerificationStage extends Disposables {
     constructor(options: Options) {
         super();
         this.options = options;
-        this.room = options.room;
         this.ourUser = options.ourUser;
         this.otherUserId = options.otherUserId;
         this.log = options.log;
