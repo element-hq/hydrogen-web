@@ -140,9 +140,10 @@ export class CalculateSASStage extends BaseSASVerificationStage {
         return sasBytes;
     }
 
-    emojiMatch(match: boolean) {
+    async emojiMatch(match: boolean) {
         if (!match) {
             // cancel the verification
+            await this.channel.cancelVerification(CancelTypes.MismatchedSAS);
         }
 
     }

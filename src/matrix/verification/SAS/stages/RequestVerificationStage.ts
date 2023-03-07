@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-// import {FragmentBoundaryEntry} from "../../../room/timeline/entries/FragmentBoundaryEntry.js";
 import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
 import {VerificationEventTypes} from "../channel/types";
 

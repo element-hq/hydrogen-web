@@ -166,6 +166,7 @@ export class CrossSigning {
             e2eeAccount: this.e2eeAccount,
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
+            platform: this.platform,
         });
         return this.sasVerificationInProgress;
     }

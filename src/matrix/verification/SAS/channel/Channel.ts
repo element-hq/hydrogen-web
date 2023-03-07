@@ -96,8 +96,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         this.platform = options.platform;
         this.log = options.log;
         this.deviceMessageHandler = options.deviceMessageHandler;
-        // todo: find a way to dispose this subscription
-        this.track(this.deviceMessageHandler.disposableOn("message", ({ unencrypted }) => this.handleDeviceMessage(unencrypted)));
+        this.track(this.deviceMessageHandler.disposableOn("message", async ({ unencrypted }) => await this.handleDeviceMessage(unencrypted)));
         this.track(() => {
             this.waitMap.forEach((value) => { value.reject(new VerificationCancelledError()); });
         });
@@ -169,8 +168,18 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     }
 
 
-    private handleDeviceMessage(event) {
-        this.log.wrap("ToDeviceChannel.handleDeviceMessage", (log) => {
+    private async handleDeviceMessage(event) {
+        await this.log.wrap("ToDeviceChannel.handleDeviceMessage", async (log) => {
+            if (event.content.transaction_id !== this.id) {
+                /**
+                 * When a device receives an unknown transaction_id, it should send an appropriate
+                 * m.key.verification.cancel message to the other device indicating as such.
+                 * This does not apply for inbound m.key.verification.start or m.key.verification.cancel messages.
+                 */
+                console.log("Received event with unknown transaction id: ", event);
+                await this.cancelVerification(CancelTypes.UnknownTransaction);
+                return;
+            }
             console.log("event", event);
             log.set("event", event);
             this.resolveAnyWaits(event);

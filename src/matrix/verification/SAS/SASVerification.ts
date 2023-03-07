@@ -21,10 +21,12 @@ import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
 import {IChannel} from "./channel/Channel";
 import {HomeServerApi} from "../../net/HomeServerApi";
-import {VerificationEventTypes} from "./channel/types";
+import {CancelTypes, VerificationEventTypes} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 import {VerificationCancelledError} from "./VerificationCancelledError";
+import {Timeout} from "../../../platform/types/types";
+import {Platform} from "../../../platform/web/Platform.js";
 
 type Olm = typeof OlmNamespace;
 
@@ -38,6 +40,7 @@ type Options = {
     e2eeAccount: Account;
     deviceTracker: DeviceTracker;
     hsApi: HomeServerApi;
+    platform: Platform;
 }
 
 export class SASVerification {
@@ -45,29 +48,30 @@ export class SASVerification {
     private olmSas: Olm.SAS;
     public finished: boolean = false;
     public readonly channel: IChannel;
+    private readonly timeout: Timeout;
    
     constructor(options: Options) {
-        const { ourUser, otherUserId, log, olmUtil, olm, channel, e2eeAccount, deviceTracker, hsApi } = options;
+        const { olm, channel, platform } = options;
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         this.channel = channel;
-        try {
-            const options = { ourUser, otherUserId, log, olmSas, olmUtil, channel, e2eeAccount, deviceTracker, hsApi};
-            let stage: BaseSASVerificationStage;
-            if (channel.receivedMessages.get(VerificationEventTypes.Start)) {
-                stage = new SelectVerificationMethodStage(options);
-            }
-            else if (channel.receivedMessages.get(VerificationEventTypes.Request)) {
-                stage = new SendReadyStage(options);
-            }
-            else {
-                stage = new RequestVerificationStage(options);
-            }
-            this.startStage = stage;
-            console.log("startStage", this.startStage);
+        this.timeout = platform.clock.createTimeout(10 * 60 * 1000);
+        this.timeout.elapsed().then(() => {
+            // Cancel verification after 10 minutes
+            // todo: catch error here?
+            channel.cancelVerification(CancelTypes.TimedOut);
+        });
+        const stageOptions = {...options, olmSas};
+        if (channel.receivedMessages.get(VerificationEventTypes.Start)) {
+            this.startStage = new SelectVerificationMethodStage(stageOptions);
         }
-        finally {
+        else if (channel.receivedMessages.get(VerificationEventTypes.Request)) {
+            this.startStage = new SendReadyStage(stageOptions);
         }
+        else {
+            this.startStage = new RequestVerificationStage(stageOptions);
+        }
+        console.log("startStage", this.startStage);
     }
 
     async start() {
@@ -88,6 +92,7 @@ export class SASVerification {
         finally {
             this.olmSas.free();
             this.finished = true;
+            this.timeout.abort();
         }
     }
 }

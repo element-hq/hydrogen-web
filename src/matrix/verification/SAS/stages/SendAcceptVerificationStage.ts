@@ -16,7 +16,7 @@ limitations under the License.
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import anotherjson from "another-json";
 import {HASHES_LIST, MAC_LIST, SAS_SET, KEY_AGREEMENT_LIST} from "./constants";
-import {VerificationEventTypes} from "../channel/types";
+import {CancelTypes, VerificationEventTypes} from "../channel/types";
 import {SendKeyStage} from "./SendKeyStage";
 export class SendAcceptVerificationStage extends BaseSASVerificationStage {
 
@@ -29,7 +29,8 @@ export class SendAcceptVerificationStage extends BaseSASVerificationStage {
             const sasMethods = intersection(content.short_authentication_string, SAS_SET);
             if (!(keyAgreement !== undefined && hashMethod !== undefined && macMethod !== undefined && sasMethods.length)) {
                 // todo: ensure this cancels the verification
-                throw new Error("Descriptive error here!");
+                await this.channel.cancelVerification(CancelTypes.UnknownMethod);
+                return;
             }
             const ourPubKey = this.olmSAS.get_pubkey();
             const commitmentStr = ourPubKey + anotherjson.stringify(content);
