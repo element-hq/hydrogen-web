@@ -4,6 +4,6 @@ import {SyncStatus} from "./Sync";
 export interface ISync {
     get status(): ObservableValue<SyncStatus>;
     get error(): Error | null;
-    start(): void;
+    start(): Promise<void>;
     stop(): void;
 }

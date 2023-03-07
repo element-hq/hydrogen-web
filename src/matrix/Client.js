@@ -298,7 +298,7 @@ export class Client {
                 this._platform.logger.runDetached("reconnect", async log => {
                     // needs to happen before sync and session or it would abort all requests
                     this._requestScheduler.start();
-                    this._sync.start();
+                    await this._sync.start();
                     this._sessionStartedByReconnector = true;
                     const d = dehydratedDevice;
                     dehydratedDevice = undefined;
@@ -329,7 +329,7 @@ export class Client {
     }
 
     async _waitForFirstSync() {
-        this._sync.start();
+        await this._sync.start();
         this._status.set(LoadStatus.FirstSync);
         // only transition into Ready once the first sync has succeeded
         this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
