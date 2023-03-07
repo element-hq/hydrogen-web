@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM} from "./common";
+import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM, SignatureVerification} from "./common";
 import {HistoryVisibility, shouldShareKey, DeviceKey, getDeviceEd25519Key, getDeviceCurve25519Key} from "./common";
 import {RoomMember} from "../room/members/RoomMember.js";
 import {getKeyUsage, getKeyEd25519Key, getKeyUserId, KeyUsage} from "../verification/CrossSigning";
@@ -462,7 +462,7 @@ export class DeviceTracker {
             log.log("ed25519 and/or curve25519 key invalid").set({deviceKey});
             return false;
         }
-        const isValid = verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceKey, log);
+        const isValid = verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceKey, log) === SignatureVerification.Valid;
         if (!isValid) {
             log.log({
                 l: "ignore device with invalid signature",
