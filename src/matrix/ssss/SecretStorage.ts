@@ -23,6 +23,18 @@ type EncryptedData = {
     mac: string;
 }
 
+export enum DecryptionFailure {
+    NotEncryptedWithKey,
+    BadMAC,
+    UnsupportedAlgorithm,
+}
+
+class DecryptionError extends Error {
+    constructor(msg: string, public readonly reason: DecryptionFailure) {
+        super(msg);
+    }
+}
+
 export class SecretStorage {
     private readonly _key: Key;
     private readonly _platform: Platform;
@@ -39,13 +51,13 @@ export class SecretStorage {
         }
         const encryptedData = accountData?.content?.encrypted?.[this._key.id] as EncryptedData;
         if (!encryptedData) {
-            throw new Error(`Secret ${accountData.type} is not encrypted for key ${this._key.id}`);
+            throw new DecryptionError(DecryptionFailure.NotEncryptedWithKey);
         }
 
         if (this._key.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
             return await this._decryptAESSecret(accountData.type, encryptedData);
         } else {
-            throw new Error(`Unsupported algorithm for key ${this._key.id}: ${this._key.algorithm}`);
+            throw new DecryptionError(DecryptionFailure.UnsupportedAlgorithm);
         }
     }
 
@@ -68,7 +80,7 @@ export class SecretStorage {
             ciphertextBytes, "SHA-256");
 
         if (!isVerified) {
-            throw new Error("Bad MAC");
+            throw new DecryptionError(DecryptionFailure.BadMAC);
         }
 
         const plaintextBytes = await this._platform.crypto.aes.decryptCTR({

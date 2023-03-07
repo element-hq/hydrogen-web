@@ -98,10 +98,9 @@ export class CrossSigning {
         this.e2eeAccount = options.e2eeAccount
     }
 
-    async init(log: ILogItem) {
-        await log.wrap("CrossSigning.init", async log => {
+    async verifyMSKFrom4S(log: ILogItem) {
+        await log.wrap("CrossSigning.verifyMSKFrom4S", async log => {
             // TODO: use errorboundary here
-            const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
             const privateMasterKey = await this.getSigningKey(KeyUsage.Master);
             const signing = new this.olm.PkSigning();
             let derivedPublicKey;
@@ -115,7 +114,12 @@ export class CrossSigning {
             log.set({publishedMasterKey: publisedEd25519Key, derivedPublicKey});
             this._isMasterKeyTrusted = !!publisedEd25519Key && publisedEd25519Key === derivedPublicKey;
             log.set("isMasterKeyTrusted", this.isMasterKeyTrusted);
+            return this.isMasterKeyTrusted;
         });
+    }
+
+    start() {
+
     }
 
     get isMasterKeyTrusted(): boolean {
