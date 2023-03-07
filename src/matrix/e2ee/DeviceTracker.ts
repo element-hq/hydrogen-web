@@ -264,9 +264,9 @@ export class DeviceTracker {
             "token": this._getSyncToken()
         }, {log}).response();
 
-        const masterKeys = log.wrap("master keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["master_keys"], KeyUsage.Master, undefined, log));
-        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], KeyUsage.SelfSigning, masterKeys, log));
-        const userSigningKeys = log.wrap("user-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["user_signing_keys"], KeyUsage.UserSigning, masterKeys, log));
+        const masterKeys = log.wrap("master keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["master_keys"], KeyUsage.Master, log));
+        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], KeyUsage.SelfSigning, log));
+        const userSigningKeys = log.wrap("user-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["user_signing_keys"], KeyUsage.UserSigning, log));
         const deviceKeys = log.wrap("device keys", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
@@ -354,16 +354,14 @@ export class DeviceTracker {
         return allDeviceKeys;
     }
 
-    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse: {[userId: string]: CrossSigningKey}, usage, parentKeys: Map<string, CrossSigningKey> | undefined, log): Map<string, CrossSigningKey> {
+    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse: {[userId: string]: CrossSigningKey}, usage: KeyUsage, log: ILogItem): Map<string, CrossSigningKey> {
         const keys: Map<string, CrossSigningKey> = new Map();
         if (!crossSigningKeysResponse) {
             return keys;
         }
         for (const [userId, keyInfo] of Object.entries(crossSigningKeysResponse)) {
             log.wrap({l: userId}, log => {
-                const parentKeyInfo = parentKeys?.get(userId);
-                const parentKey = parentKeyInfo && getKeyEd25519Key(parentKeyInfo);
-                if (this._validateCrossSigningKey(userId, keyInfo, usage, parentKey, log)) {
+                if (this._validateCrossSigningKey(userId, keyInfo, usage, log)) {
                     keys.set(getKeyUserId(keyInfo)!, keyInfo);
                 }
             });
@@ -371,7 +369,7 @@ export class DeviceTracker {
         return keys;
     }
 
-    _validateCrossSigningKey(userId: string, keyInfo: CrossSigningKey, usage: KeyUsage, parentKey: string | undefined, log: ILogItem): boolean {
+    _validateCrossSigningKey(userId: string, keyInfo: CrossSigningKey, usage: KeyUsage, log: ILogItem): boolean {
         if (getKeyUserId(keyInfo) !== userId) {
             log.log({l: "user_id mismatch", userId: keyInfo["user_id"]});
             return false;
@@ -384,24 +382,6 @@ export class DeviceTracker {
         if (!publicKey) {
             log.log({l: "no ed25519 key", keys: keyInfo.keys});
             return false;
-        }
-        const isSelfSigned = usage === "master";
-        const keyToVerifyWith = isSelfSigned ? publicKey : parentKey;
-        if (!keyToVerifyWith) {
-            log.log("signing_key not found");
-            return false;
-        }
-        const hasSignature = !!getEd25519Signature(keyInfo, userId, keyToVerifyWith);
-        // self-signature is optional for now, not all keys seem to have it
-        if (!hasSignature && keyToVerifyWith !== publicKey) {
-            log.log({l: "signature not found", key: keyToVerifyWith});
-            return false;
-        }
-        if (hasSignature) {
-            if(!verifyEd25519Signature(this._olmUtil, userId, keyToVerifyWith, keyToVerifyWith, keyInfo, log)) {
-                log.log("signature mismatch");
-                return false;
-            }
         }
         return true;
     }
