@@ -15,26 +15,18 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {VerificationEventTypes} from "../channel/types";
-import { SelectVerificationMethodStage } from "./SelectVerificationMethodStage";
+import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
 
 export class SendReadyStage extends BaseSASVerificationStage {
-
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
             const content = {
-                // "body": `${this.ourUser.userId} is requesting to verify your device, but your client does not support verification, so you may need to use a different verification method.`,
                 "from_device": this.ourUser.deviceId,
                 "methods": ["m.sas.v1"],
-                // "msgtype": "m.key.verification.request",
-                // "to": this.otherUserId,
             };
             await this.channel.send(VerificationEventTypes.Ready, content, log);
-            this._nextStage = new SelectVerificationMethodStage(this.options);
+            this.setNextStage(new SelectVerificationMethodStage(this.options));
             this.dispose();
         });
-    }
-
-    get type() {
-        return "m.key.verification.request";
     }
 }

@@ -18,7 +18,6 @@ import {VerificationEventTypes} from "../channel/types";
 import {CalculateSASStage} from "./CalculateSASStage";
 
 export class SendKeyStage extends BaseSASVerificationStage {
-
     async completeStage() {
         await this.log.wrap("SendKeyStage.completeStage", async (log) => {
             const ourSasKey = this.olmSAS.get_pubkey();
@@ -30,12 +29,8 @@ export class SendKeyStage extends BaseSASVerificationStage {
              * key.
              */
             await this.channel.waitForEvent(VerificationEventTypes.Key);
-            this._nextStage = new CalculateSASStage(this.options)
+            this.setNextStage(new CalculateSASStage(this.options));
             this.dispose();
         });
-    }
-
-    get type() {
-        return "m.key.verification.accept";
     }
 }

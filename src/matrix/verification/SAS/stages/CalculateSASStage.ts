@@ -88,8 +88,8 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             this.olmSAS.set_their_key(this.theirKey);
             const sasBytes = this.generateSASBytes();
             const emoji = generateEmojiSas(Array.from(sasBytes));
-            console.log("emoji", emoji);
-            this._nextStage = new SendMacStage(this.options);
+            console.log("Emoji calculated:", emoji);
+            this.setNextStage(new SendMacStage(this.options));
             this.dispose();
         });
     }
@@ -98,9 +98,10 @@ export class CalculateSASStage extends BaseSASVerificationStage {
         return await log.wrap("CalculateSASStage.verifyHashCommitment", async () => {
             const acceptMessage = this.channel.receivedMessages.get(VerificationEventTypes.Accept).content;
             const keyMessage = this.channel.receivedMessages.get(VerificationEventTypes.Key).content;
-            const commitmentStr = keyMessage.key + anotherjson.stringify(acceptMessage);
+            const commitmentStr = keyMessage.key + anotherjson.stringify(this.channel.startMessage.content);
             const receivedCommitment = acceptMessage.commitment;
-            if (this.olmUtil.sha256(commitmentStr) !== receivedCommitment) {
+            const hash = this.olmUtil.sha256(commitmentStr);
+            if (hash !== receivedCommitment) {
                 log.set("Commitment mismatched!", {});
                 // cancel the process!
                 await this.channel.cancelVerification(CancelTypes.MismatchedCommitment);
@@ -120,8 +121,8 @@ export class CalculateSASStage extends BaseSASVerificationStage {
     }
 
     private generateSASBytes(): Uint8Array {
-        const keyAgreement = this.channel.sentMessages.get(VerificationEventTypes.Accept).content.key_agreement_protocol;
-        const otherUserDeviceId = this.channel.startMessage.content.from_device;
+        const keyAgreement = this.channel.getEvent(VerificationEventTypes.Accept).content.key_agreement_protocol;
+        const otherUserDeviceId = this.channel.otherUserDeviceId;
         const sasBytes = calculateKeyAgreement[keyAgreement]({
             our: {
                 userId: this.ourUser.userId,
@@ -149,9 +150,5 @@ export class CalculateSASStage extends BaseSASVerificationStage {
     get theirKey(): string {
         const { content } = this.channel.receivedMessages.get(VerificationEventTypes.Key);
         return content.key;
-    }
-
-    get type() {
-        return "m.key.verification.accept";
     }
 }

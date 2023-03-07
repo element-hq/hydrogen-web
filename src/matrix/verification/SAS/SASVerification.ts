@@ -24,6 +24,7 @@ import {HomeServerApi} from "../../net/HomeServerApi";
 import {VerificationEventTypes} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
+import {VerificationCancelledError} from "./VerificationCancelledError";
 
 type Olm = typeof OlmNamespace;
 
@@ -42,14 +43,16 @@ type Options = {
 export class SASVerification {
     private startStage: BaseSASVerificationStage;
     private olmSas: Olm.SAS;
+    public finished: boolean = false;
+    public readonly channel: IChannel;
    
     constructor(options: Options) {
         const { ourUser, otherUserId, log, olmUtil, olm, channel, e2eeAccount, deviceTracker, hsApi } = options;
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
-        // channel.send("m.key.verification.request", {}, log);
+        this.channel = channel;
         try {
-            const options = { ourUser, otherUserId, log, olmSas, olmUtil, channel, e2eeAccount, deviceTracker, hsApi };
+            const options = { ourUser, otherUserId, log, olmSas, olmUtil, channel, e2eeAccount, deviceTracker, hsApi};
             let stage: BaseSASVerificationStage;
             if (channel.receivedMessages.get(VerificationEventTypes.Start)) {
                 stage = new SelectVerificationMethodStage(options);
@@ -71,12 +74,20 @@ export class SASVerification {
         try {
             let stage = this.startStage;
             do {
+                console.log("Running next stage");
                 await stage.completeStage();
                 stage = stage.nextStage;
             } while (stage);
         }
+        catch (e) {
+            if (!(e instanceof VerificationCancelledError)) {
+                throw e; 
+            }
+            console.log("Caught error in start()");
+        }
         finally {
             this.olmSas.free();
+            this.finished = true;
         }
     }
 }

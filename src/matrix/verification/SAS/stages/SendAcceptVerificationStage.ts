@@ -15,19 +15,14 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import anotherjson from "another-json";
-import type { KeyAgreement, MacMethod } from "./constants";
 import {HASHES_LIST, MAC_LIST, SAS_SET, KEY_AGREEMENT_LIST} from "./constants";
-import { VerificationEventTypes } from "../channel/types";
-import { SendKeyStage } from "./SendKeyStage";
+import {VerificationEventTypes} from "../channel/types";
+import {SendKeyStage} from "./SendKeyStage";
 export class SendAcceptVerificationStage extends BaseSASVerificationStage {
 
     async completeStage() {
         await this.log.wrap("SendAcceptVerificationStage.completeStage", async (log) => {
-            const event = this.channel.startMessage;
-            const content = {
-                ...event.content,
-                // "m.relates_to": event.relation,
-            };
+            const { content } = this.channel.startMessage;
             const keyAgreement = intersection(KEY_AGREEMENT_LIST, new Set(content.key_agreement_protocols))[0];
             const hashMethod = intersection(HASHES_LIST, new Set(content.hashes))[0];
             const macMethod = intersection(MAC_LIST, new Set(content.message_authentication_codes))[0];
@@ -50,23 +45,11 @@ export class SendAcceptVerificationStage extends BaseSASVerificationStage {
                     rel_type: "m.reference",
                 }
             };
-            // await this.room.sendEvent("m.key.verification.accept", contentToSend, null, log);
             await this.channel.send(VerificationEventTypes.Accept, contentToSend, log);
-            this.channel.localMessages.set("our_pub_key", ourPubKey);
             await this.channel.waitForEvent(VerificationEventTypes.Key);
-            this._nextStage = new SendKeyStage(this.options);
-            // this.nextStage?.setResultFromPreviousStage({
-            //     ...this.previousResult,
-            //     [this.type]: contentToSend,
-            //     "our_pub_key": ourPubKey, 
-            // });
+            this.setNextStage(new SendKeyStage(this.options));
             this.dispose();
         });
-    }
-
-
-    get type() {
-        return "m.key.verification.accept";
     }
 }
 

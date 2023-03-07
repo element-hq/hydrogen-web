@@ -45,6 +45,7 @@ export class CrossSigning {
     private readonly deviceMessageHandler: DeviceMessageHandler;
     private _isMasterKeyTrusted: boolean = false;
     private readonly deviceId: string;
+    private sasVerificationInProgress?: SASVerification;
 
     constructor(options: {
         storage: Storage,
@@ -72,12 +73,20 @@ export class CrossSigning {
         this.deviceMessageHandler = options.deviceMessageHandler;
 
         this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
+            if (this.sasVerificationInProgress &&
+                (
+                    !this.sasVerificationInProgress.finished ||
+                    // If the start message is for the previous sasverification, ignore it.
+                    this.sasVerificationInProgress.channel.id === unencryptedEvent.content.transaction_id
+                )) {
+                return;
+            }
             console.log("unencrypted event", unencryptedEvent);
             if (unencryptedEvent.type === VerificationEventTypes.Request ||
                 unencryptedEvent.type === VerificationEventTypes.Start) {
                 await this.platform.logger.run("Start verification from request", async (log) => {
                     const sas = this.startVerification(unencryptedEvent.sender, log, unencryptedEvent);
-                    await sas.start();
+                    await sas?.start();
                 });
             }
         })
@@ -134,7 +143,10 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(userId: string, log: ILogItem, event?: any): SASVerification {
+    startVerification(userId: string, log: ILogItem, event?: any): SASVerification | undefined {
+        if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
+            return;
+        }
         const channel = new ToDeviceChannel({
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
@@ -143,7 +155,8 @@ export class CrossSigning {
             deviceMessageHandler: this.deviceMessageHandler,
             log
         }, event);
-        return new SASVerification({
+
+        this.sasVerificationInProgress = new SASVerification({
             olm: this.olm,
             olmUtil: this.olmUtil,
             ourUser: { userId: this.ownUserId, deviceId: this.deviceId },
@@ -154,6 +167,7 @@ export class CrossSigning {
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
         });
+        return this.sasVerificationInProgress;
     }
 }
 

@@ -19,51 +19,16 @@ import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
 import {VerificationEventTypes} from "../channel/types";
 
 export class RequestVerificationStage extends BaseSASVerificationStage {
-
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
             const content = {
-                // "body": `${this.ourUser.userId} is requesting to verify your device, but your client does not support verification, so you may need to use a different verification method.`,
                 "from_device": this.ourUser.deviceId,
                 "methods": ["m.sas.v1"],
-                // "msgtype": "m.key.verification.request",
-                // "to": this.otherUserId,
             };
-            // const promise = this.trackEventId();
-           // await this.room.sendEvent("m.room.message", content, null, log);
             await this.channel.send(VerificationEventTypes.Request, content, log);
-            this._nextStage = new SelectVerificationMethodStage(this.options);
-            const readyContent = await this.channel.waitForEvent("m.key.verification.ready");
-            // const eventId = await promise;
-            // console.log("eventId", eventId);
-            // this.setRequestEventId(eventId);
+            this.setNextStage(new SelectVerificationMethodStage(this.options));
+            await this.channel.waitForEvent("m.key.verification.ready");
             this.dispose();
         });
-    }
-
-    // private trackEventId(): Promise<string> {
-    //     return new Promise(resolve => {
-    //         this.track(
-    //             this.room._timeline.entries.subscribe({
-    //                 onAdd: (_, entry) => {
-    //                     if (entry instanceof FragmentBoundaryEntry) {
-    //                         return;
-    //                     }
-    //                     if (!entry.isPending &&
-    //                         entry.content["msgtype"] === "m.key.verification.request" &&
-    //                         entry.content["from_device"] === this.ourUser.deviceId) {
-    //                             console.log("found event", entry);
-    //                         resolve(entry.id);
-    //                     }
-    //                 },
-    //                 onRemove: () => { /**noop*/ },
-    //                 onUpdate: () => { /**noop*/ },
-    //             })
-    //         );
-    //     });
-    // }
-
-    get type() {
-        return "m.key.verification.request";
     }
 }

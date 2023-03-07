@@ -70,16 +70,6 @@ export abstract class BaseSASVerificationStage extends Disposables {
         this.hsApi = options.hsApi;
     }
 
-    setRequestEventId(id: string) {
-        this.requestEventId = id;
-        // todo: can this race with incoming message?
-        this.nextStage?.setRequestEventId(id);
-    }
-
-    setResultFromPreviousStage(result?: any) {
-        this.previousResult = result;
-    }
-
     setNextStage(stage: BaseSASVerificationStage) {
         this._nextStage = stage;
     }
@@ -88,6 +78,5 @@ export abstract class BaseSASVerificationStage extends Disposables {
         return this._nextStage;
     }
 
-    abstract get type(): string;
     abstract completeStage(): Promise<any>;
 }

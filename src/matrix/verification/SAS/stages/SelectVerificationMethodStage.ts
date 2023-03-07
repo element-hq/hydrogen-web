@@ -18,6 +18,7 @@ import {KEY_AGREEMENT_LIST, HASHES_LIST, MAC_LIST, SAS_LIST} from "./constants";
 import {CancelTypes, VerificationEventTypes} from "../channel/types";
 import type {ILogItem} from "../../../../logging/types";
 import {SendAcceptVerificationStage} from "./SendAcceptVerificationStage";
+import {SendKeyStage} from "./SendKeyStage";
 
 export class SelectVerificationMethodStage extends BaseSASVerificationStage {
     private hasSentStartMessage = false;
@@ -26,6 +27,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
 
     async completeStage() {
         await this.log.wrap("SelectVerificationMethodStage.completeStage", async (log) => {
+            (window as any).select = () => this.selectEmojiMethod(log); 
             const startMessage = this.channel.waitForEvent(VerificationEventTypes.Start);
             const acceptMessage = this.channel.waitForEvent(VerificationEventTypes.Accept);
             const { content } = await Promise.race([startMessage, acceptMessage]);
@@ -45,7 +47,11 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                 this.channel.setStartMessage(this.channel.sentMessages.get(VerificationEventTypes.Start));
                 this.channel.setInitiatedByUs(true);
             }
-            if (!this.channel.initiatedByUs) {
+            if (this.channel.initiatedByUs) {
+                await acceptMessage;
+                this.setNextStage(new SendKeyStage(this.options));
+            }
+            else {
                 // We need to send the accept message next
                 this.setNextStage(new SendAcceptVerificationStage(this.options));
             }
@@ -85,9 +91,5 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
         };
         await this.channel.send(VerificationEventTypes.Start, content, log);
         this.hasSentStartMessage = true;
-    }
-
-    get type() {
-        return "SelectVerificationStage";
     }
 }

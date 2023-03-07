@@ -18,7 +18,7 @@ import {ILogItem} from "../../../../lib";
 import {VerificationEventTypes} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import type * as OlmNamespace from "@matrix-org/olm";
-import { SendDoneStage } from "./SendDoneStage";
+import {SendDoneStage} from "./SendDoneStage";
 type Olm = typeof OlmNamespace;
 
 export type KeyVerifier = (keyId: string, device: any, keyInfo: string) => void;
@@ -39,7 +39,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             this.calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.checkMAC(log);
             await this.channel.waitForEvent(VerificationEventTypes.Done);
-            this._nextStage = new SendDoneStage(this.options);
+            this.setNextStage(new SendDoneStage(this.options));
             this.dispose();
         });
     }
@@ -87,9 +87,5 @@ export class VerifyMacStage extends BaseSASVerificationStage {
                 }
             }
         }
-    }
-
-    get type() {
-        return "m.key.verification.accept";
     }
 }
