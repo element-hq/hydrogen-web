@@ -165,10 +165,13 @@ export class CrossSigning {
             }
             const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
             if (!keyToSign) {
-                return undefined;
+                return;
+            }
+            const signingKey = await this.getSigningKey(KeyUsage.UserSigning);
+            if (!signingKey) {
+                return;
             }
             delete keyToSign.signatures;
-            const signingKey = await this.getSigningKey(KeyUsage.UserSigning);
             // add signature to keyToSign
             this.signKey(keyToSign, signingKey);
             const payload = {
@@ -248,8 +251,11 @@ export class CrossSigning {
         });
     }
 
-    private async signDeviceKey(keyToSign: DeviceKey, log: ILogItem): Promise<DeviceKey> {
+    private async signDeviceKey(keyToSign: DeviceKey, log: ILogItem): Promise<DeviceKey | undefined> {
         const signingKey = await this.getSigningKey(KeyUsage.SelfSigning);
+        if (!signingKey) {
+            return undefined;
+        }
         // add signature to keyToSign
         this.signKey(keyToSign, signingKey);
         // so the payload format of a signature is a map from userid to key id of the signed key
@@ -265,11 +271,12 @@ export class CrossSigning {
         return keyToSign;
     }
 
-    private async getSigningKey(usage: KeyUsage): Promise<Uint8Array> {
+    private async getSigningKey(usage: KeyUsage): Promise<Uint8Array | undefined> {
         const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
         const seedStr = await this.secretStorage.readSecret(`m.cross_signing.${usage}`, txn);
-        const seed = new Uint8Array(this.platform.encoding.base64.decode(seedStr));
-        return seed;
+        if (seedStr) {
+            return new Uint8Array(this.platform.encoding.base64.decode(seedStr));
+        }
     }
 
     private signKey(keyToSign: DeviceKey | CrossSigningKey, signingKey: Uint8Array) {
