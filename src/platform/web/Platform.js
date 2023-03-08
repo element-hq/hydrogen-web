@@ -43,6 +43,7 @@ import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
 import {ThemeLoader} from "./theming/ThemeLoader";
 import {TimeFormatter} from "./dom/TimeFormatter";
+import {FeatureSet} from "../../features";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -201,6 +202,7 @@ export class Platform {
                     log.log({ l: "Active theme", name: themeName, variant: themeVariant });
                     await this._themeLoader.setTheme(themeName, themeVariant, log);
                 }
+                this.features = await FeatureSet.load(this.settingsStorage);
             });
         } catch (err) {
             this._container.innerText = err.message;
