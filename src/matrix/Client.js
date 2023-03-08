@@ -291,7 +291,11 @@ export class Client {
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
 
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
+        this._sync = this._platform.syncFactory.make({
+            scheduler: this._requestScheduler,
+            storage: this._storage,
+            session: this._session,
+        });
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {

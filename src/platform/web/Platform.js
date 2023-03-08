@@ -44,6 +44,7 @@ import {DOMWebRTC} from "./dom/WebRTC";
 import {ThemeLoader} from "./theming/ThemeLoader";
 import {TimeFormatter} from "./dom/TimeFormatter";
 import {FeatureSet} from "../../features";
+import {SyncFactory} from "./sync/SyncFactory";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -203,6 +204,7 @@ export class Platform {
                     await this._themeLoader.setTheme(themeName, themeVariant, log);
                 }
                 this.features = await FeatureSet.load(this.settingsStorage);
+                this.syncFactory = new SyncFactory({logger: this.logger});
             });
         } catch (err) {
             this._container.innerText = err.message;
