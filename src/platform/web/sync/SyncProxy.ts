@@ -11,6 +11,7 @@ export class SyncProxy implements ISync {
     private _session: Session;
     private readonly _status: ObservableValue<SyncStatus> = new ObservableValue(SyncStatus.Stopped);
     private _error: Error | null = null;
+    private _worker?: SharedWorker;
 
     constructor(options: Options) {
         const {session} = options;
@@ -26,7 +27,11 @@ export class SyncProxy implements ISync {
     }
 
     async start(): Promise<void> {
-        // TODO
+        this._worker = new SharedWorker(new URL("./sync-worker", import.meta.url));
+        this._worker.port.onmessage = (event: MessageEvent) => {
+            // TODO
+            console.log(event);
+        };
     }
 
     stop(): void {
