@@ -27,7 +27,9 @@ export class SyncProxy implements ISync {
     }
 
     async start(): Promise<void> {
-        this._worker = new SharedWorker(new URL("./sync-worker", import.meta.url));
+        this._worker = new SharedWorker(new URL("./sync-worker", import.meta.url), {
+            type: "module",
+        });
         this._worker.port.onmessage = (event: MessageEvent) => {
             // TODO
             console.log(event);
