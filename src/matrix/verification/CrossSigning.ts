@@ -101,7 +101,6 @@ export class CrossSigning {
     async init(log: ILogItem) {
         await log.wrap("CrossSigning.init", async log => {
             // TODO: use errorboundary here
-            const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
             const privateMasterKey = await this.getSigningKey(KeyUsage.Master);
             const signing = new this.olm.PkSigning();
             let derivedPublicKey;
