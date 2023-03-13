@@ -107,6 +107,7 @@ export class MockChannel implements ITestChannel {
 
     setStartMessage(event: any): void {
         this.startMessage = event;
+        this.initiatedByUs = event.content.from_device === this.ourUserDeviceId;
         this.recalculateCommitment();
     }
 

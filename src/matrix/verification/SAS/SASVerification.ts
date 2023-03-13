@@ -469,6 +469,88 @@ export function tests() {
             }
             assert.strictEqual(sas.finished, true);
         },
+        "Order of stages created matches expected order when request is sent with start conflict (I win), same user": async (assert) => {
+            const ourDeviceId = "FWKXUYUHTF";
+            const ourUserId = "@foobaraccount3:matrix.org";
+            const theirUserId = "@foobaraccount3:matrix.org";
+            const theirDeviceId = "ILQHOACESQ";
+            const txnId = "t150836b91a7bed";
+            const receivedMessages = new SASFixtures(theirUserId, theirDeviceId, txnId)
+                .youSentRequest()
+                .theySentStart()
+                .youSentStart()
+                .youWinConflict()
+                .fixtures();
+            const { sas, logger } = await createSASRequest(
+                ourUserId,
+                ourDeviceId,
+                theirUserId,
+                theirDeviceId,
+                txnId, 
+                receivedMessages
+            );
+            sas.eventEmitter.on("SelectVerificationStage", (stage) => {
+                logger.run("send start", async (log) => {
+                    await stage?.selectEmojiMethod(log);
+                });
+            });
+            await sas.start();
+            const expectedOrder = [
+                RequestVerificationStage,
+                SelectVerificationMethodStage,
+                SendKeyStage,
+                CalculateSASStage,
+                SendMacStage,
+                VerifyMacStage,
+                SendDoneStage
+            ]
+            //@ts-ignore
+            let stage = sas.startStage;
+            for (const stageClass of expectedOrder) {
+                assert.strictEqual(stage instanceof stageClass, true);
+                stage = stage.nextStage;
+            }
+            assert.strictEqual(sas.finished, true);
+        },
+        "Order of stages created matches expected order when request is sent with start conflict (they win), same user": async (assert) => {
+            const ourDeviceId = "ILQHOACESQ";
+            const ourUserId = "@foobaraccount3:matrix.org";
+            const theirUserId = "@foobaraccount3:matrix.org";
+            const theirDeviceId = "FWKXUYUHTF";
+            const txnId = "t150836b91a7bed";
+            const receivedMessages = new SASFixtures(theirUserId, theirDeviceId, txnId)
+                .youSentRequest()
+                .theySentStart()
+                .youSentStart()
+                .theyWinConflict()
+                .fixtures();
+            const { sas } = await createSASRequest(
+                ourUserId,
+                ourDeviceId,
+                theirUserId,
+                theirDeviceId,
+                txnId, 
+                receivedMessages
+            );
+            await sas.start();
+            const expectedOrder = [
+                RequestVerificationStage,
+                SelectVerificationMethodStage,
+                SendAcceptVerificationStage,
+                SendKeyStage,
+                CalculateSASStage,
+                SendMacStage,
+                VerifyMacStage,
+                SendDoneStage
+            ]
+            //@ts-ignore
+            let stage = sas.startStage;
+            for (const stageClass of expectedOrder) {
+                assert.strictEqual(stage instanceof stageClass, true);
+                stage = stage.nextStage;
+            }
+            assert.strictEqual(sas.finished, true);
+        },
         "Verification is cancelled after 10 minutes": async (assert) => {
             const ourDeviceId = "ILQHOACESQ";
             const ourUserId = "@foobaraccount:matrix.org";

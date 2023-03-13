@@ -38,21 +38,14 @@ const messageFromErrorType = {
     [CancelTypes.MismatchedSAS]: "Emoji/decimal does not match.",
 }
 
-const enum ChannelType {
-    MessageEvent,
-    ToDeviceMessage,
-}
-
 export interface IChannel {
     send(eventType: string, content: any, log: ILogItem): Promise<void>;
     waitForEvent(eventType: string): Promise<any>;
-    type: ChannelType;
     id: string;
     otherUserDeviceId: string;
     sentMessages: Map<string, any>;
     receivedMessages: Map<string, any>;
     setStartMessage(content: any): void;
-    setInitiatedByUs(value: boolean): void;
     initiatedByUs: boolean;
     startMessage: any;
     cancelVerification(cancellationType: CancelTypes): Promise<void>;
@@ -71,6 +64,7 @@ type Options = {
 export class ToDeviceChannel extends Disposables implements IChannel {
     private readonly hsApi: HomeServerApi;
     private readonly deviceTracker: DeviceTracker;
+    private ourDeviceId: string;
     private readonly otherUserId: string;
     private readonly platform: Platform;
     private readonly deviceMessageHandler: DeviceMessageHandler;
@@ -110,11 +104,6 @@ export class ToDeviceChannel extends Disposables implements IChannel {
             this.receivedMessages.set(eventType, startingMessage);
             this.otherUserDeviceId = startingMessage.content.from_device;
         }
-        (window as any).foo = () => this.cancelVerification(CancelTypes.OtherUserAccepted);
-    }
-
-    get type() {
-        return ChannelType.ToDeviceMessage;
     }
 
     get isCancelled(): boolean {
@@ -126,10 +115,14 @@ export class ToDeviceChannel extends Disposables implements IChannel {
             if (this.isCancelled) {
                 throw new VerificationCancelledError();
             }
+            if (eventType === VerificationEventTypes.Request || eventType === VerificationEventTypes.Ready) {
+                this.ourDeviceId = content.from_device;
+            }
             if (eventType === VerificationEventTypes.Request) {
                 // Handle this case specially
                 await this.handleRequestEventSpecially(eventType, content, log);
                 this.sentMessages.set(eventType, {content});
+                this.ourDeviceId = content.from_device;
                 return;
             }
             Object.assign(content, { transaction_id: this.id });
@@ -170,6 +163,9 @@ export class ToDeviceChannel extends Disposables implements IChannel {
 
     private async handleDeviceMessage(event) {
         await this.log.wrap("ToDeviceChannel.handleDeviceMessage", async (log) => {
+            if (!event.type.startsWith("m.key.verification.")) {
+                return;
+            }
             if (event.content.transaction_id !== this.id) {
                 /**
                  * When a device receives an unknown transaction_id, it should send an appropriate
@@ -201,7 +197,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
             this.otherUserDeviceId = fromDevice;
             // We need to send cancel messages to all other devices
             const devices = await this.deviceTracker.devicesForUsers([this.otherUserId], this.hsApi, log);
-            const otherDevices = devices.filter(device => device.deviceId !== fromDevice);
+            const otherDevices = devices.filter(device => device.deviceId !== fromDevice && device.deviceId !== this.ourDeviceId);
             const cancelMessage = {
                 code: CancelTypes.OtherUserAccepted,
                 reason: "An user already accepted this request!",
@@ -275,10 +271,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
 
     setStartMessage(event) {
         this.startMessage = event;
-    }
-
-    setInitiatedByUs(value: boolean): void {
-        this._initiatedByUs = value;
+        this._initiatedByUs = event.content.from_device === this.ourDeviceId;
     }
 
     get initiatedByUs(): boolean {

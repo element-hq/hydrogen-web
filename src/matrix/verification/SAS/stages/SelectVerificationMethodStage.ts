@@ -39,13 +39,11 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                 }
                 else {
                     this.channel.setStartMessage(this.channel.receivedMessages.get(VerificationEventTypes.Start));
-                    this.channel.setInitiatedByUs(false);
                 }
             }
             else {
                 // We received the accept message
                 this.channel.setStartMessage(this.channel.sentMessages.get(VerificationEventTypes.Start));
-                this.channel.setInitiatedByUs(true);
             }
             if (this.channel.initiatedByUs) {
                 await acceptMessage;
@@ -66,17 +64,11 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
             await this.channel.cancelVerification(CancelTypes.UnexpectedMessage);
             return;
         }
-        // todo: what happens if we are verifying devices? user-ids would be the same in that case!
         // In the case of conflict, the lexicographically smaller id wins 
-        if (this.ourUser.userId < this.otherUserId) {
-            // use our stat message
-            this.channel.setStartMessage(sentStartMessage);
-            this.channel.setInitiatedByUs(true);
-        }
-        else {
-            this.channel.setStartMessage(receivedStartMessage);
-            this.channel.setInitiatedByUs(false);
-        }
+        const our = this.ourUser.userId === this.otherUserId ? this.ourUser.deviceId : this.ourUser.userId;
+        const their = this.ourUser.userId === this.otherUserId ? this.channel.otherUserDeviceId : this.otherUserId;
+        const startMessageToUse = our < their ? sentStartMessage : receivedStartMessage;
+        this.channel.setStartMessage(startMessageToUse);
     }
 
     async selectEmojiMethod(log: ILogItem) {
