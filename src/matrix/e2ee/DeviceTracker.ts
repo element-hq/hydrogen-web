@@ -163,15 +163,19 @@ export class DeviceTracker {
         }
     }
 
-    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi, log: ILogItem): Promise<CrossSigningKey | undefined> {
+    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi | undefined, existingTxn: Transaction | undefined, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return await log.wrap({l: "DeviceTracker.getCrossSigningKeyForUser", id: userId, usage}, async log => {
-            let txn = await this._storage.readTxn([
+            const txn = existingTxn ?? await this._storage.readTxn([
                 this._storage.storeNames.userIdentities,
                 this._storage.storeNames.crossSigningKeys,
             ]);
-            let userIdentity = await txn.userIdentities.get(userId);
+            const userIdentity = await txn.userIdentities.get(userId);
             if (userIdentity && userIdentity.keysTrackingStatus !== KeysTrackingStatus.Outdated) {
                 return await txn.crossSigningKeys.get(userId, usage);
+            }
+            // not allowed to access the network, bail out
+            if (!hsApi) {
+                return undefined;
             }
             // fetch from hs
             const keys = await this._queryKeys([userId], hsApi, log);

@@ -38,15 +38,14 @@ const KEYS_PER_REQUEST = 200;
 
 export class KeyBackup {
     public readonly operationInProgress = new ObservableValue<AbortableOperation<Promise<void>, Progress> | undefined>(undefined);
-
     private _stopped = false;
     private _needsNewKey = false;
     private _hasBackedUpAllKeys = false;
     private _error?: Error;
+    private crypto?: Curve25519.BackupEncryption;
 
     constructor(
         private readonly backupInfo: BackupInfo,
-        private readonly crypto: Curve25519.BackupEncryption,
         private readonly hsApi: HomeServerApi,
         private readonly keyLoader: KeyLoader,
         private readonly storage: Storage,
@@ -61,6 +60,9 @@ export class KeyBackup {
     get hasBackedUpAllKeys(): boolean { return this._hasBackedUpAllKeys; }
 
     async getRoomKey(roomId: string, sessionId: string, log: ILogItem): Promise<IncomingRoomKey | undefined> {
+        if (this.needsNewKey || !this.crypto) {
+            return;
+        }
         const sessionResponse = await this.hsApi.roomKeyForRoomAndSession(this.backupInfo.version, roomId, sessionId, {log}).response();
         if (!sessionResponse.session_data) {
             return;
@@ -75,6 +77,12 @@ export class KeyBackup {
 
     markAllForBackup(txn: Transaction): Promise<number> {
         return txn.inboundGroupSessions.markAllAsNotBackedUp();
+    }
+
+    start(log: ILogItem) {
+
+        // fetch latest version
+        this.flush(log);
     }
 
     flush(log: ILogItem): void {
@@ -184,7 +192,7 @@ export class KeyBackup {
     }
 
     dispose() {
-        this.crypto.dispose();
+        this.crypto?.dispose();
     }
 
     static async fromSecretStorage(platform: Platform, olm: Olm, secretStorage: SecretStorage, hsApi: HomeServerApi, keyLoader: KeyLoader, storage: Storage, txn: Transaction): Promise<KeyBackup | undefined> {
@@ -194,7 +202,7 @@ export class KeyBackup {
             const backupInfo = await hsApi.roomKeysVersion().response() as BackupInfo;
             if (backupInfo.algorithm === Curve25519.Algorithm) {
                 const crypto = Curve25519.BackupEncryption.fromAuthData(backupInfo.auth_data, privateKey, olm);
-                return new KeyBackup(backupInfo, crypto, hsApi, keyLoader, storage, platform);
+                return new KeyBackup(backupInfo, privateKey, hsApi, keyLoader, storage, platform);
             } else {
                 throw new Error(`Unknown backup algorithm: ${backupInfo.algorithm}`);
             }

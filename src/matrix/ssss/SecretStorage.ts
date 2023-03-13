@@ -16,11 +16,25 @@ limitations under the License.
 import type {Key} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
 import type {Transaction} from "../storage/idb/Transaction";
+import type {Storage} from "../storage/idb/Storage";
+import type {AccountDataEntry} from "../storage/idb/stores/AccountDataStore";
 
 type EncryptedData = {
     iv: string;
     ciphertext: string;
     mac: string;
+}
+
+export enum DecryptionFailure {
+    NotEncryptedWithKey,
+    BadMAC,
+    UnsupportedAlgorithm,
+}
+
+class DecryptionError extends Error {
+    constructor(msg: string, public readonly reason: DecryptionFailure) {
+        super(msg);
+    }
 }
 
 export class SecretStorage {
@@ -32,20 +46,37 @@ export class SecretStorage {
         this._platform = platform;
     }
 
+    async hasValidKeyForAnyAccountData(txn: Transaction) {
+        const allAccountData = await txn.accountData.getAll();
+        for (const accountData of allAccountData) {
+            try {
+                const secret = await this._decryptAccountData(accountData);
+                return true; // decryption succeeded
+            } catch (err) {
+                continue;
+            }
+        }
+        return false;
+    }
+
     async readSecret(name: string, txn: Transaction): Promise<string | undefined> {
         const accountData = await txn.accountData.get(name);
         if (!accountData) {
             return;
         }
+        return await this._decryptAccountData(accountData);
+    }
+
+    async _decryptAccountData(accountData: AccountDataEntry): Promise<string> {
         const encryptedData = accountData?.content?.encrypted?.[this._key.id] as EncryptedData;
         if (!encryptedData) {
-            throw new Error(`Secret ${accountData.type} is not encrypted for key ${this._key.id}`);
+            throw new DecryptionError(`Secret ${accountData.type} is not encrypted for key ${this._key.id}`, DecryptionFailure.NotEncryptedWithKey);
         }
 
         if (this._key.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
             return await this._decryptAESSecret(accountData.type, encryptedData);
         } else {
-            throw new Error(`Unsupported algorithm for key ${this._key.id}: ${this._key.algorithm}`);
+            throw new DecryptionError(`Unsupported algorithm for key ${this._key.id}: ${this._key.algorithm}`, DecryptionFailure.UnsupportedAlgorithm);
         }
     }
 
@@ -68,7 +99,7 @@ export class SecretStorage {
             ciphertextBytes, "SHA-256");
 
         if (!isVerified) {
-            throw new Error("Bad MAC");
+            throw new DecryptionError("Bad MAC", DecryptionFailure.BadMAC);
         }
 
         const plaintextBytes = await this._platform.crypto.aes.decryptCTR({

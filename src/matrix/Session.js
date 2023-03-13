@@ -252,16 +252,14 @@ export class Session {
                 this._keyBackup.get().dispose();
                 this._keyBackup.set(null);
             }
+            // TODO: stop cross-signing
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
-            // and create key backup, which needs to read from accountData
-            const readTxn = await this._storage.readTxn([
-                this._storage.storeNames.accountData,
-            ]);
-            if (await this._createKeyBackup(key, readTxn, log)) {
+            if (await this._tryLoadSecretStorage(key, undefined, log)) {
                 // only after having read a secret, write the key
                 // as we only find out if it was good if the MAC verification succeeds
                 await this._writeSSSSKey(key, log);
-                this._keyBackup.get().flush(log);
+                await this._keyBackup?.start(log);
+                await this._crossSigning?.start(log);
                 return key;
             } else {
                 throw new Error("Could not read key backup with the given key");
@@ -317,12 +315,35 @@ export class Session {
             this._keyBackup.get().dispose();
             this._keyBackup.set(null);
         }
+        // TODO: stop cross-signing
     }
 
-    _createKeyBackup(ssssKey, txn, log) {
-        return log.wrap("enable key backup", async log => {
-            try {
-                const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
+    _tryLoadSecretStorage(ssssKey, existingTxn, log) {
+        return log.wrap("enable secret storage", async log => {
+            const txn = existingTxn ?? await this._storage.readTxn([
+                this._storage.storeNames.accountData,
+                this._storage.storeNames.crossSigningKeys,
+                this._storage.storeNames.userIdentities,
+            ]);
+            const secretStorage = new SecretStorage({key: ssssKey, platform: this._platform});
+            const isValid = await secretStorage.hasValidKeyForAnyAccountData(txn);
+            log.set("isValid", isValid);
+            if (isValid) {
+                await this._loadSecretStorageServices(secretStorage, txn, log);
+            }
+            if (!this._keyBackup.get()) {
+                // null means key backup isn't configured yet
+                // as opposed to undefined, which means we're still checking
+                this._keyBackup.set(null);
+            }
+            return isValid;
+        });
+    }
+
+    _loadSecretStorageServices(secretStorage, txn, log) {
+        try {
+            await log.wrap("enable key backup", async log => {
+                // TODO: delay network request here until start()
                 const keyBackup = await KeyBackup.fromSecretStorage(
                     this._platform,
                     this._olm,
@@ -333,22 +354,6 @@ export class Session {
                     txn
                 );
                 if (keyBackup) {
-                    if (this._features.crossSigning) {
-                        this._crossSigning = new CrossSigning({
-                            storage: this._storage,
-                            secretStorage,
-                            platform: this._platform,
-                            olm: this._olm,
-                            olmUtil: this._olmUtil,
-                            deviceTracker: this._deviceTracker,
-                            hsApi: this._hsApi,
-                            ownUserId: this.userId,
-                            e2eeAccount: this._e2eeAccount
-                        });
-                        await log.wrap("enable cross-signing", log => {
-                            return this._crossSigning.init(log);
-                        });
-                    }
                     for (const room of this._rooms.values()) {
                         if (room.isEncrypted) {
                             room.enableKeyBackup(keyBackup);
@@ -359,11 +364,28 @@ export class Session {
                 } else {
                     log.set("no_backup", true);
                 }
-            } catch (err) {
-                log.catch(err);
+            });
+            if (this._features.crossSigning) {
+                await log.wrap("enable cross-signing", async log => {
+                    const crossSigning = new CrossSigning({
+                        storage: this._storage,
+                        secretStorage,
+                        platform: this._platform,
+                        olm: this._olm,
+                        olmUtil: this._olmUtil,
+                        deviceTracker: this._deviceTracker,
+                        hsApi: this._hsApi,
+                        ownUserId: this.userId,
+                        e2eeAccount: this._e2eeAccount
+                    });
+                    if (crossSigning.load(txn, log)) {
+                        this._crossSigning = crossSigning;
+                    }
+                });
             }
-            return false;
-        });
+        } catch (err) {
+            log.catch(err);
+        }
     }
 
     /**
@@ -467,6 +489,8 @@ export class Session {
             this._storage.storeNames.timelineEvents,
             this._storage.storeNames.timelineFragments,
             this._storage.storeNames.pendingEvents,
+            this._storage.storeNames.accountData,
+            this._storage.storeNames.crossSigningKeys,
         ]);
         // restore session object
         this._syncInfo = await txn.session.get("sync");
@@ -484,6 +508,11 @@ export class Session {
             if (this._e2eeAccount) {
                 log.set("keys", this._e2eeAccount.identityKeys);
                 this._setupEncryption();
+                // try set up session backup if we stored the ssss key
+                const ssssKey = await ssssReadKey(txn);
+                if (ssssKey) {
+                    await this._tryLoadSecretStorage(ssssKey, txn, log);
+                }
             }
         }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
@@ -544,35 +573,21 @@ export class Session {
             // TODO: what can we do if this throws?
             await txn.complete();
         }
-        // enable session backup, this requests the latest backup version
-        if (!this._keyBackup.get()) {
-            if (dehydratedDevice) {
-                await log.wrap("SSSSKeyFromDehydratedDeviceKey", async log => {
-                    const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
-                    if (ssssKey) {
+        // try if the key used to decrypt the dehydrated device also fits for secret storage
+        if (dehydratedDevice) {
+            await log.wrap("SSSSKeyFromDehydratedDeviceKey", async log => {
+                const ssssKey = await createSSSSKeyFromDehydratedDeviceKey(dehydratedDevice.key, this._storage, this._platform);
+                if (ssssKey) {
+                    if (await this._tryLoadSecretStorage(ssssKey, undefined, log)) {
                         log.set("success", true);
                         await this._writeSSSSKey(ssssKey);
                     }
-                });
-            }
-            const txn = await this._storage.readTxn([
-                this._storage.storeNames.session,
-                this._storage.storeNames.accountData,
-            ]);
-            // try set up session backup if we stored the ssss key
-            const ssssKey = await ssssReadKey(txn);
-            if (ssssKey) {
-                // txn will end here as this does a network request
-                if (await this._createKeyBackup(ssssKey, txn, log)) {
-                    this._keyBackup.get()?.flush(log);
                 }
-            }
-            if (!this._keyBackup.get()) {
-                // null means key backup isn't configured yet
-                // as opposed to undefined, which means we're still checking
-                this._keyBackup.set(null);
-            }
+            });
         }
+        this._keyBackup?.start(log);
+        this._crossSigning?.start(log);
+        
         // restore unfinished operations, like sending out room keys
         const opsTxn = await this._storage.readWriteTxn([
             this._storage.storeNames.operations

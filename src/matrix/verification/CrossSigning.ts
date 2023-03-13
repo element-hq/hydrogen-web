@@ -20,6 +20,7 @@ import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
 
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
+import type {Transaction} from "../storage/idb/Transaction";
 import type {Platform} from "../../platform/web/Platform";
 import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type {HomeServerApi} from "../net/HomeServerApi";
@@ -98,10 +99,25 @@ export class CrossSigning {
         this.e2eeAccount = options.e2eeAccount
     }
 
-    async init(log: ILogItem) {
-        await log.wrap("CrossSigning.init", async log => {
+    async load(txn: Transaction, log: ILogItem) {
+        // try to verify the msk without accessing the network
+        return await this.verifyMSKFrom4S(undefined, txn, log);
+    }
+
+    async start(log: ILogItem) {
+        if (!this.isMasterKeyTrusted) {
+            // try to verify the msk _with_ access to the network
+            return await this.verifyMSKFrom4S(this.hsApi, undefined, log);
+        }
+    }
+
+    private async verifyMSKFrom4S(hsApi: HomeServerApi | undefined, txn: Transaction | undefined, log: ILogItem): Promise<boolean> {
+        return await log.wrap("CrossSigning.verifyMSKFrom4S", async log => {
             // TODO: use errorboundary here
-            const privateMasterKey = await this.getSigningKey(KeyUsage.Master);
+            const privateMasterKey = await this.getSigningKey(KeyUsage.Master, txn);
+            if (!privateMasterKey) {
+                return false;
+            }
             const signing = new this.olm.PkSigning();
             let derivedPublicKey;
             try {
@@ -109,11 +125,15 @@ export class CrossSigning {
             } finally {
                 signing.free();
             }
-            const publishedMasterKey = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log);
+            const publishedMasterKey = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, hsApi, txn, log);
+            if (!publishedMasterKey) {
+                return false;
+            }
             const publisedEd25519Key = publishedMasterKey && getKeyEd25519Key(publishedMasterKey);
             log.set({publishedMasterKey: publisedEd25519Key, derivedPublicKey});
             this._isMasterKeyTrusted = !!publisedEd25519Key && publisedEd25519Key === derivedPublicKey;
             log.set("isMasterKeyTrusted", this.isMasterKeyTrusted);
+            return this.isMasterKeyTrusted;
         });
     }
 
@@ -162,7 +182,7 @@ export class CrossSigning {
             if (userId === this.ownUserId) {
                 return;
             }
-            const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
+            const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, undefined, log);
             if (!keyToSign) {
                 return;
             }
@@ -190,11 +210,11 @@ export class CrossSigning {
             if (!this.isMasterKeyTrusted) {
                 return UserTrust.OwnSetupError;
             }
-            const ourMSK = await log.wrap("get our msk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log));
+            const ourMSK = await log.wrap("get our msk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, txn, log));
             if (!ourMSK) {
                 return UserTrust.OwnSetupError;
             }
-            const ourUSK = await log.wrap("get our usk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.UserSigning, this.hsApi, log));
+            const ourUSK = await log.wrap("get our usk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.UserSigning, this.hsApi, txn, log));
             if (!ourUSK) {
                 return UserTrust.OwnSetupError;
             }
@@ -202,7 +222,7 @@ export class CrossSigning {
             if (ourUSKVerification !== SignatureVerification.Valid) {
                 return UserTrust.OwnSetupError;
             }
-            const theirMSK = await log.wrap("get their msk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log));
+            const theirMSK = await log.wrap("get their msk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, txn, log));
             if (!theirMSK) {
                 /* assume that when they don't have an MSK, they've never enabled cross-signing on their client
                 (or it's not supported) rather than assuming a setup error on their side.
@@ -217,7 +237,7 @@ export class CrossSigning {
                     return UserTrust.UserSignatureMismatch;
                 }
             }
-            const theirSSK = await log.wrap("get their ssk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.SelfSigning, this.hsApi, log));
+            const theirSSK = await log.wrap("get their ssk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.SelfSigning, this.hsApi, txn, log));
             if (!theirSSK) {
                 return UserTrust.UserSetupError;
             }
@@ -270,8 +290,10 @@ export class CrossSigning {
         return keyToSign;
     }
 
-    private async getSigningKey(usage: KeyUsage): Promise<Uint8Array | undefined> {
-        const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
+    private async getSigningKey(usage: KeyUsage, existingTxn?: Transaction): Promise<Uint8Array | undefined> {
+        const txn = existingTxn ?? await this.storage.readTxn([
+            this.storage.storeNames.accountData,
+        ]);
         const seedStr = await this.secretStorage.readSecret(`m.cross_signing.${usage}`, txn);
         if (seedStr) {
             return new Uint8Array(this.platform.encoding.base64.decode(seedStr));
