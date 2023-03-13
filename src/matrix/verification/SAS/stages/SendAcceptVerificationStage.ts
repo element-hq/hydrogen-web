@@ -28,7 +28,6 @@ export class SendAcceptVerificationStage extends BaseSASVerificationStage {
             const macMethod = intersection(MAC_LIST, new Set(content.message_authentication_codes))[0];
             const sasMethods = intersection(content.short_authentication_string, SAS_SET);
             if (!(keyAgreement !== undefined && hashMethod !== undefined && macMethod !== undefined && sasMethods.length)) {
-                // todo: ensure this cancels the verification
                 await this.channel.cancelVerification(CancelTypes.UnknownMethod);
                 return;
             }

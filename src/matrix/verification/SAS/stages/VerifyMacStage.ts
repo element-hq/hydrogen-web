@@ -54,14 +54,15 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             this.ourUser.deviceId +
             this.channel.id;
 
-        if ( content.keys !== this.calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS")) {
-            // cancel when MAC does not match!
+        const calculatedMAC = this.calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS");
+        if (content.keys !== calculatedMAC) {
+            // todo: cancel when MAC does not match!
             console.log("Keys MAC Verification failed");
         }
 
         await this.verifyKeys(content.mac, (keyId, key, keyInfo) => {
             if (keyInfo !== this.calculateMAC(key, baseInfo + keyId)) {
-                // cancel when MAC does not match!
+                // todo: cancel when MAC does not match!
                 console.log("mac obj MAC Verification failed");
             }
         }, log);

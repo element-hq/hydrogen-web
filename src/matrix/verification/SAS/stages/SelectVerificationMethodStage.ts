@@ -27,7 +27,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
 
     async completeStage() {
         await this.log.wrap("SelectVerificationMethodStage.completeStage", async (log) => {
-            (window as any).select = () => this.selectEmojiMethod(log); 
+            this.eventEmitter.emit("SelectVerificationStage", this);
             const startMessage = this.channel.waitForEvent(VerificationEventTypes.Start);
             const acceptMessage = this.channel.waitForEvent(VerificationEventTypes.Accept);
             const { content } = await Promise.race([startMessage, acceptMessage]);
@@ -59,7 +59,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
         });
     }
 
-    async resolveStartConflict() {
+    private async resolveStartConflict() {
         const receivedStartMessage = this.channel.receivedMessages.get(VerificationEventTypes.Start);
         const sentStartMessage = this.channel.sentMessages.get(VerificationEventTypes.Start);
         if (receivedStartMessage.content.method !== sentStartMessage.content.method) {

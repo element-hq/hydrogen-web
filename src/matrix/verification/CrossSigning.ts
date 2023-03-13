@@ -21,7 +21,6 @@ import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type * as OlmNamespace from "@matrix-org/olm";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
-import type {Room} from "../room/Room.js";
 import { ILogItem } from "../../lib";
 import {pkSign} from "./common";
 import type {ISignatures} from "./common";
@@ -166,7 +165,7 @@ export class CrossSigning {
             e2eeAccount: this.e2eeAccount,
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
-            platform: this.platform,
+            clock: this.platform.clock,
         });
         return this.sasVerificationInProgress;
     }

@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import type {ILogItem} from "../../../../lib.js";
-import type {Room} from "../../../room/Room.js";
 import type * as OlmNamespace from "@matrix-org/olm";
 import type {Account} from "../../../e2ee/Account.js";
 import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
 import {Disposables} from "../../../../utils/Disposables";
 import {IChannel} from "../channel/Channel.js";
 import {HomeServerApi} from "../../../net/HomeServerApi.js";
+import {SASProgressEvents} from "../types.js";
+import {EventEmitter} from "../../../../utils/EventEmitter";
 
 type Olm = typeof OlmNamespace;
 
@@ -39,6 +40,7 @@ export type Options = {
     e2eeAccount: Account;
     deviceTracker: DeviceTracker;
     hsApi: HomeServerApi;
+    eventEmitter: EventEmitter<SASProgressEvents>
 }
 
 export abstract class BaseSASVerificationStage extends Disposables {
@@ -55,6 +57,7 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected e2eeAccount: Account;
     protected deviceTracker: DeviceTracker;
     protected hsApi: HomeServerApi;
+    protected eventEmitter: EventEmitter<SASProgressEvents>;
 
     constructor(options: Options) {
         super();
@@ -68,6 +71,7 @@ export abstract class BaseSASVerificationStage extends Disposables {
         this.e2eeAccount = options.e2eeAccount;
         this.deviceTracker = options.deviceTracker;
         this.hsApi = options.hsApi;
+        this.eventEmitter = options.eventEmitter;
     }
 
     setNextStage(stage: BaseSASVerificationStage) {
