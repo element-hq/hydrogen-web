@@ -183,6 +183,9 @@ export function tests() {
             });
             // @ts-ignore
             channel.setOlmSas(sas.olmSas);
+            sas.eventEmitter.on("EmojiGenerated", async (stage) => {
+                await stage?.setEmojiMatch(true);
+            });
             return { sas, clock, logger };
         });
     }

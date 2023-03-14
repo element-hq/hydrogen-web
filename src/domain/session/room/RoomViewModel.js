@@ -53,6 +53,10 @@ export class RoomViewModel extends ErrorReportViewModel {
         await this.logAndCatch("startCrossSigning", async log => {
             const session = this.getOption("session");
             const sas = session.crossSigning?.startVerification(otherUserId, log);
+            sas.eventEmitter.on("EmojiGenerated", (stage) => {
+                console.log("Emoji calculated:", stage.emoji);
+                stage.setEmojiMatch(true);
+            });
             await sas.start();
         });
     }

@@ -13,34 +13,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import anotherjson from "another-json";
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {CancelTypes, VerificationEventTypes} from "../channel/types";
 import {generateEmojiSas} from "../generator";
-import anotherjson from "another-json";
-import { ILogItem } from "../../../../lib";
-import { SendMacStage } from "./SendMacStage";
-
-// From element-web
-type KeyAgreement = "curve25519-hkdf-sha256" | "curve25519";
-type MacMethod = "hkdf-hmac-sha256.v2" | "org.matrix.msc3783.hkdf-hmac-sha256" | "hkdf-hmac-sha256" | "hmac-sha256";
-
-const KEY_AGREEMENT_LIST: KeyAgreement[] = ["curve25519-hkdf-sha256", "curve25519"];
-const HASHES_LIST = ["sha256"];
-const MAC_LIST: MacMethod[] = [
-    "hkdf-hmac-sha256.v2",
-    "org.matrix.msc3783.hkdf-hmac-sha256",
-    "hkdf-hmac-sha256",
-    "hmac-sha256",
-];
-const SAS_LIST = ["decimal", "emoji"];
-const SAS_SET = new Set(SAS_LIST);
-
+import {ILogItem} from "../../../../logging/types";
+import {SendMacStage} from "./SendMacStage";
+import {VerificationCancelledError} from "../VerificationCancelledError";
 
 type SASUserInfo = {
     userId: string;
     deviceId: string;
     publicKey: string;
-} 
+};
+
 type SASUserInfoCollection = {
     our: SASUserInfo;
     their: SASUserInfo;
@@ -51,15 +37,11 @@ type SASUserInfoCollection = {
 const calculateKeyAgreement = {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     "curve25519-hkdf-sha256": function (sas: SASUserInfoCollection, olmSAS: Olm.SAS, bytes: number): Uint8Array {
-        console.log("sas.requestId", sas.id);
         const ourInfo = `${sas.our.userId}|${sas.our.deviceId}|` + `${sas.our.publicKey}|`;
         const theirInfo = `${sas.their.userId}|${sas.their.deviceId}|${sas.their.publicKey}|`;
-        console.log("ourInfo", ourInfo);
-        console.log("theirInfo", theirInfo);
         const sasInfo =
             "MATRIX_KEY_VERIFICATION_SAS|" +
             (sas.initiatedByMe ? ourInfo + theirInfo : theirInfo + ourInfo) + sas.id;
-        console.log("sasInfo", sasInfo);
         return olmSAS.generate_bytes(sasInfo, bytes);
     },
     "curve25519": function (sas: SASUserInfoCollection, olmSAS: Olm.SAS, bytes: number): Uint8Array {
@@ -74,21 +56,26 @@ const calculateKeyAgreement = {
 
 export class CalculateSASStage extends BaseSASVerificationStage {
     private resolve: () => void;
+    private reject: (error: VerificationCancelledError) => void;
+
+    public emoji: ReturnType<typeof generateEmojiSas>;
 
     async completeStage() {
         await this.log.wrap("CalculateSASStage.completeStage", async (log) => {
             // 1. Check the hash commitment
-            if (this.needsToVerifyHashCommitment) {
-                if (!await this.verifyHashCommitment(log)) { return; }
+            if (this.needsToVerifyHashCommitment && !await this.verifyHashCommitment(log)) {
+                return;
             }
             // 2. Calculate the SAS
-            const emojiConfirmationPromise: Promise<void> = new Promise(r => {
-                this.resolve = r;
+            const emojiConfirmationPromise: Promise<void> = new Promise((res, rej) => {
+                this.resolve = res;
+                this.reject = rej;
             });
             this.olmSAS.set_their_key(this.theirKey);
             const sasBytes = this.generateSASBytes();
-            const emoji = generateEmojiSas(Array.from(sasBytes));
-            console.log("Emoji calculated:", emoji);
+            this.emoji = generateEmojiSas(Array.from(sasBytes));
+            this.eventEmitter.emit("EmojiGenerated", this);
+            await emojiConfirmationPromise;
             this.setNextStage(new SendMacStage(this.options));
         });
     }
@@ -101,8 +88,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             const receivedCommitment = acceptMessage.commitment;
             const hash = this.olmUtil.sha256(commitmentStr);
             if (hash !== receivedCommitment) {
-                log.set("Commitment mismatched!", {});
-                // cancel the process!
+                log.log({l: "Commitment mismatched!", received: receivedCommitment, calculated: hash});
                 await this.channel.cancelVerification(CancelTypes.MismatchedCommitment);
                 return false;
             }
@@ -112,7 +98,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
 
     private get needsToVerifyHashCommitment(): boolean {
         if (this.channel.initiatedByUs) {
-            // If we sent the start message, we also received the accept message
+            // If we sent the start message, we also received the accept message.
             // The commitment is in the accept message, so we need to verify it.
             return true;
         }
@@ -139,16 +125,18 @@ export class CalculateSASStage extends BaseSASVerificationStage {
         return sasBytes;
     }
 
-    async emojiMatch(match: boolean) {
-        if (!match) {
-            // cancel the verification
-            await this.channel.cancelVerification(CancelTypes.MismatchedSAS);
+    async setEmojiMatch(match: boolean) {
+        if (match) {
+            this.resolve();
         }
-
+        else {
+            await this.channel.cancelVerification(CancelTypes.MismatchedSAS);
+            this.reject(new VerificationCancelledError());
+        }
     }
 
     get theirKey(): string {
-        const { content } = this.channel.receivedMessages.get(VerificationEventTypes.Key);
+        const {content} = this.channel.receivedMessages.get(VerificationEventTypes.Key);
         return content.key;
     }
 }
