@@ -14,34 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {ILogItem} from "../../../../lib";
+import {ILogItem} from "../../../../logging/types";
 import {VerificationEventTypes} from "../channel/types";
-import type * as OlmNamespace from "@matrix-org/olm";
 import {createCalculateMAC} from "../mac";
 import {VerifyMacStage} from "./VerifyMacStage";
-type Olm = typeof OlmNamespace;
 
 export class SendMacStage extends BaseSASVerificationStage {
-    private calculateMAC: (input: string, info: string) => string;
-
     async completeStage() {
         await this.log.wrap("SendMacStage.completeStage", async (log) => {
-            let acceptMessage;
-            if (this.channel.initiatedByUs) {
-                acceptMessage = this.channel.receivedMessages.get(VerificationEventTypes.Accept).content;
-            }
-            else {
-                acceptMessage = this.channel.sentMessages.get(VerificationEventTypes.Accept).content;
-            }
+            const acceptMessage = this.channel.getEvent(VerificationEventTypes.Accept).content;
             const macMethod = acceptMessage.message_authentication_code;
-            this.calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
-            await this.sendMAC(log);
+            const calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
+            await this.sendMAC(calculateMAC, log);
             await this.channel.waitForEvent(VerificationEventTypes.Mac);
             this.setNextStage(new VerifyMacStage(this.options));
         });
     }
 
-    private async sendMAC(log: ILogItem): Promise<void> {
+    private async sendMAC(calculateMAC: (input: string, info: string) => string, log: ILogItem): Promise<void> {
         const mac: Record<string, string> = {};
         const keyList: string[] = [];
         const baseInfo =
@@ -54,19 +44,17 @@ export class SendMacStage extends BaseSASVerificationStage {
 
         const deviceKeyId = `ed25519:${this.ourUserDeviceId}`;
         const deviceKeys = this.e2eeAccount.getDeviceKeysToSignWithCrossSigning();
-        mac[deviceKeyId] = this.calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
+        mac[deviceKeyId] = calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 
         const {masterKey: crossSigningKey} = await this.deviceTracker.getCrossSigningKeysForUser(this.ourUserId, this.hsApi, log);
-        console.log("masterKey", crossSigningKey);
         if (crossSigningKey) {
             const crossSigningKeyId = `ed25519:${crossSigningKey}`;
-            mac[crossSigningKeyId] = this.calculateMAC(crossSigningKey, baseInfo + crossSigningKeyId);
+            mac[crossSigningKeyId] = calculateMAC(crossSigningKey, baseInfo + crossSigningKeyId);
             keyList.push(crossSigningKeyId);
         }
 
-        const keys = this.calculateMAC(keyList.sort().join(","), baseInfo + "KEY_IDS");
-        console.log("result", mac, keys);
+        const keys = calculateMAC(keyList.sort().join(","), baseInfo + "KEY_IDS");
         await this.channel.send(VerificationEventTypes.Mac, { mac, keys }, log);
     }
 }
