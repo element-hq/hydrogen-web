@@ -249,6 +249,9 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     }
 
     waitForEvent(eventType: string): Promise<any> {
+        if (this._isCancelled) {
+            throw new VerificationCancelledError();
+        }
         // Check if we already received the message
         const receivedMessage = this.receivedMessages.get(eventType);
         if (receivedMessage) {
