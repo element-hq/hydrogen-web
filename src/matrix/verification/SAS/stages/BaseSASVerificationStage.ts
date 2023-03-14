@@ -13,25 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type {ILogItem} from "../../../../lib.js";
-import type * as OlmNamespace from "@matrix-org/olm";
+import type {ILogItem} from "../../../../logging/types";
 import type {Account} from "../../../e2ee/Account.js";
 import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
-import {Disposables} from "../../../../utils/Disposables";
-import {IChannel} from "../channel/Channel.js";
-import {HomeServerApi} from "../../../net/HomeServerApi.js";
-import {SASProgressEvents} from "../types.js";
+import {IChannel} from "../channel/Channel";
+import {HomeServerApi} from "../../../net/HomeServerApi";
+import {SASProgressEvents} from "../types";
 import {EventEmitter} from "../../../../utils/EventEmitter";
 
-type Olm = typeof OlmNamespace;
-
-export type UserData = {
-    userId: string;
-    deviceId: string;
-}
-
 export type Options = {
-    ourUser: UserData;
+    ourUserId: string;
+    ourUserDeviceId: string;
     otherUserId: string;
     log: ILogItem;
     olmSas: Olm.SAS;
@@ -44,13 +36,12 @@ export type Options = {
 }
 
 export abstract class BaseSASVerificationStage {
-    protected ourUser: UserData;
+    protected ourUserId: string;
+    protected ourUserDeviceId: string;
     protected otherUserId: string;
     protected log: ILogItem;
     protected olmSAS: Olm.SAS;
     protected olmUtil: Olm.Utility;
-    protected requestEventId: string;
-    protected previousResult: undefined | any;
     protected _nextStage: BaseSASVerificationStage;
     protected channel: IChannel;
     protected options: Options;
@@ -61,7 +52,8 @@ export abstract class BaseSASVerificationStage {
 
     constructor(options: Options) {
         this.options = options;
-        this.ourUser = options.ourUser;
+        this.ourUserId = options.ourUserId;
+        this.ourUserDeviceId = options.ourUserDeviceId
         this.otherUserId = options.otherUserId;
         this.log = options.log;
         this.olmSAS = options.olmSas;
@@ -79,6 +71,14 @@ export abstract class BaseSASVerificationStage {
 
     get nextStage(): BaseSASVerificationStage {
         return this._nextStage;
+    }
+
+    get otherUserDeviceId(): string {
+        const id = this.channel.otherUserDeviceId;
+        if (!id) {
+            throw new Error("Accessed otherUserDeviceId before it was set in channel!");
+        }
+        return id;
     }
 
     abstract completeStage(): Promise<any>;

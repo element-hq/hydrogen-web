@@ -64,8 +64,8 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
             return;
         }
         // In the case of conflict, the lexicographically smaller id wins 
-        const our = this.ourUser.userId === this.otherUserId ? this.ourUser.deviceId : this.ourUser.userId;
-        const their = this.ourUser.userId === this.otherUserId ? this.channel.otherUserDeviceId : this.otherUserId;
+        const our = this.ourUserId === this.otherUserId ? this.ourUserDeviceId : this.ourUserId;
+        const their = this.ourUserId === this.otherUserId ? this.otherUserDeviceId : this.otherUserId;
         const startMessageToUse = our < their ? sentStartMessage : receivedStartMessage;
         this.channel.setStartMessage(startMessageToUse);
     }
@@ -74,7 +74,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
         if (!this.allowSelection) { return; } 
         const content = {
             method: "m.sas.v1",
-            from_device: this.ourUser.deviceId,
+            from_device: this.ourUserDeviceId,
             key_agreement_protocols: KEY_AGREEMENT_LIST,
             hashes: HASHES_LIST,
             message_authentication_codes: MAC_LIST,

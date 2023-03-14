@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {RequestVerificationStage} from "./stages/RequestVerificationStage";
 import type {ILogItem} from "../../../logging/types";
-import type {BaseSASVerificationStage, UserData} from "./stages/BaseSASVerificationStage";
+import type {BaseSASVerificationStage} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
 import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
@@ -35,7 +35,8 @@ type Olm = typeof OlmNamespace;
 type Options = {
     olm: Olm;
     olmUtil: Olm.Utility;
-    ourUser: UserData;
+    ourUserId: string;
+    ourUserDeviceId: string;
     otherUserId: string;
     channel: IChannel;
     log: ILogItem;
@@ -176,7 +177,8 @@ export function tests() {
                 olm,
                 olmUtil,
                 otherUserId: theirUserId!,
-                ourUser: { deviceId: ourDeviceId!, userId: ourUserId! },
+                ourUserId,
+                ourUserDeviceId: ourDeviceId,
                 log,
             });
             // @ts-ignore

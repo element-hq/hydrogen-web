@@ -46,18 +46,18 @@ export class SendMacStage extends BaseSASVerificationStage {
         const keyList: string[] = [];
         const baseInfo =
             "MATRIX_KEY_VERIFICATION_MAC" +
-            this.ourUser.userId +
-            this.ourUser.deviceId +
+            this.ourUserId +
+            this.ourUserDeviceId +
             this.otherUserId +
-            this.channel.otherUserDeviceId +
+            this.otherUserDeviceId +
             this.channel.id;
 
-        const deviceKeyId = `ed25519:${this.ourUser.deviceId}`;
+        const deviceKeyId = `ed25519:${this.ourUserDeviceId}`;
         const deviceKeys = this.e2eeAccount.getDeviceKeysToSignWithCrossSigning();
         mac[deviceKeyId] = this.calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 
-        const {masterKey: crossSigningKey} = await this.deviceTracker.getCrossSigningKeysForUser(this.ourUser.userId, this.hsApi, log);
+        const {masterKey: crossSigningKey} = await this.deviceTracker.getCrossSigningKeysForUser(this.ourUserId, this.hsApi, log);
         console.log("masterKey", crossSigningKey);
         if (crossSigningKey) {
             const crossSigningKeyId = `ed25519:${crossSigningKey}`;

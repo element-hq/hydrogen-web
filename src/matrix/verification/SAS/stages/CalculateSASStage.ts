@@ -121,11 +121,11 @@ export class CalculateSASStage extends BaseSASVerificationStage {
 
     private generateSASBytes(): Uint8Array {
         const keyAgreement = this.channel.getEvent(VerificationEventTypes.Accept).content.key_agreement_protocol;
-        const otherUserDeviceId = this.channel.otherUserDeviceId;
+        const otherUserDeviceId = this.otherUserDeviceId;
         const sasBytes = calculateKeyAgreement[keyAgreement]({
             our: {
-                userId: this.ourUser.userId,
-                deviceId: this.ourUser.deviceId,
+                userId: this.ourUserId,
+                deviceId: this.ourUserDeviceId,
                 publicKey: this.olmSAS.get_pubkey(),
             },
             their: {

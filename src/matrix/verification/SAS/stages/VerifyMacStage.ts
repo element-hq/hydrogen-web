@@ -48,9 +48,9 @@ export class VerifyMacStage extends BaseSASVerificationStage {
         const baseInfo =
             "MATRIX_KEY_VERIFICATION_MAC" +
             this.otherUserId +
-            this.channel.otherUserDeviceId +
-            this.ourUser.userId +
-            this.ourUser.deviceId +
+            this.otherUserDeviceId +
+            this.ourUserId +
+            this.ourUserDeviceId +
             this.channel.id;
 
         const calculatedMAC = this.calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS");

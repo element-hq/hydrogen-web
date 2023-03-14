@@ -158,7 +158,8 @@ export class CrossSigning {
         this.sasVerificationInProgress = new SASVerification({
             olm: this.olm,
             olmUtil: this.olmUtil,
-            ourUser: { userId: this.ownUserId, deviceId: this.deviceId },
+            ourUserId: this.ownUserId,
+            ourUserDeviceId: this.deviceId,
             otherUserId: userId,
             log,
             channel,

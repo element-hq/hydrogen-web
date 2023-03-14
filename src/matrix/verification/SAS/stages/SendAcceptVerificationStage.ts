@@ -38,12 +38,7 @@ export class SendAcceptVerificationStage extends BaseSASVerificationStage {
                 hash: hashMethod,
                 message_authentication_code: macMethod,
                 short_authentication_string: sasMethods,
-                // TODO: use selected hash function (when we support multiple)
                 commitment: this.olmUtil.sha256(commitmentStr),
-                "m.relates_to": {
-                    event_id: this.requestEventId,
-                    rel_type: "m.reference",
-                }
             };
             await this.channel.send(VerificationEventTypes.Accept, contentToSend, log);
             await this.channel.waitForEvent(VerificationEventTypes.Key);

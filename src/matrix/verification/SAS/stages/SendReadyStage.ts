@@ -21,7 +21,7 @@ export class SendReadyStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
             const content = {
-                "from_device": this.ourUser.deviceId,
+                "from_device": this.ourUserDeviceId,
                 "methods": ["m.sas.v1"],
             };
             await this.channel.send(VerificationEventTypes.Ready, content, log);
