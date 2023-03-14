@@ -18,8 +18,8 @@ import anotherjson from "another-json";
 import {HASHES_LIST, MAC_LIST, SAS_SET, KEY_AGREEMENT_LIST} from "./constants";
 import {CancelTypes, VerificationEventTypes} from "../channel/types";
 import {SendKeyStage} from "./SendKeyStage";
-export class SendAcceptVerificationStage extends BaseSASVerificationStage {
 
+export class SendAcceptVerificationStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("SendAcceptVerificationStage.completeStage", async (log) => {
             const { content } = this.channel.startMessage;
