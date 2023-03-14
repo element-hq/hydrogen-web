@@ -20,7 +20,6 @@ export class SendDoneStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("VerifyMacStage.completeStage", async (log) => {
             await this.channel.send(VerificationEventTypes.Done, {}, log);
-            this.dispose();
         });
     }
 }

@@ -90,7 +90,6 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             const emoji = generateEmojiSas(Array.from(sasBytes));
             console.log("Emoji calculated:", emoji);
             this.setNextStage(new SendMacStage(this.options));
-            this.dispose();
         });
     }
 

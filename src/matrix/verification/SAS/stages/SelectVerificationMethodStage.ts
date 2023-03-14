@@ -53,7 +53,6 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                 // We need to send the accept message next
                 this.setNextStage(new SendAcceptVerificationStage(this.options));
             }
-            this.dispose();
         });
     }
 

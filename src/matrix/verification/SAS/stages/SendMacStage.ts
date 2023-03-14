@@ -38,7 +38,6 @@ export class SendMacStage extends BaseSASVerificationStage {
             await this.sendMAC(log);
             await this.channel.waitForEvent(VerificationEventTypes.Mac);
             this.setNextStage(new VerifyMacStage(this.options));
-            this.dispose();
         });
     }
 

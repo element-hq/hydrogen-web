@@ -26,7 +26,6 @@ export class SendReadyStage extends BaseSASVerificationStage {
             };
             await this.channel.send(VerificationEventTypes.Ready, content, log);
             this.setNextStage(new SelectVerificationMethodStage(this.options));
-            this.dispose();
         });
     }
 }

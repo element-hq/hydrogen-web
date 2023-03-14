@@ -30,7 +30,6 @@ export class SendKeyStage extends BaseSASVerificationStage {
              */
             await this.channel.waitForEvent(VerificationEventTypes.Key);
             this.setNextStage(new CalculateSASStage(this.options));
-            this.dispose();
         });
     }
 }

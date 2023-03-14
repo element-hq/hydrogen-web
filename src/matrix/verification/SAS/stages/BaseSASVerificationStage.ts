@@ -43,7 +43,7 @@ export type Options = {
     eventEmitter: EventEmitter<SASProgressEvents>
 }
 
-export abstract class BaseSASVerificationStage extends Disposables {
+export abstract class BaseSASVerificationStage {
     protected ourUser: UserData;
     protected otherUserId: string;
     protected log: ILogItem;
@@ -60,7 +60,6 @@ export abstract class BaseSASVerificationStage extends Disposables {
     protected eventEmitter: EventEmitter<SASProgressEvents>;
 
     constructor(options: Options) {
-        super();
         this.options = options;
         this.ourUser = options.ourUser;
         this.otherUserId = options.otherUserId;
