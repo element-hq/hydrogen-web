@@ -17,9 +17,9 @@ import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
 import {VerificationEventTypes} from "../channel/types";
 
-export class RequestVerificationStage extends BaseSASVerificationStage {
+export class SendRequestVerificationStage extends BaseSASVerificationStage {
     async completeStage() {
-        await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
+        await this.log.wrap("SendRequestVerificationStage.completeStage", async (log) => {
             const content = {
                 "from_device": this.ourUserDeviceId,
                 "methods": ["m.sas.v1"],

@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {RequestVerificationStage} from "./stages/RequestVerificationStage";
+import {SendRequestVerificationStage} from "./stages/SendRequestVerificationStage";
 import type {ILogItem} from "../../../logging/types";
 import type {BaseSASVerificationStage} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
@@ -73,7 +73,7 @@ export class SASVerification {
             this.startStage = new SendReadyStage(stageOptions);
         }
         else {
-            this.startStage = new RequestVerificationStage(stageOptions);
+            this.startStage = new SendRequestVerificationStage(stageOptions);
         }
         console.log("startStage", this.startStage);
     }
@@ -208,7 +208,7 @@ export function tests() {
             );
             await sas.start();
             const expectedOrder = [
-                RequestVerificationStage,
+                SendRequestVerificationStage,
                 SelectVerificationMethodStage,
                 SendAcceptVerificationStage,
                 SendKeyStage,
@@ -250,7 +250,7 @@ export function tests() {
             });
             await sas.start();
             const expectedOrder = [
-                RequestVerificationStage,
+                SendRequestVerificationStage,
                 SelectVerificationMethodStage,
                 SendKeyStage,
                 CalculateSASStage,
@@ -325,7 +325,7 @@ export function tests() {
             );
             await sas.start();
             const expectedOrder = [
-                RequestVerificationStage,
+                SendRequestVerificationStage,
                 SelectVerificationMethodStage,
                 SendAcceptVerificationStage,
                 SendKeyStage,
@@ -369,7 +369,7 @@ export function tests() {
             });
             await sas.start();
             const expectedOrder = [
-                RequestVerificationStage,
+                SendRequestVerificationStage,
                 SelectVerificationMethodStage,
                 SendKeyStage,
                 CalculateSASStage,
@@ -498,7 +498,7 @@ export function tests() {
             });
             await sas.start();
             const expectedOrder = [
-                RequestVerificationStage,
+                SendRequestVerificationStage,
                 SelectVerificationMethodStage,
                 SendKeyStage,
                 CalculateSASStage,
@@ -536,7 +536,7 @@ export function tests() {
             );
             await sas.start();
             const expectedOrder = [
-                RequestVerificationStage,
+                SendRequestVerificationStage,
                 SelectVerificationMethodStage,
                 SendAcceptVerificationStage,
                 SendKeyStage,
