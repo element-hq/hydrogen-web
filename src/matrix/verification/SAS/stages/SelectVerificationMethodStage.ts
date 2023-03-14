@@ -14,15 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {KEY_AGREEMENT_LIST, HASHES_LIST, MAC_LIST, SAS_LIST} from "./constants";
 import {CancelTypes, VerificationEventTypes} from "../channel/types";
-import type {ILogItem} from "../../../../logging/types";
+import {KEY_AGREEMENT_LIST, HASHES_LIST, MAC_LIST, SAS_LIST} from "./constants";
 import {SendAcceptVerificationStage} from "./SendAcceptVerificationStage";
 import {SendKeyStage} from "./SendKeyStage";
+import type {ILogItem} from "../../../../logging/types";
 
 export class SelectVerificationMethodStage extends BaseSASVerificationStage {
     private hasSentStartMessage = false;
-    // should somehow emit something that tells the ui to hide the select option
     private allowSelection = true;
 
     async completeStage() {
@@ -35,7 +34,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                 // We received the start message 
                 this.allowSelection = false;
                 if (this.hasSentStartMessage) {
-                    await this.resolveStartConflict();
+                    await this.resolveStartConflict(log);
                 }
                 else {
                     this.channel.setStartMessage(this.channel.receivedMessages.get(VerificationEventTypes.Start));
@@ -56,18 +55,30 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
         });
     }
 
-    private async resolveStartConflict() {
-        const receivedStartMessage = this.channel.receivedMessages.get(VerificationEventTypes.Start);
-        const sentStartMessage = this.channel.sentMessages.get(VerificationEventTypes.Start);
-        if (receivedStartMessage.content.method !== sentStartMessage.content.method) {
-            await this.channel.cancelVerification(CancelTypes.UnexpectedMessage);
-            return;
-        }
-        // In the case of conflict, the lexicographically smaller id wins 
-        const our = this.ourUserId === this.otherUserId ? this.ourUserDeviceId : this.ourUserId;
-        const their = this.ourUserId === this.otherUserId ? this.otherUserDeviceId : this.otherUserId;
-        const startMessageToUse = our < their ? sentStartMessage : receivedStartMessage;
-        this.channel.setStartMessage(startMessageToUse);
+    private async resolveStartConflict(log: ILogItem) {
+        await log.wrap("resolveStartConflict", async () => {
+            const receivedStartMessage = this.channel.receivedMessages.get(VerificationEventTypes.Start);
+            const sentStartMessage = this.channel.sentMessages.get(VerificationEventTypes.Start);
+            if (receivedStartMessage.content.method !== sentStartMessage.content.method) {
+                /**
+                 *  If the two m.key.verification.start messages do not specify the same verification method,
+                 *  then the verification should be cancelled with a code of m.unexpected_message.
+                 */
+                log.log({
+                    l: "Methods don't match for the start messages",
+                    received: receivedStartMessage.content.method,
+                    sent: sentStartMessage.content.method,
+                });
+                await this.channel.cancelVerification(CancelTypes.UnexpectedMessage);
+                return;
+            }
+            // In the case of conflict, the lexicographically smaller id wins 
+            const our = this.ourUserId === this.otherUserId ? this.ourUserDeviceId : this.ourUserId;
+            const their = this.ourUserId === this.otherUserId ? this.otherUserDeviceId : this.otherUserId;
+            const startMessageToUse = our < their ? sentStartMessage : receivedStartMessage;
+            log.log({ l: "Start message resolved", message: startMessageToUse, our, their })
+            this.channel.setStartMessage(startMessageToUse);
+        });
     }
 
     async selectEmojiMethod(log: ILogItem) {
