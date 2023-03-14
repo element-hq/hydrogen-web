@@ -26,7 +26,7 @@ export class SendKeyStage extends BaseSASVerificationStage {
              * We may have already got the key in SendAcceptVerificationStage,
              * in which case waitForEvent will return a resolved promise with
              * that content. Otherwise, waitForEvent will actually wait for the
-             * key.
+             * key message.
              */
             await this.channel.waitForEvent(VerificationEventTypes.Key);
             this.setNextStage(new CalculateSASStage(this.options));
