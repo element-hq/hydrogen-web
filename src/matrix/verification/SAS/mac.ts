@@ -13,15 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import type {MacMethod} from "./stages/constants";
 
-const macMethods = {
+const macMethods: Record<MacMethod, string> = {
     "hkdf-hmac-sha256": "calculate_mac",
     "org.matrix.msc3783.hkdf-hmac-sha256": "calculate_mac_fixed_base64",
     "hkdf-hmac-sha256.v2": "calculate_mac_fixed_base64",
     "hmac-sha256": "calculate_mac_long_kdf",
-} as const;
-
-export type MacMethod = keyof typeof macMethods;
+};
 
 export function createCalculateMAC(olmSAS: Olm.SAS, method: MacMethod) {
     return function (input: string, info: string): string {

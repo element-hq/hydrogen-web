@@ -51,7 +51,7 @@ export class SASVerification {
     private olmSas: Olm.SAS;
     public finished: boolean = false;
     public readonly channel: IChannel;
-    private readonly timeout: Timeout;
+    private timeout: Timeout;
     public readonly eventEmitter: EventEmitter<SASProgressEvents> = new EventEmitter();
    
     constructor(options: Options) {
@@ -59,12 +59,7 @@ export class SASVerification {
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         this.channel = channel;
-        this.timeout = clock.createTimeout(10 * 60 * 1000);
-        this.timeout.elapsed().then(() => {
-            return channel.cancelVerification(CancelTypes.TimedOut);
-        }).catch(() => {
-            // todo: why do we do nothing here?
-         });
+        this.setupCancelAfterTimeout(clock);
         const stageOptions = {...options, olmSas, eventEmitter: this.eventEmitter};
         if (channel.receivedMessages.get(VerificationEventTypes.Start)) {
             this.startStage = new SelectVerificationMethodStage(stageOptions);
@@ -75,14 +70,24 @@ export class SASVerification {
         else {
             this.startStage = new SendRequestVerificationStage(stageOptions);
         }
-        console.log("startStage", this.startStage);
+    }
+
+    private async setupCancelAfterTimeout(clock: Clock) {
+        try {
+            const tenMinutes = 10 * 60 * 1000;
+            this.timeout = clock.createTimeout(tenMinutes);
+            await this.timeout.elapsed();
+            await this.channel.cancelVerification(CancelTypes.TimedOut);
+        }
+        catch {
+            // Ignore errors
+        }
     }
 
     async start() {
         try {
             let stage = this.startStage;
             do {
-                console.log("Running stage", stage.constructor.name);
                 await stage.completeStage();
                 stage = stage.nextStage;
             } while (stage);
