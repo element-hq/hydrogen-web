@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {ILogItem} from "../../../../lib";
-import {VerificationEventTypes} from "../channel/types";
+import {CancelTypes, VerificationEventTypes} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import type * as OlmNamespace from "@matrix-org/olm";
 import {SendDoneStage} from "./SendDoneStage";
@@ -56,14 +56,17 @@ export class VerifyMacStage extends BaseSASVerificationStage {
 
         const calculatedMAC = this.calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS");
         if (content.keys !== calculatedMAC) {
-            // todo: cancel when MAC does not match!
-            console.log("Keys MAC Verification failed");
+            log.log({ l: "MAC verification failed for keys field", keys: content.keys, calculated: calculatedMAC });
+            this.channel.cancelVerification(CancelTypes.KeyMismatch);
+            return;
         }
 
         await this.verifyKeys(content.mac, (keyId, key, keyInfo) => {
-            if (keyInfo !== this.calculateMAC(key, baseInfo + keyId)) {
-                // todo: cancel when MAC does not match!
-                console.log("mac obj MAC Verification failed");
+            const calculatedMAC = this.calculateMAC(key, baseInfo + keyId);
+            if (keyInfo !== calculatedMAC) {
+                log.log({ l: "Mac verification failed for key", keyMac: keyInfo, calculated: calculatedMAC });
+                this.channel.cancelVerification(CancelTypes.KeyMismatch);
+                return;
             }
         }, log);
     }
