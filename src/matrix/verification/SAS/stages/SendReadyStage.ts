@@ -19,7 +19,7 @@ import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
 
 export class SendReadyStage extends BaseSASVerificationStage {
     async completeStage() {
-        await this.log.wrap("StartVerificationStage.completeStage", async (log) => {
+        await this.log.wrap("SendReadyStage.completeStage", async (log) => {
             const content = {
                 "from_device": this.ourUserDeviceId,
                 "methods": ["m.sas.v1"],
