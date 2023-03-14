@@ -26,7 +26,7 @@ export class SendRequestVerificationStage extends BaseSASVerificationStage {
             };
             await this.channel.send(VerificationEventTypes.Request, content, log);
             this.setNextStage(new SelectVerificationMethodStage(this.options));
-            await this.channel.waitForEvent("m.key.verification.ready");
+            await this.channel.waitForEvent(VerificationEventTypes.Ready);
         });
     }
 }
