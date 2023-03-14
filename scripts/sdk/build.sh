@@ -10,6 +10,9 @@ shopt -s extglob
 rm -rf target/*
 yarn run vite build -c vite.sdk-assets-config.js
 yarn run vite build -c vite.sdk-lib-config.js
+# Remove sync-worker.js from SDK build.
+# TODO: Once SameSessionInMultipleTabs feature flag is globally enabled, remove the following line.
+rm -rf target/lib-build/assets
 yarn tsc -p tsconfig-declaration.json
 ./scripts/sdk/create-manifest.js ./target/package.json
 mkdir target/paths
