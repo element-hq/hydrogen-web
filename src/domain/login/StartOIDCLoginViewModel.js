@@ -26,7 +26,6 @@ export class StartOIDCLoginViewModel extends ViewModel {
         this._homeserver = options.loginOptions.homeserver;
         this._api = new OidcApi({
             issuer: this._issuer,
-            clientConfigs: this._platform.config.oidc.clientConfigs,
             request: this.platform.request,
             encoding: this.platform.encoding,
             crypto: this.platform.crypto,
