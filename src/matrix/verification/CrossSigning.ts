@@ -83,7 +83,7 @@ export class CrossSigning {
             if (unencryptedEvent.type === VerificationEventTypes.Request ||
                 unencryptedEvent.type === VerificationEventTypes.Start) {
                 await this.platform.logger.run("Start verification from request", async (log) => {
-                    const sas = this.startVerification(unencryptedEvent.sender, log, unencryptedEvent);
+                    const sas = this.startVerification(unencryptedEvent.sender, unencryptedEvent, log);
                     await sas?.start();
                 });
             }
@@ -141,7 +141,7 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(userId: string, log: ILogItem, event?: any): SASVerification | undefined {
+    startVerification(userId: string, startingMessage: any, log: ILogItem): SASVerification | undefined {
         if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
             return;
         }
@@ -152,7 +152,7 @@ export class CrossSigning {
             platform: this.platform,
             deviceMessageHandler: this.deviceMessageHandler,
             log
-        }, event);
+        }, startingMessage);
 
         this.sasVerificationInProgress = new SASVerification({
             olm: this.olm,
