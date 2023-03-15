@@ -42,6 +42,7 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
@@ -90,15 +91,11 @@ export class RootViewModel extends ViewModel {
                 this._showLogin({loginToken});
             }
         } else if (oidcCallback) {
-            if (oidcCallback.error) {
-                this._setSection(() => this._error = new Error(`OIDC error: ${oidcCallback.error}`));
-            } else {
-                this.urlCreator.normalizeUrl();
-                if (this.activeSection !== "login") {
-                    this._showLogin({
-                        oidc: oidcCallback,
-                    });
-                }
+            this.urlRouter.normalizeUrl();
+            if (this.activeSection !== "login") {
+                this._showLogin({
+                    oidc: oidcCallback,
+                });
             }
         }
         else {

@@ -58,6 +58,8 @@ export class LoginView extends TemplateView {
             t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
             t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
             t.mapView(vm => vm.startOIDCLoginViewModel, vm => vm ? new StartOIDCLoginView(vm) : null),
+            t.if(vm => vm.startOIDCLoginViewModel && vm.startOIDCGuestLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
+            t.mapView(vm => vm.startOIDCGuestLoginViewModel, vm => vm ? new StartOIDCGuestLoginView(vm) : null),
             t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
             // use t.mapView rather than t.if to create a new view when the view model changes too
             t.p(hydrogenGithubLink(t))
@@ -87,6 +89,19 @@ class StartOIDCLoginView extends TemplateView {
                 onClick: () => vm.startOIDCLogin(),
                 disabled: vm => vm.isBusy
             }, vm.i18n`Continue`)
+        );
+    }
+}
+
+class StartOIDCGuestLoginView extends TemplateView {
+    render(t, vm) {
+        return t.div({ className: "StartOIDCGuestLoginView" },
+            t.a({
+                className: "StartOIDCGuestLoginView_button button-action primary",
+                type: "button",
+                onClick: () => vm.startOIDCLogin(),
+                disabled: vm => vm.isBusy
+            }, vm.i18n`Continue as Guest`)
         );
     }
 }

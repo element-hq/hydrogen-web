@@ -406,7 +406,7 @@ export class HomeServerApi {
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";
-import {BaseObservableValue} from "../../observable/value/BaseObservableValue";
+import {BaseObservableValue} from "../../observable/ObservableValue";
 
 export function tests() {
     return {

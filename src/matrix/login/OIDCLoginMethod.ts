@@ -55,7 +55,7 @@ export class OIDCLoginMethod implements ILoginMethod {
     }
 
     async login(hsApi: HomeServerApi, _deviceName: string, log: ILogItem): Promise<Record<string, any>> {
-        const { access_token, refresh_token, expires_in } = await this._oidcApi.completeAuthorizationCodeGrant({
+        const { access_token, refresh_token, expires_in, id_token } = await this._oidcApi.completeAuthorizationCodeGrant({
             code: this._code,
             codeVerifier: this._codeVerifier,
             redirectUri: this._redirectUri,
@@ -72,6 +72,6 @@ export class OIDCLoginMethod implements ILoginMethod {
         const oidc_issuer = this._oidcApi.issuer;
         const oidc_client_id = await this._oidcApi.clientId();
 
-        return { oidc_issuer, oidc_client_id, access_token, refresh_token, expires_in, user_id, device_id, oidc_account_management_url: this._accountManagementUrl };
+        return { oidc_issuer, oidc_client_id, access_token, refresh_token, expires_in, id_token, user_id, device_id, oidc_account_management_url: this._accountManagementUrl };
     }
 }

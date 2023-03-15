@@ -56,6 +56,7 @@ export class SettingsViewModel extends ViewModel {
         this._logsFeedbackMessage = undefined;
         this._accountManagementUrl = null;
         this._featuresViewModel = new FeaturesViewModel(this.childOptions());
+        this._accountManagementUrl = null;
     }
 
     get _session() {

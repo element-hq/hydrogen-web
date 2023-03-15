@@ -68,13 +68,13 @@ limitations under the License.
     --size: 20px;
 }
 
-.StartSSOLoginView, .StartOIDCLoginView {
+.StartSSOLoginView, .StartOIDCLoginView, .StartOIDCGuestLoginView {
     display: flex;
     flex-direction: column;
     padding: 0 0.4em 0;
 }
 
-.StartSSOLoginView_button, .StartOIDCLoginView_button {
+.StartSSOLoginView_button, .StartOIDCLoginView_button, .StartOIDCGuestLoginView_button {
     flex: 1;
     margin-top: 12px;
 }

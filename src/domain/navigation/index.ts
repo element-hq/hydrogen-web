@@ -38,8 +38,10 @@ export type SegmentType = {
         state: string, 
     } & 
         ({
+            success: true,
             code: string,
         } | { 
+            success: false,
             error: string,
             errorDescription: string | null,
             errorUri: string | null ,
@@ -149,6 +151,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             // This is a proper OIDC callback
             if (code) {
                 segments.push(new Segment("oidc", {
+                    success: true,
                     state,
                     code,
                 }));
@@ -156,6 +159,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             } else if (error) {
                 segments.push(new Segment("oidc", {
                     state,
+                    success: false,
                     error,
                     errorDescription: params.get("error_description"),
                     errorUri: params.get("error_uri"),
@@ -239,6 +243,10 @@ export function stringifyPath(path: Path<SegmentType>): string {
     let urlPath = "";
     let prevSegment: Segment<SegmentType> | undefined;
     for (const segment of path.segments) {
+        if (segment.type === "oidc") {
+            // Do not put these segments in URL
+            continue;
+        }
         const encodedSegmentValue = encodeSegmentValue(segment.value);
         switch (segment.type) {
             case "rooms":
@@ -272,7 +280,8 @@ export function stringifyPath(path: Path<SegmentType>): string {
     return urlPath;
 }
 
-function encodeSegmentValue(value: SegmentType[keyof SegmentType]): string {
+// We exclude the OIDC segment types as they are never encoded
+function encodeSegmentValue(value: Exclude<SegmentType[keyof SegmentType], { state: string }>): string {
     if (value === true) {
         // Nothing to encode for boolean
         return "";
@@ -552,21 +561,21 @@ export function tests() {
             const segments = parseUrlPath("state=tc9CnLU7&code=cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
-            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", code: "cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx"});
+            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", code: "cnmUnwIYtY7V8RrWUyhJa4yvX72jJ5Yx", success: true});
         },
         "Parse OIDC error": assert => {
             const path = createEmptyPath();
             const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
-            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorUri: null, errorDescription: null});
+            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorUri: null, errorDescription: null, success: false});
         },
         "Parse OIDC error with description": assert => {
             const path = createEmptyPath();
             const segments = parseUrlPath("state=tc9CnLU7&error=invalid_request&error_description=Unsupported%20response_type%20value", path);
             assert.equal(segments.length, 1);
             assert.equal(segments[0].type, "oidc");
-            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorDescription: "Unsupported response_type value", errorUri: null});
+            assert.deepEqual(segments[0].value, {state: "tc9CnLU7", error: "invalid_request", errorDescription: "Unsupported response_type value", errorUri: null, success: false});
         },
     }
 }

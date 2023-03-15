@@ -30,8 +30,10 @@ export class StartOIDCLoginViewModel extends ViewModel {
             request: this.platform.request,
             encoding: this.platform.encoding,
             crypto: this.platform.crypto,
-            urlCreator: this.urlCreator,
+            urlRouter: this.urlRouter,
+            staticClients: this.platform.config["staticOidcClients"],
         });
+        this._asGuest = options.asGuest;
     }
 
     get isBusy() { return this._isBusy; }
@@ -60,8 +62,8 @@ export class StartOIDCLoginViewModel extends ViewModel {
     async startOIDCLogin() {
         const deviceScope = this._api.generateDeviceScope();
         const p = this._api.generateParams({
-            scope: `openid urn:matrix:org.matrix.msc2967.client:api:* ${deviceScope}`,
-            redirectUri: this.urlCreator.createOIDCRedirectURL(),
+            scope: `openid urn:matrix:org.matrix.msc2967.client:api:${this._asGuest ? 'guest' : '*'} ${deviceScope}`,
+            redirectUri: this.urlRouter.createOIDCRedirectURL(),
         });
         const clientId = await this._api.clientId();
         await Promise.all([

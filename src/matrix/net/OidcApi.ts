@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {RequestFunction} from "../../platform/types/types";
-import type {IURLRouter} from "../../domain/navigation/URLRouter.js";
+import type {IURLRouter} from "../../domain/navigation/URLRouter";
 import type {SegmentType} from "../../domain/navigation";
 
 const WELL_KNOWN = ".well-known/openid-configuration";
@@ -30,6 +30,7 @@ type BearerToken = {
     access_token: string,
     refresh_token?: string,
     expires_in?: number,
+    id_token?: string,
 }
 
 const isValidBearerToken = (t: any): t is BearerToken =>
@@ -48,36 +49,59 @@ type AuthorizationParams = {
     codeVerifier?: string,
 };
 
+/**
+ * @see https://openid.net/specs/openid-connect-rpinitiated-1_0.html
+ */
+type LogoutParams = {
+    /**
+     * Maps to the `id_token_hint` parameter.
+     */
+    idTokenHint?: string,
+    /**
+     * Maps to the `state` parameter.
+     */
+    state?: string,
+    /**
+     * Maps to the `post_logout_redirect_uri` parameter.
+     */
+    redirectUri?: string,
+    /**
+     * Maps to the `logout_hint` parameter.
+     */
+    logoutHint?: string,
+};
+
 function assert(condition: any, message: string): asserts condition {
     if (!condition) {
         throw new Error(`Assertion failed: ${message}`);
     }
 };
 
-type IssuerUri = string;
-interface ClientConfig {
+export type IssuerUri = string;
+
+export interface OidcClientConfig {
     client_id: string;
-    client_secret?: string;
-    uris: string[],
 }
 
+export type StaticOidcClientsConfig = Record<IssuerUri, OidcClientConfig>;
+
 export class OidcApi<N extends object = SegmentType> {
-    _issuer: string;
-    _clientConfigs: Record<IssuerUri, ClientConfig>;
+    _issuer: IssuerUri;
     _requestFn: RequestFunction;
     _encoding: any;
     _crypto: any;
-    _urlCreator: IURLRouter<N>;
+    _urlRouter: IURLRouter<N>;
     _metadataPromise: Promise<any>;
     _registrationPromise: Promise<any>;
+    _staticClients: StaticOidcClientsConfig;
 
-    constructor({ issuer, request, encoding, crypto, urlCreator, clientId, clientConfigs }) {
+    constructor({ issuer, request, encoding, crypto, urlRouter, clientId, staticClients = {} }: { issuer: IssuerUri, request: RequestFunction, encoding: any, crypto: any, urlRouter: IURLRouter<N>, clientId?: string, staticClients?: StaticOidcClientsConfig}) {
         this._issuer = issuer;
-        this._clientConfigs = clientConfigs;
         this._requestFn = request;
         this._encoding = encoding;
         this._crypto = crypto;
-        this._urlCreator = urlCreator;
+        this._urlRouter = urlRouter;
+        this._staticClients = staticClients;
 
         if (clientId) {
             this._registrationPromise = Promise.resolve({ client_id: clientId });
@@ -87,15 +111,16 @@ export class OidcApi<N extends object = SegmentType> {
     get clientMetadata() {
         return {
             client_name: "Hydrogen Web",
-            logo_uri: this._urlCreator.absoluteUrlForAsset("icon.png"),
-            client_uri: this._urlCreator.absoluteAppUrl(),
+            logo_uri: this._urlRouter.absoluteUrlForAsset("icon.png"),
+            client_uri: this._urlRouter.absoluteAppUrl(),
             tos_uri: "https://element.io/terms-of-service",
             policy_uri: "https://element.io/privacy",
             response_types: ["code"],
             grant_types: ["authorization_code", "refresh_token"],
-            redirect_uris: [this._urlCreator.createOIDCRedirectURL()],
+            redirect_uris: [this._urlRouter.createOIDCRedirectURL()],
             id_token_signed_response_alg: "RS256",
             token_endpoint_auth_method: "none",
+            post_logout_redirect_uris: [this._urlRouter.createOIDCPostLogoutRedirectURL()],
         };
     }
 
@@ -117,8 +142,8 @@ export class OidcApi<N extends object = SegmentType> {
                 // use static client if available
                 const authority = `${this.issuer}${this.issuer.endsWith('/') ? '' : '/'}`;
 
-                if (this._clientConfigs[authority] && this._clientConfigs[authority].uris.includes(this._urlCreator.absoluteAppUrl())) {
-                    return this._clientConfigs[authority];
+                if (this._staticClients[authority]) {
+                    return this._staticClients[authority];
                 }
 
                 const headers = new Map();
@@ -225,6 +250,35 @@ export class OidcApi<N extends object = SegmentType> {
         return metadata["revocation_endpoint"];
     }
 
+    async endSessionEndpoint({idTokenHint, logoutHint, redirectUri, state}: LogoutParams): Promise<string | undefined> {
+        const metadata = await this.metadata();
+        const endpoint = metadata["end_session_endpoint"];
+        if (!endpoint) {
+            return undefined;
+        }
+        if (!redirectUri) {
+            redirectUri =  this._urlRouter.createOIDCPostLogoutRedirectURL();
+        }
+        const url = new URL(endpoint);
+        url.searchParams.append("client_id", await this.clientId());
+        url.searchParams.append("post_logout_redirect_uri", redirectUri);
+        if (idTokenHint) {
+            url.searchParams.append("id_token_hint", idTokenHint);
+        }
+        if (logoutHint) {
+            url.searchParams.append("logout_hint", logoutHint);
+        }
+        if (state) {
+            url.searchParams.append("state", state);
+        }
+        return url.href;
+    }
+
+    async isGuestAvailable(): Promise<boolean> {
+        const metadata = await this.metadata();
+        return metadata["scopes_supported"]?.includes("urn:matrix:org.matrix.msc2967.client:api:guest");
+    }
+
     generateDeviceScope(): String {
         const deviceId = randomString(10);
         return `urn:matrix:org.matrix.msc2967.client:device:${deviceId}`;
@@ -307,14 +361,14 @@ export class OidcApi<N extends object = SegmentType> {
     async revokeToken({
         token,
         type,
-    }: { token: string, type: "refresh_token" | "access_token" }): Promise<void> {
+    }: { token: string, type: "refresh" | "access" }): Promise<void> {
         const revocationEndpoint = await this.revocationEndpoint();
         if (!revocationEndpoint) {
             return;
         }
 
         const params = new URLSearchParams();
-        params.append("token_type_hint", type);
+        params.append("token_type", type);
         params.append("token", token);
         params.append("client_id", await this.clientId());
         const body = params.toString();
