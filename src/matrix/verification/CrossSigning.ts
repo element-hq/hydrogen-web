@@ -21,7 +21,7 @@ import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type * as OlmNamespace from "@matrix-org/olm";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
-import { ILogItem } from "../../lib";
+import {ILogItem} from "../../lib";
 import {pkSign} from "./common";
 import type {ISignatures} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
@@ -80,7 +80,6 @@ export class CrossSigning {
                 )) {
                 return;
             }
-            console.log("unencrypted event", unencryptedEvent);
             if (unencryptedEvent.type === VerificationEventTypes.Request ||
                 unencryptedEvent.type === VerificationEventTypes.Start) {
                 await this.platform.logger.run("Start verification from request", async (log) => {
