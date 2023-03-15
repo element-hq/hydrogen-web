@@ -24,7 +24,7 @@ export type KeyVerifier = (keyId: string, device: any, keyInfo: string) => void;
 export class VerifyMacStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("VerifyMacStage.completeStage", async (log) => {
-            const acceptMessage = this.channel.getEvent(VerificationEventTypes.Accept).content;
+            const acceptMessage = this.channel.acceptMessage.content;
             const macMethod = acceptMessage.message_authentication_code;
             const calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.checkMAC(calculateMAC, log);
@@ -34,7 +34,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
     }
 
     private async checkMAC(calculateMAC: (input: string, info: string) => string, log: ILogItem): Promise<void> {
-        const {content} = this.channel.receivedMessages.get(VerificationEventTypes.Mac);
+        const {content} = this.channel.getReceivedMessage(VerificationEventTypes.Mac);
         const baseInfo =
             "MATRIX_KEY_VERIFICATION_MAC" +
             this.otherUserId +

@@ -37,12 +37,12 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                     await this.resolveStartConflict(log);
                 }
                 else {
-                    this.channel.setStartMessage(this.channel.receivedMessages.get(VerificationEventTypes.Start));
+                    this.channel.setStartMessage(this.channel.getReceivedMessage(VerificationEventTypes.Start));
                 }
             }
             else {
                 // We received the accept message
-                this.channel.setStartMessage(this.channel.sentMessages.get(VerificationEventTypes.Start));
+                this.channel.setStartMessage(this.channel.getSentMessage(VerificationEventTypes.Start));
             }
             if (this.channel.initiatedByUs) {
                 await acceptMessage;
@@ -57,8 +57,8 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
 
     private async resolveStartConflict(log: ILogItem) {
         await log.wrap("resolveStartConflict", async () => {
-            const receivedStartMessage = this.channel.receivedMessages.get(VerificationEventTypes.Start);
-            const sentStartMessage = this.channel.sentMessages.get(VerificationEventTypes.Start);
+            const receivedStartMessage = this.channel.getReceivedMessage(VerificationEventTypes.Start);
+            const sentStartMessage = this.channel.getSentMessage(VerificationEventTypes.Start);
             if (receivedStartMessage.content.method !== sentStartMessage.content.method) {
                 /**
                  *  If the two m.key.verification.start messages do not specify the same verification method,

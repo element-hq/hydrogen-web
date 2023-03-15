@@ -59,12 +59,13 @@ export class SASVerification {
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         this.channel = channel;
+        this.channel.setOurDeviceId(options.ourUserDeviceId);
         this.setupCancelAfterTimeout(clock);
         const stageOptions = {...options, olmSas, eventEmitter: this.eventEmitter};
-        if (channel.receivedMessages.get(VerificationEventTypes.Start)) {
+        if (channel.getReceivedMessage(VerificationEventTypes.Start)) {
             this.startStage = new SelectVerificationMethodStage(stageOptions);
         }
-        else if (channel.receivedMessages.get(VerificationEventTypes.Request)) {
+        else if (channel.getReceivedMessage(VerificationEventTypes.Request)) {
             this.startStage = new SendReadyStage(stageOptions);
         }
         else {
@@ -161,7 +162,6 @@ export function tests() {
         const channel = new MockChannel(
             theirDeviceId,
             theirUserId,
-            ourDeviceId,
             ourUserId,
             receivedMessages,
             deviceTracker,

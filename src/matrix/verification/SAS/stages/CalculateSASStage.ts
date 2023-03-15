@@ -82,8 +82,8 @@ export class CalculateSASStage extends BaseSASVerificationStage {
 
     async verifyHashCommitment(log: ILogItem) {
         return await log.wrap("CalculateSASStage.verifyHashCommitment", async () => {
-            const acceptMessage = this.channel.receivedMessages.get(VerificationEventTypes.Accept).content;
-            const keyMessage = this.channel.receivedMessages.get(VerificationEventTypes.Key).content;
+            const acceptMessage = this.channel.getReceivedMessage(VerificationEventTypes.Accept).content;
+            const keyMessage = this.channel.getReceivedMessage(VerificationEventTypes.Key).content;
             const commitmentStr = keyMessage.key + anotherjson.stringify(this.channel.startMessage.content);
             const receivedCommitment = acceptMessage.commitment;
             const hash = this.olmUtil.sha256(commitmentStr);
@@ -106,7 +106,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
     }
 
     private generateSASBytes(): Uint8Array {
-        const keyAgreement = this.channel.getEvent(VerificationEventTypes.Accept).content.key_agreement_protocol;
+        const keyAgreement = this.channel.acceptMessage.content.key_agreement_protocol;
         const otherUserDeviceId = this.otherUserDeviceId;
         const sasBytes = calculateKeyAgreement[keyAgreement]({
             our: {
@@ -136,7 +136,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
     }
 
     get theirKey(): string {
-        const {content} = this.channel.receivedMessages.get(VerificationEventTypes.Key);
+        const {content} = this.channel.getReceivedMessage(VerificationEventTypes.Key);
         return content.key;
     }
 }

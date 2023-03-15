@@ -22,7 +22,7 @@ import {VerifyMacStage} from "./VerifyMacStage";
 export class SendMacStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("SendMacStage.completeStage", async (log) => {
-            const acceptMessage = this.channel.getEvent(VerificationEventTypes.Accept).content;
+            const acceptMessage = this.channel.acceptMessage.content;
             const macMethod = acceptMessage.message_authentication_code;
             const calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.sendMAC(calculateMAC, log);

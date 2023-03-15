@@ -149,7 +149,7 @@ export class CrossSigning {
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
             otherUserId: userId,
-            platform: this.platform,
+            clock: this.platform.clock,
             deviceMessageHandler: this.deviceMessageHandler,
             log
         }, startingMessage);

@@ -16,11 +16,11 @@ export class MockChannel implements ITestChannel {
     public startMessage: any;
     public isCancelled: boolean = false;
     private olmSas: any;
+    public ourUserDeviceId: string;
 
     constructor(
         public otherUserDeviceId: string,
         public otherUserId: string,
-        public ourUserDeviceId: string,
         public ourUserId: string,
         private fixtures: Map<string, any>,
         private deviceTracker: any,
@@ -63,7 +63,7 @@ export class MockChannel implements ITestChannel {
     }
 
     private recalculateCommitment() {
-        const acceptMessage = this.getEvent(VerificationEventTypes.Accept)?.content;
+        const acceptMessage = this.acceptMessage?.content;
         if (!acceptMessage) {
             return;
         }
@@ -87,7 +87,7 @@ export class MockChannel implements ITestChannel {
             this.ourUserDeviceId +
             this.id;
         const { content: macContent } = this.receivedMessages.get(VerificationEventTypes.Mac);
-        const macMethod = this.getEvent(VerificationEventTypes.Accept).content.message_authentication_code;
+        const macMethod = this.acceptMessage.content.message_authentication_code;
         const calculateMac = createCalculateMAC(this.olmSas, macMethod);
         const input = Object.keys(macContent.mac).sort().join(",");
         const properMac = calculateMac(input, baseInfo + "KEY_IDS");
@@ -111,8 +111,8 @@ export class MockChannel implements ITestChannel {
         this.recalculateCommitment();
     }
 
-    setInitiatedByUs(value: boolean): void {
-        this.initiatedByUs = value;
+    setOurDeviceId(id: string) {
+        this.ourUserDeviceId = id;
     }
 
     async cancelVerification(_: CancelTypes): Promise<void> {
@@ -120,15 +120,20 @@ export class MockChannel implements ITestChannel {
         this.isCancelled = true;
     }
 
-    getEvent(eventType: VerificationEventTypes.Accept): any {
-        return this.receivedMessages.get(eventType) ?? this.sentMessages.get(eventType);
+    get acceptMessage(): any {
+        return this.receivedMessages.get(VerificationEventTypes.Accept) ??
+            this.sentMessages.get(VerificationEventTypes.Accept);
+    }
+
+    getReceivedMessage(event: VerificationEventTypes) {
+        return this.receivedMessages.get(event);
+    }
+
+    getSentMessage(event: VerificationEventTypes) {
+        return this.sentMessages.get(event);
     }
 
     setOlmSas(olmSas: any): void {
         this.olmSas = olmSas;
-    }
-
-    get type() {
-        return 0;
     }
 }
