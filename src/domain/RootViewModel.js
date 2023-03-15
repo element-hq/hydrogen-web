@@ -40,7 +40,6 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("login").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
-        this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
