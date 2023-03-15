@@ -17,7 +17,7 @@ limitations under the License.
 import type {StateObserver} from "./types";
 import type {StateEvent} from "../../storage/types";
 import type {Transaction} from "../../storage/idb/Transaction";
-import {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import {BaseObservableValue} from "../../../observable/value";
 
 /**
  * Observable value for a state event with a given type and state key.

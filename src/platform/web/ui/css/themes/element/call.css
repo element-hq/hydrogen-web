@@ -24,10 +24,20 @@ limitations under the License.
     grid-row: 1;
 }
 
+.CallView_error {
+    align-self: start;
+    justify-self: center;
+    margin: 16px;
+    /** Chrome (v100) requires this to make the buttons clickable
+     * where they overlap with the video element, even though
+     * the buttons come later in the DOM. */
+    z-index: 1;
+}
+
 .CallView_members {
     display: grid;
     gap: 12px;
-    background: var(--background-color-secondary--darker-60);
+    background: var(--background-color-secondary--darker-5);
     padding: 12px;
     margin: 0;
     min-height: 0;
@@ -57,6 +67,15 @@ limitations under the License.
 .StreamView_avatar {
     align-self: center;
     justify-self: center;
+}
+
+.StreamView_error {
+    align-self: start;
+    justify-self: center;
+    /** Chrome (v100) requires this to make the buttons clickable
+     * where they overlap with the video element, even though
+     * the buttons come later in the DOM. */
+    z-index: 1;
 }
 
 .StreamView_muteStatus {

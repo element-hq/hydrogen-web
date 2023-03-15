@@ -14,12 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {RetainedObservableValue} from "../../observable/value/RetainedObservableValue";
+import {RetainedObservableValue} from "../../observable/value";
 
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {IHomeServerRequest} from "../net/HomeServerRequest";
-import type {BaseObservableValue} from "../../observable/value/BaseObservableValue";
-import type {ObservableValue} from "../../observable/value/ObservableValue";
+import type {BaseObservableValue, ObservableValue} from "../../observable/value";
 import type {Clock, Timeout} from "../../platform/web/dom/Clock";
 import type {ILogItem} from "../../logging/types";
 

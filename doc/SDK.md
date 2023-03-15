@@ -85,7 +85,7 @@ async function main() {
             room,
             ownUserId: session.userId,
             platform,
-            urlCreator: urlRouter,
+            urlRouter: urlRouter,
             navigation,
         });
         await vm.load();

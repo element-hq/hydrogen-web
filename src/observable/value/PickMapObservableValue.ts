@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue} from "./BaseObservableValue";
+import {BaseObservableValue} from "./index";
 import {BaseObservableMap, IMapObserver} from "../map/BaseObservableMap";
 import {SubscriptionHandle} from "../BaseObservable";
 

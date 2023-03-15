@@ -17,6 +17,7 @@ limitations under the License.
 import {TemplateView} from "../../general/TemplateView";
 import {disableTargetCallback} from "../../general/utils";
 import {KeyBackupSettingsView} from "./KeyBackupSettingsView.js"
+import {FeaturesView} from "./FeaturesView"
 
 export class SettingsView extends TemplateView {
     render(t, vm) {
@@ -55,7 +56,7 @@ export class SettingsView extends TemplateView {
         );
 
         settingNodes.push(
-            t.h3("Key backup"),
+            t.h3("Key backup & security"),
             t.view(new KeyBackupSettingsView(vm.keyBackupViewModel))
         );
 
@@ -117,6 +118,12 @@ export class SettingsView extends TemplateView {
             logButtons.push(t.button({onClick: disableTargetCallback(() => vm.sendLogsToServer())}, `Submit logs to ${vm.logsServer}`));
         }
         logButtons.push(t.button({onClick: () => vm.exportLogs()}, "Download logs"));
+
+        settingNodes.push(
+            t.h3("Experimental features"),
+            t.view(new FeaturesView(vm.featuresViewModel))
+        );
+
         settingNodes.push(
             t.h3("Application"),
             row(t, vm.i18n`Version`, version),

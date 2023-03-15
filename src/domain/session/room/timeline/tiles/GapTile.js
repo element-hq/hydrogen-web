@@ -16,39 +16,60 @@ limitations under the License.
 
 import {SimpleTile} from "./SimpleTile.js";
 import {UpdateAction} from "../UpdateAction.js";
+import {ConnectionError} from "../../../../../matrix/error.js";
+import {ConnectionStatus} from "../../../../../matrix/net/Reconnector";
 
+// TODO: should this become an ITile and SimpleTile become EventTile?
 export class GapTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
         this._loading = false;
-        this._error = null;
+        this._waitingForConnection = false;
         this._isAtTop = true;
         this._siblingChanged = false;
     }
 
-    async fill() {
+    get needsDateSeparator() {
+        return false;
+    }
+
+    async fill(isRetrying = false) {
         if (!this._loading && !this._entry.edgeReached) {
             this._loading = true;
             this.emitChange("isLoading");
             try {
                 await this._room.fillGap(this._entry, 10);
             } catch (err) {
-                console.error(`room.fillGap(): ${err.message}:\n${err.stack}`);
-                this._error = err;
-                this.emitChange("error");
-                // rethrow so caller of this method
-                // knows not to keep calling this for now
-                throw err;
+                if (err instanceof ConnectionError) {
+                    await this._waitForReconnection();
+                    if (!isRetrying) {
+                        // retry after the connection comes back
+                        // if this wasn't already a retry after coming back online
+                        return await this.fill(true);
+                    } else {
+                        return false;
+                    }
+                } else {
+                    this.reportError(err);
+                    return false;
+                }
             } finally {
                 this._loading = false;
                 this.emitChange("isLoading");
             }
-                return true;
+            return true;
         }
         return false;
     }
 
     async notifyVisible() {
+        // if any error happened before (apart from being offline),
+        // let the user dismiss the error before trying to backfill
+        // again so we don't try to do backfill the don't succeed
+        // in quick succession
+        if (this.errorViewModel) {
+            return;
+        }
         // we do (up to 10) backfills while no new tiles have been added to the timeline
         // because notifyVisible won't be called again until something gets added to the timeline
         let depth = 0;
@@ -90,6 +111,14 @@ export class GapTile extends SimpleTile {
         }
     }
 
+    async _waitForReconnection() {
+        this._waitingForConnection = true;
+        this.emitUpdate("status");
+        await this.options.client.reconnector.connectionStatus.waitFor(status => status === ConnectionStatus.Online).promise;
+        this._waitingForConnection = false;
+        this.emitUpdate("status");
+    }
+
     get shape() {
         return "gap";
     }
@@ -98,12 +127,21 @@ export class GapTile extends SimpleTile {
         return this._loading;
     }
 
-    get error() {
-        if (this._error) {
-            const dir = this._entry.prev_batch ? "previous" : "next";
-            return `Could not load ${dir} messages: ${this._error.message}`;
+    get showSpinner() {
+        return this.isLoading || this._waitingForConnection;
+    }
+
+    get status() {
+        const dir = this._entry.prev_batch ? "previous" : "next";
+        if (this._waitingForConnection) {
+            return "Waiting for connection…";
+        } else if (this.errorViewModel) {
+            return `Could not load ${dir} messages`;
+        } else if (this.isLoading) {
+            return "Loading more messages…";
+        } else {
+            return "Gave up loading more messages";
         }
-        return null;
     }
 }
 

@@ -28,7 +28,7 @@ import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 import {CallTile} from "./CallTile.js";
 
-import type {SimpleTile} from "./SimpleTile.js";
+import type {ITile, TileShape} from "./ITile";
 import type {Room} from "../../../../../matrix/room/Room";
 import type {Session} from "../../../../../matrix/Session";
 import type {Timeline} from "../../../../../matrix/room/timeline/Timeline";
@@ -45,9 +45,9 @@ export type Options = ViewModelOptions & {
     timeline: Timeline
     tileClassForEntry: TileClassForEntryFn;
 };
-export type TileConstructor = new (entry: TimelineEntry, options: Options) => SimpleTile;
+export type TileConstructor = new (entry: TimelineEntry, options: Options) => ITile;
 
-export function tileClassForEntry(entry: TimelineEntry): TileConstructor | undefined {
+export function tileClassForEntry(entry: TimelineEntry, options: Options): TileConstructor | undefined {
     if (entry.isGap) {
         return GapTile;
     } else if (entry.isPending && entry.pendingEvent.isMissingAttachments) {
@@ -92,7 +92,7 @@ export function tileClassForEntry(entry: TimelineEntry): TileConstructor | undef
             case "org.matrix.msc3401.call": {
                 // if prevContent is present, it's an update to a call event, which we don't render
                 // as the original event is updated through the call object which receive state event updates
-                if (entry.stateKey && !entry.prevContent) {
+                if (options.features.calls && entry.stateKey && !entry.prevContent) {
                     return CallTile;
                 }
                 return undefined;

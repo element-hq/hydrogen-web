@@ -181,7 +181,7 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = true , options: BaseRequestOptions = {}): IHomeServerRequest {
+    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = false , options: BaseRequestOptions = {}): IHomeServerRequest {
         options.allowedStatusCodes = [401];
         const body: any = {
             auth,
@@ -234,6 +234,10 @@ export class HomeServerApi {
             path = path + `/${encodeURIComponent(dehydratedDeviceId)}`;
         }
         return this._post(path, {}, payload, options);
+    }
+
+    uploadSignatures(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post("/keys/signatures/upload", {}, payload, options);
     }
 
     queryKeys(queryRequest: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {

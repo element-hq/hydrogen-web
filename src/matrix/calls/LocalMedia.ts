@@ -20,6 +20,7 @@ import {SDPStreamMetadata} from "./callEventTypes";
 import {getStreamVideoTrack, getStreamAudioTrack} from "./common";
 
 export class LocalMedia {
+
     constructor(
         public readonly userMedia?: Stream,
         public readonly screenShare?: Stream,
@@ -27,15 +28,31 @@ export class LocalMedia {
     ) {}
 
     withUserMedia(stream: Stream) {
-        return new LocalMedia(stream, this.screenShare, this.dataChannelOptions);
+        return new LocalMedia(stream, this.screenShare?.clone(), this.dataChannelOptions);
     }
 
     withScreenShare(stream: Stream) {
-        return new LocalMedia(this.userMedia, stream, this.dataChannelOptions);
+        return new LocalMedia(this.userMedia?.clone(), stream, this.dataChannelOptions);
     }
 
     withDataChannel(options: RTCDataChannelInit): LocalMedia {
-        return new LocalMedia(this.userMedia, this.screenShare, options);
+        return new LocalMedia(this.userMedia?.clone(), this.screenShare?.clone(), options);
+    }
+
+    /**
+     * Create an instance of LocalMedia without audio track (for user preview)
+     */
+    asPreview(): LocalMedia {
+        const media = this.clone();
+        const userMedia = media.userMedia;
+        if (userMedia && userMedia.getVideoTracks().length > 0) {
+            const audioTrack = getStreamAudioTrack(userMedia);
+            if (audioTrack) {
+                audioTrack.stop();
+                userMedia.removeTrack(audioTrack);
+            }
+        }
+        return media;
     }
 
     /** @internal */

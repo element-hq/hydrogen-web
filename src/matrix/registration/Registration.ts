@@ -25,6 +25,7 @@ import type {
     RegistrationResponseMoreDataNeeded,
     RegistrationResponse,
     RegistrationResponseSuccess,
+    AuthData,
     RegistrationParams,
 } from "./types";
 
@@ -34,9 +35,11 @@ export class Registration {
     private readonly _hsApi: HomeServerApi;
     private readonly _accountDetails: AccountDetails;
     private readonly _flowSelector: FlowSelector;
-    private _sessionInfo?: RegistrationResponseSuccess
+    private _registerResponse?: RegistrationResponseSuccess;
+    public readonly homeserver: string;
 
-    constructor(hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
+    constructor(homeserver: string, hsApi: HomeServerApi, accountDetails: AccountDetails, flowSelector?: FlowSelector) {
+        this.homeserver = homeserver;
         this._hsApi = hsApi;
         this._accountDetails = accountDetails;
         this._flowSelector = flowSelector ?? (flows => flows[0]);
@@ -91,7 +94,7 @@ export class Registration {
     private async parseRegistrationResponse(response: RegistrationResponse, currentStage: BaseRegistrationStage) {
         switch (response.status) {
             case 200:
-                this._sessionInfo = response;
+                this._registerResponse = response;
                 return undefined;
             case 401:
                 if (response.completed?.includes(currentStage.type)) {
@@ -117,7 +120,14 @@ export class Registration {
         }
     }
 
-    get sessionInfo(): RegistrationResponseSuccess | undefined {
-        return this._sessionInfo;
+    get authData(): AuthData | undefined {
+        if (this._registerResponse) {
+            return {
+                accessToken: this._registerResponse.access_token,
+                homeserver: this.homeserver,
+                userId: this._registerResponse.user_id,
+                deviceId: this._registerResponse.device_id,
+            };
+        }
     }
 }

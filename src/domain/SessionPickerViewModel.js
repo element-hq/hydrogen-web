@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SortedArray} from "../observable/index";
+import {SortedArray} from "../observable";
 import {ViewModel} from "./ViewModel";
 import {avatarInitials, getIdentifierColorNumber} from "./avatar";
 
@@ -38,7 +38,7 @@ class SessionItemViewModel extends ViewModel {
     }
 
     get openUrl() {
-        return this.urlCreator.urlForSegment("session", this.id);
+        return this.urlRouter.urlForSegment("session", this.id);
     }
 
     get label() {
@@ -94,6 +94,6 @@ export class SessionPickerViewModel extends ViewModel {
     }
 
     get cancelUrl() {
-        return this.urlCreator.urlForSegment("login");
+        return this.urlRouter.urlForSegment("login");
     }
 }

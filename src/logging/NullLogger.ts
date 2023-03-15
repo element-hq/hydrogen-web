@@ -21,7 +21,7 @@ function noop (): void {}
 export class NullLogger implements ILogger {
     public readonly item: ILogItem = new NullLogItem(this);
 
-    log(): ILogItem {
+    log(labelOrValues: LabelOrValues): ILogItem {
         return this.item;
     }
 
@@ -37,7 +37,7 @@ export class NullLogger implements ILogger {
 
     forceFinish(): void {}
 
-    child(): ILogItem  {
+    child(labelOrValues: LabelOrValues): ILogItem  {
         return this.item;
     }
 
@@ -83,11 +83,11 @@ export class NullLogItem implements ILogItem {
     }
 
 
-    log(): ILogItem {
+    log(labelOrValues: LabelOrValues): ILogItem {
         return this;
     }
     
-    set(): ILogItem { return this; }
+    set(labelOrValues: LabelOrValues): ILogItem { return this; }
 
     runDetached(_: LabelOrValues, callback: LogCallback<unknown>): ILogItem {
         new Promise(r => r(callback(this))).then(noop, noop);

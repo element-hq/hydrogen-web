@@ -17,7 +17,7 @@ limitations under the License.
 import type {StateObserver} from "./types";
 import type {StateEvent} from "../../storage/types";
 import type {Transaction} from "../../storage/idb/Transaction";
-import {ObservableMap} from "../../../observable/map/ObservableMap";
+import {ObservableMap} from "../../../observable/map";
 
 /**
  * Observable map for a given type with state keys as map keys.

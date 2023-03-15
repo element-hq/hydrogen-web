@@ -1,0 +1,56 @@
+.ErrorView_block {
+    background: var(--error-color);
+    color: var(--fixed-white);
+    margin: 16px;
+}
+
+.ErrorView.ErrorView_inline {
+    color: var(--error-color);
+    margin: 4px 0;
+    padding: 4px 0;
+}
+
+.ErrorView.ErrorView_inline > p {
+    margin: 0;
+}
+
+.ErrorView {
+    font-weight: bold;
+    margin: 16px;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.ErrorView_message {
+    flex-basis: 0;
+    flex-grow: 1;
+    margin: 0px;
+    word-break: break-all;
+    word-break: break-word;
+    align-self: center;
+}
+
+.ErrorView_submit {
+    align-self: end;
+}
+
+.ErrorView_close {
+    align-self: start;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: none;
+    background-repeat: no-repeat;
+    background-size: contain;
+    cursor: pointer;
+}
+
+.ErrorView_block .ErrorView_close {
+    background-image: url('icons/clear.svg?primary=fixed-white');
+}
+
+.ErrorView_inline .ErrorView_close {
+    background-image: url('icons/clear.svg?primary=text-color');
+}

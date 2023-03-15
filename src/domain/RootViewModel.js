@@ -19,6 +19,7 @@ import {SessionViewModel} from "./session/SessionViewModel.js";
 import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
 import {LoginViewModel} from "./login/LoginViewModel";
 import {LogoutViewModel} from "./LogoutViewModel";
+import {ForcedLogoutViewModel} from "./ForcedLogoutViewModel";
 import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
 import {ViewModel} from "./ViewModel";
 
@@ -30,6 +31,7 @@ export class RootViewModel extends ViewModel {
         this._sessionLoadViewModel = null;
         this._loginViewModel = null;
         this._logoutViewModel = null;
+        this._forcedLogoutViewModel = null;
         this._sessionViewModel = null;
         this._pendingClient = null;
     }
@@ -39,18 +41,24 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
         const isLogin = this.navigation.path.get("login");
         const logoutSessionId = this.navigation.path.get("logout")?.value;
+        const isForcedLogout = this.navigation.path.get("forced")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
         const oidcCallback = this.navigation.path.get("oidc")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
+            }
+        } else if (logoutSessionId && isForcedLogout) {
+            if (this.activeSection !== "forced-logout") {
+                this._showForcedLogout(logoutSessionId);
             }
         } else if (logoutSessionId) {
             if (this.activeSection !== "logout") {
@@ -77,7 +85,7 @@ export class RootViewModel extends ViewModel {
                 }
             }
         } else if (loginToken) {
-            this.urlCreator.normalizeUrl();
+            this.urlRouter.normalizeUrl();
             if (this.activeSection !== "login") {
                 this._showLogin({loginToken});
             }
@@ -95,7 +103,7 @@ export class RootViewModel extends ViewModel {
         }
         else {
             try {
-                if (!(shouldRestoreLastUrl && this.urlCreator.tryRestoreLastUrl())) {
+                if (!(shouldRestoreLastUrl && this.urlRouter.tryRestoreLastUrl())) {
                     const sessionInfos = await this.platform.sessionInfoStorage.getAll();
                     if (sessionInfos.length === 0) {
                         this.navigation.push("login");
@@ -150,6 +158,12 @@ export class RootViewModel extends ViewModel {
         });
     }
 
+    _showForcedLogout(sessionId) {
+        this._setSection(() => {
+            this._forcedLogoutViewModel = new ForcedLogoutViewModel(this.childOptions({sessionId}));
+        });
+    }
+
     _showSession(client) {
         this._setSection(() => {
             this._sessionViewModel = new SessionViewModel(this.childOptions({client}));
@@ -158,7 +172,7 @@ export class RootViewModel extends ViewModel {
     }
 
     _showSessionLoader(sessionId) {
-        const client = new Client(this.platform);
+        const client = new Client(this.platform, this.features);
         client.startWithExistingSession(sessionId);
         this._setSection(() => {
             this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({
@@ -178,6 +192,8 @@ export class RootViewModel extends ViewModel {
             return "login";
         } else if (this._logoutViewModel) {
             return "logout";
+        } else if (this._forcedLogoutViewModel) {
+            return "forced-logout";
         } else if (this._sessionPickerViewModel) {
             return "picker";
         } else if (this._sessionLoadViewModel) {
@@ -194,6 +210,7 @@ export class RootViewModel extends ViewModel {
         this._sessionLoadViewModel = this.disposeTracked(this._sessionLoadViewModel);
         this._loginViewModel = this.disposeTracked(this._loginViewModel);
         this._logoutViewModel = this.disposeTracked(this._logoutViewModel);
+        this._forcedLogoutViewModel = this.disposeTracked(this._forcedLogoutViewModel);
         this._sessionViewModel = this.disposeTracked(this._sessionViewModel);
         // now set it again
         setter();
@@ -201,6 +218,7 @@ export class RootViewModel extends ViewModel {
         this._sessionLoadViewModel && this.track(this._sessionLoadViewModel);
         this._loginViewModel && this.track(this._loginViewModel);
         this._logoutViewModel && this.track(this._logoutViewModel);
+        this._forcedLogoutViewModel && this.track(this._forcedLogoutViewModel);
         this._sessionViewModel && this.track(this._sessionViewModel);
         this.emitChange("activeSection");
     }
@@ -209,6 +227,7 @@ export class RootViewModel extends ViewModel {
     get sessionViewModel() { return this._sessionViewModel; }
     get loginViewModel() { return this._loginViewModel; }
     get logoutViewModel() { return this._logoutViewModel; }
+    get forcedLogoutViewModel() { return this._forcedLogoutViewModel; }
     get sessionPickerViewModel() { return this._sessionPickerViewModel; }
     get sessionLoadViewModel() { return this._sessionLoadViewModel; }
 }

@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue} from "./BaseObservableValue";
-import {SubscriptionHandle} from "../BaseObservable";
+import {BaseObservableValue} from "./index";
+import type {SubscriptionHandle} from "../BaseObservable";
 
 export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefined> {
     private sourceSubscription?: SubscriptionHandle;
@@ -28,7 +28,7 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
         super();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         this.sourceSubscription = this.sourceSubscription!();
         if (this.targetSubscription) {
@@ -36,7 +36,7 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
         }
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         super.onSubscribeFirst();
         this.sourceSubscription = this.source.subscribe(() => {
             this.updateTargetSubscription();
@@ -45,7 +45,7 @@ export class FlatMapObservableValue<P, C> extends BaseObservableValue<C | undefi
         this.updateTargetSubscription();
     }
 
-    private updateTargetSubscription() {
+    private updateTargetSubscription(): void {
         const sourceValue = this.source.get();
         if (sourceValue) {
             const target = this.mapper(sourceValue);
@@ -76,28 +76,28 @@ import {ObservableValue} from "./ObservableValue";
 
 export function tests() {
     return {
-        "flatMap.get": assert => {
+        "flatMap.get": (assert): void => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
-            const countProxy = new FlatMapObservableValue(a, a => a!.count);
+            const countProxy = a.flatMap(a => a!.count);
             assert.strictEqual(countProxy.get(), undefined);
             const count = new ObservableValue<number>(0);
             a.set({count});
             assert.strictEqual(countProxy.get(), 0);
         },
-        "flatMap update from source": assert => {
+        "flatMap update from source": (assert): void => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const updates: (number | undefined)[] = [];
-            new FlatMapObservableValue(a, a => a!.count).subscribe(count => {
+            a.flatMap(a => a!.count).subscribe(count => {
                 updates.push(count);
             });
             const count = new ObservableValue<number>(0);
             a.set({count});
             assert.deepEqual(updates, [0]);
         },
-        "flatMap update from target": assert => {
+        "flatMap update from target": (assert): void => {
             const a = new ObservableValue<undefined | {count: ObservableValue<number>}>(undefined);
             const updates: (number | undefined)[] = [];
-            new FlatMapObservableValue(a, a => a!.count).subscribe(count => {
+            a.flatMap(a => a!.count).subscribe(count => {
                 updates.push(count);
             });
             const count = new ObservableValue<number>(0);
@@ -105,5 +105,5 @@ export function tests() {
             count.set(5);
             assert.deepEqual(updates, [0, 5]);
         }
-    }
+    };
 }

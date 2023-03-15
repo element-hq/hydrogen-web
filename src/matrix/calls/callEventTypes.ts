@@ -22,11 +22,17 @@ export enum EventType {
 // TODO: Change to "sdp_stream_metadata" when MSC3077 is merged
 export const SDPStreamMetadataKey = "org.matrix.msc3077.sdp_stream_metadata";
 
+export interface FocusConfig {
+    user_id: string,
+    device_id: string
+}
+
 export interface CallDeviceMembership {
     device_id: string,
     session_id: string,
-    ["m.expires_ts"]?: number,
+    ["expires_ts"]?: number,
     feeds?: Array<{purpose: string}>
+    ["m.foci.active"]?: Array<FocusConfig>
 }
 
 export interface CallMembership {
@@ -227,3 +233,8 @@ export enum CallIntent {
     Prompt = "m.prompt",
     Room = "m.room",
 };
+
+export enum CallType {
+    Video = "m.video",
+    Voice = "m.voice",
+}

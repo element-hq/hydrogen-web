@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue} from "./ObservableValue";
+import {ObservableValue} from "./index";
 
 export class RetainedObservableValue<T> extends ObservableValue<T> {
 
@@ -22,11 +22,11 @@ export class RetainedObservableValue<T> extends ObservableValue<T> {
         super(initialValue);
     }
 
-    onSubscribeFirst() {
+    onSubscribeFirst(): void {
         this.startCallback();
     }
 
-    onUnsubscribeLast() {
+    onUnsubscribeLast(): void {
         super.onUnsubscribeLast();
         this.freeCallback();
     }

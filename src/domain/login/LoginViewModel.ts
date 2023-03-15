@@ -64,20 +64,20 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
         this._ready = ready;
         this._loginToken = loginToken;
         this._oidc = oidc;
-        this._client = new Client(this.platform);
+        this._client = new Client(this.platform, this.features);
         this._homeserver = defaultHomeserver;
         this._initViewModels();
     }
 
-    get passwordLoginViewModel(): PasswordLoginViewModel {
+    get passwordLoginViewModel(): PasswordLoginViewModel | undefined {
         return this._passwordLoginViewModel;
     }
 
-    get startSSOLoginViewModel(): StartSSOLoginViewModel {
+    get startSSOLoginViewModel(): StartSSOLoginViewModel | undefined {
         return this._startSSOLoginViewModel;
     }
 
-    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel {
+    get completeSSOLoginViewModel(): CompleteSSOLoginViewModel | undefined {
         return this._completeSSOLoginViewModel;
     }
 
@@ -331,7 +331,7 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 type ReadyFn = (client: Client) => void;
 
 // TODO: move to Client.js when its converted to typescript.
-type LoginOptions = {
+export type LoginOptions = {
     homeserver: string;
     password?: (username: string, password: string) => PasswordLoginMethod;
     sso?: SSOLoginHelper;

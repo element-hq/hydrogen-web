@@ -53,7 +53,7 @@ export class SortedMapList extends BaseObservableList {
         this._sortedPairs = null;
         this._mapSubscription = null;
     }
-    
+
     onAdd(key, value) {
         const pair = {key, value};
         const idx = sortedIndex(this._sortedPairs, pair, this._comparator);
@@ -129,11 +129,11 @@ export class SortedMapList extends BaseObservableList {
                 }
                 return v;
             }
-        }
+        };
     }
 }
 
-import {ObservableMap} from "../map/ObservableMap";
+import {ObservableMap} from "../";
 
 export function tests() {
     return {
@@ -267,5 +267,5 @@ export function tests() {
             assert.equal(updateFired, 1);
             assert.deepEqual(Array.from(list).map(v => v.number), [1, 3, 11]);
         },
-    }
+    };
 }

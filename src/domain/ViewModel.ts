@@ -29,13 +29,16 @@ import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {SegmentType} from "./navigation/index";
 import type {IURLRouter} from "./navigation/URLRouter";
+import type { ITimeFormatter } from "../platform/types/types";
+import type { FeatureSet } from "../features";
 
 export type Options<T extends object = SegmentType> = {
     platform: Platform;
     logger: ILogger;
-    urlCreator: IURLRouter<T>;
+    urlRouter: IURLRouter<T>;
     navigation: Navigation<T>;
     emitChange?: (params: any) => void;
+    features: FeatureSet
 }
 
 
@@ -49,7 +52,7 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
         this._options = options;
     }
 
-    childOptions<T extends Object>(explicitOptions: T): T & Options<N> {
+    childOptions<T extends Object>(explicitOptions: T): T & O {
         return Object.assign({}, this._options, explicitOptions);
     }
 
@@ -137,12 +140,20 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
         return this.platform.logger;
     }
 
-    get urlCreator(): IURLRouter<N> {
-        return this._options.urlCreator;
+    get urlRouter(): IURLRouter<N> {
+        return this._options.urlRouter;
+    }
+
+    get features(): FeatureSet {
+        return this._options.features;
     }
 
     get navigation(): Navigation<N> {
         // typescript needs a little help here
         return this._options.navigation as unknown as Navigation<N>;
+    }
+
+    get timeFormatter(): ITimeFormatter {
+        return this._options.platform.timeFormatter;
     }
 }

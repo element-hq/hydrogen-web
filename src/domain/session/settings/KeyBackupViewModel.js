@@ -17,7 +17,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel";
 import {KeyType} from "../../../matrix/ssss/index";
 import {createEnum} from "../../../utils/enum";
-import {FlatMapObservableValue} from "../../../observable/value/FlatMapObservableValue";
+import {FlatMapObservableValue} from "../../../observable/value";
 
 export const Status = createEnum("Enabled", "SetupKey", "SetupPhrase", "Pending", "NewVersionAvailable"); 
 export const BackupWriteStatus = createEnum("Writing", "Stopped", "Done", "Pending"); 
@@ -86,6 +86,22 @@ export class KeyBackupViewModel extends ViewModel {
 
     get backupVersion() {
         return this._session.keyBackup.get()?.version;
+    }
+
+    get isMasterKeyTrusted() {
+        return this._session.crossSigning?.isMasterKeyTrusted ?? false;
+    }
+
+    get canSignOwnDevice() {
+        return !!this._session.crossSigning;
+    }
+
+    async signOwnDevice() {
+        if (this._session.crossSigning) {
+            await this.logger.run("KeyBackupViewModel.signOwnDevice", async log => {
+                await this._session.crossSigning.signOwnDevice(log);
+            });
+        }
     }
 
     get backupWriteStatus() {

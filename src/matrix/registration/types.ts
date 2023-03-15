@@ -38,6 +38,13 @@ export type RegistrationResponseSuccess = {
     status: 200;
 }
 
+export type AuthData = {
+    userId: string;
+    deviceId: string;
+    homeserver: string;
+    accessToken?: string;
+}
+
 export type RegistrationFlow = {
     stages: string[];
 }

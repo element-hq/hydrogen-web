@@ -18,7 +18,7 @@ limitations under the License.
 import {createEnum} from "../utils/enum";
 import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
-import {ObservableValue} from "../observable/value/ObservableValue";
+import {ObservableValue} from "../observable/value";
 import {HomeServerApi} from "./net/HomeServerApi";
 import {OidcApi} from "./net/OidcApi";
 import {TokenRefresher} from "./net/TokenRefresher";
@@ -33,6 +33,7 @@ import {TokenLoginMethod} from "./login/TokenLoginMethod";
 import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 import {Registration} from "./registration/Registration";
+import {FeatureSet} from "../features";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -55,7 +56,7 @@ export const LoginFailure = createEnum(
 );
 
 export class Client {
-    constructor(platform, options) {
+    constructor(platform, features = new FeatureSet(0), options = {}) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -71,6 +72,7 @@ export class Client {
         this._workerPromise = platform.loadOlmWorker();
         this._accountSetup = undefined;
         this._deviceName = options?.deviceName || "Hydrogen";
+        this._features = features;
     }
 
     createNewSessionId() {
@@ -158,13 +160,23 @@ export class Client {
     async startRegistration(homeserver, username, password, initialDeviceDisplayName, flowSelector) {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
-        const registration = new Registration(hsApi, {
+        const registration = new Registration(homeserver, hsApi, {
             username,
             password,
             initialDeviceDisplayName,
         },
         flowSelector);
         return registration;
+    }
+
+    /** Method to start client after registration or with given access token.
+     * To start the client after registering, use `startWithAuthData(registration.authData)`.
+     * `homeserver` won't be resolved or normalized using this method,
+     * use `lookupHomeserver` first if needed (not needed after registration) */
+    async startWithAuthData({accessToken, deviceId, userId, homeserver}) {
+        await this._platform.logger.run("startWithAuthData", async (log) => {
+            await this._createSessionAfterAuth({accessToken, deviceId, userId, homeserver}, true, log);
+        });
     }
 
     async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
@@ -185,13 +197,10 @@ export class Client {
                 const loginData = await loginMethod.login(hsApi, this._deviceName, log);
                 const sessionId = this.createNewSessionId();
                 sessionInfo = {
-                    id: sessionId,
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
-                    homeServer: loginMethod.homeserver, // deprecate this over time
                     homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
-                    lastUsed: clock.now()
                 };
 
                 if (loginData.refresh_token) {
@@ -227,28 +236,43 @@ export class Client {
                 }
                 return;
             }
-            let dehydratedDevice;
-            if (inspectAccountSetup) {
-                dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
-                if (dehydratedDevice) {
-                    sessionInfo.deviceId = dehydratedDevice.deviceId;
-                }
-            }
-            await this._platform.sessionInfoStorage.add(sessionInfo);
-            // loading the session can only lead to
-            // LoadStatus.Error in case of an error,
-            // so separate try/catch
-            try {
-                await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
-                log.set("status", this._status.get());
-            } catch (err) {
-                log.catch(err);
-                // free olm Account that might be contained
-                dehydratedDevice?.dispose();
-                this._error = err;
-                this._status.set(LoadStatus.Error);
-            }
+            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, log);
         });
+    }
+
+    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+        const id = this.createNewSessionId();
+        const lastUsed = this._platform.clock.now();
+        const sessionInfo = {
+            id,
+            deviceId,
+            userId,
+            homeServer: homeserver, // deprecate this over time
+            homeserver,
+            accessToken,
+            lastUsed,
+        };
+        let dehydratedDevice;
+        if (inspectAccountSetup) {
+            dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
+            if (dehydratedDevice) {
+                sessionInfo.deviceId = dehydratedDevice.deviceId;
+            }
+        }
+        await this._platform.sessionInfoStorage.add(sessionInfo);
+        // loading the session can only lead to
+        // LoadStatus.Error in case of an error,
+        // so separate try/catch
+        try {
+            await this._loadSessionInfo(sessionInfo, dehydratedDevice, log);
+            log.set("status", this._status.get());
+        } catch (err) {
+            log.catch(err);
+            // free olm Account that might be contained
+            dehydratedDevice?.dispose();
+            this._error = err;
+            this._status.set(LoadStatus.Error);
+        }
     }
 
     async _loadSessionInfo(sessionInfo, dehydratedDevice, log) {
@@ -331,6 +355,7 @@ export class Client {
             olmWorker,
             mediaRepository,
             platform: this._platform,
+            features: this._features
         });
         await this._session.load(log);
         if (dehydratedDevice) {
@@ -513,6 +538,14 @@ export class Client {
             } catch (err) {
                 console.error(err)
             }
+            await this.deleteSession(log);
+        });
+    }
+
+    startForcedLogout(sessionId) {
+        return this._platform.logger.run("forced-logout", async log => {
+            this._sessionId = sessionId;
+            log.set("id", this._sessionId);
             await this.deleteSession(log);
         });
     }

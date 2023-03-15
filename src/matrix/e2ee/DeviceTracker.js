@@ -21,13 +21,18 @@ import {RoomMember} from "../room/members/RoomMember.js";
 const TRACKING_STATUS_OUTDATED = 0;
 const TRACKING_STATUS_UPTODATE = 1;
 
+function createUserIdentity(userId, initialRoomId = undefined) {
+    return {
+        userId: userId,
+        roomIds: initialRoomId ? [initialRoomId] : [],
+        crossSigningKeys: undefined,
+        deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
+    };
+}
+
 function addRoomToIdentity(identity, userId, roomId) {
     if (!identity) {
-        identity = {
-            userId: userId,
-            roomIds: [roomId],
-            deviceTrackingStatus: TRACKING_STATUS_OUTDATED,
-        };
+        identity = createUserIdentity(userId, roomId);
         return identity;
     } else {
         if (!identity.roomIds.includes(roomId)) {
@@ -120,6 +125,7 @@ export class DeviceTracker {
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.roomSummary,
             this._storage.storeNames.userIdentities,
+            this._storage.storeNames.deviceIdentities, // to remove all devices in _removeRoomFromUserIdentity
         ]);
         try {
             let isTrackingChanges;
@@ -127,9 +133,13 @@ export class DeviceTracker {
                 isTrackingChanges = room.writeIsTrackingMembers(true, txn);
                 const members = Array.from(memberList.members.values());
                 log.set("members", members.length);
+                // TODO: should we remove any userIdentities we should not share the key with??
+                // e.g. as an extra security measure if we had a mistake in other code?
                 await Promise.all(members.map(async member => {
                     if (shouldShareKey(member.membership, historyVisibility)) {
                         await this._addRoomToUserIdentity(member.roomId, member.userId, txn);
+                    } else {
+                        await this._removeRoomFromUserIdentity(member.roomId, member.userId, txn);
                     }
                 }));
             } catch (err) {
@@ -141,6 +151,26 @@ export class DeviceTracker {
         } finally {
             memberList.release();
         }
+    }
+
+    async getCrossSigningKeysForUser(userId, hsApi, log) {
+        return await log.wrap("DeviceTracker.getMasterKeyForUser", async log => {
+            let txn = await this._storage.readTxn([
+                this._storage.storeNames.userIdentities
+            ]);
+            let userIdentity = await txn.userIdentities.get(userId);
+            if (userIdentity && userIdentity.deviceTrackingStatus !== TRACKING_STATUS_OUTDATED) {
+                return userIdentity.crossSigningKeys;
+            }
+            // fetch from hs
+            await this._queryKeys([userId], hsApi, log);
+            // Retreive from storage now
+            txn = await this._storage.readTxn([
+                this._storage.storeNames.userIdentities
+            ]);
+            userIdentity = await txn.userIdentities.get(userId);
+            return userIdentity?.crossSigningKeys;
+        });
     }
 
     async writeHistoryVisibility(room, historyVisibility, syncTxn, log) {
@@ -202,6 +232,9 @@ export class DeviceTracker {
     async _queryKeys(userIds, hsApi, log) {
         // TODO: we need to handle the race here between /sync and /keys/query just like we need to do for the member list ...
         // there are multiple requests going out for /keys/query though and only one for /members
+        // So, while doing /keys/query, writeDeviceChanges should add userIds marked as outdated to a list
+        // when /keys/query returns, we should check that list and requery if we queried for a given user.
+        // and then remove the list.
 
         const deviceKeyResponse = await hsApi.queryKeys({
             "timeout": 10000,
@@ -212,6 +245,8 @@ export class DeviceTracker {
             "token": this._getSyncToken()
         }, {log}).response();
 
+        const masterKeys = log.wrap("master keys", log => this._filterValidMasterKeys(deviceKeyResponse, log));
+        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], "self_signing", masterKeys, log))
         const verifiedKeysPerUser = log.wrap("verify", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
@@ -221,7 +256,11 @@ export class DeviceTracker {
         try {
             const devicesIdentitiesPerUser = await Promise.all(verifiedKeysPerUser.map(async ({userId, verifiedKeys}) => {
                 const deviceIdentities = verifiedKeys.map(deviceKeysAsDeviceIdentity);
-                return await this._storeQueriedDevicesForUserId(userId, deviceIdentities, txn);
+                const crossSigningKeys = {
+                    masterKey: masterKeys.get(userId),
+                    selfSigningKey: selfSigningKeys.get(userId),
+                };
+                return await this._storeQueriedDevicesForUserId(userId, crossSigningKeys, deviceIdentities, txn);
             }));
             deviceIdentities = devicesIdentitiesPerUser.reduce((all, devices) => all.concat(devices), []);
             log.set("devices", deviceIdentities.length);
@@ -233,7 +272,7 @@ export class DeviceTracker {
         return deviceIdentities;
     }
 
-    async _storeQueriedDevicesForUserId(userId, deviceIdentities, txn) {
+    async _storeQueriedDevicesForUserId(userId, crossSigningKeys, deviceIdentities, txn) {
         const knownDeviceIds = await txn.deviceIdentities.getAllDeviceIds(userId);
         // delete any devices that we know off but are not in the response anymore.
         // important this happens before checking if the ed25519 key changed,
@@ -264,11 +303,75 @@ export class DeviceTracker {
             txn.deviceIdentities.set(deviceIdentity);
         }
         // mark user identities as up to date
-        const identity = await txn.userIdentities.get(userId);
+        let identity = await txn.userIdentities.get(userId);
+        if (!identity) {
+            // create the identity if it doesn't exist, which can happen if
+            // we request devices before tracking the room.
+            // IMPORTANT here that the identity gets created without any roomId!
+            // if we claim that we share and e2ee room with the user without having
+            // checked, we could share keys with that user without them being in the room
+            identity = createUserIdentity(userId);
+        }
         identity.deviceTrackingStatus = TRACKING_STATUS_UPTODATE;
+        identity.crossSigningKeys = crossSigningKeys;
         txn.userIdentities.set(identity);
 
         return allDeviceIdentities;
+    }
+
+    _filterValidMasterKeys(keyQueryResponse, log) {
+        const masterKeys = new Map();
+        const masterKeysResponse = keyQueryResponse["master_keys"];
+        if (!masterKeysResponse) {
+            return masterKeys;
+        }
+        const validMasterKeyResponses = Object.entries(masterKeysResponse).filter(([userId, keyInfo]) => {
+            if (keyInfo["user_id"] !== userId) {
+                return false;
+            }
+            if (!Array.isArray(keyInfo.usage) || !keyInfo.usage.includes("master")) {
+                return false;
+            }
+            return true;
+        });
+        validMasterKeyResponses.reduce((msks, [userId, keyInfo]) => {
+            const keyIds = Object.keys(keyInfo.keys);
+            if (keyIds.length !== 1) {
+                return false;
+            }
+            const masterKey = keyInfo.keys[keyIds[0]];
+            msks.set(userId, masterKey);
+            return msks;
+        }, masterKeys);
+        return masterKeys;
+    }
+
+    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse, usage, masterKeys, log) {
+        const keys = new Map();
+        if (!crossSigningKeysResponse) {
+            return keys;
+        }
+        const validKeysResponses = Object.entries(crossSigningKeysResponse).filter(([userId, keyInfo]) => {
+            if (keyInfo["user_id"] !== userId) {
+                return false;
+            }
+            if (!Array.isArray(keyInfo.usage) || !keyInfo.usage.includes(usage)) {
+                return false;
+            }
+            // verify with master key
+            const masterKey = masterKeys.get(userId);
+            return verifyEd25519Signature(this._olmUtil, userId, masterKey, masterKey, keyInfo, log);
+        });
+        validKeysResponses.reduce((keys, [userId, keyInfo]) => {
+            const keyIds = Object.keys(keyInfo.keys);
+            if (keyIds.length !== 1) {
+                return false;
+            }
+            const key = keyInfo.keys[keyIds[0]];
+            keys.set(userId, key);
+            return keys;
+        }, keys);
+        return keys;
     }
 
     /**
@@ -323,6 +426,7 @@ export class DeviceTracker {
 
     /**
      * Gives all the device identities for a room that is already tracked.
+     * Can be used to decide which users to share keys with.
      * Assumes room is already tracked. Call `trackRoom` first if unsure.
      * @param  {String} roomId [description]
      * @return {[type]}        [description]
@@ -339,16 +443,43 @@ export class DeviceTracker {
         
         // So, this will also contain non-joined memberships
         const userIds = await txn.roomMembers.getAllUserIds(roomId);
-
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+        // TODO: check here if userIds is safe? yes it is
+        return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
     }
 
-    /** gets devices for the given user ids that are in the given room */
+    /** 
+     * Can be used to decide which users to share keys with.
+     * Assumes room is already tracked. Call `trackRoom` first if unsure.
+     */
     async devicesForRoomMembers(roomId, userIds, hsApi, log) {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.userIdentities,
         ]);
-        return await this._devicesForUserIds(roomId, userIds, txn, hsApi, log);
+        return await this._devicesForUserIdsInTrackedRoom(roomId, userIds, txn, hsApi, log);
+    }
+
+    /** 
+     * Cannot be used to decide which users to share keys with.
+     * Does not assume membership to any room or whether any room is tracked.
+     */
+    async devicesForUsers(userIds, hsApi, log) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.userIdentities,
+        ]);
+
+        const upToDateIdentities = [];
+        const outdatedUserIds = [];
+        await Promise.all(userIds.map(async userId => {
+            const i = await txn.userIdentities.get(userId);
+            if (i && i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE) {
+                upToDateIdentities.push(i);
+            } else if (!i || i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED) {
+                // allow fetching for userIdentities we don't know about yet,
+                // as we don't assume the room is tracked here.
+                outdatedUserIds.push(userId);
+            }
+        }));
+        return this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
     }
 
     /** gets a single device */
@@ -406,29 +537,50 @@ export class DeviceTracker {
     }
 
     /**
-     * @param  {string} roomId  [description]
-     * @param  {Array<string>} userIds a set of user ids to try and find the identity for. Will be check to belong to roomId.
+     * Gets all the device identities with which keys should be shared for a set of users in a tracked room.
+     * If any userIdentities are outdated, it will fetch them from the homeserver.
+     * @param  {string} roomId the id of the tracked room to filter users by.
+     * @param  {Array<string>} userIds a set of user ids to try and find the identity for.
      * @param  {Transaction} userIdentityTxn to read the user identities
      * @param  {HomeServerApi} hsApi
-     * @return {Array<DeviceIdentity>}
+     * @return {Array<DeviceIdentity>} all devices identities for the given users we should share keys with.
      */
-    async _devicesForUserIds(roomId, userIds, userIdentityTxn, hsApi, log) {
+    async _devicesForUserIdsInTrackedRoom(roomId, userIds, userIdentityTxn, hsApi, log) {
         const allMemberIdentities = await Promise.all(userIds.map(userId => userIdentityTxn.userIdentities.get(userId)));
         const identities = allMemberIdentities.filter(identity => {
-            // identity will be missing for any userIds that don't have 
-            // membership join in any of your encrypted rooms
+            // we use roomIds to decide with whom we should share keys for a given room,
+            // taking into account the membership and room history visibility.
+            // so filter out anyone who we shouldn't share keys with.
+            // Given we assume the room is tracked,
+            // also exclude any userId which doesn't have a userIdentity yet.
             return identity && identity.roomIds.includes(roomId);
         });
         const upToDateIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_UPTODATE);
-        const outdatedIdentities = identities.filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED);
+        const outdatedUserIds = identities
+            .filter(i => i.deviceTrackingStatus === TRACKING_STATUS_OUTDATED)
+            .map(i => i.userId);
+        let devices = await this._devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log);
+        // filter out our own device as we should never share keys with it.
+        devices = devices.filter(device => {
+            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
+            return !isOwnDevice;
+        });
+        return devices;
+    }
+
+    /** Gets the device identites for a set of user identities that
+     * are known to be up to date, and a set of userIds that are known
+     * to be absent from our store our outdated. The outdated user ids
+     * will have their keys fetched from the homeserver. */
+    async _devicesForUserIdentities(upToDateIdentities, outdatedUserIds, hsApi, log) {
         log.set("uptodate", upToDateIdentities.length);
-        log.set("outdated", outdatedIdentities.length);
+        log.set("outdated", outdatedUserIds.length);
         let queriedDevices;
-        if (outdatedIdentities.length) {
+        if (outdatedUserIds.length) {
             // TODO: ignore the race between /sync and /keys/query for now,
             // where users could get marked as outdated or added/removed from the room while
             // querying keys
-            queriedDevices = await this._queryKeys(outdatedIdentities.map(i => i.userId), hsApi, log);
+            queriedDevices = await this._queryKeys(outdatedUserIds, hsApi, log);
         }
 
         const deviceTxn = await this._storage.readTxn([
@@ -441,12 +593,7 @@ export class DeviceTracker {
         if (queriedDevices && queriedDevices.length) {
             flattenedDevices = flattenedDevices.concat(queriedDevices);
         }
-        // filter out our own device
-        const devices = flattenedDevices.filter(device => {
-            const isOwnDevice = device.userId === this._ownUserId && device.deviceId === this._ownDeviceId;
-            return !isOwnDevice;
-        });
-        return devices;
+        return flattenedDevices;
     }
 
     async getDeviceByCurve25519Key(curve25519Key, txn) {
@@ -567,12 +714,14 @@ export function tests() {
             const txn = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual(await txn.userIdentities.get("@alice:hs.tld"), {
                 userId: "@alice:hs.tld",
+                crossSigningKeys: undefined,
                 roomIds: [roomId],
                 deviceTrackingStatus: TRACKING_STATUS_OUTDATED
             });
             assert.deepEqual(await txn.userIdentities.get("@bob:hs.tld"), {
                 userId: "@bob:hs.tld",
                 roomIds: [roomId],
+                crossSigningKeys: undefined,
                 deviceTrackingStatus: TRACKING_STATUS_OUTDATED
             });
             assert.equal(await txn.userIdentities.get("@charly:hs.tld"), undefined);
@@ -786,5 +935,35 @@ export function tests() {
             const txn2 = await storage.readTxn([storage.storeNames.userIdentities]);
             assert.deepEqual((await txn2.userIdentities.get("@bob:hs.tld")).roomIds, ["!abc:hs.tld", "!def:hs.tld"]);
         },
+        "devicesForUsers fetches users even though they aren't in any tracked room": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const hsApi = createQueryKeysHSApiMock();
+            const devices = await tracker.devicesForUsers(["@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            assert.equal(devices.length, 1);
+            assert.equal(devices[0].curve25519Key, "curve25519:@bob:hs.tld:device1:key");
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
+        },
+        "devicesForUsers doesn't add any roomId when creating userIdentity": async assert => {
+            const storage = await createMockStorage();
+            const tracker = new DeviceTracker({
+                storage,
+                getSyncToken: () => "token",
+                olmUtil: {ed25519_verify: () => {}}, // valid if it does not throw
+                ownUserId: "@alice:hs.tld",
+                ownDeviceId: "ABCD",
+            });
+            const hsApi = createQueryKeysHSApiMock();
+            await tracker.devicesForUsers(["@bob:hs.tld"], hsApi, NullLoggerInstance.item);
+            const txn1 = await storage.readTxn([storage.storeNames.userIdentities]);
+            assert.deepEqual((await txn1.userIdentities.get("@bob:hs.tld")).roomIds, []);
+        }
     }
 }

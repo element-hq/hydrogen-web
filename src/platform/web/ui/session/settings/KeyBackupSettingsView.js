@@ -15,9 +15,10 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
+import {disableTargetCallback} from "../../general/utils";
 
 export class KeyBackupSettingsView extends TemplateView {
-    render(t) {
+    render(t, vm) {
         return t.div([
             t.map(vm => vm.status, (status, t, vm) => {
                 switch (status) {
@@ -53,7 +54,18 @@ export class KeyBackupSettingsView extends TemplateView {
                     default:
                         return null;
                 }
-            })
+            }),
+            t.if(vm => vm.isMasterKeyTrusted, t => {
+                return t.p("Cross-signing master key found and trusted.")
+            }),
+            t.if(vm => vm.canSignOwnDevice, t => {
+                return t.button({
+                    onClick: disableTargetCallback(async evt => {
+                        await vm.signOwnDevice();
+                    })
+                }, "Sign own device");
+            }),
+
         ]);
     }
 }

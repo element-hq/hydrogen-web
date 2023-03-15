@@ -1,24 +1,26 @@
-FROM --platform=${BUILDPLATFORM} docker.io/library/node:16.13-alpine3.15 as builder
+FROM --platform=${BUILDPLATFORM} docker.io/node:alpine as builder
 RUN apk add --no-cache git python3 build-base
+
 WORKDIR /app
 
-# Install the dependencies first
-COPY yarn.lock package.json ./
+# Copy package.json and yarn.lock and install dependencies first to speed up subsequent builds
+COPY package.json yarn.lock /app/
 RUN yarn install
 
-# Copy the rest and build the app
-COPY . .
+COPY . /app
 RUN yarn build
 
-# Remove the default config, replace it with a symlink to somewhere that will be updated at runtime
-RUN rm -f target/config.json \
+# Because we will be running as an unprivileged user, we need to make sure that the config file is writable
+# So, we will copy the default config to the /tmp folder that will be writable at runtime
+RUN mv -f target/config.json /config.json.bundled \
     && ln -sf /tmp/config.json target/config.json
 
-FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:1.21-alpine
+FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:alpine
 
-# Copy the config template as well as the templating script
-COPY ./docker/config.json.tmpl /config.json.tmpl
-COPY ./docker/config-template.sh /docker-entrypoint.d/99-config-template.sh
+# Copy the dynamic config script
+COPY ./docker/dynamic-config.sh /docker-entrypoint.d/99-dynamic-config.sh
+# And the bundled config file
+COPY --from=builder /config.json.bundled /config.json.bundled
 
 # Copy the built app from the first build stage
 COPY --from=builder /app/target /usr/share/nginx/html

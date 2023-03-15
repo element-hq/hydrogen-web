@@ -41,11 +41,11 @@ export DOCKER_BUILDKIT=1
 docker build -t hydrogen .
 ```
 
-Or, pull the Docker image the GitHub Container Registry:
+Or, pull the docker image from GitHub Container Registry:
 
 ```
-docker pull ghcr.io/vector-im/hydrogen
-docker tag ghcr.io/vector-im/hydrogen hydrogen
+docker pull ghcr.io/vector-im/hydrogen-web
+docker tag ghcr.io/vector-im/hydrogen-web hydrogen
 ```
 
 ### Start container image
@@ -55,6 +55,32 @@ Then, start up a container from that image:
 ```
 docker run \
     --name hydrogen \
-    --publish 8080:80 \
+    --publish 8080:8080 \
+    hydrogen
+```
+
+n.b. the image is now based on the unprivileged nginx base, so the port is now `8080` instead of `80` and you need a writable `/tmp` volume.
+
+You can override the default `config.json` using the `CONFIG_OVERRIDE` environment variable. For example to specify a different Homeserver and :
+
+```
+docker run \
+    --name hydrogen \
+    --publish 8080:8080 \
+    --env CONFIG_OVERRIDE='{
+  "push": {
+    "appId": "io.element.hydrogen.web",
+    "gatewayUrl": "https://matrix.org",
+    "applicationServerKey": "BC-gpSdVHEXhvHSHS0AzzWrQoukv2BE7KzpoPO_FfPacqOo3l1pdqz7rSgmB04pZCWaHPz7XRe6fjLaC-WPDopM"
+  },
+  "defaultHomeServer": "https://fosdem.org",
+  "themeManifests": [
+    "assets/theme-element.json"
+  ],
+  "defaultTheme": {
+    "light": "element-light",
+    "dark": "element-dark"
+  }
+}' \
     hydrogen
 ```

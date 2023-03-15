@@ -20,8 +20,8 @@ import {RoomTileViewModel} from "./RoomTileViewModel.js";
 import {InviteTileViewModel} from "./InviteTileViewModel.js";
 import {RoomBeingCreatedTileViewModel} from "./RoomBeingCreatedTileViewModel.js";
 import {RoomFilter} from "./RoomFilter.js";
-import {ApplyMap} from "../../../observable/map/ApplyMap.js";
-import {addPanelIfNeeded} from "../../navigation/index";
+import {ApplyMap} from "../../../observable";
+import {addPanelIfNeeded} from "../../navigation";
 
 export class LeftPanelViewModel extends ViewModel {
     constructor(options) {
@@ -32,9 +32,8 @@ export class LeftPanelViewModel extends ViewModel {
         this._tileViewModels = this._tileViewModelsFilterMap.sortValues((a, b) => a.compare(b));
         this._currentTileVM = null;
         this._setupNavigation();
-        this._closeUrl = this.urlCreator.urlForSegment("session");
-        this._settingsUrl = this.urlCreator.urlForSegment("settings");
-        this._createRoomUrl = this.urlCreator.urlForSegment("create-room");
+        this._closeUrl = this.urlRouter.urlForSegment("session");
+        this._settingsUrl = this.urlRouter.urlForSegment("settings");
     }
 
     _mapTileViewModels(roomsBeingCreated, invites, rooms) {
@@ -74,8 +73,14 @@ export class LeftPanelViewModel extends ViewModel {
         return this._settingsUrl;
     }
 
-    get createRoomUrl() { return this._createRoomUrl; }
+    showCreateRoomView() {
+        this.navigation.push("create-room");
+    }
 
+    showJoinRoomView() {
+        this.navigation.push("join-room");
+    }
+    
     _setupNavigation() {
         const roomObservable = this.navigation.observe("room");
         this.track(roomObservable.subscribe(roomId => this._open(roomId)));

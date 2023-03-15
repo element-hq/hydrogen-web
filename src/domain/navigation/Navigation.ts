@@ -14,9 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue} from "../../observable/value/ObservableValue";
-import {BaseObservableValue} from "../../observable/value/BaseObservableValue";
-
+import {BaseObservableValue, ObservableValue} from "../../observable/value";
 
 type AllowsChild<T> = (parent: Segment<T> | undefined, child: Segment<T>) => boolean;
 

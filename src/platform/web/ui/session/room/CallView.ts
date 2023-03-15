@@ -20,6 +20,7 @@ import {ListView} from "../../general/ListView";
 import {classNames} from "../../general/html";
 import {Stream} from "../../../../types/MediaDevices";
 import type {CallViewModel, CallMemberViewModel, IStreamViewModel} from "../../../../../domain/session/room/CallViewModel";
+import { ErrorView } from "../../general/ErrorView";
 
 export class CallView extends TemplateView<CallViewModel> {
     private resizeObserver?: ResizeObserver;
@@ -43,7 +44,10 @@ export class CallView extends TemplateView<CallViewModel> {
                     "CallView_unmutedCamera": vm => !vm.isCameraMuted,
                 }, onClick: disableTargetCallback(() => vm.toggleCamera())}),
                 t.button({className: "CallView_hangup", onClick: disableTargetCallback(() => vm.hangup())}),
-            ])
+            ]),
+            t.if(vm => !!vm.errorViewModel, t => {
+                return t.div({className: "CallView_error"}, t.view(new ErrorView(vm.errorViewModel!)));
+            })
         ]);
     }
 
@@ -112,6 +116,9 @@ class StreamView extends TemplateView<IStreamViewModel> {
                     microphoneMuted: vm => vm.isMicrophoneMuted && !vm.isCameraMuted,
                     cameraMuted: vm => vm.isCameraMuted,
                 }
+            }),
+            t.if(vm => !!vm.errorViewModel, t => {
+                return t.div({className: "StreamView_error"}, t.view(new ErrorView(vm.errorViewModel!)));
             })
         ]);
     }

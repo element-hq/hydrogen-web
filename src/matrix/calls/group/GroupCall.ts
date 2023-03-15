@@ -14,17 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableMap} from "../../../observable/map/ObservableMap";
+import {ObservableMap} from "../../../observable/map";
 import {Member, isMemberExpired, memberExpiresAt} from "./Member";
 import {LocalMedia} from "../LocalMedia";
-import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS} from "../common";
+import {MuteSettings, CALL_LOG_TYPE, CALL_MEMBER_VALIDITY_PERIOD_MS, mute} from "../common";
 import {MemberChange, RoomMember} from "../../room/members/RoomMember";
 import {EventEmitter} from "../../../utils/EventEmitter";
-import {EventType, CallIntent} from "../callEventTypes";
+import {EventType, CallIntent, CallType} from "../callEventTypes";
+import { ErrorBoundary } from "../../../utils/ErrorBoundary";
 
 import type {Options as MemberOptions} from "./Member";
 import type {TurnServerSource} from "../TurnServerSource";
-import type {BaseObservableMap} from "../../../observable/map/BaseObservableMap";
+import type {BaseObservableMap} from "../../../observable/map";
 import type {Track} from "../../../platform/types/MediaDevices";
 import type {SignallingMessage, MGroupCallBase, CallMembership, CallMemberContent, CallDeviceMembership} from "../callEventTypes";
 import type {Room} from "../../room/Room";
@@ -33,7 +34,7 @@ import type {Platform} from "../../../platform/web/Platform";
 import type {EncryptedMessage} from "../../e2ee/olm/Encryption";
 import type {ILogItem, ILogger} from "../../../logging/types";
 import type {Storage} from "../../storage/idb/Storage";
-import type {BaseObservableValue} from "../../../observable/value/BaseObservableValue";
+import type {BaseObservableValue} from "../../../observable/value";
 import type {Clock, Timeout} from "../../../platform/web/dom/Clock";
 
 export enum GroupCallState {
@@ -72,12 +73,14 @@ class JoinedData {
         public readonly logItem: ILogItem,
         public readonly membersLogItem: ILogItem,
         public localMedia: LocalMedia,
+        public localPreviewMedia: LocalMedia,
         public localMuteSettings: MuteSettings,
         public readonly turnServer: BaseObservableValue<RTCIceServer>
     ) {}
 
     dispose() {
         this.localMedia.dispose();
+        this.localPreviewMedia.dispose();
         this.logItem.finish();
         this.renewMembershipTimeout?.dispose();
     }
@@ -90,13 +93,24 @@ export class GroupCall extends EventEmitter<{change: never}> {
     private bufferedDeviceMessages = new Map<string, Set<SignallingMessage<MGroupCallBase>>>();
     /** Set between calling join and leave. */
     private joinedData?: JoinedData;
+    private errorBoundary = new ErrorBoundary(err => {
+        this.emitChange();
+        if (this.joinedData) {
+            // in case the error happens in code that does not log,
+            // log it here to make sure it isn't swallowed
+            this.joinedData.logItem.log("error at boundary").catch(err);
+            console.error(err);
+        }
+    });
 
     private _deviceIndex?: number;
     private _eventTimestamp?: number;
 
     constructor(
         public readonly id: string,
+        public readonly isLoadedFromStorage: boolean,
         newCall: boolean,
+        private startTime: number | undefined,
         private callContent: Record<string, any>,
         public readonly roomId: string,
         private readonly options: Options,
@@ -118,7 +132,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     member.dispose();
                     this._members.remove(memberKey);
                 } else {
-                    this._members.update(memberKey, member);
+                    this._members.update(memberKey);
                 }
             },
             encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log) => {
@@ -128,10 +142,26 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     get localMedia(): LocalMedia | undefined { return this.joinedData?.localMedia; }
+    get localPreviewMedia(): LocalMedia | undefined { return this.joinedData?.localPreviewMedia; }
     get members(): BaseObservableMap<string, Member> { return this._members; }
 
     get isTerminated(): boolean {
-        return this.callContent?.["m.terminated"] === true;
+        return !!this.callContent?.["m.terminated"];
+    }
+
+    get usesFoci(): boolean {
+        for (const member of this._members.values()) {
+            if (member.usesFoci) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    get duration(): number | undefined {
+        if (typeof this.startTime === "number") {
+            return (this.options.clock.now() - this.startTime);
+        }
     }
 
     get isRinging(): boolean {
@@ -154,6 +184,10 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this._eventTimestamp;
     }
 
+    get type(): CallType {
+        return this.callContent?.["m.type"];
+    }
+
     /**
      * Gives access the log item for this call while joined.
      * Can be used for call diagnostics while in the call.
@@ -162,43 +196,53 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this.joinedData?.logItem;
     }
 
-    async join(localMedia: LocalMedia): Promise<void> {
-        if (this._state !== GroupCallState.Created || this.joinedData) {
-            return;
-        }
-        const logItem = this.options.logger.child({
-            l: "answer call",
-            t: CALL_LOG_TYPE,
-            id: this.id,
-            ownSessionId: this.options.sessionId
-        });
-        const turnServer = await this.options.turnServerSource.getSettings(logItem);
-        const membersLogItem = logItem.child("member connections");
-        const localMuteSettings = new MuteSettings();
-        localMuteSettings.updateTrackInfo(localMedia.userMedia);
-        const joinedData = new JoinedData(
-            logItem,
-            membersLogItem,
-            localMedia,
-            localMuteSettings,
-            turnServer
-        );
-        this.joinedData = joinedData;
-        await joinedData.logItem.wrap("join", async log => {
-            this._state = GroupCallState.Joining;
-            this.emitChange();
-            await log.wrap("update member state", async log => {
-                const memberContent = await this._createMemberPayload(true);
-                log.set("payload", memberContent);
-                // send m.call.member state event
-                const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
-                await request.response();
-                this.emitChange();
-            });
-            // send invite to all members that are < my userId
-            for (const [,member] of this._members) {
-                this.connectToMember(member, joinedData, log);
+    get error(): Error | undefined {
+        return this.errorBoundary.error;
+    }
+
+    join(localMedia: LocalMedia, log?: ILogItem): Promise<void> {
+        return this.options.logger.wrapOrRun(log, "Call.join", async joinLog => {
+            if (this._state !== GroupCallState.Created || this.joinedData || this.usesFoci) {
+                localMedia.dispose();
+                return;
             }
+            const logItem = this.options.logger.child({
+                l: "Call.connection",
+                t: CALL_LOG_TYPE,
+                id: this.id,
+                ownSessionId: this.options.sessionId
+            });
+            const turnServer = await this.options.turnServerSource.getSettings(logItem);
+            const membersLogItem = logItem.child("member connections");
+            const localMuteSettings = new MuteSettings();
+            localMuteSettings.updateTrackInfo(localMedia.userMedia);
+            const localPreviewMedia = localMedia.asPreview();
+            const joinedData = new JoinedData(
+                logItem,
+                membersLogItem,
+                localMedia,
+                localPreviewMedia,
+                localMuteSettings,
+                turnServer
+            );
+            this.joinedData = joinedData;
+            await joinedData.logItem.wrap("join", async log => {
+                joinLog.refDetached(log);
+                this._state = GroupCallState.Joining;
+                this.emitChange();
+                await log.wrap("update member state", async log => {
+                    const memberContent = await this._createMemberPayload(true);
+                    log.set("payload", memberContent);
+                    // send m.call.member state event
+                    const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
+                    await request.response();
+                    this.emitChange();
+                });
+                // send invite to all members that are < my userId
+                for (const member of this._members.values()) {
+                    this.connectToMember(member, joinedData, log);
+                }
+            });
         });
     }
 
@@ -206,10 +250,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         if ((this._state === GroupCallState.Joining || this._state === GroupCallState.Joined) && this.joinedData) {
             const oldMedia = this.joinedData.localMedia;
             this.joinedData.localMedia = localMedia;
+            this.joinedData.localPreviewMedia?.dispose();
+            this.joinedData.localPreviewMedia = localMedia.asPreview();
             // reflect the fact we gained or lost local tracks in the local mute settings
             // and update the track info so PeerCall can use it to send up to date metadata,
             this.joinedData.localMuteSettings.updateTrackInfo(localMedia.userMedia);
             this.emitChange(); //allow listeners to see new media/mute settings
+            // TODO: if setMedia fails on one of the members, we should revert to the old media
+            // on the members processed so far, and show an error that we could not set the new media
+            // for this, we will need to remove the usage of the errorBoundary in member.setMedia.
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMedia(localMedia, oldMedia);
             }));
@@ -227,9 +276,20 @@ export class GroupCall extends EventEmitter<{change: never}> {
         // you might be muted because you don't have a track or because
         // you actively chosen to mute
         // (which we want to respect in the future when you add a track)
+        muteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
         joinedData.localMuteSettings = muteSettings;
-        joinedData.localMuteSettings.updateTrackInfo(joinedData.localMedia.userMedia);
         if (!prevMuteSettings.equals(muteSettings)) {
+            // Mute our copies of LocalMedias;
+            // otherwise the camera lights will still be on.
+            if (this.localPreviewMedia) {
+                mute(this.localPreviewMedia, muteSettings, this.joinedData!.logItem);
+            }
+            if (this.localMedia) {
+                mute(this.localMedia, muteSettings, this.joinedData!.logItem);
+            }
+            // TODO: if setMuted fails on one of the members, we should revert to the old media
+            // on the members processed so far, and show an error that we could not set the new media
+            // for this, we will need to remove the usage of the errorBoundary in member.setMuted.
             await Promise.all(Array.from(this._members.values()).map(m => {
                 return m.setMuted(joinedData.localMuteSettings);
             }));
@@ -245,12 +305,12 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return this._state === GroupCallState.Joining || this._state === GroupCallState.Joined;
     }
 
-    async leave(): Promise<void> {
-        const {joinedData} = this;
-        if (!joinedData) {
-            return;
-        }
-        await joinedData.logItem.wrap("leave", async log => {
+    async leave(log?: ILogItem): Promise<void> {
+        await this.options.logger.wrapOrRun(log, "Call.leave", async log => {
+            const {joinedData} = this;
+            if (!joinedData) {
+                return;
+            }
             try {
                 joinedData.renewMembershipTimeout?.dispose();
                 joinedData.renewMembershipTimeout = undefined;
@@ -260,19 +320,26 @@ export class GroupCall extends EventEmitter<{change: never}> {
                     const request = this.options.hsApi.sendState(this.roomId, EventType.GroupCallMember, this.options.ownUserId, memberContent, {log});
                     await request.response();
                     // our own user isn't included in members, so not in the count
-                    if (this.intent === CallIntent.Ring && this._members.size === 0) {
+                    if ((this.intent === CallIntent.Ring || this.intent === CallIntent.Prompt) && this._members.size === 0) {
                         await this.terminate(log);
                     }
                 } else {
                     log.set("already_left", true);
                 }
             } finally {
-                this.disconnect(log);
+                // disconnect is called both from the sync loop and from methods like this one that
+                // are called from the view model. We want errors during the sync loop being caught
+                // by the errorboundary, but since leave is called from the view model, we want
+                // the error to be thrown. So here we check if disconnect succeeded, and if not
+                // we rethrow the error put into the errorBoundary.
+                if(!this.disconnect(log)) {
+                    throw this.errorBoundary.error;
+                }
             }
         });
     }
 
-    terminate(log?: ILogItem): Promise<void> {
+    private terminate(log?: ILogItem): Promise<void> {
         return this.options.logger.wrapOrRun(log, {l: "terminate call", t: CALL_LOG_TYPE}, async log => {
             if (this._state === GroupCallState.Fledgling) {
                 return;
@@ -285,8 +352,8 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    create(type: "m.video" | "m.voice", log?: ILogItem): Promise<void> {
-        return this.options.logger.wrapOrRun(log, {l: "create call", t: CALL_LOG_TYPE}, async log => {
+    create(type: CallType, log: ILogItem): Promise<void> {
+        return log.wrap({l: "create call", t: CALL_LOG_TYPE}, async log => {
             if (this._state !== GroupCallState.Fledgling) {
                 return;
             }
@@ -303,132 +370,147 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    updateCallEvent(callContent: Record<string, any>, syncLog: ILogItem) {
-        syncLog.wrap({l: "update call", t: CALL_LOG_TYPE, id: this.id}, log => {
-            this.callContent = callContent;
-            if (this._state === GroupCallState.Creating) {
-                this._state = GroupCallState.Created;
-            }
-            log.set("status", this._state);
-            this.emitChange();
+    updateCallEvent(event: StateEvent, syncLog: ILogItem) {
+        this.errorBoundary.try(() => {
+            syncLog.wrap({l: "update call", t: CALL_LOG_TYPE, id: this.id}, log => {
+
+                if (typeof this.startTime !== "number") {
+                    this.startTime = event.origin_server_ts;
+                }
+                this.callContent = event.content;
+                if (this._state === GroupCallState.Creating) {
+                    this._state = GroupCallState.Created;
+                }
+                log.set("status", this._state);
+                this.emitChange();
+            });
         });
     }
 
     /** @internal */
     updateRoomMembers(memberChanges: Map<string, MemberChange>) {
-        for (const change of memberChanges.values()) {
-            const {member} = change;
-            for (const callMember of this._members.values()) {
-                // find all call members for a room member (can be multiple, for every device)
-                if (callMember.userId === member.userId) {
-                    callMember.updateRoomMember(member);
+        this.errorBoundary.try(() => {
+            for (const change of memberChanges.values()) {
+                const {member} = change;
+                for (const callMember of this._members.values()) {
+                    // find all call members for a room member (can be multiple, for every device)
+                    if (callMember.userId === member.userId) {
+                        callMember.updateRoomMember(member);
+                    }
                 }
-            }
-        }
-    }
-
-    /** @internal */
-    updateMembership(userId: string, roomMember: RoomMember, callMembership: CallMembership, eventTimestamp: number, syncLog: ILogItem) {
-        syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, log => {
-            const now = this.options.clock.now();
-            const devices = callMembership["m.devices"];
-            const previousDeviceIds = this.getDeviceIdsForUserId(userId);
-            for (let deviceIndex = 0; deviceIndex < devices.length; deviceIndex++) {
-                const device = devices[deviceIndex];
-                const deviceId = device.device_id;
-                const memberKey = getMemberKey(userId, deviceId);
-                if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
-
-                        this._deviceIndex = deviceIndex;
-                        this._eventTimestamp = eventTimestamp;
-
-                    log.wrap("update own membership", log => {
-                        if (this.hasJoined) {
-                            if (this.joinedData) {
-                                this.joinedData.logItem.refDetached(log);
-                            }
-                            this._setupRenewMembershipTimeout(device, log);
-                        }
-                        if (this._state === GroupCallState.Joining) {
-                            log.set("joined", true);
-                            this._state = GroupCallState.Joined;
-                            this.emitChange();
-                        }
-                    });
-                } else {
-                    log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, log => {
-                        if (isMemberExpired(device, now)) {
-                            log.set("expired", true);
-                            const member = this._members.get(memberKey);
-                            if (member) {
-                                member.dispose();
-                                this._members.remove(memberKey);
-                                log.set("removed", true);
-                            }
-                            return;
-                        }
-                        let member = this._members.get(memberKey);
-                        const sessionIdChanged = member && member.sessionId !== device.session_id;
-                        if (member && !sessionIdChanged) {
-                            log.set("update", true);
-                            member.updateCallInfo(device, deviceIndex, eventTimestamp, log);
-                        } else {
-                            if (member && sessionIdChanged) {
-                                log.set("removedSessionId", member.sessionId);
-                                const disconnectLogItem = member.disconnect(false);
-                                if (disconnectLogItem) {
-                                    log.refDetached(disconnectLogItem);
-                                }
-                                member.dispose();
-                                this._members.remove(memberKey);
-                                member = undefined;
-                            }
-                            log.set("add", true);
-                            member = new Member(
-                                roomMember,
-                                device, deviceIndex, eventTimestamp, this._memberOptions,
-                                log
-                            );
-                            this._members.add(memberKey, member);
-                            if (this.joinedData) {
-                                this.connectToMember(member, this.joinedData, log);
-                            }
-                        }
-                        // flush pending messages, either after having created the member,
-                        // or updated the session id with updateCallInfo
-                        this.flushPendingIncomingDeviceMessages(member, log);
-                    });
-                }
-            }
-
-            const newDeviceIds = new Set<string>(devices.map(call => call.device_id));
-            // remove user as member of any calls not present anymore
-            for (const previousDeviceId of previousDeviceIds) {
-                if (!newDeviceIds.has(previousDeviceId)) {
-                    this.removeMemberDevice(userId, previousDeviceId, log);
-                }
-            }
-            if (userId === this.options.ownUserId && !newDeviceIds.has(this.options.ownDeviceId)) {
-                this.removeOwnDevice(log);
             }
         });
     }
 
     /** @internal */
+    updateMembership(userId: string, roomMember: RoomMember, callMembership: CallMembership, eventTimestamp: number, syncLog: ILogItem) {
+        this.errorBoundary.try(async () => {
+            await syncLog.wrap({l: "update call membership", t: CALL_LOG_TYPE, id: this.id, userId}, async log => {
+                const now = this.options.clock.now();
+                const devices = callMembership["m.devices"];
+                const previousDeviceIds = this.getDeviceIdsForUserId(userId);
+                for (let deviceIndex = 0; deviceIndex < devices.length; deviceIndex++) {
+                    const device = devices[deviceIndex];
+                    const deviceId = device.device_id;
+                    const memberKey = getMemberKey(userId, deviceId);
+                    if (userId === this.options.ownUserId && deviceId === this.options.ownDeviceId) {
+
+                        this._deviceIndex = deviceIndex;
+                        this._eventTimestamp = eventTimestamp;
+
+                        log.wrap("update own membership", log => {
+                            if (this.hasJoined) {
+                                if (this.joinedData) {
+                                    this.joinedData.logItem.refDetached(log);
+                                }
+                                this._setupRenewMembershipTimeout(device, log);
+                            }
+                            if (this._state === GroupCallState.Joining) {
+                                log.set("joined", true);
+                                this._state = GroupCallState.Joined;
+                                this.emitChange();
+                            }
+                        });
+                    } else {
+                        await log.wrap({l: "update device membership", id: memberKey, sessionId: device.session_id}, async log => {
+                            if (isMemberExpired(device, now)) {
+                                log.set("expired", true);
+                                const member = this._members.get(memberKey);
+                                if (member) {
+                                    member.dispose();
+                                    this._members.remove(memberKey);
+                                    log.set("removed", true);
+                                }
+                                return;
+                            }
+                            let member = this._members.get(memberKey);
+                            const sessionIdChanged = member && member.sessionId !== device.session_id;
+                            if (member && !sessionIdChanged) {
+                                log.set("update", true);
+                                member.updateCallInfo(device, deviceIndex, eventTimestamp, log);
+                            } else {
+                                if (member && sessionIdChanged) {
+                                    log.set("removedSessionId", member.sessionId);
+                                    const disconnectLogItem = await member.disconnect(false);
+                                    if (disconnectLogItem) {
+                                        log.refDetached(disconnectLogItem);
+                                    }
+                                    member.dispose();
+                                    this._members.remove(memberKey);
+                                    member = undefined;
+                                }
+                                log.set("add", true);
+                                member = new Member(
+                                    roomMember,
+                                    device,
+                                    deviceIndex,
+                                    eventTimestamp,
+                                    this._memberOptions,
+                                    log
+                                );
+                                this._members.add(memberKey, member);
+                                if (this.joinedData) {
+                                    this.connectToMember(member, this.joinedData, log);
+                                }
+                            }
+                            // flush pending messages, either after having created the member,
+                            // or updated the session id with updateCallInfo
+                            this.flushPendingIncomingDeviceMessages(member, log);
+                        });
+                    }
+                }
+
+                const newDeviceIds = new Set<string>(devices.map(call => call.device_id));
+                // remove user as member of any calls not present anymore
+                for (const previousDeviceId of previousDeviceIds) {
+                    if (!newDeviceIds.has(previousDeviceId)) {
+                        this.removeMemberDevice(userId, previousDeviceId, log);
+                    }
+                }
+                if (userId === this.options.ownUserId && !newDeviceIds.has(this.options.ownDeviceId)) {
+                    this.removeOwnDevice(log);
+                }
+            });
+        });
+    }
+
+    /** @internal */
     removeMembership(userId: string, syncLog: ILogItem) {
-        const deviceIds = this.getDeviceIdsForUserId(userId);
-        syncLog.wrap({
-            l: "remove call member",
-            t: CALL_LOG_TYPE,
-            id: this.id,
-            userId
-        }, log => {
-            for (const deviceId of deviceIds) {
-                this.removeMemberDevice(userId, deviceId, log);
-            }
-            if (userId === this.options.ownUserId) {
-                this.removeOwnDevice(log);
-            }
+        this.errorBoundary.try(() => {
+            const deviceIds = this.getDeviceIdsForUserId(userId);
+            syncLog.wrap({
+                l: "remove call member",
+                t: CALL_LOG_TYPE,
+                id: this.id,
+                userId
+            }, log => {
+                for (const deviceId of deviceIds) {
+                    this.removeMemberDevice(userId, deviceId, log);
+                }
+                if (userId === this.options.ownUserId) {
+                    this.removeOwnDevice(log);
+                }
+            });
         });
     }
 
@@ -466,66 +548,68 @@ export class GroupCall extends EventEmitter<{change: never}> {
     }
 
     /** @internal */
-    disconnect(log: ILogItem) {
-        if (this.hasJoined) {
-            for (const [,member] of this._members) {
-                const disconnectLogItem = member.disconnect(true);
-                if (disconnectLogItem) {
-                    log.refDetached(disconnectLogItem);
+    disconnect(log: ILogItem): Promise<void> | true {
+        return this.errorBoundary.try(async () => {
+            if (this.hasJoined) {
+                for (const member of this._members.values()) {
+                    const disconnectLogItem = await member.disconnect(true);
+                    if (disconnectLogItem) {
+                        log.refDetached(disconnectLogItem);
+                    }
                 }
+                this._state = GroupCallState.Created;
             }
-            this._state = GroupCallState.Created;
-        }
-        this.joinedData?.dispose();
-        this.joinedData = undefined;
-        this.emitChange();
+            this.joinedData?.dispose();
+            this.joinedData = undefined;
+            this.emitChange();
+        }, false) || true;
     }
 
     /** @internal */
-    private removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
+    private async removeMemberDevice(userId: string, deviceId: string, log: ILogItem) {
         const memberKey = getMemberKey(userId, deviceId);
-        log.wrap({l: "remove device member", id: memberKey}, log => {
+        await log.wrap({l: "remove device member", id: memberKey}, async log => {
             const member = this._members.get(memberKey);
             if (member) {
                 log.set("leave", true);
-                const disconnectLogItem = member.disconnect(false);
+                const disconnectLogItem = await member.disconnect(false);
                 if (disconnectLogItem) {
                     log.refDetached(disconnectLogItem);
                 }
                 member.dispose();
                 this._members.remove(memberKey);
             }
-            this.emitChange();
         });
     }
 
     /** @internal */
     handleDeviceMessage(message: SignallingMessage<MGroupCallBase>, userId: string, deviceId: string, syncLog: ILogItem) {
-        // TODO: return if we are not membering to the call
-        const key = getMemberKey(userId, deviceId);
-        let member = this._members.get(key);
-        if (member && message.content.sender_session_id === member.sessionId) {
-            member.handleDeviceMessage(message, syncLog);
-        } else {
-            const item = syncLog.log({
-                l: "call: buffering to_device message, member not found",
-                t: CALL_LOG_TYPE,
-                id: this.id,
-                userId,
-                deviceId,
-                sessionId: message.content.sender_session_id,
-                type: message.type
-            });
-            syncLog.refDetached(item);
-            // we haven't received the m.call.member yet for this caller (or with this session id).
-            // buffer the device messages or create the member/call as it should arrive in a moment
-            let messages = this.bufferedDeviceMessages.get(key);
-            if (!messages) {
-                messages = new Set();
-                this.bufferedDeviceMessages.set(key, messages);
+        this.errorBoundary.try(() => {
+            // TODO: return if we are not membering to the call
+            const key = getMemberKey(userId, deviceId);
+            let member = this._members.get(key);
+            if (member && message.content.sender_session_id === member.sessionId) {
+                member.handleDeviceMessage(message, syncLog);
+            } else {
+                const item = syncLog.log({
+                    l: "call: buffering to_device message, member not found",
+                    t: CALL_LOG_TYPE,
+                    id: this.id,
+                    userId,
+                    deviceId,
+                    sessionId: message.content.sender_session_id,
+                    type: message.type
+                });
+                // we haven't received the m.call.member yet for this caller (or with this session id).
+                // buffer the device messages or create the member/call as it should arrive in a moment
+                let messages = this.bufferedDeviceMessages.get(key);
+                if (!messages) {
+                    messages = new Set();
+                    this.bufferedDeviceMessages.set(key, messages);
+                }
+                messages.add(message);
             }
-            messages.add(message);
-        }
+        });
     }
 
     private async _createMemberPayload(includeOwn: boolean): Promise<CallMemberContent> {
@@ -560,7 +644,7 @@ export class GroupCall extends EventEmitter<{change: never}> {
             callInfo["m.devices"].push({
                 ["device_id"]: this.options.ownDeviceId,
                 ["session_id"]: this.options.sessionId,
-                ["m.expires_ts"]: now + CALL_MEMBER_VALIDITY_PERIOD_MS,
+                ["expires_ts"]: now + CALL_MEMBER_VALIDITY_PERIOD_MS,
                 feeds: [{purpose: "m.usermedia"}]
             });
 
@@ -573,15 +657,15 @@ export class GroupCall extends EventEmitter<{change: never}> {
         return stateContent;
     }
 
-    private connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
+    private async connectToMember(member: Member, joinedData: JoinedData, log: ILogItem) {
         const memberKey = getMemberKey(member.userId, member.deviceId);
         const logItem = joinedData.membersLogItem.child({
             l: "member",
             id: memberKey,
             sessionId: member.sessionId
         });
-        log.wrap({l: "connect", id: memberKey}, log => {
-            const connectItem = member.connect(
+        await log.wrap({l: "connect", id: memberKey}, async log => {
+            const connectItem = await member.connect(
                 joinedData.localMedia,
                 joinedData.localMuteSettings,
                 joinedData.turnServer,

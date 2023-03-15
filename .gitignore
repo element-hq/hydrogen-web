@@ -10,3 +10,4 @@ lib
 *.tar.gz
 .eslintcache
 .tmp
+playwright/synapselogs

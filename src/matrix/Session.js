@@ -21,7 +21,7 @@ import {RoomStatus} from "./room/common";
 import {RoomBeingCreated} from "./room/RoomBeingCreated";
 import {Invite} from "./room/Invite.js";
 import {Pusher} from "./push/Pusher";
-import { ObservableMap } from "../observable/index";
+import {ObservableMap} from "../observable";
 import {User} from "./User.js";
 import {DeviceMessageHandler} from "./DeviceMessageHandler.js";
 import {Account as E2EEAccount} from "./e2ee/Account.js";
@@ -31,6 +31,7 @@ import {Encryption as OlmEncryption} from "./e2ee/olm/Encryption";
 import {Decryption as MegOlmDecryption} from "./e2ee/megolm/Decryption";
 import {KeyLoader as MegOlmKeyLoader} from "./e2ee/megolm/decryption/KeyLoader";
 import {KeyBackup} from "./e2ee/megolm/keybackup/KeyBackup";
+import {CrossSigning} from "./verification/CrossSigning";
 import {Encryption as MegOlmEncryption} from "./e2ee/megolm/Encryption.js";
 import {MEGOLM_ALGORITHM} from "./e2ee/common.js";
 import {RoomEncryption} from "./e2ee/RoomEncryption.js";
@@ -45,8 +46,7 @@ import {
     keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
 } from "./ssss/index";
 import {SecretStorage} from "./ssss/SecretStorage";
-import {ObservableValue} from "../observable/value/ObservableValue";
-import {RetainedObservableValue} from "../observable/value/RetainedObservableValue";
+import {ObservableValue, RetainedObservableValue} from "../observable/value";
 import {CallHandler} from "./calls/CallHandler";
 import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
 
@@ -55,11 +55,12 @@ const PUSHER_KEY = "pusher";
 
 export class Session {
     // sessionInfo contains deviceId, userId and homeserver
-    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository}) {
+    constructor({storage, hsApi, sessionInfo, olm, olmWorker, platform, mediaRepository, features}) {
         this._platform = platform;
         this._storage = storage;
         this._hsApi = hsApi;
         this._mediaRepository = mediaRepository;
+        this._features = features;
         this._syncInfo = null;
         this._sessionInfo = sessionInfo;
         this._rooms = new ObservableMap();
@@ -76,36 +77,7 @@ export class Session {
         };
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
-        this._callHandler = new CallHandler({
-            clock: this._platform.clock,
-            random: this._platform.random,
-            hsApi: this._hsApi,
-            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
-                if (!this._deviceTracker || !this._olmEncryption) {
-                    log.set("encryption_disabled", true);
-                    return;
-                }
-                const device = await log.wrap("get device key", async log => {
-                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
-                    if (!device) {
-                        log.set("not_found", true);
-                    }
-                    return device;
-                });
-                if (device) {
-                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
-                    return encryptedMessages;
-                }
-            },
-            storage: this._storage,
-            webRTC: this._platform.webRTC,
-            ownDeviceId: sessionInfo.deviceId,
-            ownUserId: sessionInfo.userId,
-            logger: this._platform.logger,
-            forceTURN: false,
-        });
         this._roomStateHandler = new RoomStateHandlerSet();
-        this.observeRoomState(this._callHandler);
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
@@ -118,6 +90,7 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._keyBackup = new ObservableValue(undefined);
+        this._crossSigning = undefined;
         this._observedRoomStatus = new Map();
 
         if (olm) {
@@ -133,6 +106,10 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+
+        if (features.calls) {
+            this._setupCallHandler();
+        }
     }
 
     get hsApi() {
@@ -161,6 +138,38 @@ export class Session {
 
     get callHandler() {
         return this._callHandler;
+    }
+
+    _setupCallHandler() {
+        this._callHandler = new CallHandler({
+            clock: this._platform.clock,
+            random: this._platform.random,
+            hsApi: this._hsApi,
+            encryptDeviceMessage: async (roomId, userId, deviceId, message, log) => {
+                if (!this._deviceTracker || !this._olmEncryption) {
+                    log.set("encryption_disabled", true);
+                    return;
+                }
+                const device = await log.wrap("get device key", async log => {
+                    const device = this._deviceTracker.deviceForId(userId, deviceId, this._hsApi, log);
+                    if (!device) {
+                        log.set("not_found", true);
+                    }
+                    return device;
+                });
+                if (device) {
+                    const encryptedMessages = await this._olmEncryption.encrypt(message.type, message.content, [device], this._hsApi, log);
+                    return encryptedMessages;
+                }
+            },
+            storage: this._storage,
+            webRTC: this._platform.webRTC,
+            ownDeviceId: this._sessionInfo.deviceId,
+            ownUserId: this._sessionInfo.userId,
+            logger: this._platform.logger,
+            forceTURN: false,
+        });
+        this.observeRoomState(this._callHandler);
     }
 
     // called once this._e2eeAccount is assigned
@@ -237,7 +246,7 @@ export class Session {
     /**
      * Enable secret storage by providing the secret storage credential.
      * This will also see if there is a megolm key backup and try to enable that if so.
-     * 
+     *
      * @param  {string} type       either "passphrase" or "recoverykey"
      * @param  {string} credential either the passphrase or the recovery key, depending on the type
      * @return {Promise} resolves or rejects after having tried to enable secret storage
@@ -332,6 +341,21 @@ export class Session {
                     txn
                 );
                 if (keyBackup) {
+                    if (this._features.crossSigning) {
+                        this._crossSigning = new CrossSigning({
+                            storage: this._storage,
+                            secretStorage,
+                            platform: this._platform,
+                            olm: this._olm,
+                            deviceTracker: this._deviceTracker,
+                            hsApi: this._hsApi,
+                            ownUserId: this.userId,
+                            e2eeAccount: this._e2eeAccount
+                        });
+                        await log.wrap("enable cross-signing", log => {
+                            return this._crossSigning.init(log);
+                        });
+                    }
                     for (const room of this._rooms.values()) {
                         if (room.isEncrypted) {
                             room.enableKeyBackup(keyBackup);
@@ -339,6 +363,8 @@ export class Session {
                     }
                     this._keyBackup.set(keyBackup);
                     return true;
+                } else {
+                    log.set("no_backup", true);
                 }
             } catch (err) {
                 log.catch(err);
@@ -354,6 +380,10 @@ export class Session {
      */
     get keyBackup() {
         return this._keyBackup;
+    }
+
+    get crossSigning() {
+        return this._crossSigning;
     }
 
     get hasIdentity() {
@@ -713,7 +743,7 @@ export class Session {
         if (this._e2eeAccount && deviceOneTimeKeysCount) {
             changes.e2eeAccountChanges = this._e2eeAccount.writeSync(deviceOneTimeKeysCount, txn, log);
         }
-    
+
         const deviceLists = syncResponse.device_lists;
         if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists.changed.length) {
             await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
@@ -785,7 +815,7 @@ export class Session {
         }
     }
 
-    applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
+    async applyRoomCollectionChangesAfterSync(inviteStates, roomStates, archivedRoomStates, log) {
         // update the collections after sync
         for (const rs of roomStates) {
             if (rs.shouldAdd) {
@@ -949,12 +979,20 @@ export class Session {
     async observeRoomStatus(roomId) {
         let observable = this._observedRoomStatus.get(roomId);
         if (!observable) {
-            const status = await this.getRoomStatus(roomId);
+            let status = undefined;
+            // Create and set the observable with value = undefined, so that
+            // we don't loose any sync changes that come in while we are busy
+            // calculating the current room status.
             observable = new RetainedObservableValue(status, () => {
                 this._observedRoomStatus.delete(roomId);
             });
-
             this._observedRoomStatus.set(roomId, observable);
+            status = await this.getRoomStatus(roomId);
+            // If observable.value is not undefined anymore, then some
+            // change has come through the sync.
+            if (observable.get() === undefined) {
+                observable.set(status);
+            }
         }
         return observable;
     }
@@ -1003,7 +1041,7 @@ export class Session {
     Creates an empty (summary isn't loaded) the archived room if it isn't
     loaded already, assuming sync will either remove it (when rejoining) or
     write a full summary adopting it from the joined room when leaving
-    
+
     @internal
     */
     createOrGetArchivedRoomForSync(roomId) {
@@ -1045,6 +1083,7 @@ export class Session {
     }
 }
 
+import {FeatureSet} from "../features";
 export function tests() {
     function createStorageMock(session, pendingEvents = []) {
         return {
@@ -1088,7 +1127,8 @@ export function tests() {
                     clock: {
                         createTimeout: () => undefined
                     }
-                }
+                },
+                features: new FeatureSet(0)
             });
             await session.load();
             let syncSet = false;
