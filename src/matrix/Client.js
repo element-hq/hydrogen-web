@@ -305,7 +305,7 @@ export class Client {
         if (sessionInfo.oidcIssuer) {
             const oidcApi = new OidcApi({
                 issuer: sessionInfo.oidcIssuer,
-                staticClients: this.platform.config["staticOidcClients"],
+                staticClients: this._platform.config["staticOidcClients"],
                 clientId: sessionInfo.oidcClientId,
                 request: this._platform.request,
                 encoding: this._platform.encoding,
@@ -526,7 +526,7 @@ export class Client {
                     // OIDC logout
                     const oidcApi = new OidcApi({
                         issuer: sessionInfo.oidcIssuer,
-                        staticClients: this.platform.config["staticOidcClients"],
+                        staticClients: this._platform.config["staticOidcClients"],
                         clientId: sessionInfo.oidcClientId,
                         request: this._platform.request,
                         encoding: this._platform.encoding,
