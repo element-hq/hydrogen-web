@@ -21,7 +21,7 @@ import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Room} from "../../../matrix/room/Room.js";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
-import { RoomStatus } from "../../../lib";
+import {RoomStatus} from "../../../matrix/room/common";
 
 type Options = {
     session: Session;
