@@ -17,11 +17,11 @@ limitations under the License.
 import {CallToastNotificationViewModel} from "./CallToastNotificationViewModel";
 import {ObservableArray} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
+import {RoomStatus} from "../../../matrix/room/common";
 import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
 import type {Room} from "../../../matrix/room/Room.js";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
-import {RoomStatus} from "../../../matrix/room/common";
 
 type Options = {
     session: Session;
