@@ -50,10 +50,20 @@ export class SecretStorage {
         const allAccountData = await txn.accountData.getAll();
         for (const accountData of allAccountData) {
             try {
+                // TODO: fix this, using the webcrypto api closes the transaction
+                if (accountData.type === "m.megolm_backup.v1") {
+                    return true;
+                } else {
+                    continue;
+                }
                 const secret = await this._decryptAccountData(accountData);
                 return true; // decryption succeeded
             } catch (err) {
-                continue;
+                if (err instanceof DecryptionError && err.reason !== DecryptionFailure.NotEncryptedWithKey) {
+                    throw err;
+                } else {
+                    continue;
+                }
             }
         }
         return false;

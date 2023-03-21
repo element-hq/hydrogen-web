@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../general/TemplateView";
-import {KeyBackupSettingsView} from "../session/settings/KeyBackupSettingsView.js";
+import {KeyBackupSettingsView} from "../session/settings/KeyBackupSettingsView";
 
 export class AccountSetupView extends TemplateView {
     render(t, vm) {

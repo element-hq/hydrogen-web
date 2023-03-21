@@ -14,32 +14,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";
+import {TemplateView, Builder} from "../../general/TemplateView";
 import {disableTargetCallback} from "../../general/utils";
+import {ViewNode} from "../../general/types";
+import {KeyBackupViewModel, Status, BackupWriteStatus} from "../../../../../domain/session/settings/KeyBackupViewModel";
+import {KeyType} from "../../../../../matrix/ssss/index";
 
-export class KeyBackupSettingsView extends TemplateView {
-    render(t, vm) {
+export class KeyBackupSettingsView extends TemplateView<KeyBackupViewModel> {
+    render(t: Builder<KeyBackupViewModel>, vm: KeyBackupViewModel): ViewNode {
         return t.div([
             t.map(vm => vm.status, (status, t, vm) => {
                 switch (status) {
-                    case "Enabled": return renderEnabled(t, vm);
-                    case "NewVersionAvailable": return renderNewVersionAvailable(t, vm);
-                    case "SetupKey": return renderEnableFromKey(t, vm);
-                    case "SetupPhrase": return renderEnableFromPhrase(t, vm);
-                    case "Pending": return t.p(vm.i18n`Waiting to go online…`);
+                    case Status.Enabled: return renderEnabled(t, vm);
+                    case Status.NewVersionAvailable: return renderNewVersionAvailable(t, vm);
+                    case Status.Setup: {
+                        if (vm.setupKeyType === KeyType.Passphrase) {
+                            return renderEnableFromPhrase(t, vm);
+                        } else {
+                            return renderEnableFromKey(t, vm);
+                        }
+                        break;
+                    }
+                    case Status.Pending: return t.p(vm.i18n`Waiting to go online…`);
                 }
             }),
             t.map(vm => vm.backupWriteStatus, (status, t, vm) => {
                 switch (status) {
-                    case "Writing": {
+                    case BackupWriteStatus.Writing: {
                         const progress = t.progress({
-                            min: 0,
-                            max: 100,
+                            min: 0+"",
+                            max: 100+"",
                             value: vm => vm.backupPercentage,
                         });
                         return t.div([`Backup in progress `, progress, " ", vm => vm.backupInProgressLabel]);
                     }
-                    case "Stopped": {
+                    case BackupWriteStatus.Stopped: {
                         let label;
                         const error = vm.backupError;
                         if (error) {
@@ -47,12 +56,12 @@ export class KeyBackupSettingsView extends TemplateView {
                         } else {
                             label = `Backup has stopped`;
                         }
-                        return t.p(label, " ", t.button({onClick: () => vm.startBackup()}, `Backup now`));
+                        return t.p([label, " ", t.button({onClick: () => vm.startBackup()}, `Backup now`)]);
                     }
-                    case "Done":
+                    case BackupWriteStatus.Done:
                         return t.p(`All keys are backed up.`);
                     default:
-                        return null;
+                        return undefined;
                 }
             }),
             t.if(vm => vm.isMasterKeyTrusted, t => {
@@ -70,7 +79,7 @@ export class KeyBackupSettingsView extends TemplateView {
     }
 }
 
-function renderEnabled(t, vm) {
+function renderEnabled(t: Builder<KeyBackupViewModel>, vm: KeyBackupViewModel): ViewNode {
     const items = [
         t.p([vm.i18n`Key backup is enabled, using backup version ${vm.backupVersion}. `, t.button({onClick: () => vm.disable()}, vm.i18n`Disable`)])
     ];
@@ -80,14 +89,14 @@ function renderEnabled(t, vm) {
     return t.div(items);
 }
 
-function renderNewVersionAvailable(t, vm) {
+function renderNewVersionAvailable(t: Builder<KeyBackupViewModel>, vm: KeyBackupViewModel): ViewNode {
     const items = [
         t.p([vm.i18n`A new backup version has been created from another device. Disable key backup and enable it again with the new key.`, t.button({onClick: () => vm.disable()}, vm.i18n`Disable`)])
     ];
     return t.div(items);
 }
 
-function renderEnableFromKey(t, vm) {
+function renderEnableFromKey(t: Builder<KeyBackupViewModel>, vm: KeyBackupViewModel): ViewNode {
     const useASecurityPhrase = t.button({className: "link", onClick: () => vm.showPhraseSetup()}, vm.i18n`use a security phrase`);
     return t.div([
         t.p(vm.i18n`Enter your secret storage security key below to ${vm.purpose}, which will enable you to decrypt messages received before you logged into this session. The security key is a code of 12 groups of 4 characters separated by a space that Element created for you when setting up security.`),
@@ -97,7 +106,7 @@ function renderEnableFromKey(t, vm) {
     ]);
 }
 
-function renderEnableFromPhrase(t, vm) {
+function renderEnableFromPhrase(t: Builder<KeyBackupViewModel>, vm: KeyBackupViewModel): ViewNode {
     const useASecurityKey = t.button({className: "link", onClick: () => vm.showKeySetup()}, vm.i18n`use your security key`);
     return t.div([
         t.p(vm.i18n`Enter your secret storage security phrase below to ${vm.purpose}, which will enable you to decrypt messages received before you logged into this session. The security phrase is a freeform secret phrase you optionally chose when setting up security in Element. It is different from your password to login, unless you chose to set them to the same value.`),
@@ -107,7 +116,7 @@ function renderEnableFromPhrase(t, vm) {
     ]);
 }
 
-function renderEnableFieldRow(t, vm, label, callback) {
+function renderEnableFieldRow(t, vm, label, callback): ViewNode {
     let setupDehydrationCheck;
     const eventHandler = () => callback(input.value, setupDehydrationCheck?.checked || false);
     const input = t.input({type: "password", disabled: vm => vm.isBusy, placeholder: label});
@@ -131,8 +140,8 @@ function renderEnableFieldRow(t, vm, label, callback) {
     ]);
 }
 
-function renderError(t) {
-    return t.if(vm => vm.error, (t, vm) => {
+function renderError(t: Builder<KeyBackupViewModel>): ViewNode {
+    return t.if(vm => vm.error !== undefined, (t, vm) => {
         return t.div([
             t.p({className: "error"}, vm => vm.i18n`Could not enable key backup: ${vm.error}.`),
             t.p(vm.i18n`Try double checking that you did not mix up your security key, security phrase and login password as explained above.`)

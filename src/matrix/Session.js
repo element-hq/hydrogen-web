@@ -90,7 +90,7 @@ export class Session {
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
         this._keyBackup = new ObservableValue(undefined);
-        this._crossSigning = undefined;
+        this._crossSigning = new ObservableValue(undefined);
         this._observedRoomStatus = new Map();
 
         if (olm) {
@@ -250,7 +250,7 @@ export class Session {
             }
             if (this._keyBackup.get()) {
                 this._keyBackup.get().dispose();
-                this._keyBackup.set(null);
+                this._keyBackup.set(undefined);
             }
             // TODO: stop cross-signing
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
@@ -258,8 +258,8 @@ export class Session {
                 // only after having read a secret, write the key
                 // as we only find out if it was good if the MAC verification succeeds
                 await this._writeSSSSKey(key, log);
-                await this._keyBackup?.start(log);
-                await this._crossSigning?.start(log);
+                await this._keyBackup.get()?.start(log);
+                await this._crossSigning.get()?.start(log);
                 return key;
             } else {
                 throw new Error("Could not read key backup with the given key");
@@ -331,29 +331,21 @@ export class Session {
             if (isValid) {
                 await this._loadSecretStorageServices(secretStorage, txn, log);
             }
-            if (!this._keyBackup.get()) {
-                // null means key backup isn't configured yet
-                // as opposed to undefined, which means we're still checking
-                this._keyBackup.set(null);
-            }
             return isValid;
         });
     }
 
-    _loadSecretStorageServices(secretStorage, txn, log) {
+    async _loadSecretStorageServices(secretStorage, txn, log) {
         try {
             await log.wrap("enable key backup", async log => {
-                // TODO: delay network request here until start()
-                const keyBackup = await KeyBackup.fromSecretStorage(
-                    this._platform,
-                    this._olm,
-                    secretStorage,
+                const keyBackup = new KeyBackup(
                     this._hsApi,
+                    this._olm,
                     this._keyLoader,
                     this._storage,
-                    txn
+                    this._platform,
                 );
-                if (keyBackup) {
+                if (await keyBackup.load(secretStorage, txn)) {
                     for (const room of this._rooms.values()) {
                         if (room.isEncrypted) {
                             room.enableKeyBackup(keyBackup);
@@ -378,8 +370,8 @@ export class Session {
                         ownUserId: this.userId,
                         e2eeAccount: this._e2eeAccount
                     });
-                    if (crossSigning.load(txn, log)) {
-                        this._crossSigning = crossSigning;
+                    if (await crossSigning.load(txn, log)) {
+                        this._crossSigning.set(crossSigning);
                     }
                 });
             }
@@ -585,8 +577,8 @@ export class Session {
                 }
             });
         }
-        this._keyBackup?.start(log);
-        this._crossSigning?.start(log);
+        this._keyBackup.get()?.start(log);
+        this._crossSigning.get()?.start(log);
         
         // restore unfinished operations, like sending out room keys
         const opsTxn = await this._storage.readWriteTxn([
