@@ -1354,3 +1354,91 @@ button.RoomDetailsView_row::after {
     width: 100px;
     height: 40px;
 }
+
+.VerificationCompleteView,
+.DeviceVerificationView,
+.SelectMethodView {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.VerificationCompleteView__heading,
+.VerifyEmojisView__heading,
+.SelectMethodView__heading,
+.WaitingForOtherUserView__heading {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px;
+}
+
+.VerificationCompleteView>*,
+.SelectMethodView>*,
+.VerifyEmojisView>*,
+.WaitingForOtherUserView>* {
+    padding: 16px;
+}
+
+.VerificationCompleteView__title,
+.VerifyEmojisView__title,
+.SelectMethodView__title,
+.WaitingForOtherUserView__title {
+    text-align: center;
+    margin: 0;
+}
+
+.VerificationCancelledView__description,
+.VerificationCompleteView__description,
+.VerifyEmojisView__description,
+.SelectMethodView__description,
+.WaitingForOtherUserView__description {
+    text-align: center;
+    margin: 0;
+}
+
+.VerificationCancelledView__actions,
+.SelectMethodView__actions,
+.VerifyEmojisView__actions,
+.WaitingForOtherUserView__actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+}
+
+.EmojiCollection {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.EmojiContainer__emoji {
+    font-size: 3.2rem;
+}
+
+.VerifyEmojisView__waiting,
+.EmojiContainer__name,
+.EmojiContainer__emoji {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.EmojiContainer__name {
+    font-weight: bold;
+}
+
+.VerifyEmojisView__waiting {
+    gap: 12px;
+}
+
+.VerificationCompleteView__icon {
+    background: url("./icons//verified.svg?primary=accent-color") no-repeat;
+    background-size: contain;
+    width: 128px;
+    height: 128px;
+}

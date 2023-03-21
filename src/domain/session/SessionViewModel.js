@@ -26,6 +26,7 @@ import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
 import {CreateRoomViewModel} from "./CreateRoomViewModel.js";
 import {JoinRoomViewModel} from "./JoinRoomViewModel";
+import {DeviceVerificationViewModel} from "./verification/DeviceVerificationViewModel";
 import {ViewModel} from "../ViewModel";
 import {RoomViewModelObservable} from "./RoomViewModelObservable.js";
 import {RightPanelViewModel} from "./rightpanel/RightPanelViewModel.js";
@@ -48,6 +49,7 @@ export class SessionViewModel extends ViewModel {
         this._gridViewModel = null;
         this._createRoomViewModel = null;
         this._joinRoomViewModel = null;
+        this._verificationViewModel = null;
         this._toastCollectionViewModel = this.track(new ToastCollectionViewModel(this.childOptions({
             session: this._client.session,
         })));
@@ -94,6 +96,12 @@ export class SessionViewModel extends ViewModel {
             this._updateJoinRoom(joinRoomOpen);
         }));
         this._updateJoinRoom(joinRoom.get());
+
+        const verification = this.navigation.observe("device-verification");
+        this.track(verification.subscribe((verificationOpen) => {
+            this._updateVerification(verificationOpen);
+        }));
+        this._updateVerification(verification.get());
 
         const lightbox = this.navigation.observe("lightbox");
         this.track(lightbox.subscribe(eventId => {
@@ -143,7 +151,8 @@ export class SessionViewModel extends ViewModel {
             this._gridViewModel ||
             this._settingsViewModel ||
             this._createRoomViewModel ||
-            this._joinRoomViewModel
+            this._joinRoomViewModel ||
+            this._verificationViewModel
         );
     }
 
@@ -177,6 +186,10 @@ export class SessionViewModel extends ViewModel {
 
     get joinRoomViewModel() {
         return this._joinRoomViewModel;
+    }
+
+    get verificationViewModel() {
+        return this._verificationViewModel;
     }
 
     get toastCollectionViewModel() {
@@ -323,6 +336,16 @@ export class SessionViewModel extends ViewModel {
         }
         if (joinRoomOpen) {
             this._joinRoomViewModel = this.track(new JoinRoomViewModel(this.childOptions({session: this._client.session})));
+        }
+        this.emitChange("activeMiddleViewModel");
+    }
+
+    _updateVerification(verificationOpen) {
+        if (this._verificationViewModel) {
+            this._verificationViewModel = this.disposeTracked(this._verificationViewModel);
+        }
+        if (verificationOpen) {
+            this._verificationViewModel = this.track(new DeviceVerificationViewModel(this.childOptions({ session: this._client.session })));
         }
         this.emitChange("activeMiddleViewModel");
     }

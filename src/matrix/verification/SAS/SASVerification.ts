@@ -84,6 +84,10 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         }
     }
 
+    async abort() {
+        await this.channel.cancelVerification(CancelTypes.UserCancelled);
+    }
+
     async start() {
         try {
             let stage = this.startStage;
@@ -98,6 +102,9 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
             }
         }
         finally {
+            if (this.channel.isCancelled) {
+                this.eventEmitter.emit("VerificationCancelled", this.channel.cancellation);
+            }
             this.olmSas.free();
             this.timeout.abort();
             this.finished = true;

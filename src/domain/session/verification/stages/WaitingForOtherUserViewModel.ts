@@ -13,13 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {CancelTypes} from "./channel/types";
-import {CalculateSASStage} from "./stages/CalculateSASStage";
-import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 
-export type SASProgressEvents = {
-    SelectVerificationStage: SelectVerificationMethodStage;
-    EmojiGenerated: CalculateSASStage;
-    VerificationCompleted: string;
-    VerificationCancelled: { code: CancelTypes, cancelledByUs: boolean };
+import {ViewModel, Options as BaseOptions} from "../../../ViewModel";
+import {SegmentType} from "../../../navigation/index";
+import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
+
+type Options = BaseOptions & {
+    sas: SASVerification;
+};
+
+export class WaitingForOtherUserViewModel extends ViewModel<SegmentType, Options> {
+    async cancel() {
+        await this.options.sas.abort();
+    }
 }
