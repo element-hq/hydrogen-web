@@ -17,7 +17,7 @@ limitations under the License.
 import {CallToastNotificationView} from "./CallToastNotificationView";
 import {ListView} from "../../general/ListView";
 import {TemplateView, Builder} from "../../general/TemplateView";
-import type {CallToastNotificationViewModel} from "../../../../../domain/session/toast/CallToastNotificationViewModel";
+import type {CallToastNotificationViewModel} from "../../../../../domain/session/toast/calls/CallToastNotificationViewModel";
 import type {ToastCollectionViewModel} from "../../../../../domain/session/toast/ToastCollectionViewModel";
 
 export class ToastCollectionView extends TemplateView<ToastCollectionViewModel> {
