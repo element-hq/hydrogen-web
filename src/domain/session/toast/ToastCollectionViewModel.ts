@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ConcatList} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
-import {CallToastCollectionViewModel} from "./calls/CallsToastCollectionVIewModel";
+import {CallToastCollectionViewModel} from "./calls/CallsToastCollectionViewModel";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
 import type {BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";

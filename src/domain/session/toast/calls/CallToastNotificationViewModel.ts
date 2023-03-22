@@ -46,6 +46,10 @@ export class CallToastNotificationViewModel<N extends MinimumNeededSegmentType =
         }));
     }
 
+    get kind(): "calls" {
+        return "calls";
+    }
+
     async join(): Promise<void> {
         await this.logAndCatch("CallToastNotificationViewModel.join", async (log) => {
             const stream = await this.platform.mediaDevices.getMediaTracks(false, true);

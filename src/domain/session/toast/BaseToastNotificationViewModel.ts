@@ -32,4 +32,6 @@ export abstract class BaseToastNotificationViewModel<N extends object = SegmentT
     dismiss(): void {
         this.getOption("dismiss")();
     }
+
+    abstract get kind(): string;
 }
