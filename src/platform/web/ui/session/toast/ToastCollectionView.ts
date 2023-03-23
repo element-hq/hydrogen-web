@@ -17,15 +17,26 @@ limitations under the License.
 import {CallToastNotificationView} from "./CallToastNotificationView";
 import {ListView} from "../../general/ListView";
 import {TemplateView, Builder} from "../../general/TemplateView";
-import type {CallToastNotificationViewModel} from "../../../../../domain/session/toast/CallToastNotificationViewModel";
+import type {IView} from "../../general/types";
+import type {CallToastNotificationViewModel} from "../../../../../domain/session/toast/calls/CallToastNotificationViewModel";
 import type {ToastCollectionViewModel} from "../../../../../domain/session/toast/ToastCollectionViewModel";
+import type {BaseToastNotificationViewModel} from "../../../../../domain/session/toast/BaseToastNotificationViewModel";
+
+function toastViewModelToView(vm: BaseToastNotificationViewModel): IView {
+    switch (vm.kind) {
+        case "calls":
+            return new CallToastNotificationView(vm as CallToastNotificationViewModel); 
+        default:
+            throw new Error(`Cannot find view class for notification kind ${vm.kind}`);
+    }
+}
 
 export class ToastCollectionView extends TemplateView<ToastCollectionViewModel> {
     render(t: Builder<ToastCollectionViewModel>, vm: ToastCollectionViewModel) {
         const view = new ListView({
             list: vm.toastViewModels,
             parentProvidesUpdates: false,
-        }, (vm: CallToastNotificationViewModel) => new CallToastNotificationView(vm));
+        }, (vm: CallToastNotificationViewModel) => toastViewModelToView(vm));
         return t.div({ className: "ToastCollectionView" }, [
             t.view(view),
         ]);
