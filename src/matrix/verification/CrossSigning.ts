@@ -210,11 +210,11 @@ export class CrossSigning {
             if (!this.isMasterKeyTrusted) {
                 return UserTrust.OwnSetupError;
             }
-            const ourMSK = await log.wrap("get our msk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, undefined, log));
+            const ourMSK = await log.wrap("get our msk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log));
             if (!ourMSK) {
                 return UserTrust.OwnSetupError;
             }
-            const ourUSK = await log.wrap("get our usk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.UserSigning, this.hsApi, undefined, log));
+            const ourUSK = await log.wrap("get our usk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.UserSigning, this.hsApi, log));
             if (!ourUSK) {
                 return UserTrust.OwnSetupError;
             }
@@ -222,7 +222,7 @@ export class CrossSigning {
             if (ourUSKVerification !== SignatureVerification.Valid) {
                 return UserTrust.OwnSetupError;
             }
-            const theirMSK = await log.wrap("get their msk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, undefined, log));
+            const theirMSK = await log.wrap("get their msk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log));
             if (!theirMSK) {
                 /* assume that when they don't have an MSK, they've never enabled cross-signing on their client
                 (or it's not supported) rather than assuming a setup error on their side.
@@ -237,7 +237,7 @@ export class CrossSigning {
                     return UserTrust.UserSignatureMismatch;
                 }
             }
-            const theirSSK = await log.wrap("get their ssk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.SelfSigning, this.hsApi, undefined, log));
+            const theirSSK = await log.wrap("get their ssk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.SelfSigning, this.hsApi, log));
             if (!theirSSK) {
                 return UserTrust.UserSetupError;
             }
