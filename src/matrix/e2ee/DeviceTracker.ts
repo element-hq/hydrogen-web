@@ -163,9 +163,9 @@ export class DeviceTracker {
         }
     }
 
-    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi | undefined, existingTxn: Transaction | undefined, log: ILogItem): Promise<CrossSigningKey | undefined> {
+    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi | undefined, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return await log.wrap({l: "DeviceTracker.getCrossSigningKeyForUser", id: userId, usage}, async log => {
-            const txn = existingTxn ?? await this._storage.readTxn([
+            const txn = await this._storage.readTxn([
                 this._storage.storeNames.userIdentities,
                 this._storage.storeNames.crossSigningKeys,
             ]);

@@ -107,9 +107,8 @@ export class KeyBackup extends EventEmitter<{change: never}> {
         return txn.inboundGroupSessions.markAllAsNotBackedUp();
     }
 
-    async load(secretStorage: SecretStorage, txn: Transaction) {
-        // TODO: no exception here we should anticipate?
-        const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1", txn);
+    async load(secretStorage: SecretStorage, log: ILogItem) {
+        const base64PrivateKey = await secretStorage.readSecret("m.megolm_backup.v1");
         if (base64PrivateKey) {
             this.privateKey = new Uint8Array(this.platform.encoding.base64.decode(base64PrivateKey));
             return true;

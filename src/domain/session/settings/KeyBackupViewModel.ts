@@ -56,7 +56,7 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
         super(options);
         const onKeyBackupSet = (keyBackup: KeyBackup | undefined) => {
             if (keyBackup && !this._keyBackupSubscription) {
-                this._keyBackupSubscription = this.track(this._session.keyBackup.disposableOn("change", () => {
+                this._keyBackupSubscription = this.track(this._session.keyBackup.get().disposableOn("change", () => {
                     this._onKeyBackupChange();
                 }));
             } else if (!keyBackup && this._keyBackupSubscription) {

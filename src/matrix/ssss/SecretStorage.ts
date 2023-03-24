@@ -40,22 +40,22 @@ class DecryptionError extends Error {
 export class SecretStorage {
     private readonly _key: Key;
     private readonly _platform: Platform;
+    private readonly _storage: Storage;
 
-    constructor({key, platform}: {key: Key, platform: Platform}) {
+    constructor({key, platform, storage}: {key: Key, platform: Platform, storage: Storage}) {
         this._key = key;
         this._platform = platform;
+        this._storage = storage;
     }
 
-    async hasValidKeyForAnyAccountData(txn: Transaction) {
+    /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */
+    async hasValidKeyForAnyAccountData() {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.accountData,
+        ]);
         const allAccountData = await txn.accountData.getAll();
         for (const accountData of allAccountData) {
             try {
-                // TODO: fix this, using the webcrypto api closes the transaction
-                if (accountData.type === "m.megolm_backup.v1") {
-                    return true;
-                } else {
-                    continue;
-                }
                 const secret = await this._decryptAccountData(accountData);
                 return true; // decryption succeeded
             } catch (err) {
@@ -69,7 +69,11 @@ export class SecretStorage {
         return false;
     }
 
-    async readSecret(name: string, txn: Transaction): Promise<string | undefined> {
+    /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */
+    async readSecret(name: string): Promise<string | undefined> {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.accountData,
+        ]);
         const accountData = await txn.accountData.get(name);
         if (!accountData) {
             return;
