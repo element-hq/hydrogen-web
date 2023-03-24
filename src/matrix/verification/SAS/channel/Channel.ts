@@ -23,6 +23,7 @@ import {makeTxnId} from "../../../common.js";
 import {CancelReason, VerificationEventTypes} from "./types";
 import {Disposables} from "../../../../utils/Disposables";
 import {VerificationCancelledError} from "../VerificationCancelledError";
+import {Deferred} from "../../../../utils/Deferred";
 
 const messageFromErrorType = {
     [CancelReason.UserCancelled]: "User declined",
@@ -71,7 +72,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     private readonly deviceMessageHandler: DeviceMessageHandler;
     private readonly sentMessages: Map<VerificationEventTypes, any> = new Map();
     private readonly receivedMessages: Map<VerificationEventTypes, any> = new Map();
-    private readonly waitMap: Map<string, {resolve: any, reject: any, promise: Promise<any>}> = new Map();
+    private readonly waitMap: Map<string, Deferred<any>> = new Map();
     private readonly log: ILogItem;
     public otherUserDeviceId: string;
     public startMessage: any;
@@ -270,14 +271,9 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         if (existingWait) {
             return existingWait.promise;
         }
-        let resolve, reject;
-        // Add to wait map
-        const promise = new Promise((_resolve, _reject) => {
-            resolve = _resolve;
-            reject = _reject;
-        });
-        this.waitMap.set(eventType, { resolve, reject, promise });
-        return promise;
+        const deferred = new Deferred(); 
+        this.waitMap.set(eventType, deferred);
+        return deferred.promise;
     }
 
     setStartMessage(event) {
