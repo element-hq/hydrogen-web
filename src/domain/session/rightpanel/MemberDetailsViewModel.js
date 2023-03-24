@@ -30,6 +30,9 @@ export class MemberDetailsViewModel extends ViewModel {
         this._session = options.session;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
+        this.track(this._session.crossSigning.subscribe(() => {
+            this.emitChange("isTrusted");
+        }));
         this._userTrust = undefined;
         this.init(); // TODO: call this from parent view model and do something smart with error view model if it fails async?
     }
@@ -37,7 +40,7 @@ export class MemberDetailsViewModel extends ViewModel {
     async init() {
         if (this.features.crossSigning) {
             this._userTrust = await this.logger.run({l: "MemberDetailsViewModel.get user trust", id: this._member.userId}, log => {
-                return this._session.crossSigning.getUserTrust(this._member.userId, log);
+                return this._session.crossSigning.get()?.getUserTrust(this._member.userId, log);
             });
             this.emitChange("isTrusted");
         }
