@@ -16,12 +16,12 @@ export class MockChannel implements ITestChannel {
     public startMessage: any;
     public isCancelled: boolean = false;
     private olmSas: any;
-    public ourUserDeviceId: string;
 
     constructor(
         public otherUserDeviceId: string,
         public otherUserId: string,
         public ourUserId: string,
+        public ourUserDeviceId: string,
         private fixtures: Map<string, any>,
         private deviceTracker: any,
         public id: string,
@@ -109,10 +109,6 @@ export class MockChannel implements ITestChannel {
         this.startMessage = event;
         this.initiatedByUs = event.content.from_device === this.ourUserDeviceId;
         this.recalculateCommitment();
-    }
-
-    setOurDeviceId(id: string) {
-        this.ourUserDeviceId = id;
     }
 
     async cancelVerification(_: CancelReason): Promise<void> {

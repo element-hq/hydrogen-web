@@ -151,6 +151,7 @@ export class CrossSigning {
             otherUserId: userId,
             clock: this.platform.clock,
             deviceMessageHandler: this.deviceMessageHandler,
+            ourUserDeviceId: this.deviceId,
             log
         }, startingMessage);
 

@@ -44,7 +44,6 @@ export interface IChannel {
     getSentMessage(event: VerificationEventTypes): any;
     getReceivedMessage(event: VerificationEventTypes): any;
     setStartMessage(content: any): void;
-    setOurDeviceId(id: string): void;
     cancelVerification(cancellationType: CancelReason): Promise<void>;
     acceptMessage: any;
     startMessage: any;
@@ -60,6 +59,7 @@ type Options = {
     clock: Clock;
     deviceMessageHandler: DeviceMessageHandler;
     log: ILogItem;
+    ourUserDeviceId: string;
 }
 
 export class ToDeviceChannel extends Disposables implements IChannel {
@@ -88,6 +88,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         this.hsApi = options.hsApi;
         this.deviceTracker = options.deviceTracker;
         this.otherUserId = options.otherUserId;
+        this.ourDeviceId = options.ourUserDeviceId;
         this.clock = options.clock;
         this.log = options.log;
         this.deviceMessageHandler = options.deviceMessageHandler;
@@ -277,10 +278,6 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         });
         this.waitMap.set(eventType, { resolve, reject, promise });
         return promise;
-    }
-
-    setOurDeviceId(id: string) {
-        this.ourDeviceId = id;
     }
 
     setStartMessage(event) {
