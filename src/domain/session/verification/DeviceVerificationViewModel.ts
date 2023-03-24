@@ -46,11 +46,6 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         else {
             // We are about to send the request
             this.start(this.session.userId);
-            this._currentStageViewModel = this.track(
-                new WaitingForOtherUserViewModel(
-                    this.childOptions({ sas: this.sas })
-                )
-            );
         }
     }
 
@@ -59,6 +54,9 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             const crossSigning = this.session.crossSigning;
             this.sas = crossSigning.startVerification(requestOrUserId, log);
             this.addEventListeners();
+            if (typeof requestOrUserId === "string") {
+                this.createViewModelAndEmit(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
+            }
             return this.sas.start();
         });
     }
