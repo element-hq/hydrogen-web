@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {CancelReason, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventType} from "../channel/types";
 import {KEY_AGREEMENT_LIST, HASHES_LIST, MAC_LIST, SAS_LIST} from "./constants";
 import {SendAcceptVerificationStage} from "./SendAcceptVerificationStage";
 import {SendKeyStage} from "./SendKeyStage";
@@ -27,8 +27,8 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("SelectVerificationMethodStage.completeStage", async (log) => {
             this.eventEmitter.emit("SelectVerificationStage", this);
-            const startMessage = this.channel.waitForEvent(VerificationEventTypes.Start);
-            const acceptMessage = this.channel.waitForEvent(VerificationEventTypes.Accept);
+            const startMessage = this.channel.waitForEvent(VerificationEventType.Start);
+            const acceptMessage = this.channel.waitForEvent(VerificationEventType.Accept);
             const { content } = await Promise.race([startMessage, acceptMessage]);
             if (content.method) {
                 // We received the start message 
@@ -37,12 +37,12 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                     await this.resolveStartConflict(log);
                 }
                 else {
-                    this.channel.setStartMessage(this.channel.getReceivedMessage(VerificationEventTypes.Start));
+                    this.channel.setStartMessage(this.channel.getReceivedMessage(VerificationEventType.Start));
                 }
             }
             else {
                 // We received the accept message
-                this.channel.setStartMessage(this.channel.getSentMessage(VerificationEventTypes.Start));
+                this.channel.setStartMessage(this.channel.getSentMessage(VerificationEventType.Start));
             }
             if (this.channel.initiatedByUs) {
                 await acceptMessage;
@@ -57,8 +57,8 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
 
     private async resolveStartConflict(log: ILogItem) {
         await log.wrap("resolveStartConflict", async () => {
-            const receivedStartMessage = this.channel.getReceivedMessage(VerificationEventTypes.Start);
-            const sentStartMessage = this.channel.getSentMessage(VerificationEventTypes.Start);
+            const receivedStartMessage = this.channel.getReceivedMessage(VerificationEventType.Start);
+            const sentStartMessage = this.channel.getSentMessage(VerificationEventType.Start);
             if (receivedStartMessage.content.method !== sentStartMessage.content.method) {
                 /**
                  *  If the two m.key.verification.start messages do not specify the same verification method,
@@ -96,7 +96,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
          * This will cause the Promise.race in completeStage() to resolve and we'll move
          * to the next stage (where we will send the key).
          */
-        await this.channel.send(VerificationEventTypes.Start, content, log);
+        await this.channel.send(VerificationEventType.Start, content, log);
         this.hasSentStartMessage = true;
     }
 }

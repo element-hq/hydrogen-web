@@ -1,4 +1,4 @@
-export const enum VerificationEventTypes {
+export const enum VerificationEventType {
     Request = "m.key.verification.request",
     Ready = "m.key.verification.ready",
     Start = "m.key.verification.start",

@@ -10,7 +10,7 @@
     accept -> key -> mac -> done          
 */
 
-import {VerificationEventTypes} from "../../../matrix/verification/SAS/channel/types";
+import {VerificationEventType} from "../../../matrix/verification/SAS/channel/types";
 
 function generateResponses(userId: string, deviceId: string, txnId: string) {
     const readyMessage = {
@@ -125,7 +125,7 @@ export class SASFixtures {
         return this;
     }
 
-    fixtures(): Map<VerificationEventTypes, any> {
+    fixtures(): Map<VerificationEventType, any> {
         const responses = generateResponses(this.userId, this.deviceId, this.txnId);
         const array: any[] = [];
         const addToArray = (type) => array.push([type, responses[type]]);
@@ -134,14 +134,14 @@ export class SASFixtures {
             const item = this.order[i];
             switch (item) {
                 case COMBINATIONS.YOU_SENT_REQUEST:
-                    addToArray(VerificationEventTypes.Ready);
+                    addToArray(VerificationEventType.Ready);
                     break;
                 case COMBINATIONS.THEY_SENT_START: {
-                    addToArray(VerificationEventTypes.Start);
+                    addToArray(VerificationEventType.Start);
                     const nextItem = this.order[i+1];
                     if (nextItem === COMBINATIONS.YOU_SENT_START) {
                         if (this._youWinConflict) {
-                            addToArray(VerificationEventTypes.Accept);
+                            addToArray(VerificationEventType.Accept);
                             i = i + 2;
                             continue;
                         }
@@ -152,7 +152,7 @@ export class SASFixtures {
                     const nextItem = this.order[i+1]
                     if (nextItem === COMBINATIONS.THEY_SENT_START) {
                         if (this._youWinConflict) {
-                            addToArray(VerificationEventTypes.Accept);
+                            addToArray(VerificationEventType.Accept);
                             
                         }
                         break;
@@ -160,15 +160,15 @@ export class SASFixtures {
                     if (this.order[i-1] === COMBINATIONS.THEY_SENT_START) {
                         break;
                     }
-                    addToArray(VerificationEventTypes.Accept);
+                    addToArray(VerificationEventType.Accept);
                     break;
                 }
             }
             i = i + 1;
         } 
-        addToArray(VerificationEventTypes.Key);
-        addToArray(VerificationEventTypes.Mac);
-        addToArray(VerificationEventTypes.Done);
+        addToArray(VerificationEventType.Key);
+        addToArray(VerificationEventType.Mac);
+        addToArray(VerificationEventType.Done);
         return new Map(array);
     }
 }

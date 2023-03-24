@@ -27,7 +27,7 @@ import type {ISignatures} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/Channel";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
-import {VerificationEventTypes} from "./SAS/channel/types";
+import {VerificationEventType} from "./SAS/channel/types";
 
 type Olm = typeof OlmNamespace;
 
@@ -80,8 +80,8 @@ export class CrossSigning {
                 )) {
                 return;
             }
-            if (unencryptedEvent.type === VerificationEventTypes.Request ||
-                unencryptedEvent.type === VerificationEventTypes.Start) {
+            if (unencryptedEvent.type === VerificationEventType.Request ||
+                unencryptedEvent.type === VerificationEventType.Start) {
                 await this.platform.logger.run("Start verification from request", async (log) => {
                     const sas = this.startVerification(unencryptedEvent.sender, unencryptedEvent, log);
                     await sas?.start();

@@ -2,7 +2,7 @@ import type {ILogItem} from "../../../../lib";
 import {createCalculateMAC} from "../mac";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 import {IChannel} from "./Channel";
-import {CancelReason, VerificationEventTypes} from "./types";
+import {CancelReason, VerificationEventType} from "./types";
 import anotherjson from "another-json";
 
 interface ITestChannel extends IChannel {
@@ -29,7 +29,7 @@ export class MockChannel implements ITestChannel {
         startingMessage?: any,
     ) {
         if (startingMessage) {
-            const eventType = startingMessage.content.method ? VerificationEventTypes.Start : VerificationEventTypes.Request;
+            const eventType = startingMessage.content.method ? VerificationEventType.Start : VerificationEventType.Request;
             this.id = startingMessage.content.transaction_id;
             this.receivedMessages.set(eventType, startingMessage);
         }
@@ -54,10 +54,10 @@ export class MockChannel implements ITestChannel {
         else {
             await new Promise(() => {});
         }
-        if (eventType === VerificationEventTypes.Mac) {
+        if (eventType === VerificationEventType.Mac) {
             await this.recalculateMAC();
         }
-        if(eventType === VerificationEventTypes.Accept && this.startMessage) {
+        if(eventType === VerificationEventType.Accept && this.startMessage) {
         }
         return event;
     }
@@ -68,7 +68,7 @@ export class MockChannel implements ITestChannel {
             return;
         }
         const {content} = this.startMessage;
-        const {content: keyMessage} = this.fixtures.get(VerificationEventTypes.Key);
+        const {content: keyMessage} = this.fixtures.get(VerificationEventType.Key);
         const key = keyMessage.key;
         const commitmentStr = key + anotherjson.stringify(content);
         const olmUtil = new this.olm.Utility();
@@ -86,7 +86,7 @@ export class MockChannel implements ITestChannel {
             this.ourUserId +
             this.ourUserDeviceId +
             this.id;
-        const { content: macContent } = this.receivedMessages.get(VerificationEventTypes.Mac);
+        const { content: macContent } = this.receivedMessages.get(VerificationEventType.Mac);
         const macMethod = this.acceptMessage.content.message_authentication_code;
         const calculateMac = createCalculateMAC(this.olmSas, macMethod);
         const input = Object.keys(macContent.mac).sort().join(",");
@@ -117,15 +117,15 @@ export class MockChannel implements ITestChannel {
     }
 
     get acceptMessage(): any {
-        return this.receivedMessages.get(VerificationEventTypes.Accept) ??
-            this.sentMessages.get(VerificationEventTypes.Accept);
+        return this.receivedMessages.get(VerificationEventType.Accept) ??
+            this.sentMessages.get(VerificationEventType.Accept);
     }
 
-    getReceivedMessage(event: VerificationEventTypes) {
+    getReceivedMessage(event: VerificationEventType) {
         return this.receivedMessages.get(event);
     }
 
-    getSentMessage(event: VerificationEventTypes) {
+    getSentMessage(event: VerificationEventType) {
         return this.sentMessages.get(event);
     }
 

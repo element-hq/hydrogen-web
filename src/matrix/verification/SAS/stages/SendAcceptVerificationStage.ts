@@ -16,7 +16,7 @@ limitations under the License.
 import anotherjson from "another-json";
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {HASHES_LIST, MAC_LIST, SAS_SET, KEY_AGREEMENT_LIST} from "./constants";
-import {CancelReason, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventType} from "../channel/types";
 import {SendKeyStage} from "./SendKeyStage";
 
 // from element-web
@@ -45,8 +45,8 @@ export class SendAcceptVerificationStage extends BaseSASVerificationStage {
                 short_authentication_string: sasMethod,
                 commitment: this.olmUtil.sha256(commitmentStr),
             };
-            await this.channel.send(VerificationEventTypes.Accept, content, log);
-            await this.channel.waitForEvent(VerificationEventTypes.Key);
+            await this.channel.send(VerificationEventType.Accept, content, log);
+            await this.channel.waitForEvent(VerificationEventType.Key);
             this.setNextStage(new SendKeyStage(this.options));
         });
     }

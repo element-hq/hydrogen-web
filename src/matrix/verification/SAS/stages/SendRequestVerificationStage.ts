@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {SelectVerificationMethodStage} from "./SelectVerificationMethodStage";
-import {VerificationEventTypes} from "../channel/types";
+import {VerificationEventType} from "../channel/types";
 
 export class SendRequestVerificationStage extends BaseSASVerificationStage {
     async completeStage() {
@@ -24,9 +24,9 @@ export class SendRequestVerificationStage extends BaseSASVerificationStage {
                 "from_device": this.ourUserDeviceId,
                 "methods": ["m.sas.v1"],
             };
-            await this.channel.send(VerificationEventTypes.Request, content, log);
+            await this.channel.send(VerificationEventType.Request, content, log);
             this.setNextStage(new SelectVerificationMethodStage(this.options));
-            await this.channel.waitForEvent(VerificationEventTypes.Ready);
+            await this.channel.waitForEvent(VerificationEventType.Ready);
         });
     }
 }

@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {VerificationEventTypes} from "../channel/types";
+import {VerificationEventType} from "../channel/types";
 
 export class SendDoneStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("SendDoneStage.completeStage", async (log) => {
-            await this.channel.send(VerificationEventTypes.Done, {}, log);
+            await this.channel.send(VerificationEventType.Done, {}, log);
         });
     }
 }

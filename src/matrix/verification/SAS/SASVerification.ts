@@ -21,7 +21,7 @@ import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
 import {IChannel} from "./channel/Channel";
 import {HomeServerApi} from "../../net/HomeServerApi";
-import {CancelReason, VerificationEventTypes} from "./channel/types";
+import {CancelReason, VerificationEventType} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 import {VerificationCancelledError} from "./VerificationCancelledError";
@@ -61,10 +61,10 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         this.channel = channel;
         this.setupCancelAfterTimeout(clock);
         const stageOptions = {...options, olmSas, eventEmitter: this};
-        if (channel.getReceivedMessage(VerificationEventTypes.Start)) {
+        if (channel.getReceivedMessage(VerificationEventType.Start)) {
             this.startStage = new SelectVerificationMethodStage(stageOptions);
         }
-        else if (channel.getReceivedMessage(VerificationEventTypes.Request)) {
+        else if (channel.getReceivedMessage(VerificationEventType.Request)) {
             this.startStage = new SendReadyStage(stageOptions);
         }
         else {
@@ -283,7 +283,7 @@ export function tests() {
             const receivedMessages = new SASFixtures(theirUserId, theirDeviceId, txnId)
                 .theySentStart()
                 .fixtures();
-            const startingMessage = receivedMessages.get(VerificationEventTypes.Start);
+            const startingMessage = receivedMessages.get(VerificationEventType.Start);
             const { sas } = await createSASRequest(
                 ourUserId,
                 ourDeviceId,
@@ -404,7 +404,7 @@ export function tests() {
                 .youSentStart()
                 .theyWinConflict()
                 .fixtures();
-            const startingMessage = receivedMessages.get(VerificationEventTypes.Start);
+            const startingMessage = receivedMessages.get(VerificationEventType.Start);
             console.log(receivedMessages);
             const { sas } = await createSASRequest(
                 ourUserId,
@@ -445,7 +445,7 @@ export function tests() {
                 .youSentStart()
                 .youWinConflict()
                 .fixtures();
-            const startingMessage = receivedMessages.get(VerificationEventTypes.Start);
+            const startingMessage = receivedMessages.get(VerificationEventType.Start);
             console.log(receivedMessages);
             const { sas, logger } = await createSASRequest(
                 ourUserId,
@@ -600,7 +600,7 @@ export function tests() {
                 .youSentRequest()
                 .theySentStart()
                 .fixtures();
-            receivedMessages.get(VerificationEventTypes.Start).content.key_agreement_protocols = ["foo"];
+            receivedMessages.get(VerificationEventType.Start).content.key_agreement_protocols = ["foo"];
             const { sas } = await createSASRequest(
                 ourUserId,
                 ourDeviceId,

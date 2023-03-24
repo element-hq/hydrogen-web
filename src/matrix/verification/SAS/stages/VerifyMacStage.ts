@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {ILogItem} from "../../../../logging/types";
-import {CancelReason, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventType} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import {SendDoneStage} from "./SendDoneStage";
 
@@ -28,13 +28,13 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             const macMethod = acceptMessage.message_authentication_code;
             const calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.checkMAC(calculateMAC, log);
-            await this.channel.waitForEvent(VerificationEventTypes.Done);
+            await this.channel.waitForEvent(VerificationEventType.Done);
             this.setNextStage(new SendDoneStage(this.options));
         });
     }
 
     private async checkMAC(calculateMAC: (input: string, info: string) => string, log: ILogItem): Promise<void> {
-        const {content} = this.channel.getReceivedMessage(VerificationEventTypes.Mac);
+        const {content} = this.channel.getReceivedMessage(VerificationEventType.Mac);
         const baseInfo =
             "MATRIX_KEY_VERIFICATION_MAC" +
             this.otherUserId +

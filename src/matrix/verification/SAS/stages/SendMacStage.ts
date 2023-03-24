@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {ILogItem} from "../../../../logging/types";
-import {VerificationEventTypes} from "../channel/types";
+import {VerificationEventType} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import {VerifyMacStage} from "./VerifyMacStage";
 
@@ -26,7 +26,7 @@ export class SendMacStage extends BaseSASVerificationStage {
             const macMethod = acceptMessage.message_authentication_code;
             const calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.sendMAC(calculateMAC, log);
-            await this.channel.waitForEvent(VerificationEventTypes.Mac);
+            await this.channel.waitForEvent(VerificationEventType.Mac);
             this.setNextStage(new VerifyMacStage(this.options));
         });
     }
@@ -55,7 +55,7 @@ export class SendMacStage extends BaseSASVerificationStage {
         }
 
         const keys = calculateMAC(keyList.sort().join(","), baseInfo + "KEY_IDS");
-        await this.channel.send(VerificationEventTypes.Mac, { mac, keys }, log);
+        await this.channel.send(VerificationEventType.Mac, { mac, keys }, log);
     }
 }
 

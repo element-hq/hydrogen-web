@@ -20,7 +20,7 @@ import type {ILogItem} from "../../../../logging/types";
 import type {Clock} from "../../../../platform/web/dom/Clock.js";
 import type {DeviceMessageHandler} from "../../../DeviceMessageHandler.js";
 import {makeTxnId} from "../../../common.js";
-import {CancelReason, VerificationEventTypes} from "./types";
+import {CancelReason, VerificationEventType} from "./types";
 import {Disposables} from "../../../../utils/Disposables";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 import {Deferred} from "../../../../utils/Deferred";
@@ -42,8 +42,8 @@ const messageFromErrorType = {
 export interface IChannel {
     send(eventType: string, content: any, log: ILogItem): Promise<void>;
     waitForEvent(eventType: string): Promise<any>;
-    getSentMessage(event: VerificationEventTypes): any;
-    getReceivedMessage(event: VerificationEventTypes): any;
+    getSentMessage(event: VerificationEventType): any;
+    getReceivedMessage(event: VerificationEventType): any;
     setStartMessage(content: any): void;
     cancelVerification(cancellationType: CancelReason): Promise<void>;
     acceptMessage: any;
@@ -70,8 +70,8 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     private readonly otherUserId: string;
     private readonly clock: Clock;
     private readonly deviceMessageHandler: DeviceMessageHandler;
-    private readonly sentMessages: Map<VerificationEventTypes, any> = new Map();
-    private readonly receivedMessages: Map<VerificationEventTypes, any> = new Map();
+    private readonly sentMessages: Map<VerificationEventType, any> = new Map();
+    private readonly receivedMessages: Map<VerificationEventType, any> = new Map();
     private readonly waitMap: Map<string, Deferred<any>> = new Map();
     private readonly log: ILogItem;
     public otherUserDeviceId: string;
@@ -120,12 +120,12 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         return this._isCancelled;
     }
 
-    async send(eventType: VerificationEventTypes, content: any, log: ILogItem): Promise<void> {
+    async send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void> {
         await log.wrap("ToDeviceChannel.send", async () => {
             if (this.isCancelled) {
                 throw new VerificationCancelledError();
             }
-            if (eventType === VerificationEventTypes.Request) {
+            if (eventType === VerificationEventType.Request) {
                 // Handle this case specially
                 await this.handleRequestEventSpecially(eventType, content, log);
                 return;
@@ -143,7 +143,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         });
     }
 
-    private async handleRequestEventSpecially(eventType: VerificationEventTypes, content: any, log: ILogItem) {
+    private async handleRequestEventSpecially(eventType: VerificationEventType, content: any, log: ILogItem) {
         await log.wrap("ToDeviceChannel.handleRequestEventSpecially", async () => {
             const timestamp = this.clock.now();
             const txnId = makeTxnId();
@@ -161,17 +161,17 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         });
     }
 
-    getReceivedMessage(event: VerificationEventTypes) {
+    getReceivedMessage(event: VerificationEventType) {
         return this.receivedMessages.get(event);
     }
 
-    getSentMessage(event: VerificationEventTypes) {
+    getSentMessage(event: VerificationEventType) {
         return this.sentMessages.get(event);
     }
 
     get acceptMessage(): any {
-        return this.receivedMessages.get(VerificationEventTypes.Accept) ??
-            this.sentMessages.get(VerificationEventTypes.Accept);
+        return this.receivedMessages.get(VerificationEventType.Accept) ??
+            this.sentMessages.get(VerificationEventType.Accept);
     }
 
 
@@ -194,11 +194,11 @@ export class ToDeviceChannel extends Disposables implements IChannel {
             log.log({ l: "event", event });
             this.resolveAnyWaits(event);
             this.receivedMessages.set(event.type, event);
-            if (event.type === VerificationEventTypes.Ready) {
+            if (event.type === VerificationEventType.Ready) {
                 this.handleReadyMessage(event, log);
                 return;
             }
-            if (event.type === VerificationEventTypes.Cancel) {
+            if (event.type === VerificationEventType.Cancel) {
                 this._isCancelled = true;
                 this.dispose();
                 return;
@@ -223,7 +223,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                 [this.otherUserId]: deviceMessages
             }
         }
-        await this.hsApi.sendToDevice(VerificationEventTypes.Cancel, payload, makeTxnId(), { log }).response();
+        await this.hsApi.sendToDevice(VerificationEventType.Cancel, payload, makeTxnId(), { log }).response();
     }
 
     async cancelVerification(cancellationType: CancelReason) {
@@ -242,7 +242,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                     }
                 }
             }
-            await this.hsApi.sendToDevice(VerificationEventTypes.Cancel, payload, makeTxnId(), { log }).response();
+            await this.hsApi.sendToDevice(VerificationEventType.Cancel, payload, makeTxnId(), { log }).response();
             this._isCancelled = true;
             this.dispose();
         });
@@ -257,7 +257,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         }
     }
 
-    waitForEvent(eventType: VerificationEventTypes): Promise<any> {
+    waitForEvent(eventType: VerificationEventType): Promise<any> {
         if (this._isCancelled) {
             throw new VerificationCancelledError();
         }

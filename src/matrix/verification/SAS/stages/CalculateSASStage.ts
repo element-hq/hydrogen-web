@@ -15,7 +15,7 @@ limitations under the License.
 */
 import anotherjson from "another-json";
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {CancelReason, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventType} from "../channel/types";
 import {generateEmojiSas} from "../generator";
 import {ILogItem} from "../../../../logging/types";
 import {SendMacStage} from "./SendMacStage";
@@ -82,8 +82,8 @@ export class CalculateSASStage extends BaseSASVerificationStage {
 
     async verifyHashCommitment(log: ILogItem) {
         return await log.wrap("CalculateSASStage.verifyHashCommitment", async () => {
-            const acceptMessage = this.channel.getReceivedMessage(VerificationEventTypes.Accept).content;
-            const keyMessage = this.channel.getReceivedMessage(VerificationEventTypes.Key).content;
+            const acceptMessage = this.channel.getReceivedMessage(VerificationEventType.Accept).content;
+            const keyMessage = this.channel.getReceivedMessage(VerificationEventType.Key).content;
             const commitmentStr = keyMessage.key + anotherjson.stringify(this.channel.startMessage.content);
             const receivedCommitment = acceptMessage.commitment;
             const hash = this.olmUtil.sha256(commitmentStr);
@@ -136,7 +136,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
     }
 
     get theirKey(): string {
-        const {content} = this.channel.getReceivedMessage(VerificationEventTypes.Key);
+        const {content} = this.channel.getReceivedMessage(VerificationEventType.Key);
         return content.key;
     }
 }
