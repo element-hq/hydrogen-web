@@ -63,7 +63,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("CalculateSASStage.completeStage", async (log) => {
             // 1. Check the hash commitment
-            if (this.needsToVerifyHashCommitment && !await this.verifyHashCommitment(log)) {
+            if (this.channel.initiatedByUs && !await this.verifyHashCommitment(log)) {
                 return;
             }
             // 2. Calculate the SAS
@@ -94,15 +94,6 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             }
             return true;
         });
-    }
-
-    private get needsToVerifyHashCommitment(): boolean {
-        if (this.channel.initiatedByUs) {
-            // If we sent the start message, we also received the accept message.
-            // The commitment is in the accept message, so we need to verify it.
-            return true;
-        }
-        return false;
     }
 
     private generateSASBytes(): Uint8Array {
