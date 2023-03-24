@@ -91,6 +91,11 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
             message_authentication_codes: MAC_LIST,
             short_authentication_string: SAS_LIST,
         };
+        /**
+         * Once we send the start event, we should eventually receive the accept message.
+         * This will cause the Promise.race in completeStage() to resolve and we'll move
+         * to the next stage (where we will send the key).
+         */
         await this.channel.send(VerificationEventTypes.Start, content, log);
         this.hasSentStartMessage = true;
     }
