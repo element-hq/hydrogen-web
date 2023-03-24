@@ -20,7 +20,7 @@ export class SendDoneStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("SendDoneStage.completeStage", async (log) => {
             this.eventEmitter.emit("VerificationCompleted", this.otherUserDeviceId);
-            await this.channel.send(VerificationEventTypes.Done, {}, log);
+            await this.channel.send(VerificationEventType.Done, {}, log);
         });
     }
 }

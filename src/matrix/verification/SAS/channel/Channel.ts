@@ -50,7 +50,7 @@ export interface IChannel {
     startMessage: any;
     initiatedByUs: boolean;
     isCancelled: boolean;
-    cancellation: { code: CancelTypes, cancelledByUs: boolean };
+    cancellation: { code: CancelReason, cancelledByUs: boolean };
     id: string;
     otherUserDeviceId: string;
 } 
@@ -80,7 +80,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     public startMessage: any;
     public id: string;
     private _initiatedByUs: boolean;
-    private _cancellation: { code: CancelTypes, cancelledByUs: boolean };
+    private _cancellation: { code: CancelReason, cancelledByUs: boolean };
 
     /**
      * 
@@ -204,7 +204,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                 this.handleReadyMessage(event, log);
                 return;
             }
-            if (event.type === VerificationEventTypes.Cancel) {
+            if (event.type === VerificationEventType.Cancel) {
                 this._cancellation = { code: event.content.code, cancelledByUs: false };
                 this.dispose();
                 return;
@@ -248,7 +248,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                     }
                 }
             }
-            await this.hsApi.sendToDevice(VerificationEventTypes.Cancel, payload, makeTxnId(), { log }).response();
+            await this.hsApi.sendToDevice(VerificationEventType.Cancel, payload, makeTxnId(), { log }).response();
             this._cancellation = { code: cancellationType, cancelledByUs: true };
             this.dispose();
         });
@@ -263,7 +263,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         }
     }
 
-    waitForEvent(eventType: VerificationEventTypes): Promise<any> {
+    waitForEvent(eventType: VerificationEventType): Promise<any> {
         if (this.isCancelled) {
             throw new VerificationCancelledError();
         }

@@ -16,15 +16,15 @@ limitations under the License.
 
 import {ViewModel, Options as BaseOptions} from "../../../ViewModel";
 import {SegmentType} from "../../../navigation/index";
-import {CancelTypes} from "../../../../matrix/verification/SAS/channel/types";
+import {CancelReason} from "../../../../matrix/verification/SAS/channel/types";
 
 type Options = BaseOptions & {
-    cancellationCode: CancelTypes;
+    cancellationCode: CancelReason;
     cancelledByUs: boolean;
 };
 
 export class VerificationCancelledViewModel extends ViewModel<SegmentType, Options> {
-    get cancelCode(): CancelTypes {
+    get cancelCode(): CancelReason {
         return this.options.cancellationCode;
     }
 

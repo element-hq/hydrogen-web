@@ -16,7 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../../general/TemplateView";
 import {VerificationCancelledViewModel} from "../../../../../../domain/session/verification/stages/VerificationCancelledViewModel";
-import {CancelTypes} from "../../../../../../matrix/verification/SAS/channel/types";
+import {CancelReason} from "../../../../../../matrix/verification/SAS/channel/types";
 
 export class VerificationCancelledView extends TemplateView<VerificationCancelledViewModel> {
     render(t, vm: VerificationCancelledViewModel) {
@@ -48,32 +48,32 @@ export class VerificationCancelledView extends TemplateView<VerificationCancelle
         );
     }
 
-    getDescriptionFromCancellationCode(code: CancelTypes, isCancelledByUs: boolean): string {
+    getDescriptionFromCancellationCode(code: CancelReason, isCancelledByUs: boolean): string {
         const descriptionsWhenWeCancelled = {
-            // [CancelTypes.UserCancelled]: NO_NEED_FOR_DESCRIPTION_HERE
-            [CancelTypes.InvalidMessage]: "You other device sent an invalid message.",
-            [CancelTypes.KeyMismatch]: "The key could not be verified.",
-            // [CancelTypes.OtherDeviceAccepted]: "Another device has accepted this request.",
-            [CancelTypes.TimedOut]: "The verification process timed out.",
-            [CancelTypes.UnexpectedMessage]: "Your other device sent an unexpected message.",
-            [CancelTypes.UnknownMethod]: "Your other device is using an unknown method for verification.",
-            [CancelTypes.UnknownTransaction]: "Your other device sent a message with an unknown transaction id.",
-            [CancelTypes.UserMismatch]: "The expected user did not match the user verified.",
-            [CancelTypes.MismatchedCommitment]: "The hash commitment does not match.",
-            [CancelTypes.MismatchedSAS]: "The emoji/decimal did not match.",
+            // [CancelReason.UserCancelled]: NO_NEED_FOR_DESCRIPTION_HERE
+            [CancelReason.InvalidMessage]: "You other device sent an invalid message.",
+            [CancelReason.KeyMismatch]: "The key could not be verified.",
+            // [CancelReason.OtherDeviceAccepted]: "Another device has accepted this request.",
+            [CancelReason.TimedOut]: "The verification process timed out.",
+            [CancelReason.UnexpectedMessage]: "Your other device sent an unexpected message.",
+            [CancelReason.UnknownMethod]: "Your other device is using an unknown method for verification.",
+            [CancelReason.UnknownTransaction]: "Your other device sent a message with an unknown transaction id.",
+            [CancelReason.UserMismatch]: "The expected user did not match the user verified.",
+            [CancelReason.MismatchedCommitment]: "The hash commitment does not match.",
+            [CancelReason.MismatchedSAS]: "The emoji/decimal did not match.",
         }
         const descriptionsWhenTheyCancelled = {
-            [CancelTypes.UserCancelled]: "Your other device cancelled the verification!",
-            [CancelTypes.InvalidMessage]: "Invalid message sent to the other device.",
-            [CancelTypes.KeyMismatch]: "The other device could not verify our keys",
-            // [CancelTypes.OtherDeviceAccepted]: "Another device has accepted this request.",
-            [CancelTypes.TimedOut]: "The verification process timed out.",
-            [CancelTypes.UnexpectedMessage]: "Unexpected message sent to the other device.",
-            [CancelTypes.UnknownMethod]: "Your other device does not understand the method you chose",
-            [CancelTypes.UnknownTransaction]: "Your other device rejected our message.",
-            [CancelTypes.UserMismatch]: "The expected user did not match the user verified.",
-            [CancelTypes.MismatchedCommitment]: "Your other device was not able to verify the hash commitment",
-            [CancelTypes.MismatchedSAS]: "The emoji/decimal did not match.",
+            [CancelReason.UserCancelled]: "Your other device cancelled the verification!",
+            [CancelReason.InvalidMessage]: "Invalid message sent to the other device.",
+            [CancelReason.KeyMismatch]: "The other device could not verify our keys",
+            // [CancelReason.OtherDeviceAccepted]: "Another device has accepted this request.",
+            [CancelReason.TimedOut]: "The verification process timed out.",
+            [CancelReason.UnexpectedMessage]: "Unexpected message sent to the other device.",
+            [CancelReason.UnknownMethod]: "Your other device does not understand the method you chose",
+            [CancelReason.UnknownTransaction]: "Your other device rejected our message.",
+            [CancelReason.UserMismatch]: "The expected user did not match the user verified.",
+            [CancelReason.MismatchedCommitment]: "Your other device was not able to verify the hash commitment",
+            [CancelReason.MismatchedSAS]: "The emoji/decimal did not match.",
         }
         const map = isCancelledByUs ? descriptionsWhenWeCancelled : descriptionsWhenTheyCancelled;
         return map[code] ?? "";

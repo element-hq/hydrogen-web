@@ -62,24 +62,23 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     }
     
     private addEventListeners() {
-        const emitter = this.sas.eventEmitter;
-        this.track(emitter.disposableOn("SelectVerificationStage", (stage) => {
+        this.track(this.sas.disposableOn("SelectVerificationStage", (stage) => {
             this.createViewModelAndEmit(
                 new SelectMethodViewModel(this.childOptions({ sas: this.sas, stage: stage!, }))
             );
             }));
-        this.track(emitter.disposableOn("EmojiGenerated", (stage) => {
+        this.track(this.sas.disposableOn("EmojiGenerated", (stage) => {
             this.createViewModelAndEmit(
                 new VerifyEmojisViewModel(this.childOptions({ stage: stage!, }))
             );
         }));
-        this.track(emitter.disposableOn("VerificationCancelled", (cancellation) => {
+        this.track(this.sas.disposableOn("VerificationCancelled", (cancellation) => {
             this.createViewModelAndEmit(
                 new VerificationCancelledViewModel(
                     this.childOptions({ cancellationCode: cancellation!.code, cancelledByUs: cancellation!.cancelledByUs, })
                 ));
             }));
-        this.track(emitter.disposableOn("VerificationCompleted", (deviceId) => {
+        this.track(this.sas.disposableOn("VerificationCompleted", (deviceId) => {
             this.createViewModelAndEmit(
                 new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
             );

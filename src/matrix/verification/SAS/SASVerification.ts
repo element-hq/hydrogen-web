@@ -85,7 +85,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
     }
 
     async abort() {
-        await this.channel.cancelVerification(CancelTypes.UserCancelled);
+        await this.channel.cancelVerification(CancelReason.UserCancelled);
     }
 
     async start() {
