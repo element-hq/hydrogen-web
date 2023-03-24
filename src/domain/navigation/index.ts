@@ -34,7 +34,7 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
-    "device-verification": true;
+    "device-verification": string;
     "join-room": true;
 };
 

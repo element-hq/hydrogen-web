@@ -24,10 +24,11 @@ import {VerifyEmojisViewModel} from "./stages/VerifyEmojisViewModel";
 import {VerificationCompleteViewModel} from "./stages/VerificationCompleteViewModel";
 import type {Session} from "../../../matrix/Session.js";
 import type {SASVerification} from "../../../matrix/verification/SAS/SASVerification";
+import type {SASRequest} from "../../../matrix/verification/SAS/SASRequest";
 
 type Options = BaseOptions & {
     session: Session;
-    sas: SASVerification;
+    request: SASRequest;
 };
 
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
@@ -38,10 +39,10 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     constructor(options: Readonly<Options>) {
         super(options);
         this.session = options.session;
-        const existingSas = this.session.crossSigning.receivedSASVerification.get();
-        if (existingSas) {
+        const sasRequest = options.request;
+        if (options.request) {
             // SAS already created from request
-            this.startWithExistingSAS(existingSas);
+            this.startWithSASRequest(sasRequest);
         }
         else {
             // We are about to send the request
@@ -54,9 +55,10 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         }
     }
 
-    private async startWithExistingSAS(sas: SASVerification) {
+    private async startWithSASRequest(request: SASRequest) {
         await this.logAndCatch("DeviceVerificationViewModel.startWithExistingSAS", (log) => {
-            this.sas = sas;
+            const crossSigning = this.session.crossSigning;
+            this.sas = crossSigning.startVerification(request, log);
             this.hookToEvents();
             return this.sas.start();
         });
@@ -66,8 +68,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         await this.logAndCatch("DeviceVerificationViewModel.createAndStartSasVerification", (log) => {
             // todo: can crossSigning be undefined?
             const crossSigning = this.session.crossSigning;
-            // todo: should be called createSasVerification
-            this.sas = crossSigning.startVerification(this.session.userId, undefined, log);
+            this.sas = crossSigning.startVerification(this.session.userId, log);
             this.hookToEvents();
             return this.sas.start();
         });

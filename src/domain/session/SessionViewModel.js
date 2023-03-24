@@ -98,8 +98,8 @@ export class SessionViewModel extends ViewModel {
         this._updateJoinRoom(joinRoom.get());
 
         const verification = this.navigation.observe("device-verification");
-        this.track(verification.subscribe((verificationOpen) => {
-            this._updateVerification(verificationOpen);
+        this.track(verification.subscribe((txnId) => {
+            this._updateVerification(txnId);
         }));
         this._updateVerification(verification.get());
 
@@ -340,12 +340,13 @@ export class SessionViewModel extends ViewModel {
         this.emitChange("activeMiddleViewModel");
     }
 
-    _updateVerification(verificationOpen) {
+    _updateVerification(txnId) {
         if (this._verificationViewModel) {
             this._verificationViewModel = this.disposeTracked(this._verificationViewModel);
         }
-        if (verificationOpen) {
-            this._verificationViewModel = this.track(new DeviceVerificationViewModel(this.childOptions({ session: this._client.session })));
+        if (txnId) {
+            const request = this._client.session.crossSigning.receivedSASVerifications.get(txnId);
+            this._verificationViewModel = this.track(new DeviceVerificationViewModel(this.childOptions({ session: this._client.session, request })));
         }
         this.emitChange("activeMiddleViewModel");
     }

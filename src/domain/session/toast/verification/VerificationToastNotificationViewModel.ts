@@ -15,14 +15,14 @@ limitations under the License.
 */
 import {BaseClassOptions, BaseToastNotificationViewModel} from ".././BaseToastNotificationViewModel";
 import {SegmentType} from "../../../navigation";
-import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
+import {SASRequest} from "../../../../matrix/verification/SAS/SASRequest";
 
 type Options<N extends MinimumNeededSegmentType = SegmentType> = {
-    sas: SASVerification;
+    request: SASRequest;
 } & BaseClassOptions<N>;
 
 type MinimumNeededSegmentType = {
-    "device-verification": true;
+    "device-verification": string;
 };
 
 export class VerificationToastNotificationViewModel<N extends MinimumNeededSegmentType = SegmentType, O extends Options<N> = Options<N>> extends BaseToastNotificationViewModel<N, O> {
@@ -34,17 +34,17 @@ export class VerificationToastNotificationViewModel<N extends MinimumNeededSegme
         return "verification";
     }
 
-    get sas(): SASVerification {
-        return this.getOption("sas");
+    get request(): SASRequest {
+        return this.getOption("request");
     }
 
     get otherDeviceId(): string {
-        return this.sas.otherDeviceId;
+        return this.request.deviceId;
     }
 
     accept() {
         // @ts-ignore
-        this.navigation.push("device-verification", true);
+        this.navigation.push("device-verification", this.request.id);
         this.dismiss();
     }
 

@@ -21,13 +21,11 @@ import {ViewModel, Options as BaseOptions} from "../../../ViewModel";
 import type {Session} from "../../../../matrix/Session.js";
 import type {SegmentType} from "../../../navigation";
 import type {IToastCollection} from "../IToastCollection";
-import { SASVerification } from "../../../../matrix/verification/SAS/SASVerification";
+import type {SASRequest} from "../../../../matrix/verification/SAS/SASRequest";
 
 type Options = {
     session: Session;
 } & BaseOptions;
-
-
 
 export class VerificationToastCollectionViewModel extends ViewModel<SegmentType, Options> implements IToastCollection {
     public readonly toastViewModels: ObservableArray<VerificationToastNotificationViewModel> = new ObservableArray();
@@ -42,27 +40,38 @@ export class VerificationToastCollectionViewModel extends ViewModel<SegmentType,
         if (this.features.crossSigning) {
             // todo: hack; remove
             await new Promise(r => setTimeout(r, 3000));
-            const sasObservable = session.crossSigning.receivedSASVerification;
-            this.track(
-                sasObservable.subscribe((sas) => {
-                    if (sas) {
-                        this.createToast(sas);
-                    }
-                    else {
-                        this.toastViewModels.remove(0);
-                    }
-                })
-            );
+            const map = session.crossSigning.receivedSASVerifications;
+            this.track(map.subscribe(this));
         }
     }
 
-    private createToast(sas: SASVerification) {
+    async onAdd(_, request: SASRequest) {
         const dismiss = () => {
-            const idx = this.toastViewModels.array.findIndex(vm => vm.sas === sas);
+            const idx = this.toastViewModels.array.findIndex(vm => vm.request.id === request.id);
             if (idx !== -1) {
                 this.toastViewModels.remove(idx);
             }
         };
-        this.toastViewModels.append(new VerificationToastNotificationViewModel(this.childOptions({ sas, dismiss })));
+        this.toastViewModels.append(new VerificationToastNotificationViewModel(this.childOptions({ request, dismiss })));
+    }
+
+    onRemove(_, request: SASRequest) {
+        const idx = this.toastViewModels.array.findIndex(vm => vm.request.id === request.id);
+        if (idx !== -1) {
+            this.toastViewModels.remove(idx);
+        }
+    }
+
+    onUpdate(_, request: SASRequest) {
+        const idx = this.toastViewModels.array.findIndex(vm => vm.request.id === request.id);
+        if (idx !== -1) {
+            this.toastViewModels.update(idx, this.toastViewModels.at(idx)!);
+        }
+    }
+
+    onReset() {
+        for (let i = 0; i < this.toastViewModels.length; ++i) {
+            this.toastViewModels.remove(i);
+        }
     }
 }
