@@ -118,6 +118,10 @@ export class CrossSigning {
         this.deviceMessageHandler = options.deviceMessageHandler;
 
         this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
+            if (unencryptedEvent.type === VerificationEventTypes.Cancel &&
+                this.sasVerificationInProgress?.channel.id === unencryptedEvent.content.transaction_id) {
+                this.receivedSASVerification.set(undefined);
+            }
             if (this.sasVerificationInProgress &&
                 (
                     !this.sasVerificationInProgress.finished ||

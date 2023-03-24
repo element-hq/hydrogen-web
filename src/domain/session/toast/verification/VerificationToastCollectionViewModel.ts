@@ -43,7 +43,16 @@ export class VerificationToastCollectionViewModel extends ViewModel<SegmentType,
             // todo: hack; remove
             await new Promise(r => setTimeout(r, 3000));
             const sasObservable = session.crossSigning.receivedSASVerification;
-            this.track(sasObservable.subscribe((sas) => this.createToast(sas)));
+            this.track(
+                sasObservable.subscribe((sas) => {
+                    if (sas) {
+                        this.createToast(sas);
+                    }
+                    else {
+                        this.toastViewModels.remove(0);
+                    }
+                })
+            );
         }
     }
 
