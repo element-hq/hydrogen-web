@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { ILogItem } from "../../lib";
+import {ILogItem} from "../../logging/types";
 import {pkSign} from "./common";
 
 import type {SecretStorage} from "../ssss/SecretStorage";
