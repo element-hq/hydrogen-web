@@ -9,7 +9,7 @@ export const enum VerificationEventTypes {
     Done = "m.key.verification.done",
 }
 
-export const enum CancelTypes {
+export const enum CancelReason {
     UserCancelled = "m.user",
     TimedOut = "m.timeout",
     UnknownTransaction = "m.unknown_transaction",

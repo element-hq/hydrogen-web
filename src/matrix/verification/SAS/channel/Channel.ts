@@ -20,22 +20,22 @@ import type {ILogItem} from "../../../../logging/types";
 import type {Clock} from "../../../../platform/web/dom/Clock.js";
 import type {DeviceMessageHandler} from "../../../DeviceMessageHandler.js";
 import {makeTxnId} from "../../../common.js";
-import {CancelTypes, VerificationEventTypes} from "./types";
+import {CancelReason, VerificationEventTypes} from "./types";
 import {Disposables} from "../../../../utils/Disposables";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 
 const messageFromErrorType = {
-    [CancelTypes.UserCancelled]: "User declined",
-    [CancelTypes.InvalidMessage]: "Invalid Message.",
-    [CancelTypes.KeyMismatch]: "Key Mismatch.",
-    [CancelTypes.OtherDeviceAccepted]: "Another device has accepted this request.",
-    [CancelTypes.TimedOut]: "Timed Out",
-    [CancelTypes.UnexpectedMessage]: "Unexpected Message.",
-    [CancelTypes.UnknownMethod]: "Unknown method.",
-    [CancelTypes.UnknownTransaction]: "Unknown Transaction.",
-    [CancelTypes.UserMismatch]: "User Mismatch",
-    [CancelTypes.MismatchedCommitment]: "Hash commitment does not match.",
-    [CancelTypes.MismatchedSAS]: "Emoji/decimal does not match.",
+    [CancelReason.UserCancelled]: "User declined",
+    [CancelReason.InvalidMessage]: "Invalid Message.",
+    [CancelReason.KeyMismatch]: "Key Mismatch.",
+    [CancelReason.OtherDeviceAccepted]: "Another device has accepted this request.",
+    [CancelReason.TimedOut]: "Timed Out",
+    [CancelReason.UnexpectedMessage]: "Unexpected Message.",
+    [CancelReason.UnknownMethod]: "Unknown method.",
+    [CancelReason.UnknownTransaction]: "Unknown Transaction.",
+    [CancelReason.UserMismatch]: "User Mismatch",
+    [CancelReason.MismatchedCommitment]: "Hash commitment does not match.",
+    [CancelReason.MismatchedSAS]: "Emoji/decimal does not match.",
 }
 
 export interface IChannel {
@@ -45,7 +45,7 @@ export interface IChannel {
     getReceivedMessage(event: VerificationEventTypes): any;
     setStartMessage(content: any): void;
     setOurDeviceId(id: string): void;
-    cancelVerification(cancellationType: CancelTypes): Promise<void>;
+    cancelVerification(cancellationType: CancelReason): Promise<void>;
     acceptMessage: any;
     startMessage: any;
     initiatedByUs: boolean;
@@ -185,7 +185,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                  * This does not apply for inbound m.key.verification.start or m.key.verification.cancel messages.
                  */
                 console.log("Received event with unknown transaction id: ", event);
-                await this.cancelVerification(CancelTypes.UnknownTransaction);
+                await this.cancelVerification(CancelReason.UnknownTransaction);
                 return;
             }
             console.log("event", event);
@@ -211,8 +211,8 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         const devices = await this.deviceTracker.devicesForUsers([this.otherUserId], this.hsApi, log);
         const otherDevices = devices.filter(device => device.deviceId !== fromDevice && device.deviceId !== this.ourDeviceId);
         const cancelMessage = {
-            code: CancelTypes.OtherDeviceAccepted,
-            reason: messageFromErrorType[CancelTypes.OtherDeviceAccepted],
+            code: CancelReason.OtherDeviceAccepted,
+            reason: messageFromErrorType[CancelReason.OtherDeviceAccepted],
             transaction_id: this.id,
         };
         const deviceMessages = otherDevices.reduce((acc, device) => { acc[device.deviceId] = cancelMessage; return acc; }, {});
@@ -224,7 +224,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         await this.hsApi.sendToDevice(VerificationEventTypes.Cancel, payload, makeTxnId(), { log }).response();
     }
 
-    async cancelVerification(cancellationType: CancelTypes) {
+    async cancelVerification(cancellationType: CancelReason) {
         await this.log.wrap("Channel.cancelVerification", async log => {
             if (this.isCancelled) {
                 throw new VerificationCancelledError();

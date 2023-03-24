@@ -21,7 +21,7 @@ import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
 import {IChannel} from "./channel/Channel";
 import {HomeServerApi} from "../../net/HomeServerApi";
-import {CancelTypes, VerificationEventTypes} from "./channel/types";
+import {CancelReason, VerificationEventTypes} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 import {VerificationCancelledError} from "./VerificationCancelledError";
@@ -78,7 +78,7 @@ export class SASVerification {
             const tenMinutes = 10 * 60 * 1000;
             this.timeout = clock.createTimeout(tenMinutes);
             await this.timeout.elapsed();
-            await this.channel.cancelVerification(CancelTypes.TimedOut);
+            await this.channel.cancelVerification(CancelReason.TimedOut);
         }
         catch {
             // Ignore errors

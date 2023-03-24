@@ -15,7 +15,7 @@ limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {ILogItem} from "../../../../logging/types";
-import {CancelTypes, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventTypes} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import {SendDoneStage} from "./SendDoneStage";
 
@@ -46,7 +46,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
         const calculatedMAC = calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS");
         if (content.keys !== calculatedMAC) {
             log.log({ l: "MAC verification failed for keys field", keys: content.keys, calculated: calculatedMAC });
-            this.channel.cancelVerification(CancelTypes.KeyMismatch);
+            this.channel.cancelVerification(CancelReason.KeyMismatch);
             return;
         }
 
@@ -54,7 +54,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             const calculatedMAC = calculateMAC(key, baseInfo + keyId);
             if (keyInfo !== calculatedMAC) {
                 log.log({ l: "Mac verification failed for key", keyMac: keyInfo, calculatedMAC, keyId, key });
-                this.channel.cancelVerification(CancelTypes.KeyMismatch);
+                this.channel.cancelVerification(CancelReason.KeyMismatch);
                 return;
             }
         }, log);

@@ -15,7 +15,7 @@ limitations under the License.
 */
 import anotherjson from "another-json";
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {CancelTypes, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventTypes} from "../channel/types";
 import {generateEmojiSas} from "../generator";
 import {ILogItem} from "../../../../logging/types";
 import {SendMacStage} from "./SendMacStage";
@@ -89,7 +89,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             const hash = this.olmUtil.sha256(commitmentStr);
             if (hash !== receivedCommitment) {
                 log.log({l: "Commitment mismatched!", received: receivedCommitment, calculated: hash});
-                await this.channel.cancelVerification(CancelTypes.MismatchedCommitment);
+                await this.channel.cancelVerification(CancelReason.MismatchedCommitment);
                 return false;
             }
             return true;
@@ -130,7 +130,7 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             this.resolve();
         }
         else {
-            await this.channel.cancelVerification(CancelTypes.MismatchedSAS);
+            await this.channel.cancelVerification(CancelReason.MismatchedSAS);
             this.reject(new VerificationCancelledError());
         }
     }

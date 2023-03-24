@@ -16,7 +16,7 @@ limitations under the License.
 import anotherjson from "another-json";
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
 import {HASHES_LIST, MAC_LIST, SAS_SET, KEY_AGREEMENT_LIST} from "./constants";
-import {CancelTypes, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventTypes} from "../channel/types";
 import {SendKeyStage} from "./SendKeyStage";
 
 // from element-web
@@ -33,7 +33,7 @@ export class SendAcceptVerificationStage extends BaseSASVerificationStage {
             const macMethod = intersection(MAC_LIST, new Set(startMessage.message_authentication_codes))[0];
             const sasMethod = intersection(startMessage.short_authentication_string, SAS_SET);
             if (!keyAgreement || !hashMethod || !macMethod || !sasMethod.length) {
-                await this.channel.cancelVerification(CancelTypes.UnknownMethod);
+                await this.channel.cancelVerification(CancelReason.UnknownMethod);
                 return;
             }
             const ourPubKey = this.olmSAS.get_pubkey();

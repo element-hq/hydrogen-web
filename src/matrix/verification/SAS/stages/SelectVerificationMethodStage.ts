@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {CancelTypes, VerificationEventTypes} from "../channel/types";
+import {CancelReason, VerificationEventTypes} from "../channel/types";
 import {KEY_AGREEMENT_LIST, HASHES_LIST, MAC_LIST, SAS_LIST} from "./constants";
 import {SendAcceptVerificationStage} from "./SendAcceptVerificationStage";
 import {SendKeyStage} from "./SendKeyStage";
@@ -69,7 +69,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                     received: receivedStartMessage.content.method,
                     sent: sentStartMessage.content.method,
                 });
-                await this.channel.cancelVerification(CancelTypes.UnexpectedMessage);
+                await this.channel.cancelVerification(CancelReason.UnexpectedMessage);
                 return;
             }
             // In the case of conflict, the lexicographically smaller id wins 

@@ -2,7 +2,7 @@ import type {ILogItem} from "../../../../lib";
 import {createCalculateMAC} from "../mac";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 import {IChannel} from "./Channel";
-import {CancelTypes, VerificationEventTypes} from "./types";
+import {CancelReason, VerificationEventTypes} from "./types";
 import anotherjson from "another-json";
 
 interface ITestChannel extends IChannel {
@@ -115,7 +115,7 @@ export class MockChannel implements ITestChannel {
         this.ourUserDeviceId = id;
     }
 
-    async cancelVerification(_: CancelTypes): Promise<void> {
+    async cancelVerification(_: CancelReason): Promise<void> {
         console.log("MockChannel.cancelVerification()");
         this.isCancelled = true;
     }
