@@ -182,7 +182,7 @@ export class CrossSigning {
             if (userId === this.ownUserId) {
                 return;
             }
-            const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, undefined, log);
+            const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
             if (!keyToSign) {
                 return;
             }
