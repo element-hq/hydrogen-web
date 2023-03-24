@@ -17,6 +17,7 @@ limitations under the License.
 import {ConcatList} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import {CallToastCollectionViewModel} from "./calls/CallsToastCollectionViewModel";
+import {VerificationToastCollectionViewModel} from "./verification/VerificationToastCollectionViewModel";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
 import type {BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";
@@ -31,8 +32,9 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     constructor(options: Options) {
         super(options);
         const session = this.getOption("session");
-        const vms = [
+        const vms: any = [
             this.track(new CallToastCollectionViewModel(this.childOptions({ session }))),
+            this.track(new VerificationToastCollectionViewModel(this.childOptions({session}))),
         ].map(vm => vm.toastViewModels);
         this.toastViewModels = new ConcatList(...vms);
     }

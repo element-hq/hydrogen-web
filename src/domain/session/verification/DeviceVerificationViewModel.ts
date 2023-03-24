@@ -27,6 +27,7 @@ import type {SASVerification} from "../../../matrix/verification/SAS/SASVerifica
 
 type Options = BaseOptions & {
     session: Session;
+    sas: SASVerification;
 };
 
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
@@ -37,44 +38,64 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     constructor(options: Readonly<Options>) {
         super(options);
         this.session = options.session;
-        this.createAndStartSasVerification();
-        this._currentStageViewModel = this.track(
-            new WaitingForOtherUserViewModel(
-                this.childOptions({ sas: this.sas })
-            )
-        );
+        const existingSas = this.session.crossSigning.receivedSASVerification.get();
+        if (existingSas) {
+            // SAS already created from request
+            this.startWithExistingSAS(existingSas);
+        }
+        else {
+            // We are about to send the request
+            this.createAndStartSasVerification();
+            this._currentStageViewModel = this.track(
+                new WaitingForOtherUserViewModel(
+                    this.childOptions({ sas: this.sas })
+                )
+            );
+        }
+    }
+
+    private async startWithExistingSAS(sas: SASVerification) {
+        await this.logAndCatch("DeviceVerificationViewModel.startWithExistingSAS", (log) => {
+            this.sas = sas;
+            this.hookToEvents();
+            return this.sas.start();
+        });
     }
     
-    async createAndStartSasVerification(): Promise<void> {
+    private async createAndStartSasVerification(): Promise<void> {
         await this.logAndCatch("DeviceVerificationViewModel.createAndStartSasVerification", (log) => {
             // todo: can crossSigning be undefined?
             const crossSigning = this.session.crossSigning;
             // todo: should be called createSasVerification
             this.sas = crossSigning.startVerification(this.session.userId, undefined, log);
-            const emitter = this.sas.eventEmitter;
-            this.track(emitter.disposableOn("SelectVerificationStage", (stage) => {
-                this.createViewModelAndEmit(
-                    new SelectMethodViewModel(this.childOptions({ sas: this.sas, stage: stage!, }))
-                );
-             }));
-            this.track(emitter.disposableOn("EmojiGenerated", (stage) => {
-                this.createViewModelAndEmit(
-                    new VerifyEmojisViewModel(this.childOptions({ stage: stage!, }))
-                );
-            }));
-            this.track(emitter.disposableOn("VerificationCancelled", (cancellation) => {
-                this.createViewModelAndEmit(
-                    new VerificationCancelledViewModel(
-                        this.childOptions({ cancellationCode: cancellation!.code, cancelledByUs: cancellation!.cancelledByUs, })
-                    ));
-             }));
-            this.track(emitter.disposableOn("VerificationCompleted", (deviceId) => {
-                this.createViewModelAndEmit(
-                    new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
-                );
-            }));
+            this.hookToEvents();
             return this.sas.start();
         });
+    }
+
+    private hookToEvents() {
+        const emitter = this.sas.eventEmitter;
+        this.track(emitter.disposableOn("SelectVerificationStage", (stage) => {
+            this.createViewModelAndEmit(
+                new SelectMethodViewModel(this.childOptions({ sas: this.sas, stage: stage!, }))
+            );
+            }));
+        this.track(emitter.disposableOn("EmojiGenerated", (stage) => {
+            this.createViewModelAndEmit(
+                new VerifyEmojisViewModel(this.childOptions({ stage: stage!, }))
+            );
+        }));
+        this.track(emitter.disposableOn("VerificationCancelled", (cancellation) => {
+            this.createViewModelAndEmit(
+                new VerificationCancelledViewModel(
+                    this.childOptions({ cancellationCode: cancellation!.code, cancelledByUs: cancellation!.cancelledByUs, })
+                ));
+            }));
+        this.track(emitter.disposableOn("VerificationCompleted", (deviceId) => {
+            this.createViewModelAndEmit(
+                new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
+            );
+        }));
     }
 
     private createViewModelAndEmit(vm) {

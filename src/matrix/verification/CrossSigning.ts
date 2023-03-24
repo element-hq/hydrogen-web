@@ -19,6 +19,7 @@ import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/Channel";
 import {VerificationEventType} from "./SAS/channel/types";
+import {ObservableValue} from "../../observable/value/ObservableValue";
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
 import type {Platform} from "../../platform/web/Platform";
@@ -29,6 +30,7 @@ import type {ILogItem} from "../../logging/types";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
 import type * as OlmNamespace from "@matrix-org/olm";
+
 type Olm = typeof OlmNamespace;
 
 // we store cross-signing (and device) keys in the format we get them from the server
@@ -88,6 +90,7 @@ export class CrossSigning {
     private _isMasterKeyTrusted: boolean = false;
     private readonly deviceId: string;
     private sasVerificationInProgress?: SASVerification;
+    public receivedSASVerification: ObservableValue<SASVerification | undefined> = new ObservableValue(undefined);
 
     constructor(options: {
         storage: Storage,
@@ -125,9 +128,10 @@ export class CrossSigning {
             }
             if (unencryptedEvent.type === VerificationEventType.Request ||
                 unencryptedEvent.type === VerificationEventType.Start) {
-                await this.platform.logger.run("Start verification from request", async (log) => {
-                    const sas = this.startVerification(unencryptedEvent.sender, unencryptedEvent, log);
-                    await sas?.start();
+                this.platform.logger.run("Start verification from request", (log) => {
+                    //todo: We can have more than one sas requests
+                    this.sasVerificationInProgress = this.startVerification(unencryptedEvent.sender, unencryptedEvent, log);
+                    this.receivedSASVerification.set(this.sasVerificationInProgress!);
                 });
             }
         })
