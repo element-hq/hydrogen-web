@@ -46,21 +46,21 @@ type Options = {
     clock: Clock;
 }
 
-export class SASVerification {
+export class SASVerification extends EventEmitter<SASProgressEvents> {
     private startStage: BaseSASVerificationStage;
     private olmSas: Olm.SAS;
     public finished: boolean = false;
     public readonly channel: IChannel;
     private timeout: Timeout;
-    public readonly eventEmitter: EventEmitter<SASProgressEvents> = new EventEmitter();
    
     constructor(options: Options) {
+        super();
         const { olm, channel, clock } = options;
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         this.channel = channel;
         this.setupCancelAfterTimeout(clock);
-        const stageOptions = {...options, olmSas, eventEmitter: this.eventEmitter};
+        const stageOptions = {...options, olmSas, eventEmitter: this};
         if (channel.getReceivedMessage(VerificationEventTypes.Start)) {
             this.startStage = new SelectVerificationMethodStage(stageOptions);
         }
@@ -188,7 +188,7 @@ export function tests() {
             });
             // @ts-ignore
             channel.setOlmSas(sas.olmSas);
-            sas.eventEmitter.on("EmojiGenerated", async (stage) => {
+            sas.on("EmojiGenerated", async (stage) => {
                 await stage?.setEmojiMatch(true);
             });
             return { sas, clock, logger };
@@ -251,7 +251,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            sas.eventEmitter.on("SelectVerificationStage", (stage) => {
+            sas.on("SelectVerificationStage", (stage) => {
                 logger.run("send start", async (log) => {
                     await stage?.selectEmojiMethod(log);
                 });
@@ -370,7 +370,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            sas.eventEmitter.on("SelectVerificationStage", (stage) => {
+            sas.on("SelectVerificationStage", (stage) => {
                 logger.run("send start", async (log) => {
                     await stage?.selectEmojiMethod(log);
                 });
@@ -456,7 +456,7 @@ export function tests() {
                 receivedMessages,
                 startingMessage,
             );
-            sas.eventEmitter.on("SelectVerificationStage", (stage) => {
+            sas.on("SelectVerificationStage", (stage) => {
                 logger.run("send start", async (log) => {
                     await stage?.selectEmojiMethod(log);
                 });
@@ -499,7 +499,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            sas.eventEmitter.on("SelectVerificationStage", (stage) => {
+            sas.on("SelectVerificationStage", (stage) => {
                 logger.run("send start", async (log) => {
                     await stage?.selectEmojiMethod(log);
                 });
