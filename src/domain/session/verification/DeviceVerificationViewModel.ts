@@ -41,12 +41,11 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         this.session = options.session;
         const sasRequest = options.request;
         if (options.request) {
-            // SAS already created from request
-            this.startWithSASRequest(sasRequest);
+            this.start(sasRequest);
         }
         else {
             // We are about to send the request
-            this.createAndStartSasVerification();
+            this.start(this.session.userId);
             this._currentStageViewModel = this.track(
                 new WaitingForOtherUserViewModel(
                     this.childOptions({ sas: this.sas })
@@ -55,26 +54,16 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         }
     }
 
-    private async startWithSASRequest(request: SASRequest) {
+    private async start(requestOrUserId: SASRequest | string) {
         await this.logAndCatch("DeviceVerificationViewModel.startWithExistingSAS", (log) => {
             const crossSigning = this.session.crossSigning;
-            this.sas = crossSigning.startVerification(request, log);
-            this.hookToEvents();
+            this.sas = crossSigning.startVerification(requestOrUserId, log);
+            this.addEventListeners();
             return this.sas.start();
         });
     }
     
-    private async createAndStartSasVerification(): Promise<void> {
-        await this.logAndCatch("DeviceVerificationViewModel.createAndStartSasVerification", (log) => {
-            // todo: can crossSigning be undefined?
-            const crossSigning = this.session.crossSigning;
-            this.sas = crossSigning.startVerification(this.session.userId, log);
-            this.hookToEvents();
-            return this.sas.start();
-        });
-    }
-
-    private hookToEvents() {
+    private addEventListeners() {
         const emitter = this.sas.eventEmitter;
         this.track(emitter.disposableOn("SelectVerificationStage", (stage) => {
             this.createViewModelAndEmit(

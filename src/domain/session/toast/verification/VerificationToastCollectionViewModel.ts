@@ -38,7 +38,7 @@ export class VerificationToastCollectionViewModel extends ViewModel<SegmentType,
     async observeSASRequests() {
         const session = this.getOption("session");
         if (this.features.crossSigning) {
-            // todo: hack; remove
+            // todo: hack to wait for crossSigning; remove
             await new Promise(r => setTimeout(r, 3000));
             const map = session.crossSigning.receivedSASVerifications;
             this.track(map.subscribe(this));
