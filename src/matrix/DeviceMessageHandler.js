@@ -114,9 +114,10 @@ export class DeviceMessageHandler extends EventEmitter{
     }
 
     _emitEncryptedEvents(decryptionResults) {
-        for (const result of decryptionResults) {
-            this.emit("message", { encrypted: result });
-        }
+        // We don't emit for now as we're not verifying the identity of the sender
+        // for (const result of decryptionResults) {
+        //     this.emit("message", { encrypted: result });
+        // }
     }
 }
 
