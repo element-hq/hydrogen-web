@@ -40,8 +40,8 @@ const messageFromErrorType = {
 }
 
 export interface IChannel {
-    send(eventType: string, content: any, log: ILogItem): Promise<void>;
-    waitForEvent(eventType: string): Promise<any>;
+    send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void>;
+    waitForEvent(eventType: VerificationEventType): Promise<any>;
     getSentMessage(event: VerificationEventType): any;
     getReceivedMessage(event: VerificationEventType): any;
     setStartMessage(content: any): void;
