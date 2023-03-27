@@ -252,7 +252,9 @@ export class Session {
                 this._keyBackup.get().dispose();
                 this._keyBackup.set(undefined);
             }
-            // TODO: stop cross-signing
+            if (this._crossSigning.get()) {
+                this._crossSigning.set(undefined);
+            }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
             if (await this._tryLoadSecretStorage(key, log)) {
                 // only after having read a secret, write the key
@@ -313,9 +315,11 @@ export class Session {
                 }
             }
             this._keyBackup.get().dispose();
-            this._keyBackup.set(null);
+            this._keyBackup.set(undefined);
         }
-        // TODO: stop cross-signing
+        if (this._crossSigning.get()) {
+            this._crossSigning.set(undefined);
+        }
     }
 
     _tryLoadSecretStorage(ssssKey, log) {
