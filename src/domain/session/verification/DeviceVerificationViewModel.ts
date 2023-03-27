@@ -75,9 +75,10 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         this.track(this.sas.disposableOn("VerificationCancelled", (cancellation) => {
             this.createViewModelAndEmit(
                 new VerificationCancelledViewModel(
-                    this.childOptions({ cancellationCode: cancellation!.code, cancelledByUs: cancellation!.cancelledByUs, })
-                ));
-            }));
+                    this.childOptions({ cancellation: cancellation! })
+                )
+            );
+        }));
         this.track(this.sas.disposableOn("VerificationCompleted", (deviceId) => {
             this.createViewModelAndEmit(
                 new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
