@@ -19,14 +19,14 @@ import type {BaseSASVerificationStage} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
 import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
-import {IChannel} from "./channel/Channel";
-import {HomeServerApi} from "../../net/HomeServerApi";
+import type {IChannel} from "./channel/Channel";
+import type {HomeServerApi} from "../../net/HomeServerApi";
+import type {Timeout} from "../../../platform/types/types";
+import type {Clock} from "../../../platform/web/dom/Clock.js";
 import {CancelReason, VerificationEventType} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 import {VerificationCancelledError} from "./VerificationCancelledError";
-import {Timeout} from "../../../platform/types/types";
-import {Clock} from "../../../platform/web/dom/Clock.js";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {SASProgressEvents} from "./types";
 
