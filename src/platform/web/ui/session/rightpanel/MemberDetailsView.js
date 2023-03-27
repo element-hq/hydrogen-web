@@ -26,9 +26,10 @@ export class MemberDetailsView extends TemplateView {
         ]
 
         if (vm.features.crossSigning) {
-            securityNodes.push(t.p(vm => vm.isTrusted ? vm.i18n`This user is trusted` : vm.i18n`This user is not trusted`));
-            securityNodes.push(t.p(vm => vm.trustDescription));
-            securityNodes.push(t.p(["Shield color: ", vm => vm.trustShieldColor]));
+            securityNodes.push(t.div({className: "MemberDetailsView_shield_container"}, [
+                t.span({className: vm => `MemberDetailsView_shield_${vm.trustShieldColor}`}),
+                t.p({className: "MemberDetailsView_shield_description"}, vm => vm.trustDescription)
+            ]));
         }
 
         return t.div({className: "MemberDetailsView"},
