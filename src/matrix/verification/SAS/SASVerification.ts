@@ -103,7 +103,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         }
         finally {
             if (this.channel.isCancelled) {
-                this.eventEmitter.emit("VerificationCancelled", this.channel.cancellation);
+                this.emit("VerificationCancelled", this.channel.cancellation);
             }
             this.olmSas.free();
             this.timeout.abort();
