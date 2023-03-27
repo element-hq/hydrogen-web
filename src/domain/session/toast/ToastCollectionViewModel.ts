@@ -21,6 +21,7 @@ import {VerificationToastCollectionViewModel} from "./verification/VerificationT
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
 import type {BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";
+import type {IToastCollection} from "./IToastCollection";
 
 type Options = {
     session: Session;
@@ -32,7 +33,7 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     constructor(options: Options) {
         super(options);
         const session = this.getOption("session");
-        const vms: any = [
+        const vms: IToastCollection["toastViewModels"][] = [
             this.track(new CallToastCollectionViewModel(this.childOptions({ session }))),
             this.track(new VerificationToastCollectionViewModel(this.childOptions({session}))),
         ].map(vm => vm.toastViewModels);
