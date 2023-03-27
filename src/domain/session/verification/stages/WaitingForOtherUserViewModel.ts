@@ -26,4 +26,8 @@ export class WaitingForOtherUserViewModel extends ViewModel<SegmentType, Options
     async cancel() {
         await this.options.sas.abort();
     }
+
+    get kind(): string {
+        return "waiting-for-user";
+    }
 }

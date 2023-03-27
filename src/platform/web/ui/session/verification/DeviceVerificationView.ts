@@ -14,21 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";
-import {WaitingForOtherUserViewModel} from "../../../../../domain/session/verification/stages/WaitingForOtherUserViewModel";
+import {Builder, TemplateView} from "../../general/TemplateView";
 import {DeviceVerificationViewModel} from "../../../../../domain/session/verification/DeviceVerificationViewModel";
-import {VerificationCancelledViewModel} from "../../../../../domain/session/verification/stages/VerificationCancelledViewModel";
 import {WaitingForOtherUserView} from "./stages/WaitingForOtherUserView";
 import {VerificationCancelledView} from "./stages/VerificationCancelledView";
-import {SelectMethodViewModel} from "../../../../../domain/session/verification/stages/SelectMethodViewModel";
 import {SelectMethodView} from "./stages/SelectMethodView";
-import {VerifyEmojisViewModel} from "../../../../../domain/session/verification/stages/VerifyEmojisViewModel";
 import {VerifyEmojisView} from "./stages/VerifyEmojisView";
-import {VerificationCompleteViewModel} from "../../../../../domain/session/verification/stages/VerificationCompleteViewModel";
 import {VerificationCompleteView} from "./stages/VerificationCompleteView";
 
 export class DeviceVerificationView extends TemplateView<DeviceVerificationViewModel> {
-    render(t, vm) {
+    render(t: Builder<DeviceVerificationViewModel>) {
         return t.div({
             className: {
                 "middle": true,
@@ -36,21 +31,22 @@ export class DeviceVerificationView extends TemplateView<DeviceVerificationViewM
             }
         }, [
             t.mapView(vm => vm.currentStageViewModel, (stageVm) => {
-                if (stageVm instanceof WaitingForOtherUserViewModel) {
+                if (stageVm.kind === "waiting-for-user") {
                     return new WaitingForOtherUserView(stageVm);
                 }
-                else if (stageVm instanceof VerificationCancelledViewModel) {
+                else if (stageVm.kind === "verification-cancelled") {
                     return new VerificationCancelledView(stageVm);
                 }
-                else if (stageVm instanceof SelectMethodViewModel) {
+                else if (stageVm.kind === "select-method") {
                     return new SelectMethodView(stageVm);
                 }
-                else if (stageVm instanceof VerifyEmojisViewModel) {
+                else if (stageVm.kind === "verify-emojis") {
                     return new VerifyEmojisView(stageVm);
                 }
-                else if (stageVm instanceof VerificationCompleteViewModel) {
+                else if (stageVm.kind === "verification-completed") {
                     return new VerificationCompleteView(stageVm);
                 }
+                return null;
             })
         ])
     }

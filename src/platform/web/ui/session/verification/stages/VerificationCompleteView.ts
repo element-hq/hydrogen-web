@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView";
+import {Builder, TemplateView} from "../../../general/TemplateView";
 import type {VerificationCompleteViewModel} from "../../../../../../domain/session/verification/stages/VerificationCompleteViewModel";
 
 export class VerificationCompleteView extends TemplateView<VerificationCompleteViewModel> {
-    render(t, vm: VerificationCompleteViewModel) {
+    render(t: Builder<VerificationCompleteViewModel>, vm: VerificationCompleteViewModel) {
         return t.div({ className: "VerificationCompleteView" }, [
             t.div({className: "VerificationCompleteView__icon"}),
             t.div({ className: "VerificationCompleteView__heading" }, [

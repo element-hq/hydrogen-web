@@ -47,4 +47,8 @@ export class SelectMethodViewModel extends ErrorReportViewModel<SegmentType, Opt
     get deviceName() {
         return this.options.stage.otherDeviceName;
     }
+
+    get kind(): string {
+        return "select-method";
+    }
 }

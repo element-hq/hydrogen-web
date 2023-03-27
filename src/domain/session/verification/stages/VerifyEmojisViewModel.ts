@@ -39,4 +39,8 @@ export class VerifyEmojisViewModel extends ErrorReportViewModel<SegmentType, Opt
     get emojis() {
         return this.options.stage.emoji;
     }
+
+    get kind(): string {
+        return "verify-emojis";
+    }
 }

@@ -35,4 +35,8 @@ export class VerificationCancelledViewModel extends ViewModel<SegmentType, Optio
     gotoSettings() {
         this.navigation.push("settings", true);
     }
+
+    get kind(): string {
+        return "verification-cancelled";
+    }
 }

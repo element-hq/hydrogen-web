@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView";
+import {Builder, TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js"
 import type {SelectMethodViewModel} from "../../../../../../domain/session/verification/stages/SelectMethodViewModel";
 
 export class SelectMethodView extends TemplateView<SelectMethodViewModel> {
-    render(t) {
+    render(t: Builder<SelectMethodViewModel>) {
         return t.div({ className: "SelectMethodView" }, [
             t.map(vm => vm.hasProceeded, (hasProceeded, t, vm) => {
                 if (hasProceeded) {

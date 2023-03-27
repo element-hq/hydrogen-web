@@ -32,4 +32,8 @@ export class VerificationCompleteViewModel extends ErrorReportViewModel<SegmentT
     gotoSettings() {
         this.navigation.push("settings", true);
     }
+
+    get kind(): string {
+        return "verification-completed";
+    }
 }

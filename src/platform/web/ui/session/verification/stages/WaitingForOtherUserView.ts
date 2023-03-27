@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView";
+import {Builder, TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js";
 import {WaitingForOtherUserViewModel} from "../../../../../../domain/session/verification/stages/WaitingForOtherUserViewModel";
 
 export class WaitingForOtherUserView extends TemplateView<WaitingForOtherUserViewModel> {
-    render(t, vm) {
+    render(t: Builder<WaitingForOtherUserViewModel>, vm: WaitingForOtherUserViewModel) {
         return t.div({ className: "WaitingForOtherUserView" }, [
             t.div({ className: "WaitingForOtherUserView__heading" }, [
                 spinner(t),

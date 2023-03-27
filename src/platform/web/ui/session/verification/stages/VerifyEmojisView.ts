@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../../general/TemplateView";
+import {Builder, TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js"
 import type {VerifyEmojisViewModel} from "../../../../../../domain/session/verification/stages/VerifyEmojisViewModel";
 
 export class VerifyEmojisView extends TemplateView<VerifyEmojisViewModel> {
-    render(t, vm: VerifyEmojisViewModel) {
+    render(t: Builder<VerifyEmojisViewModel>, vm: VerifyEmojisViewModel) {
         const emojiList = vm.emojis.reduce((acc, [emoji, name]) => {
             const e = t.div({ className: "EmojiContainer" }, [
                 t.div({ className: "EmojiContainer__emoji" }, emoji),
