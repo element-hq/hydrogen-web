@@ -17,7 +17,6 @@ limitations under the License.
 import {SimpleTile} from "./SimpleTile.js";
 import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
-import {copyPlaintext} from "../../../../../platform/web/dom/utils";
 
 
 export class BaseMessageTile extends SimpleTile {
@@ -47,7 +46,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     copyPermalink() {
-        copyPlaintext(this.permaLink);
+        this.platform.copyPlaintext(this.permaLink);
     }
 
     get senderProfileLink() {

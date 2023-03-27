@@ -43,6 +43,7 @@ import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
 import {ThemeLoader} from "./theming/ThemeLoader";
 import {TimeFormatter} from "./dom/TimeFormatter";
+import {copyPlaintext} from "./dom/utils";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -281,6 +282,10 @@ export class Platform {
         } else {
             downloadInIframe(this._container, this._assetPaths.downloadSandbox, blobHandle, filename, this.isIOS);
         }
+    }
+
+    async copyPlaintext(text) {
+        return await copyPlaintext(text);
     }
 
     restart() {
