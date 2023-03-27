@@ -110,17 +110,6 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
             this.finished = true;
         }
     }
-
-    get otherDeviceId() {
-        return this.channel?.otherUserDeviceId;
-    }
-
-    /**
-     * Returns true if we were created because a "request" message was received
-     */
-    get isStartingWithRequestMessage(): boolean {
-        return this.startStage instanceof SendReadyStage;
-    }
 }
 
 import {HomeServer} from "../../../mocks/HomeServer.js";
