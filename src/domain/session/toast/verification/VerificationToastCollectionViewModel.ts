@@ -52,7 +52,9 @@ export class VerificationToastCollectionViewModel extends ViewModel<SegmentType,
                 this.toastViewModels.remove(idx);
             }
         };
-        this.toastViewModels.append(new VerificationToastNotificationViewModel(this.childOptions({ request, dismiss })));
+        this.toastViewModels.append(
+            this.track(new VerificationToastNotificationViewModel(this.childOptions({ request, dismiss })))
+        );
     }
 
     onRemove(_, request: SASRequest) {
