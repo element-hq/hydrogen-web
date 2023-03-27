@@ -47,7 +47,9 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     get name() { return this._member.name; }
+    
     get userId() { return this._member.userId; }
+    
     get trustDescription() {
         switch (this._userTrust) {
             case UserTrust.Trusted: return this.i18n`You have verified this user. This user has verified all of their sessions.`;
@@ -60,6 +62,7 @@ export class MemberDetailsViewModel extends ViewModel {
             default: return this.i18n`Pending…`;
         }
     }
+
     get trustShieldColor() {
         if (!this._isEncrypted) {
             return undefined;
@@ -78,7 +81,9 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     get type() { return "member-details"; }
+    
     get shouldShowBackButton() { return true; }
+    
     get previousSegmentName() { return "members"; }
     
     get role() {
