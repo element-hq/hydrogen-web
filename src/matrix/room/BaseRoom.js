@@ -26,7 +26,7 @@ import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
-import {DecryptionSource} from "../e2ee/common.js";
+import {DecryptionSource} from "../e2ee/common";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
 import {RetainedObservableValue} from "../../observable/value";
@@ -173,7 +173,7 @@ export class BaseRoom extends EventEmitter {
             const isTimelineOpen = this._isTimelineOpen;
             if (isTimelineOpen) {
                 // read to fetch devices if timeline is open
-                stores.push(this._storage.storeNames.deviceIdentities);
+                stores.push(this._storage.storeNames.deviceKeys);
             }
             const writeTxn = await this._storage.readWriteTxn(stores);
             let decryption;
