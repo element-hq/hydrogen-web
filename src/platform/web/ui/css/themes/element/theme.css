@@ -1430,11 +1430,7 @@ button.RoomDetailsView_row::after {
 .VerificationCompleteView__title,
 .VerifyEmojisView__title,
 .SelectMethodView__title,
-.WaitingForOtherUserView__title {
-    text-align: center;
-    margin: 0;
-}
-
+.WaitingForOtherUserView__title,
 .VerificationCancelledView__description,
 .VerificationCompleteView__description,
 .VerifyEmojisView__description,
