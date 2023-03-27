@@ -154,10 +154,13 @@ export class GapWriter {
         return changedFragments;
     }
 
-    async writeFragmentFill(fragmentEntry, response, txn, log) {
+    /**
+     * @param {string} fromToken the token used to call /messages, to ensure it hasn't changed in storage 
+     */
+    async writeFragmentFill(fragmentEntry, response, fromToken, txn, log) {
         const {fragmentId, direction} = fragmentEntry;
         // chunk is in reverse-chronological order when backwards
-        const {chunk, start, state} = response;
+        const {chunk, state} = response;
         let {end} = response;
 
         if (!Array.isArray(chunk)) {
@@ -174,8 +177,8 @@ export class GapWriter {
         }
         fragmentEntry = fragmentEntry.withUpdatedFragment(fragment);
         // check that the request was done with the token we are aware of (extra care to avoid timeline corruption)
-        if (fragmentEntry.token !== start) {
-            throw new Error("start is not equal to prev_batch or next_batch");
+        if (fragmentEntry.token !== fromToken) {
+            throw new Error("The pagination token has changed locally while fetching messages.");
         }
 
         // begin (or end) of timeline reached
@@ -263,7 +266,7 @@ export function tests() {
     async function backfillAndWrite(mocks, fragmentEntry, limit) {
         const {txn, timelineMock, gapWriter} = mocks;
         const messageResponse = timelineMock.messages(fragmentEntry.token, undefined, fragmentEntry.direction.asApiString(), limit);
-        await gapWriter.writeFragmentFill(fragmentEntry, messageResponse, txn, logger);
+        await gapWriter.writeFragmentFill(fragmentEntry, messageResponse, fragmentEntry.token, txn, logger);
     }
 
     async function allFragmentEvents(mocks, fragmentId) {

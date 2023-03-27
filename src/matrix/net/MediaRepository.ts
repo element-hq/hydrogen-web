@@ -29,32 +29,31 @@ export class MediaRepository {
         this._platform = platform;
     }
 
-    mxcUrlThumbnail(url: string, width: number, height: number, method: "crop" | "scale"): string | null {
+    mxcUrlThumbnail(url: string, width: number, height: number, method: "crop" | "scale"): string | undefined {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
             const httpUrl = `${this._homeserver}/_matrix/media/r0/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
             return httpUrl + "?" + encodeQueryParams({width: Math.round(width), height: Math.round(height), method});
         }
-        return null;
+        return undefined;
     }
 
-    mxcUrl(url: string): string | null {
+    mxcUrl(url: string): string | undefined {
         const parts = this._parseMxcUrl(url);
         if (parts) {
             const [serverName, mediaId] = parts;
             return `${this._homeserver}/_matrix/media/r0/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`;
-        } else {
-            return null;
         }
+        return undefined;
     }
 
-    private _parseMxcUrl(url: string): string[] | null {
+    private _parseMxcUrl(url: string): string[] | undefined {
         const prefix = "mxc://";
         if (url.startsWith(prefix)) {
             return url.substr(prefix.length).split("/", 2);
         } else {
-            return null;
+            return undefined;
         }
     }
 

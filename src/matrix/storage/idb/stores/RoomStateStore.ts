@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MAX_UNICODE} from "./common";
+import {MIN_UNICODE, MAX_UNICODE} from "./common";
 import {Store} from "../Store";
 import {StateEvent} from "../../types";
 
@@ -39,6 +39,16 @@ export class RoomStateStore {
     get(roomId: string, type: string, stateKey: string): Promise<RoomStateEntry | undefined> {
         const key = encodeKey(roomId, type, stateKey);
         return this._roomStateStore.get(key);
+    }
+
+    getAllForType(roomId: string, type: string): Promise<RoomStateEntry[]> {
+        const range = this._roomStateStore.IDBKeyRange.bound(
+            encodeKey(roomId, type, ""),
+            encodeKey(roomId, type, MAX_UNICODE),
+            false,
+            true
+        );
+        return this._roomStateStore.selectAll(range);
     }
 
     set(roomId: string, event: StateEvent): void {

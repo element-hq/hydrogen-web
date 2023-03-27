@@ -15,3 +15,4 @@ export {JoinedMap} from './JoinedMap';
 export {LogMap} from './LogMap';
 export {MappedMap} from './MappedMap';
 export {ObservableMap} from './ObservableMap';
+export {ObservableValueMap} from './ObservableValueMap';

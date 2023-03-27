@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";
+import {TemplateView} from "../../general/TemplateView";    
 import {Popup} from "../../general/Popup.js";
 import {Menu} from "../../general/Menu.js";
 import {TimelineView} from "./TimelineView";
@@ -23,6 +23,8 @@ import {TimelineLoadingView} from "./TimelineLoadingView.js";
 import {MessageComposer} from "./MessageComposer.js";
 import {DisabledComposerView} from "./DisabledComposerView.js";
 import {AvatarView} from "../../AvatarView.js";
+import {CallView} from "./CallView";
+import { ErrorView } from "../../general/ErrorView";
 
 export class RoomView extends TemplateView {
     constructor(vm, viewClassForTile) {
@@ -46,27 +48,21 @@ export class RoomView extends TemplateView {
                 })
             ]),
             t.div({className: "RoomView_body"}, [
-                t.div({className: "RoomView_error"}, [
-                    t.if(vm => vm.error, t => t.div( 
-                        [
-                            t.p({}, vm => vm.error),
-                            t.button({ className: "RoomView_error_closerButton", onClick: evt => vm.dismissError(evt) })
-                        ])
-                )]),
+                t.if(vm => vm.errorViewModel, t => t.div({className: "RoomView_error"}, t.view(new ErrorView(vm.errorViewModel)))),
+                t.mapView(vm => vm.callViewModel, callViewModel => callViewModel ? new CallView(callViewModel) : null),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
                         new TimelineView(timelineViewModel, this._viewClassForTile) :
                         new TimelineLoadingView(vm);    // vm is just needed for i18n
                 }),
-                t.mapView(vm => vm.composerViewModel,
-                    composerViewModel => {
-                        switch (composerViewModel?.kind) {
-                            case "composer":
-                                return new MessageComposer(vm.composerViewModel, this._viewClassForTile);
-                            case "disabled":
-                                return new DisabledComposerView(vm.composerViewModel);
-                        }
-                    }),
+                t.mapView(vm => vm.composerViewModel, composerViewModel => {
+                    switch (composerViewModel?.kind) {
+                        case "composer":
+                            return new MessageComposer(vm.composerViewModel, this._viewClassForTile);
+                        case "disabled":
+                            return new DisabledComposerView(vm.composerViewModel);
+                    }
+                }),
             ])
         ]);
     }
@@ -77,7 +73,10 @@ export class RoomView extends TemplateView {
         } else {
             const vm = this.value;
             const options = [];
-            options.push(Menu.option(vm.i18n`Room details`, () => vm.openDetailsPanel()))
+            options.push(Menu.option(vm.i18n`Room details`, () => vm.openDetailsPanel()));
+            if (vm.features.calls) {
+                options.push(Menu.option(vm.i18n`Start call`, () => vm.startCall()));
+            }
             if (vm.canLeave) {
                 options.push(Menu.option(vm.i18n`Leave room`, () => this._confirmToLeaveRoom()).setDestructive());
             }

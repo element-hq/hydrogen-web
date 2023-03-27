@@ -1,0 +1,7 @@
+# Docker related files are not maintained by the core Hydrogen team
+/.dockerignore                          @hughns @sandhose
+/Dockerfile                             @hughns @sandhose
+/Dockerfile-dev                         @hughns @sandhose
+/.github/workflows/docker-publish.yml   @hughns @sandhose
+/docker/                                @hughns @sandhose  
+/doc/docker.md                          @hughns @sandhose

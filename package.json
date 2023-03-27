@@ -1,6 +1,6 @@
 {
   "name": "hydrogen-web",
-  "version": "0.3.4",
+  "version": "0.3.8",
   "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
   "directories": {
     "doc": "doc"
@@ -32,6 +32,7 @@
   },
   "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
   "devDependencies": {
+    "@matrixdotorg/structured-logviewer": "^0.0.3",
     "@playwright/test": "^1.27.1",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",

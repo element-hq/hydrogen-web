@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM} from "../common.js";
+import {MEGOLM_ALGORITHM} from "../common";
 import {OutboundRoomKey} from "./decryption/RoomKey";
 
 export class Encryption {

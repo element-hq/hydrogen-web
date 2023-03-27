@@ -14,9 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+export {Logger} from "./logging/Logger";
+export type {ILogItem} from "./logging/types";
+export {IDBLogPersister} from "./logging/IDBLogPersister";
+export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
+// export everything needed to observe state events on all rooms using session.observeRoomState
+export type {RoomStateHandler} from "./matrix/room/state/types";
+export type {MemberChange} from "./matrix/room/members/RoomMember";
+export type {Transaction} from "./matrix/storage/idb/Transaction";
+export type {Room} from "./matrix/room/Room";
+export type {StateEvent} from "./matrix/storage/types";
 export {PowerLevels} from "./matrix/room/PowerLevels.js";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index";
@@ -72,6 +82,7 @@ export {AvatarView} from "./platform/web/ui/AvatarView.js";
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
+export {LocalMedia} from "./matrix/calls/LocalMedia";
 // these should eventually be moved to another library
 export {
     ObservableArray,
@@ -79,9 +90,10 @@ export {
     MappedList,
     AsyncMappedList,
     ConcatList,
-} from "./observable";
+    ObservableMap
+} from "./observable/index";
 export {
     BaseObservableValue,
     ObservableValue,
     RetainedObservableValue
-} from "./observable/ObservableValue";
+} from "./observable/value";

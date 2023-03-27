@@ -15,15 +15,16 @@ limitations under the License.
 */
 
 import {groupByWithCreator} from "../../../utils/groupBy";
-import {verifyEd25519Signature, OLM_ALGORITHM} from "../common.js";
+import {verifyEd25519Signature, OLM_ALGORITHM, getDeviceCurve25519Key, getDeviceEd25519Key, SignatureVerification} from "../common";
 import {createSessionEntry} from "./Session";
 
 import type {OlmMessage, OlmPayload, OlmEncryptedMessageContent} from "./types";
 import type {Account} from "../Account";
 import type {LockMap} from "../../../utils/LockMap";
+import {Lock, MultiLock, ILock} from "../../../utils/Lock";
 import type {Storage} from "../../storage/idb/Storage";
 import type {Transaction} from "../../storage/idb/Transaction";
-import type {DeviceIdentity} from "../../storage/idb/stores/DeviceIdentityStore";
+import type {DeviceKey} from "../common";
 import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {ILogItem} from "../../../logging/types";
 import type * as OlmNamespace from "@matrix-org/olm";
@@ -62,6 +63,9 @@ const OTK_ALGORITHM = "signed_curve25519";
 const MAX_BATCH_SIZE = 20;
 
 export class Encryption {
+    
+    private _batchLocks: Array<Lock>;
+
     constructor(
         private readonly account: Account,
         private readonly pickleKey: string,
@@ -71,24 +75,52 @@ export class Encryption {
         private readonly ownUserId: string,
         private readonly olmUtil: Olm.Utility,
         private readonly senderKeyLock: LockMap<string>
-    ) {}
+    ) {
+        this._batchLocks = new Array(MAX_BATCH_SIZE);
+        for (let i = 0; i < MAX_BATCH_SIZE; i += 1) {
+            this._batchLocks[i] = new Lock();
+        }
+    }
 
-    async encrypt(type: string, content: Record<string, any>, devices: DeviceIdentity[], hsApi: HomeServerApi, log: ILogItem): Promise<EncryptedMessage[]> {
+    /** A hack to prevent olm OOMing when `encrypt` is called several times concurrently,
+     * which is the case when encrypting voip signalling message to send over to_device.
+     * A better fix will be to extract the common bits from megolm/KeyLoader in a super class
+     * and have some sort of olm/SessionLoader that is shared between encryption and decryption
+     * and only keeps the olm session in wasm memory for a brief moment, like we already do for RoomKeys,
+     * and get the benefit of an optimal cache at the same time.
+     * */
+    private async _takeBatchLock(amount: number): Promise<ILock> {
+        const locks = this._batchLocks.filter(l => !l.isTaken).slice(0, amount);
+        if (locks.length < amount) {
+            const takenLocks = this._batchLocks.filter(l => l.isTaken).slice(0, amount - locks.length);
+            locks.push(...takenLocks);
+        }
+        await Promise.all(locks.map(l => l.take()));
+        return new MultiLock(locks);
+    }
+
+    async encrypt(type: string, content: Record<string, any>, devices: DeviceKey[], hsApi: HomeServerApi, log: ILogItem): Promise<EncryptedMessage[]> {
         let messages: EncryptedMessage[] = [];
         for (let i = 0; i < devices.length ; i += MAX_BATCH_SIZE) {
             const batchDevices = devices.slice(i, i + MAX_BATCH_SIZE);
-            const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi, log);
-            messages = messages.concat(batchMessages);
+            const batchLock = await this._takeBatchLock(batchDevices.length);
+            try {
+                const batchMessages = await this._encryptForMaxDevices(type, content, batchDevices, hsApi, log);
+                messages = messages.concat(batchMessages);
+            }
+            finally {
+                batchLock.release();
+            }
         }
         return messages;
     }
 
-    async _encryptForMaxDevices(type: string, content: Record<string, any>, devices: DeviceIdentity[], hsApi: HomeServerApi, log: ILogItem): Promise<EncryptedMessage[]> {
+    async _encryptForMaxDevices(type: string, content: Record<string, any>, devices: DeviceKey[], hsApi: HomeServerApi, log: ILogItem): Promise<EncryptedMessage[]> {
         // TODO: see if we can only hold some of the locks until after the /keys/claim call (if needed) 
         // take a lock on all senderKeys so decryption and other calls to encrypt (should not happen)
         // don't modify the sessions at the same time
         const locks = await Promise.all(devices.map(device => {
-            return this.senderKeyLock.takeLock(device.curve25519Key);
+            return this.senderKeyLock.takeLock(getDeviceCurve25519Key(device));
         }));
         try {
             const {
@@ -126,10 +158,10 @@ export class Encryption {
         }
     }
 
-    async _findExistingSessions(devices: DeviceIdentity[]): Promise<{devicesWithoutSession: DeviceIdentity[], existingEncryptionTargets: EncryptionTarget[]}> {
+    async _findExistingSessions(devices: DeviceKey[]): Promise<{devicesWithoutSession: DeviceKey[], existingEncryptionTargets: EncryptionTarget[]}> {
         const txn = await this.storage.readTxn([this.storage.storeNames.olmSessions]);
         const sessionIdsForDevice = await Promise.all(devices.map(async device => {
-            return await txn.olmSessions.getSessionIds(device.curve25519Key);
+            return await txn.olmSessions.getSessionIds(getDeviceCurve25519Key(device));
         }));
         const devicesWithoutSession = devices.filter((_, i) => {
             const sessionIds = sessionIdsForDevice[i];
@@ -152,36 +184,36 @@ export class Encryption {
         const plaintext = JSON.stringify(this._buildPlainTextMessageForDevice(type, content, device));
         const message = session!.encrypt(plaintext);
         const encryptedContent = {
-            algorithm: OLM_ALGORITHM,
+            algorithm: OLM_ALGORITHM as typeof OLM_ALGORITHM,
             sender_key: this.account.identityKeys.curve25519,
             ciphertext: {
-                [device.curve25519Key]: message
+                [getDeviceCurve25519Key(device)]: message
             }
         };
         return encryptedContent;
     }
 
-    _buildPlainTextMessageForDevice(type: string, content: Record<string, any>, device: DeviceIdentity): OlmPayload {
+    _buildPlainTextMessageForDevice(type: string, content: Record<string, any>, device: DeviceKey): OlmPayload {
         return {
             keys: {
                 "ed25519": this.account.identityKeys.ed25519
             },
             recipient_keys: {
-                "ed25519": device.ed25519Key
+                "ed25519": getDeviceEd25519Key(device)
             },
-            recipient: device.userId,
+            recipient: device.user_id,
             sender: this.ownUserId,
             content,
             type
         }
     }
 
-    async _createNewSessions(devicesWithoutSession: DeviceIdentity[], hsApi: HomeServerApi, timestamp: number, log: ILogItem): Promise<EncryptionTarget[]> {
+    async _createNewSessions(devicesWithoutSession: DeviceKey[], hsApi: HomeServerApi, timestamp: number, log: ILogItem): Promise<EncryptionTarget[]> {
         const newEncryptionTargets = await log.wrap("claim", log => this._claimOneTimeKeys(hsApi, devicesWithoutSession, log));
         try {
             for (const target of newEncryptionTargets) {
                 const {device, oneTimeKey} = target;
-                target.session = await this.account.createOutboundOlmSession(device.curve25519Key, oneTimeKey);
+                target.session = await this.account.createOutboundOlmSession(getDeviceCurve25519Key(device), oneTimeKey);
             }
             await this._storeSessions(newEncryptionTargets, timestamp);
         } catch (err) {
@@ -193,16 +225,16 @@ export class Encryption {
         return newEncryptionTargets;
     }
 
-    async _claimOneTimeKeys(hsApi: HomeServerApi, deviceIdentities: DeviceIdentity[], log: ILogItem): Promise<EncryptionTarget[]> {
+    async _claimOneTimeKeys(hsApi: HomeServerApi, deviceIdentities: DeviceKey[], log: ILogItem): Promise<EncryptionTarget[]> {
         // create a Map<userId, Map<deviceId, deviceIdentity>>
         const devicesByUser = groupByWithCreator(deviceIdentities,
-            (device: DeviceIdentity) => device.userId,
-            (): Map<string, DeviceIdentity> => new Map(),
-            (deviceMap: Map<string, DeviceIdentity>, device: DeviceIdentity) => deviceMap.set(device.deviceId, device)
+            (device: DeviceKey) => device.user_id,
+            (): Map<string, DeviceKey> => new Map(),
+            (deviceMap: Map<string, DeviceKey>, device: DeviceKey) => deviceMap.set(device.device_id, device)
         );
         const oneTimeKeys = Array.from(devicesByUser.entries()).reduce((usersObj, [userId, deviceMap]) => {
             usersObj[userId] = Array.from(deviceMap.values()).reduce((devicesObj, device) => {
-                devicesObj[device.deviceId] = OTK_ALGORITHM;
+                devicesObj[device.device_id] = OTK_ALGORITHM;
                 return devicesObj;
             }, {});
             return usersObj;
@@ -218,7 +250,7 @@ export class Encryption {
         return this._verifyAndCreateOTKTargets(userKeyMap, devicesByUser, log);
     }
 
-    _verifyAndCreateOTKTargets(userKeyMap: ClaimedOTKResponse, devicesByUser: Map<string, Map<string, DeviceIdentity>>, log: ILogItem): EncryptionTarget[] {
+    _verifyAndCreateOTKTargets(userKeyMap: ClaimedOTKResponse, devicesByUser: Map<string, Map<string, DeviceKey>>, log: ILogItem): EncryptionTarget[] {
         const verifiedEncryptionTargets: EncryptionTarget[] = [];
         for (const [userId, userSection] of Object.entries(userKeyMap)) {
             for (const [deviceId, deviceSection] of Object.entries(userSection)) {
@@ -228,7 +260,7 @@ export class Encryption {
                     const device = devicesByUser.get(userId)?.get(deviceId);
                     if (device) {
                         const isValidSignature = verifyEd25519Signature(
-                            this.olmUtil, userId, deviceId, device.ed25519Key, keySection, log);
+                            this.olmUtil, userId, deviceId, getDeviceEd25519Key(device), keySection, log) === SignatureVerification.Valid;
                         if (isValidSignature) {
                             const target = EncryptionTarget.fromOTK(device, keySection.key);
                             verifiedEncryptionTargets.push(target);
@@ -249,7 +281,7 @@ export class Encryption {
         try {
             await Promise.all(encryptionTargets.map(async encryptionTarget => {
                 const sessionEntry = await txn.olmSessions.get(
-                    encryptionTarget.device.curve25519Key, encryptionTarget.sessionId!);
+                    getDeviceCurve25519Key(encryptionTarget.device), encryptionTarget.sessionId!);
                 if (sessionEntry && !failed) {
                     const olmSession = new this.olm.Session();
                     olmSession.unpickle(this.pickleKey, sessionEntry.session);
@@ -271,7 +303,7 @@ export class Encryption {
         try {
             for (const target of encryptionTargets) {
                 const sessionEntry = createSessionEntry(
-                    target.session!, target.device.curve25519Key, timestamp, this.pickleKey);
+                    target.session!, getDeviceCurve25519Key(target.device), timestamp, this.pickleKey);
                 txn.olmSessions.set(sessionEntry);
             }
         } catch (err) {
@@ -291,16 +323,16 @@ class EncryptionTarget {
     public session: Olm.Session | null = null;
 
     constructor(
-        public readonly device: DeviceIdentity, 
+        public readonly device: DeviceKey, 
         public readonly oneTimeKey: string | null,
         public readonly sessionId: string | null
     ) {}
 
-    static fromOTK(device: DeviceIdentity, oneTimeKey: string): EncryptionTarget {
+    static fromOTK(device: DeviceKey, oneTimeKey: string): EncryptionTarget {
         return new EncryptionTarget(device, oneTimeKey, null);
     }
 
-    static fromSessionId(device: DeviceIdentity, sessionId: string): EncryptionTarget {
+    static fromSessionId(device: DeviceKey, sessionId: string): EncryptionTarget {
         return new EncryptionTarget(device, null, sessionId);
     }
 
@@ -311,9 +343,9 @@ class EncryptionTarget {
     }
 }
 
-class EncryptedMessage {
+export class EncryptedMessage {
     constructor(
         public readonly content: OlmEncryptedMessageContent,
-        public readonly device: DeviceIdentity
+        public readonly device: DeviceKey
     ) {}
 }

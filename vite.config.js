@@ -49,7 +49,9 @@ export default defineConfig(({mode}) => {
                 sw: definePlaceholders,
             }),
         ],
-        define: definePlaceholders,
+        define: Object.assign({
+            DEFINE_PROJECT_DIR: JSON.stringify(__dirname)
+        }, definePlaceholders),
     });
 });
 

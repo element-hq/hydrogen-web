@@ -51,10 +51,18 @@ export function getIdentifierColorNumber(id: string): number {
     return (hashCode(id) % 8) + 1;
 }
 
-export function getAvatarHttpUrl(avatarUrl: string, cssSize: number, platform: Platform, mediaRepository: MediaRepository): string | null {
+export function getAvatarHttpUrl(avatarUrl: string | undefined, cssSize: number, platform: Platform, mediaRepository: MediaRepository): string | undefined {
     if (avatarUrl) {
         const imageSize = cssSize * platform.devicePixelRatio;
         return mediaRepository.mxcUrlThumbnail(avatarUrl, imageSize, imageSize, "crop");
     }
-    return null;
+    return undefined;
+}
+
+// move to AvatarView.js when converting to typescript
+export interface IAvatarContract {
+    avatarLetter: string;
+    avatarColorNumber: number;
+    avatarUrl: (size: number) => string | undefined;
+    avatarTitle: string;
 }

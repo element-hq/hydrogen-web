@@ -26,11 +26,13 @@ import {MemberList} from "./members/MemberList.js";
 import {Heroes} from "./members/Heroes.js";
 import {EventEntry} from "./timeline/entries/EventEntry.js";
 import {ObservedEventMap} from "./ObservedEventMap.js";
-import {DecryptionSource} from "../e2ee/common.js";
+import {DecryptionSource} from "../e2ee/common";
 import {ensureLogItem} from "../../logging/utils";
 import {PowerLevels} from "./PowerLevels.js";
-import {RetainedObservableValue} from "../../observable/ObservableValue";
+import {RetainedObservableValue} from "../../observable/value";
 import {TimelineReader} from "./timeline/persistence/TimelineReader";
+import {ObservedStateTypeMap} from "./state/ObservedStateTypeMap";
+import {ObservedStateKeyValue} from "./state/ObservedStateKeyValue";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
 
@@ -53,9 +55,33 @@ export class BaseRoom extends EventEmitter {
         this._getSyncToken = getSyncToken;
         this._platform = platform;
         this._observedEvents = null;
+        this._roomStateObservers = new Set();
         this._powerLevels = null;
         this._powerLevelLoading = null;
         this._observedMembers = null;
+    }
+
+    async observeStateType(type, txn = undefined) {
+        const map = new ObservedStateTypeMap(type);
+        await this._addStateObserver(map, txn);
+        return map;
+    }
+
+    async observeStateTypeAndKey(type, stateKey, txn = undefined) {
+        const value = new ObservedStateKeyValue(type, stateKey);
+        await this._addStateObserver(value, txn);
+        return value;
+    }
+
+    async _addStateObserver(stateObserver, txn) {
+        if (!txn) {
+            txn = await this._storage.readTxn([this._storage.storeNames.roomState]);
+        }
+        await stateObserver.load(this.id, txn);
+        this._roomStateObservers.add(stateObserver);
+        stateObserver.setRemoveCallback(() => {
+            this._roomStateObservers.delete(stateObserver);
+        });
     }
 
     async _eventIdsToEntries(eventIds, txn) {
@@ -147,7 +173,7 @@ export class BaseRoom extends EventEmitter {
             const isTimelineOpen = this._isTimelineOpen;
             if (isTimelineOpen) {
                 // read to fetch devices if timeline is open
-                stores.push(this._storage.storeNames.deviceIdentities);
+                stores.push(this._storage.storeNames.deviceKeys);
             }
             const writeTxn = await this._storage.readWriteTxn(stores);
             let decryption;
@@ -324,7 +350,7 @@ export class BaseRoom extends EventEmitter {
                     fragmentIdComparer: this._fragmentIdComparer,
                     relationWriter
                 });
-                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, txn, log);
+                gapResult = await gapWriter.writeFragmentFill(fragmentEntry, response, fragmentEntry.token, txn, log);
             } catch (err) {
                 txn.abort();
                 throw err;
@@ -431,6 +457,10 @@ export class BaseRoom extends EventEmitter {
 
     get membership() {
         return this._summary.data.membership;
+    }
+
+    get user() {
+        return this._user;
     }
 
     isDirectMessageForUserId(userId) {

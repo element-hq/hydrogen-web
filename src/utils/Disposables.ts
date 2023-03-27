@@ -50,8 +50,8 @@ export class Disposables {
     }
 
     untrack(disposable: Disposable): undefined {
-        if (this.isDisposed) {
-            console.warn("Disposables already disposed, cannot untrack");
+        // already disposed
+        if (!this._disposables) {
             return undefined;
         }
         const idx = this._disposables!.indexOf(disposable);

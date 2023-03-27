@@ -18,7 +18,7 @@ limitations under the License.
 import {createEnum} from "../utils/enum";
 import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
-import {ObservableValue} from "../observable/ObservableValue";
+import {ObservableValue} from "../observable/value";
 import {HomeServerApi} from "./net/HomeServerApi";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
@@ -31,6 +31,7 @@ import {TokenLoginMethod} from "./login/TokenLoginMethod";
 import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 import {Registration} from "./registration/Registration";
+import {FeatureSet} from "../features";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -53,7 +54,7 @@ export const LoginFailure = createEnum(
 );
 
 export class Client {
-    constructor(platform) {
+    constructor(platform, features = new FeatureSet(0)) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -68,6 +69,7 @@ export class Client {
         this._olmPromise = platform.loadOlm();
         this._workerPromise = platform.loadOlmWorker();
         this._accountSetup = undefined;
+        this._features = features;
     }
 
     createNewSessionId() {
@@ -278,6 +280,7 @@ export class Client {
             olmWorker,
             mediaRepository,
             platform: this._platform,
+            features: this._features
         });
         await this._session.load(log);
         if (dehydratedDevice) {

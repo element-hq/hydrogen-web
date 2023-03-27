@@ -63,7 +63,13 @@ export class BaseMessageView extends TemplateView {
                 li.removeChild(li.querySelector(".Timeline_messageSender"));
             } else if (!isContinuation && !this._isReplyPreview) {
                 const avatar = tag.a({href: vm.memberPanelLink, className: "Timeline_messageAvatar"}, [renderStaticAvatar(vm, 30)]);
-                const sender = tag.div({className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`}, vm.displayName);
+                const sender = tag.div(
+                    {
+                        className: `Timeline_messageSender usercolor${vm.avatarColorNumber}`,
+                        title: vm.sender,
+                    },
+                    vm.displayName,
+                );
                 li.insertBefore(avatar, li.firstChild);
                 li.insertBefore(sender, li.firstChild);
             }

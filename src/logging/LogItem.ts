@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 import {LogLevel, LogFilter} from "./LogFilter";
-import type {BaseLogger} from "./BaseLogger";
+import type {Logger} from "./Logger";
 import type {ISerializedItem, ILogItem, LogItemValues, LabelOrValues, FilterCreator, LogCallback} from "./types";
 
 export class LogItem implements ILogItem {
@@ -25,11 +25,11 @@ export class LogItem implements ILogItem {
     public error?: Error;
     public end?: number;
     private _values: LogItemValues;
-    private _logger: BaseLogger;
+    protected _logger: Logger;
     private _filterCreator?: FilterCreator;
     private _children?: Array<LogItem>;
 
-    constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, logger: BaseLogger, filterCreator?: FilterCreator) {
+    constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, logger: Logger, filterCreator?: FilterCreator) {
         this._logger = logger;
         this.start = logger._now();
         // (l)abel
@@ -38,7 +38,7 @@ export class LogItem implements ILogItem {
         this._filterCreator = filterCreator;
     }
 
-    /** start a new root log item and run it detached mode, see BaseLogger.runDetached */
+    /** start a new root log item and run it detached mode, see Logger.runDetached */
     runDetached(labelOrValues: LabelOrValues, callback: LogCallback<unknown>, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem {
         return this._logger.runDetached(labelOrValues, callback, logLevel, filterCreator);
     }
@@ -221,6 +221,11 @@ export class LogItem implements ILogItem {
         }
     }
 
+    /** @internal */
+    forceFinish(): void {
+        this.finish();
+    }
+
     // expose log level without needing import everywhere
     get level(): typeof LogLevel {
         return LogLevel;
@@ -235,7 +240,7 @@ export class LogItem implements ILogItem {
 
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): LogItem {
         if (this.end) {
-            console.trace("log item is finished, additional logs will likely not be recorded");
+            console.trace(`log item ${this.values.l} finished, additional log ${JSON.stringify(labelOrValues)} will likely not be recorded`);
         }
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
@@ -248,7 +253,7 @@ export class LogItem implements ILogItem {
         return item;
     }
 
-    get logger(): BaseLogger {
+    get logger(): Logger {
         return this._logger;
     }
 

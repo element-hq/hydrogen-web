@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {BaseObservableValue, ObservableValue} from "../observable/ObservableValue";
+import {EventEmitter} from "../utils/EventEmitter";
 
 export interface IAbortable {
     abort();
@@ -24,25 +24,27 @@ export type SetAbortableFn = (a: IAbortable) => typeof a;
 export type SetProgressFn<P> = (progress: P) => void;
 type RunFn<T, P> = (setAbortable: SetAbortableFn, setProgress: SetProgressFn<P>) => T;
 
-export class AbortableOperation<T, P = void> implements IAbortable {
+export class AbortableOperation<T, P = void> extends EventEmitter<{change: keyof AbortableOperation<T, P>}> implements IAbortable {
     public readonly result: T;
     private _abortable?: IAbortable;
-    private _progress: ObservableValue<P | undefined>;
+    private _progress?: P;
 
     constructor(run: RunFn<T, P>) {
+        super();
         this._abortable = undefined;
         const setAbortable: SetAbortableFn = abortable => {
             this._abortable = abortable;
             return abortable;
         };
-        this._progress = new ObservableValue<P | undefined>(undefined);
+        this._progress = undefined;
         const setProgress: SetProgressFn<P> = (progress: P) => {
-            this._progress.set(progress);
+            this._progress = progress;
+            this.emit("change", "progress");
         };
         this.result = run(setAbortable, setProgress);
     }
 
-    get progress(): BaseObservableValue<P | undefined> {
+    get progress(): P | undefined {
         return this._progress;
     }
 

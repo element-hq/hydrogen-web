@@ -19,6 +19,37 @@
     text-align: center;
 }
 
+.MemberDetailsView_shield_container {
+    display: flex;
+    gap: 4px;
+}
+
+.MemberDetailsView_shield_red, .MemberDetailsView_shield_green, .MemberDetailsView_shield_black {
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: 24px;
+    height: 24px;
+    display: block;
+    flex-shrink: 0;
+}
+
+.MemberDetailsView_shield_description {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.MemberDetailsView_shield_red {
+    background-image: url("./icons/verification-error.svg?primary=error-color");
+}
+
+.MemberDetailsView_shield_green {
+    background-image: url("./icons/verified.svg?primary=accent-color");
+}
+
+.MemberDetailsView_shield_black {
+    background-image: url("./icons/encryption-status.svg?primary=text-color");
+}
+
 .RoomDetailsView_label, .RoomDetailsView_row, .RoomDetailsView, .MemberDetailsView, .EncryptionIconView {
     display: flex;
     align-items: center;

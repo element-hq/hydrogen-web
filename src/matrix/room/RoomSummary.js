@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM} from "../e2ee/common.js";
-
+import {MEGOLM_ALGORITHM} from "../e2ee/common";
+import {iterateResponseStateEvents} from "./common";
 
 function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnread, ownUserId) {
     if (timelineEntries.length) {
@@ -25,25 +25,6 @@ function applyTimelineEntries(data, timelineEntries, isInitialSync, canMarkUnrea
         }, data);
     }
     return data;
-}
-
-export function reduceStateEvents(roomResponse, callback, value) {
-    const stateEvents = roomResponse?.state?.events;
-    // state comes before timeline
-    if (Array.isArray(stateEvents)) {
-        value = stateEvents.reduce(callback, value);
-    }
-    const timelineEvents = roomResponse?.timeline?.events;
-    // and after that state events in the timeline
-    if (Array.isArray(timelineEvents)) {
-        value = timelineEvents.reduce((data, event) => {
-            if (typeof event.state_key === "string") {
-                value = callback(value, event);
-            }
-            return value;
-        }, value);
-    }
-    return value;
 }
 
 function applySyncResponse(data, roomResponse, membership, ownUserId) {
@@ -60,7 +41,9 @@ function applySyncResponse(data, roomResponse, membership, ownUserId) {
     // process state events in state and in timeline.
     // non-state events are handled by applyTimelineEntries
     // so decryption is handled properly
-    data = reduceStateEvents(roomResponse, (data, event) => processStateEvent(data, event, ownUserId), data);
+    iterateResponseStateEvents(roomResponse, event => {
+        data = processStateEvent(data, event, ownUserId);
+    });
     const unreadNotifications = roomResponse.unread_notifications;
     if (unreadNotifications) {
         data = processNotificationCounts(data, unreadNotifications);

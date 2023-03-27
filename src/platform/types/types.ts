@@ -16,7 +16,6 @@ limitations under the License.
 
 import type {RequestResult} from "../web/dom/request/fetch.js";
 import type {RequestBody} from "../../matrix/net/common";
-import type {ILogItem} from "../../logging/types";
 
 export interface IRequestOptions {
     uploadProgress?: (loadedBytes: number) => void;
@@ -42,4 +41,19 @@ export interface IBlobHandle {
 export type File = {
     readonly name: string;
     readonly blob: IBlobHandle;
+}
+
+export interface Timeout {
+    elapsed(): Promise<void>;
+    abort(): void;
+    dispose(): void;
+};
+
+export type TimeoutCreator = (timeout: number) => Timeout;
+
+export interface ITimeFormatter {
+    formatTime(date: Date): string;
+    formatRelativeDate(date: Date): string;
+    formatMachineReadableDate(date: Date): string;
+    formatDuration(milliseconds: number): string;
 }

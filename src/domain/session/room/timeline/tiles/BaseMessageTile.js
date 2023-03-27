@@ -23,7 +23,6 @@ import {copyPlaintext} from "../../../../../platform/web/dom/utils";
 export class BaseMessageTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
-        this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : null;
         this._isContinuation = false;
         this._reactions = null;
         this._replyTile = null;
@@ -55,14 +54,6 @@ export class BaseMessageTile extends SimpleTile {
         return `https://matrix.to/#/${encodeURIComponent(this.sender)}`;
     }
 
-    get displayName() {
-        return this._entry.displayName || this.sender;
-    }
-
-    get sender() {
-        return this._entry.sender;
-    }
-
     get memberPanelLink() {
         return `${this.urlRouter.urlUntilSegment("room")}/member/${this.sender}`;
     }
@@ -84,12 +75,8 @@ export class BaseMessageTile extends SimpleTile {
         return this.sender;
     }
 
-    get date() {
-        return this._date && this._date.toLocaleDateString({}, {month: "numeric", day: "numeric"});
-    }
-
     get time() {
-        return this._date && this._date.toLocaleTimeString({}, {hour: "numeric", minute: "2-digit"});
+        return this._date && this.timeFormatter.formatTime(this._date);
     }
 
     get isOwn() {
@@ -145,7 +132,7 @@ export class BaseMessageTile extends SimpleTile {
             if (action?.shouldReplace || !this._replyTile) {
                 this.disposeTracked(this._replyTile);
                 const tileClassForEntry = this._options.tileClassForEntry;
-                const ReplyTile = tileClassForEntry(replyEntry);
+                const ReplyTile = tileClassForEntry(replyEntry, this._options);
                 if (ReplyTile) {
                     this._replyTile = new ReplyTile(replyEntry, this._options);
                 }
@@ -160,8 +147,8 @@ export class BaseMessageTile extends SimpleTile {
         this._roomVM.startReply(this._entry);
     }
 
-    reply(msgtype, body, log = null) {
-        return this._room.sendEvent("m.room.message", this._entry.reply(msgtype, body), null, log);
+    createReplyContent(msgtype, body) {
+        return this._entry.createReplyContent(msgtype, body);
     }
 
     redact(reason, log) {

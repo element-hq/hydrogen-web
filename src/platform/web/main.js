@@ -18,6 +18,8 @@ limitations under the License.
 // import {RecordRequester, ReplayRequester} from "./matrix/net/request/replay";
 import {RootViewModel} from "../../domain/RootViewModel.js";
 import {createNavigation, createRouter} from "../../domain/navigation/index";
+import {FeatureSet} from "../../features";
+
 // Don't use a default export here, as we use multiple entries during legacy build,
 // which does not support default exports,
 // see https://github.com/rollup/plugins/tree/master/packages/multi-entry
@@ -33,6 +35,7 @@ export async function main(platform) {
         // const request = recorder.request;
         // window.getBrawlFetchLog = () => recorder.log();
         await platform.init();
+        const features = await FeatureSet.load(platform.settingsStorage);
         const navigation = createNavigation();
         platform.setNavigation(navigation);
         const urlRouter = createRouter({navigation, history: platform.history});
@@ -43,6 +46,7 @@ export async function main(platform) {
             // so we call it that in the view models
             urlRouter: urlRouter,
             navigation,
+            features
         });
         await vm.load();
         platform.createAndMountRootView(vm);

@@ -364,7 +364,7 @@ only loads when the top comes into view*/
 }
 
 .Timeline_messageReactions button.active {
-    background-color: var(--background-color-secondary);
+    background-color: var(--accent-color--alpha-11);
     border-color: var(--accent-color);
 }
 
@@ -411,7 +411,7 @@ only loads when the top comes into view*/
     border-radius: 10px;
 }
 
-.GapView > :not(:first-child) {
+.GapView_container > :not(:first-child) {
     margin-left: 12px;
 }
 
@@ -421,4 +421,57 @@ only loads when the top comes into view*/
 
 .GapView.isAtTop {
     padding: 52px 20px 12px 20px;
+}
+
+.DateHeader {
+    font-weight: bold;
+    font-size: 1.5rem;
+    position: sticky;
+    top: 5px;
+}
+
+.DateHeader time {
+    margin: 0 auto;
+    padding: 12px 4px;
+    width: 250px;
+    padding: 12px;
+    display: block;
+    color: var(--light-text-color);
+    background-color: var(--background-color-primary);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.CallTileView > div > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.CallTileView_members > * {
+    margin-right: -16px;
+}
+
+.CallTileView_members {
+    display: flex;
+}
+
+.CallTileView_title {
+    font-weight: bold;
+}
+
+.CallTileView_subtitle {
+    font-size: 12px;
+}
+
+.CallTileView_memberCount::before {
+    content: "";
+    background-image: url('./icons/room-members.svg?primary=text-color');
+    background-repeat: no-repeat;
+    background-size: 16px 16px;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    vertical-align: bottom;
+    margin-right: 4px;
 }

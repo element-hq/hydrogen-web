@@ -1,7 +1,12 @@
 FROM docker.io/node:alpine
 RUN apk add --no-cache git python3 build-base
-COPY . /code
+
 WORKDIR /code
+
+# Copy package.json and yarn.lock and install dependencies first to speed up subsequent builds
+COPY package.json yarn.lock /code/
 RUN yarn install
+
+COPY . /code
 EXPOSE 3000
 ENTRYPOINT ["yarn", "start"]
