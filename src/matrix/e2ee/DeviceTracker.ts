@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM} from "./common";
+import {verifyEd25519Signature, getEd25519Signature, SIGNATURE_ALGORITHM, SignatureVerification} from "./common";
 import {HistoryVisibility, shouldShareKey, DeviceKey, getDeviceEd25519Key, getDeviceCurve25519Key} from "./common";
 import {RoomMember} from "../room/members/RoomMember.js";
 import {getKeyUsage, getKeyEd25519Key, getKeyUserId, KeyUsage} from "../verification/CrossSigning";
@@ -163,15 +163,19 @@ export class DeviceTracker {
         }
     }
 
-    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi, log: ILogItem): Promise<CrossSigningKey | undefined> {
+    async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi | undefined, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return await log.wrap({l: "DeviceTracker.getCrossSigningKeyForUser", id: userId, usage}, async log => {
-            let txn = await this._storage.readTxn([
+            const txn = await this._storage.readTxn([
                 this._storage.storeNames.userIdentities,
                 this._storage.storeNames.crossSigningKeys,
             ]);
-            let userIdentity = await txn.userIdentities.get(userId);
+            const userIdentity = await txn.userIdentities.get(userId);
             if (userIdentity && userIdentity.keysTrackingStatus !== KeysTrackingStatus.Outdated) {
                 return await txn.crossSigningKeys.get(userId, usage);
+            }
+            // not allowed to access the network, bail out
+            if (!hsApi) {
+                return undefined;
             }
             // fetch from hs
             const keys = await this._queryKeys([userId], hsApi, log);
@@ -264,9 +268,9 @@ export class DeviceTracker {
             "token": this._getSyncToken()
         }, {log}).response();
 
-        const masterKeys = log.wrap("master keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["master_keys"], KeyUsage.Master, undefined, log));
-        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], KeyUsage.SelfSigning, masterKeys, log));
-        const userSigningKeys = log.wrap("user-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["user_signing_keys"], KeyUsage.UserSigning, masterKeys, log));
+        const masterKeys = log.wrap("master keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["master_keys"], KeyUsage.Master, log));
+        const selfSigningKeys = log.wrap("self-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["self_signing_keys"], KeyUsage.SelfSigning, log));
+        const userSigningKeys = log.wrap("user-signing keys", log => this._filterVerifiedCrossSigningKeys(deviceKeyResponse["user_signing_keys"], KeyUsage.UserSigning, log));
         const deviceKeys = log.wrap("device keys", log => this._filterVerifiedDeviceKeys(deviceKeyResponse["device_keys"], log));
         const txn = await this._storage.readWriteTxn([
             this._storage.storeNames.userIdentities,
@@ -354,16 +358,14 @@ export class DeviceTracker {
         return allDeviceKeys;
     }
 
-    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse: {[userId: string]: CrossSigningKey}, usage, parentKeys: Map<string, CrossSigningKey> | undefined, log): Map<string, CrossSigningKey> {
+    _filterVerifiedCrossSigningKeys(crossSigningKeysResponse: {[userId: string]: CrossSigningKey}, usage: KeyUsage, log: ILogItem): Map<string, CrossSigningKey> {
         const keys: Map<string, CrossSigningKey> = new Map();
         if (!crossSigningKeysResponse) {
             return keys;
         }
         for (const [userId, keyInfo] of Object.entries(crossSigningKeysResponse)) {
             log.wrap({l: userId}, log => {
-                const parentKeyInfo = parentKeys?.get(userId);
-                const parentKey = parentKeyInfo && getKeyEd25519Key(parentKeyInfo);
-                if (this._validateCrossSigningKey(userId, keyInfo, usage, parentKey, log)) {
+                if (this._validateCrossSigningKey(userId, keyInfo, usage, log)) {
                     keys.set(getKeyUserId(keyInfo)!, keyInfo);
                 }
             });
@@ -371,7 +373,7 @@ export class DeviceTracker {
         return keys;
     }
 
-    _validateCrossSigningKey(userId: string, keyInfo: CrossSigningKey, usage: KeyUsage, parentKey: string | undefined, log: ILogItem): boolean {
+    _validateCrossSigningKey(userId: string, keyInfo: CrossSigningKey, usage: KeyUsage, log: ILogItem): boolean {
         if (getKeyUserId(keyInfo) !== userId) {
             log.log({l: "user_id mismatch", userId: keyInfo["user_id"]});
             return false;
@@ -384,24 +386,6 @@ export class DeviceTracker {
         if (!publicKey) {
             log.log({l: "no ed25519 key", keys: keyInfo.keys});
             return false;
-        }
-        const isSelfSigned = usage === "master";
-        const keyToVerifyWith = isSelfSigned ? publicKey : parentKey;
-        if (!keyToVerifyWith) {
-            log.log("signing_key not found");
-            return false;
-        }
-        const hasSignature = !!getEd25519Signature(keyInfo, userId, keyToVerifyWith);
-        // self-signature is optional for now, not all keys seem to have it
-        if (!hasSignature && keyToVerifyWith !== publicKey) {
-            log.log({l: "signature not found", key: keyToVerifyWith});
-            return false;
-        }
-        if (hasSignature) {
-            if(!verifyEd25519Signature(this._olmUtil, userId, keyToVerifyWith, keyToVerifyWith, keyInfo, log)) {
-                log.log("signature mismatch");
-                return false;
-            }
         }
         return true;
     }
@@ -462,7 +446,7 @@ export class DeviceTracker {
             log.log("ed25519 and/or curve25519 key invalid").set({deviceKey});
             return false;
         }
-        const isValid = verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceKey, log);
+        const isValid = verifyEd25519Signature(this._olmUtil, userId, deviceId, ed25519Key, deviceKey, log) === SignatureVerification.Valid;
         if (!isValid) {
             log.log({
                 l: "ignore device with invalid signature",

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {groupByWithCreator} from "../../../utils/groupBy";
-import {verifyEd25519Signature, OLM_ALGORITHM, getDeviceCurve25519Key, getDeviceEd25519Key} from "../common";
+import {verifyEd25519Signature, OLM_ALGORITHM, getDeviceCurve25519Key, getDeviceEd25519Key, SignatureVerification} from "../common";
 import {createSessionEntry} from "./Session";
 
 import type {OlmMessage, OlmPayload, OlmEncryptedMessageContent} from "./types";
@@ -260,7 +260,7 @@ export class Encryption {
                     const device = devicesByUser.get(userId)?.get(deviceId);
                     if (device) {
                         const isValidSignature = verifyEd25519Signature(
-                            this.olmUtil, userId, deviceId, getDeviceEd25519Key(device), keySection, log);
+                            this.olmUtil, userId, deviceId, getDeviceEd25519Key(device), keySection, log) === SignatureVerification.Valid;
                         if (isValidSignature) {
                             const target = EncryptionTarget.fromOTK(device, keySection.key);
                             verifiedEncryptionTargets.push(target);

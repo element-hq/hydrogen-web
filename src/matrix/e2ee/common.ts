@@ -68,11 +68,17 @@ export function getEd25519Signature(signedValue: SignedValue, userId: string, de
     return signedValue?.signatures?.[userId]?.[`${SIGNATURE_ALGORITHM}:${deviceOrKeyId}`];
 }
 
-export function verifyEd25519Signature(olmUtil: Olm.Utility, userId: string, deviceOrKeyId: string, ed25519Key: string, value: SignedValue, log?: ILogItem) {
+export enum SignatureVerification {
+    Valid,
+    Invalid,
+    NotSigned,
+}
+
+export function verifyEd25519Signature(olmUtil: Olm.Utility, userId: string, deviceOrKeyId: string, ed25519Key: string, value: SignedValue, log?: ILogItem): SignatureVerification {
     const signature = getEd25519Signature(value, userId, deviceOrKeyId);
     if (!signature) {
         log?.set("no_signature", true);
-        return false;
+        return SignatureVerification.NotSigned;
     }
     const clone = Object.assign({}, value) as object;
     delete clone["unsigned"];
@@ -81,14 +87,14 @@ export function verifyEd25519Signature(olmUtil: Olm.Utility, userId: string, dev
     try {
         // throws when signature is invalid
         olmUtil.ed25519_verify(ed25519Key, canonicalJson, signature);
-        return true;
+        return SignatureVerification.Valid;
     } catch (err) {
         if (log) {
             const logItem = log.log({l: "Invalid signature, ignoring.", ed25519Key, canonicalJson, signature});
             logItem.error = err;
             logItem.logLevel = log.level.Warn;
         }
-        return false;
+        return SignatureVerification.Invalid;
     }
 }
 
