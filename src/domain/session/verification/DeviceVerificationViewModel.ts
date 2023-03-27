@@ -50,7 +50,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     }
 
     private async start(requestOrUserId: SASRequest | string) {
-        await this.logAndCatch("DeviceVerificationViewModel.startWithExistingSAS", (log) => {
+        await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
             const crossSigning = this.session.crossSigning;
             this.sas = crossSigning.startVerification(requestOrUserId, log);
             this.addEventListeners();
