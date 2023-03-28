@@ -496,7 +496,9 @@ export class Session {
                 olmWorker: this._olmWorker,
                 txn
             });
-            log.set("keys", this._e2eeAccount.identityKeys);
+            if (this._e2eeAccount) {
+                log.set("keys", this._e2eeAccount.identityKeys);
+            }
             this._setupEncryption();
         }
         const pendingEventsByRoomId = await this._getPendingEventsByRoom(txn);
