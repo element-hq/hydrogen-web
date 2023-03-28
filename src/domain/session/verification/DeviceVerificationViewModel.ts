@@ -32,26 +32,24 @@ type Options = BaseOptions & {
 };
 
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
-    private session: Session;
     private sas: SASVerification;
     private _currentStageViewModel: any;
 
     constructor(options: Readonly<Options>) {
         super(options);
-        this.session = options.session;
         const sasRequest = options.request;
         if (options.request) {
             this.start(sasRequest);
         }
         else {
             // We are about to send the request
-            this.start(this.session.userId);
+            this.start(this.getOption("session").userId);
         }
     }
 
     private async start(requestOrUserId: SASRequest | string) {
         await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
-            const crossSigning = this.session.crossSigning.get();
+            const crossSigning = this.getOption("session").crossSigning.get();
             this.sas = crossSigning.startVerification(requestOrUserId, log);
             this.addEventListeners();
             if (typeof requestOrUserId === "string") {
