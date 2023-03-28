@@ -347,7 +347,7 @@ export class SessionViewModel extends ViewModel {
             this._verificationViewModel = this.disposeTracked(this._verificationViewModel);
         }
         if (txnId) {
-            const request = this._client.session.crossSigning.receivedSASVerifications.get(txnId);
+            const request = this._client.session.crossSigning.get()?.receivedSASVerifications.get(txnId);
             this._verificationViewModel = this.track(new DeviceVerificationViewModel(this.childOptions({ session: this._client.session, request })));
         }
         this.emitChange("activeMiddleViewModel");

@@ -44,8 +44,12 @@ export class SendMacStage extends BaseSASVerificationStage {
             this.channel.id;
 
         const deviceKeyId = `ed25519:${this.ourUserDeviceId}`;
-        const deviceKeys = this.e2eeAccount.getDeviceKeysToSignWithCrossSigning();
-        mac[deviceKeyId] = calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
+        const device = await this.deviceTracker.deviceForId(this.ourUserId, this.ourUserDeviceId, this.hsApi, log);
+        if (!device) {
+            log.log({ l: "Fetching device failed", userId: this.ourUserId, deviceId: this.ourUserDeviceId });
+            throw new Error("Fetching device for user failed!");
+        }
+        mac[deviceKeyId] = calculateMAC(device.keys[deviceKeyId], baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 
         const key = await this.deviceTracker.getCrossSigningKeyForUser(this.ourUserId, KeyUsage.Master, this.hsApi, log);

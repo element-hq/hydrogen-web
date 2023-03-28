@@ -170,6 +170,9 @@ export function tests() {
                     device_id: deviceId,
                     keys: {
                         [`ed25519:${deviceId}`]: "D8w9mrokGdEZPdPgrU0kQkYi4vZyzKEBfvGyZsGK7+Q",
+                    },
+                    unsigned: {
+                        device_display_name: "lala10",
                     }
                 };
             },
