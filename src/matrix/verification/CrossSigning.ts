@@ -65,6 +65,13 @@ export enum UserTrust {
     OwnSetupError
 }
 
+enum MSKVerification {
+    NoPrivKey,
+    NoPubKey,
+    DerivedPubKeyMismatch,
+    Valid
+}
+
 export class CrossSigning {
     private readonly storage: Storage;
     private readonly secretStorage: SecretStorage;
@@ -99,24 +106,27 @@ export class CrossSigning {
         this.e2eeAccount = options.e2eeAccount
     }
 
-    async load(log: ILogItem) {
+    /** @return {boolean} whether cross signing has been enabled on this account */
+    async load(log: ILogItem): Promise<boolean> {
         // try to verify the msk without accessing the network
-        return await this.verifyMSKFrom4S(false, log);
+        const verification = await this.verifyMSKFrom4S(false, log);
+        return verification !== MSKVerification.NoPrivKey;
     }
 
-    async start(log: ILogItem) {
+    async start(log: ILogItem): Promise<void> {
         if (!this.isMasterKeyTrusted) {
             // try to verify the msk _with_ access to the network
-            return await this.verifyMSKFrom4S(true, log);
+            await this.verifyMSKFrom4S(true, log);
         }
     }
 
-    private async verifyMSKFrom4S(allowNetwork: boolean, log: ILogItem): Promise<boolean> {
+    private async verifyMSKFrom4S(allowNetwork: boolean, log: ILogItem): Promise<MSKVerification> {
         return await log.wrap("CrossSigning.verifyMSKFrom4S", async log => {
             // TODO: use errorboundary here
             const privateMasterKey = await this.getSigningKey(KeyUsage.Master);
             if (!privateMasterKey) {
-                return false;
+                log.set("failure", "no_priv_msk");
+                return MSKVerification.NoPrivKey;
             }
             const signing = new this.olm.PkSigning();
             let derivedPublicKey;
@@ -127,13 +137,17 @@ export class CrossSigning {
             }
             const publishedMasterKey = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, allowNetwork ? this.hsApi : undefined, log);
             if (!publishedMasterKey) {
-                return false;
+                log.set("failure", "no_pub_msk");
+                return MSKVerification.NoPubKey;
             }
             const publisedEd25519Key = publishedMasterKey && getKeyEd25519Key(publishedMasterKey);
             log.set({publishedMasterKey: publisedEd25519Key, derivedPublicKey});
             this._isMasterKeyTrusted = !!publisedEd25519Key && publisedEd25519Key === derivedPublicKey;
-            log.set("isMasterKeyTrusted", this.isMasterKeyTrusted);
-            return this.isMasterKeyTrusted;
+            if (!this._isMasterKeyTrusted) {
+                return MSKVerification.DerivedPubKeyMismatch;
+                log.set("failure", "mismatch");
+            }
+            return MSKVerification.Valid;
         });
     }
 
