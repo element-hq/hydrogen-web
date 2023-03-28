@@ -31,7 +31,7 @@ export class DeviceVerificationView extends TemplateView<DeviceVerificationViewM
             }
         }, [
             t.mapView(vm => vm.currentStageViewModel, (vm) => {
-                switch (vm) {
+                switch (vm?.kind) {
                     case "waiting-for-user": return new WaitingForOtherUserView(vm);
                     case "verification-cancelled": return new VerificationCancelledView(vm);
                     case "select-method": return new SelectMethodView(vm);
