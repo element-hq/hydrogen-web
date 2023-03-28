@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionResult} from "../../DecryptionResult";
-import {DecryptionError} from "../../common.js";
+import {DecryptionError} from "../../common";
 import {ReplayDetectionEntry} from "./ReplayDetectionEntry";
 import type {RoomKey} from "./RoomKey";
 import type {KeyLoader, OlmDecryptionResult} from "./KeyLoader";

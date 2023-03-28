@@ -26,7 +26,8 @@ limitations under the License.
  *                                      see DeviceTracker
  */
 
-import type {DeviceIdentity} from "../storage/idb/stores/DeviceIdentityStore";
+import {getDeviceEd25519Key} from "./common";
+import type {DeviceKey} from "./common";
 import type {TimelineEvent} from "../storage/types";
 
 type DecryptedEvent = {
@@ -35,7 +36,7 @@ type DecryptedEvent = {
 }
 
 export class DecryptionResult {
-    private device?: DeviceIdentity;
+    private device?: DeviceKey;
 
     constructor(
         public readonly event: DecryptedEvent,
@@ -44,13 +45,13 @@ export class DecryptionResult {
         public readonly encryptedEvent?: TimelineEvent
     ) {}
 
-    setDevice(device: DeviceIdentity): void {
+    setDevice(device: DeviceKey): void {
         this.device = device;
     }
 
     get isVerified(): boolean {
         if (this.device) {
-            const comesFromDevice = this.device.ed25519Key === this.claimedEd25519Key;
+            const comesFromDevice = getDeviceEd25519Key(this.device) === this.claimedEd25519Key;
             return comesFromDevice;
         }
         return false;
@@ -65,11 +66,11 @@ export class DecryptionResult {
     }
 
     get userId(): string | undefined {
-        return this.device?.userId;
+        return this.device?.user_id;
     }
 
     get deviceId(): string | undefined {
-        return this.device?.deviceId;
+        return this.device?.device_id;
     }
 
     get isVerificationUnknown(): boolean {

@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {OLM_ALGORITHM} from "../common";
+
 export const enum OlmPayloadType {
     PreKey = 0,
     Normal = 1
@@ -25,7 +27,7 @@ export type OlmMessage = {
 }
 
 export type OlmEncryptedMessageContent = {
-    algorithm?: "m.olm.v1.curve25519-aes-sha2"
+    algorithm?: typeof OLM_ALGORITHM
     sender_key?: string,
     ciphertext?: {
         [deviceCurve25519Key: string]: OlmMessage

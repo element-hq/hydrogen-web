@@ -1182,6 +1182,7 @@ button.RoomDetailsView_row::after {
     border: none;
     background: none;
     cursor: pointer;
+    text-align: left;
 }
 
 .LazyListParent {

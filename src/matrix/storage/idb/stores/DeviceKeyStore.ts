@@ -16,15 +16,13 @@ limitations under the License.
 
 import {MAX_UNICODE, MIN_UNICODE} from "./common";
 import {Store} from "../Store";
+import {getDeviceCurve25519Key} from "../../../e2ee/common";
+import type {DeviceKey} from "../../../e2ee/common";
 
-export interface DeviceIdentity {
-    userId: string;
-    deviceId: string;
-    ed25519Key: string;
+type DeviceKeyEntry = {
+    key: string; // key in storage, not a crypto key
     curve25519Key: string;
-    algorithms: string[];
-    displayName: string;
-    key: string;
+    deviceKey: DeviceKey
 }
 
 function encodeKey(userId: string, deviceId: string): string {
@@ -36,23 +34,24 @@ function decodeKey(key: string): { userId: string, deviceId: string } {
     return {userId, deviceId};
 }
 
-export class DeviceIdentityStore {
-    private _store: Store<DeviceIdentity>;
+export class DeviceKeyStore {
+    private _store: Store<DeviceKeyEntry>;
     
-    constructor(store: Store<DeviceIdentity>) {
+    constructor(store: Store<DeviceKeyEntry>) {
         this._store = store;
     }
 
-    getAllForUserId(userId: string): Promise<DeviceIdentity[]> {
-        const range = this._store.IDBKeyRange.lowerBound(encodeKey(userId, ""));
-        return this._store.selectWhile(range, device => {
-            return device.userId === userId;
+    async getAllForUserId(userId: string): Promise<DeviceKey[]> {
+        const range = this._store.IDBKeyRange.lowerBound(encodeKey(userId, MIN_UNICODE));
+        const entries = await this._store.selectWhile(range, device => {
+            return device.deviceKey.user_id === userId;
         });
+        return entries.map(e => e.deviceKey);
     }
 
     async getAllDeviceIds(userId: string): Promise<string[]> {
         const deviceIds: string[] = [];
-        const range = this._store.IDBKeyRange.lowerBound(encodeKey(userId, ""));
+        const range = this._store.IDBKeyRange.lowerBound(encodeKey(userId, MIN_UNICODE));
         await this._store.iterateKeys(range, key => {
             const decodedKey = decodeKey(key as string);
             // prevent running into the next room
@@ -65,17 +64,21 @@ export class DeviceIdentityStore {
         return deviceIds;
     }
 
-    get(userId: string, deviceId: string): Promise<DeviceIdentity | undefined> {
-        return this._store.get(encodeKey(userId, deviceId));
+    async get(userId: string, deviceId: string): Promise<DeviceKey | undefined> {
+        return (await this._store.get(encodeKey(userId, deviceId)))?.deviceKey;
     }
 
-    set(deviceIdentity: DeviceIdentity): void {
-        deviceIdentity.key = encodeKey(deviceIdentity.userId, deviceIdentity.deviceId);
-        this._store.put(deviceIdentity);
+    set(deviceKey: DeviceKey): void {
+        this._store.put({
+            key: encodeKey(deviceKey.user_id, deviceKey.device_id),
+            curve25519Key: getDeviceCurve25519Key(deviceKey)!,
+            deviceKey
+        });
     }
 
-    getByCurve25519Key(curve25519Key: string): Promise<DeviceIdentity | undefined> {
-        return this._store.index("byCurve25519Key").get(curve25519Key);
+    async getByCurve25519Key(curve25519Key: string): Promise<DeviceKey | undefined> {
+        const entry = await this._store.index("byCurve25519Key").get(curve25519Key);
+        return entry?.deviceKey;
     }
 
     remove(userId: string, deviceId: string): void {

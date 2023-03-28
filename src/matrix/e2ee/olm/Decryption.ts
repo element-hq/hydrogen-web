@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DecryptionError} from "../common.js";
+import {DecryptionError} from "../common";
 import {groupBy} from "../../../utils/groupBy";
 import {MultiLock, ILock} from "../../../utils/Lock";
 import {Session} from "./Session";

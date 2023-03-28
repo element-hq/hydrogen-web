@@ -78,7 +78,7 @@ export class SessionLoadViewModel extends ViewModel {
                 this._ready(client);
             }
             if (loadError) {
-                console.error("session load error", loadError);
+                console.error("session load error", loadError.stack);
             }
         } catch (err) {
             this._error = err;
