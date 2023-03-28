@@ -173,8 +173,8 @@ export class CrossSigning {
             log.set({publishedMasterKey: publisedEd25519Key, derivedPublicKey});
             this._isMasterKeyTrusted = !!publisedEd25519Key && publisedEd25519Key === derivedPublicKey;
             if (!this._isMasterKeyTrusted) {
-                return MSKVerification.DerivedPubKeyMismatch;
                 log.set("failure", "mismatch");
+                return MSKVerification.DerivedPubKeyMismatch;
             }
             return MSKVerification.Valid;
         });
