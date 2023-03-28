@@ -55,7 +55,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             this.sas = crossSigning.startVerification(requestOrUserId, log);
             this.addEventListeners();
             if (typeof requestOrUserId === "string") {
-                this.createViewModelAndEmit(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
+                this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
             }
             return this.sas.start();
         });
@@ -63,30 +63,30 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     
     private addEventListeners() {
         this.track(this.sas.disposableOn("SelectVerificationStage", (stage) => {
-            this.createViewModelAndEmit(
+            this.updateCurrentStageViewModel(
                 new SelectMethodViewModel(this.childOptions({ sas: this.sas, stage: stage!, }))
             );
             }));
         this.track(this.sas.disposableOn("EmojiGenerated", (stage) => {
-            this.createViewModelAndEmit(
+            this.updateCurrentStageViewModel(
                 new VerifyEmojisViewModel(this.childOptions({ stage: stage!, }))
             );
         }));
         this.track(this.sas.disposableOn("VerificationCancelled", (cancellation) => {
-            this.createViewModelAndEmit(
+            this.updateCurrentStageViewModel(
                 new VerificationCancelledViewModel(
                     this.childOptions({ cancellation: cancellation! })
                 )
             );
         }));
         this.track(this.sas.disposableOn("VerificationCompleted", (deviceId) => {
-            this.createViewModelAndEmit(
+            this.updateCurrentStageViewModel(
                 new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
             );
         }));
     }
 
-    private createViewModelAndEmit(vm) {
+    private updateCurrentStageViewModel(vm) {
         this._currentStageViewModel = this.disposeTracked(this._currentStageViewModel);
         this._currentStageViewModel = this.track(vm);
         this.emitChange("currentStageViewModel");
