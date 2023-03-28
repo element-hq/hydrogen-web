@@ -29,17 +29,17 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
     return false;
 }
 
-export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
-type TextBinding<T> = (T) => string | number | boolean | undefined | null;
-type Child<T> = NonBoundChild | TextBinding<T>;
-type Children<T> = Child<T> | Child<T>[];
+export type RenderFn<T extends IObservableValue> = (t: Builder<T>, vm: T) => ViewNode;
+type TextBinding<T extends IObservableValue> = (T) => string | number | boolean | undefined | null;
+type Child<T extends IObservableValue> = NonBoundChild | TextBinding<T>;
+type Children<T extends IObservableValue> = Child<T> | Child<T>[];
 type EventHandler = ((event: Event) => void);
 type AttributeStaticValue = string | boolean;
-type AttributeBinding<T> = (value: T) => AttributeStaticValue;
-export type AttrValue<T> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
-export type Attributes<T> = { [attribute: string]: AttrValue<T> };
-type ElementFn<T> = (attributes?: Attributes<T> | Children<T>, children?: Children<T>) => Element;
-export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
+type AttributeBinding<T extends IObservableValue> = (value: T) => AttributeStaticValue;
+export type AttrValue<T extends IObservableValue> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
+export type Attributes<T extends IObservableValue> = { [attribute: string]: AttrValue<T> };
+type ElementFn<T extends IObservableValue> = (attributes?: Attributes<T> | Children<T>, children?: Children<T>) => Element;
+export type Builder<T extends IObservableValue> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
 
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -394,7 +394,7 @@ for (const [ns, tags] of Object.entries(TAG_NAMES)) {
     }
 }
 
-export class InlineTemplateView<T> extends TemplateView<T> {
+export class InlineTemplateView<T extends IObservableValue> extends TemplateView<T> {
     private _render: RenderFn<T>;
 
     constructor(value: T, render: RenderFn<T>) {
