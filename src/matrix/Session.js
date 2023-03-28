@@ -365,6 +365,7 @@ export class Session {
                         olm: this._olm,
                         olmUtil: this._olmUtil,
                         deviceTracker: this._deviceTracker,
+                        deviceMessageHandler: this._deviceMessageHandler,
                         hsApi: this._hsApi,
                         ownUserId: this.userId,
                         e2eeAccount: this._e2eeAccount

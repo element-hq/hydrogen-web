@@ -37,13 +37,13 @@ function toastViewModelToView(vm: BaseToastNotificationViewModel): IView {
 
 export class ToastCollectionView extends TemplateView<ToastCollectionViewModel> {
     render(t: Builder<ToastCollectionViewModel>, vm: ToastCollectionViewModel) {
-        const view = new ListView({
-            list: vm.toastViewModels,
-            parentProvidesUpdates: false,
-        }, (vm: CallToastNotificationViewModel) => toastViewModelToView(vm));
-
         return t.div({ className: "ToastCollectionView" }, [
-            t.if(vm => !!vm.toastViewModels, (t) => t.view(view)),
+            t.ifView(vm => !!vm.toastViewModels, t => {
+                return new ListView({
+                    list: vm.toastViewModels,
+                    parentProvidesUpdates: false,
+                }, (vm: CallToastNotificationViewModel) => toastViewModelToView(vm));
+            }),
         ]);
     }
 }

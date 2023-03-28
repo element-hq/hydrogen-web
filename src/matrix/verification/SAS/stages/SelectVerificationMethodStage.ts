@@ -86,7 +86,11 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
     private async findDeviceName(log: ILogItem) {
         await log.wrap("SelectVerificationMethodStage.findDeviceName", async () => {
             const device = await this.options.deviceTracker.deviceForId(this.otherUserId, this.otherUserDeviceId, this.options.hsApi, log);
-            this.otherDeviceName = device.displayName;
+            if (!device) {
+                log.log({ l: "Cannot find device", userId: this.otherUserId, deviceId: this.otherUserDeviceId });
+                throw new Error("Cannot find device");
+            }
+            this.otherDeviceName = device.unsigned.device_display_name ?? device.device_id;
         })
     }
 

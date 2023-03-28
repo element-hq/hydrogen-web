@@ -32,11 +32,13 @@ export class VerificationToastCollectionViewModel extends ViewModel<SegmentType,
 
     constructor(options: Options) {
         super(options);
-        this.track(
-            options.session.crossSigning.subscribe((crossSigning) => {
-                this.track(crossSigning.receivedSASVerifications.subscribe(this));
-            })
-        );
+        this.subscribeToSASRequests();
+    }
+
+    private async subscribeToSASRequests() {
+        await this.getOption("session").crossSigning.waitFor(v => !!v).promise; 
+        const crossSigning = this.getOption("session").crossSigning.get();
+        this.track(crossSigning.receivedSASVerifications.subscribe(this));
     }
 
 
