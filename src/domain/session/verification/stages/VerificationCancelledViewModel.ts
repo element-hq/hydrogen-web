@@ -25,11 +25,11 @@ type Options = BaseOptions & {
 
 export class VerificationCancelledViewModel extends ViewModel<SegmentType, Options> {
     get cancelCode(): CancelReason {
-        return this.options.cancellation.code;
+        return this.options.cancellation!.code;
     }
 
     get isCancelledByUs(): boolean {
-        return this.options.cancellation.cancelledByUs;
+        return this.options.cancellation!.cancelledByUs;
     }
 
     gotoSettings() {

@@ -50,7 +50,7 @@ export interface IChannel {
     startMessage: any;
     initiatedByUs: boolean;
     isCancelled: boolean;
-    cancellation: { code: CancelReason, cancelledByUs: boolean };
+    cancellation?: { code: CancelReason, cancelledByUs: boolean };
     id: string;
     otherUserDeviceId: string;
 } 
@@ -80,7 +80,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     public startMessage: any;
     public id: string;
     private _initiatedByUs: boolean;
-    private _cancellation: { code: CancelReason, cancelledByUs: boolean };
+    private _cancellation?: { code: CancelReason, cancelledByUs: boolean };
 
     /**
      * 
@@ -118,7 +118,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         }
     }
 
-    get cancellation() {
+    get cancellation(): IChannel["cancellation"] {
         return this._cancellation;
     };
 
