@@ -27,14 +27,8 @@ export class KeyBackupSettingsView extends TemplateView<KeyBackupViewModel> {
                 switch (status) {
                     case Status.Enabled: return renderEnabled(t, vm);
                     case Status.NewVersionAvailable: return renderNewVersionAvailable(t, vm);
-                    case Status.Setup: {
-                        if (vm.setupKeyType === KeyType.Passphrase) {
-                            return renderEnableFromPhrase(t, vm);
-                        } else {
-                            return renderEnableFromKey(t, vm);
-                        }
-                        break;
-                    }
+                    case Status.SetupWithPassphrase: return renderEnableFromPhrase(t, vm);
+                    case Status.SetupWithRecoveryKey: return renderEnableFromKey(t, vm);
                     case Status.Pending: return t.p(vm.i18n`Waiting to go online…`);
                 }
             }),

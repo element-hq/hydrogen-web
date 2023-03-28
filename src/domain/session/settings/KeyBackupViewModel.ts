@@ -26,7 +26,8 @@ import type {CrossSigning} from "../../../matrix/verification/CrossSigning";
 
 export enum Status {
     Enabled,
-    Setup,
+    SetupWithPassphrase,
+    SetupWithRecoveryKey,
     Pending,
     NewVersionAvailable
 };
@@ -108,7 +109,10 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
                 return keyBackup.needsNewKey ? Status.NewVersionAvailable : Status.Enabled;
             }
         } else {
-            return Status.Setup;
+            switch (this._setupKeyType) {
+                case KeyType.RecoveryKey: return Status.SetupWithRecoveryKey;
+                case KeyType.Passphrase: return Status.SetupWithPassphrase;
+            }
         }
     }
 
@@ -179,21 +183,13 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
     }
 
     showPhraseSetup(): void {
-        if (this._status === Status.Setup) {
-            this._setupKeyType = KeyType.Passphrase;
-            this.emitChange("setupKeyType");
-        }
+        this._setupKeyType = KeyType.Passphrase;
+        this.emitChange("status");
     }
 
     showKeySetup(): void {
-        if (this._status === Status.Setup) {
-            this._setupKeyType = KeyType.Passphrase;
-            this.emitChange("setupKeyType");
-        }
-    }
-
-    get setupKeyType(): KeyType {
-        return this._setupKeyType;
+        this._setupKeyType = KeyType.RecoveryKey;
+        this.emitChange("status");
     }
 
     private async _enterCredentials(keyType, credential, setupDehydratedDevice): Promise<void> {
