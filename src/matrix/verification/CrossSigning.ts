@@ -22,7 +22,7 @@ import type {Platform} from "../../platform/web/Platform";
 import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
-import {ILogItem} from "../../lib";
+import type {ILogItem} from "../../logging/types";
 import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/Channel";
