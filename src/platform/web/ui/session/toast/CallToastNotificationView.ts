@@ -17,7 +17,7 @@ limitations under the License.
 import {AvatarView} from "../../AvatarView.js";
 import {ErrorView} from "../../general/ErrorView";
 import {TemplateView, Builder} from "../../general/TemplateView";
-import type {CallToastNotificationViewModel} from "../../../../../domain/session/toast/CallToastNotificationViewModel";
+import type {CallToastNotificationViewModel} from "../../../../../domain/session/toast/calls/CallToastNotificationViewModel";
 
 export class CallToastNotificationView extends TemplateView<CallToastNotificationViewModel> {
     render(t: Builder<CallToastNotificationViewModel>, vm: CallToastNotificationViewModel) {

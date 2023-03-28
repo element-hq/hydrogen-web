@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
-import type {Room} from "../../../matrix/room/Room.js";
-import {IAvatarContract, avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar"; 
-import {LocalMedia} from "../../../matrix/calls/LocalMedia";
-import {BaseClassOptions, BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";
-import {SegmentType} from "../../navigation";
+import type {GroupCall} from "../../../../matrix/calls/group/GroupCall";
+import type {Room} from "../../../../matrix/room/Room.js";
+import {IAvatarContract, avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../../avatar"; 
+import {LocalMedia} from "../../../../matrix/calls/LocalMedia";
+import {BaseClassOptions, BaseToastNotificationViewModel} from ".././BaseToastNotificationViewModel";
+import {SegmentType} from "../../../navigation";
 
 type Options<N extends MinimumNeededSegmentType = SegmentType> = {
     call: GroupCall;
@@ -44,6 +44,10 @@ export class CallToastNotificationViewModel<N extends MinimumNeededSegmentType =
                     this.dismiss();
                 }
         }));
+    }
+
+    get kind(): "calls" {
+        return "calls";
     }
 
     async join(): Promise<void> {
