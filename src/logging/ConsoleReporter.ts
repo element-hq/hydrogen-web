@@ -49,12 +49,26 @@ function filterValues(values: LogItemValues): LogItemValues | null {
         }, null);
 }
 
+function hasChildWithError(item: LogItem): boolean {
+    if (item.error) {
+        return true;
+    }
+    if (item.children) {
+        for(const c of item.children) {
+            if (hasChildWithError(c)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 function printToConsole(item: LogItem): void {
     const label = `${itemCaption(item)} (@${item.start}ms, duration: ${item.duration}ms)`;
     const filteredValues = filterValues(item.values);
     const shouldGroup = item.children || filteredValues;
     if (shouldGroup) {
-        if (item.error) {
+        if (hasChildWithError(item)) {
             console.group(label);
         } else {
             console.groupCollapsed(label);
