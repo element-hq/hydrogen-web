@@ -152,6 +152,8 @@ function toIceServer(settings: TurnServerSettings): RTCIceServer {
         urls: settings.uris,
         username: settings.username,
         credential: settings.password,
+        // @ts-ignore
+        // this field is deprecated but providing it nonetheless
         credentialType: "password"
     }
 }
