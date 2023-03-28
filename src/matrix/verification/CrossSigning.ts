@@ -15,7 +15,10 @@ limitations under the License.
 */
 
 import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
-
+import {pkSign} from "./common";
+import {SASVerification} from "./SAS/SASVerification";
+import {ToDeviceChannel} from "./SAS/channel/Channel";
+import {VerificationEventType} from "./SAS/channel/types";
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
 import type {Platform} from "../../platform/web/Platform";
@@ -23,14 +26,9 @@ import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
 import type {ILogItem} from "../../logging/types";
-import {pkSign} from "./common";
-import {SASVerification} from "./SAS/SASVerification";
-import {ToDeviceChannel} from "./SAS/channel/Channel";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
-import {VerificationEventType} from "./SAS/channel/types";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
 import type * as OlmNamespace from "@matrix-org/olm";
-
 type Olm = typeof OlmNamespace;
 
 // we store cross-signing (and device) keys in the format we get them from the server
