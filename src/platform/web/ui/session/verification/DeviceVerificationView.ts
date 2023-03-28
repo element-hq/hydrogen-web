@@ -31,22 +31,14 @@ export class DeviceVerificationView extends TemplateView<DeviceVerificationViewM
             }
         }, [
             t.mapView(vm => vm.currentStageViewModel, (vm) => {
-                if (vm?.kind === "waiting-for-user") {
-                    return new WaitingForOtherUserView(vm);
+                switch (vm) {
+                    case "waiting-for-user": return new WaitingForOtherUserView(vm);
+                    case "verification-cancelled": return new VerificationCancelledView(vm);
+                    case "select-method": return new SelectMethodView(vm);
+                    case "verify-emojis": return new VerifyEmojisView(vm);
+                    case "verification-completed": return new VerificationCompleteView(vm);
+                    default: return null;
                 }
-                else if (vm?.kind === "verification-cancelled") {
-                    return new VerificationCancelledView(vm);
-                }
-                else if (vm?.kind === "select-method") {
-                    return new SelectMethodView(vm);
-                }
-                else if (vm?.kind === "verify-emojis") {
-                    return new VerifyEmojisView(vm);
-                }
-                else if (vm?.kind === "verification-completed") {
-                    return new VerificationCompleteView(vm);
-                }
-                return null;
             })
         ])
     }
