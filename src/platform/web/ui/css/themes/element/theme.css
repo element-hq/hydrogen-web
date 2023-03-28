@@ -1477,7 +1477,7 @@ button.RoomDetailsView_row::after {
 }
 
 .VerificationCompleteView__icon {
-    background: url("./icons//verified.svg?primary=accent-color") no-repeat;
+    background: url("./icons/verified.svg?primary=accent-color") no-repeat;
     background-size: contain;
     width: 128px;
     height: 128px;
