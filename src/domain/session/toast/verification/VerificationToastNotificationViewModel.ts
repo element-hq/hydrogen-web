@@ -22,7 +22,7 @@ type Options<N extends MinimumNeededSegmentType = SegmentType> = {
 } & BaseClassOptions<N>;
 
 type MinimumNeededSegmentType = {
-    "device-verification": string;
+    "device-verification": string | boolean;
 };
 
 export class VerificationToastNotificationViewModel<N extends MinimumNeededSegmentType = SegmentType, O extends Options<N> = Options<N>> extends BaseToastNotificationViewModel<N, O> {

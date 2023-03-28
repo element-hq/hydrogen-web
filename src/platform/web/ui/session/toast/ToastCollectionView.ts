@@ -41,8 +41,9 @@ export class ToastCollectionView extends TemplateView<ToastCollectionViewModel> 
             list: vm.toastViewModels,
             parentProvidesUpdates: false,
         }, (vm: CallToastNotificationViewModel) => toastViewModelToView(vm));
+
         return t.div({ className: "ToastCollectionView" }, [
-            t.view(view),
+            t.if(vm => !!vm.toastViewModels, (t) => t.view(view)),
         ]);
     }
 }

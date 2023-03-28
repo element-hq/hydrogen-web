@@ -33,10 +33,16 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     constructor(options: Options) {
         super(options);
         const session = this.getOption("session");
-        const vms: IToastCollection["toastViewModels"][] = [
-            this.track(new CallToastCollectionViewModel(this.childOptions({ session }))),
-            this.track(new VerificationToastCollectionViewModel(this.childOptions({session}))),
-        ].map(vm => vm.toastViewModels);
-        this.toastViewModels = new ConcatList(...vms);
+        const collectionVms: IToastCollection[] = [];
+        if (this.features.calls) {
+            collectionVms.push(this.track(new CallToastCollectionViewModel(this.childOptions({ session }))));
+        }
+        if (this.features.crossSigning) {
+            collectionVms.push(this.track(new VerificationToastCollectionViewModel(this.childOptions({ session }))));
+        }
+        const vms: IToastCollection["toastViewModels"][] = collectionVms.map(vm => vm.toastViewModels);
+        if (vms.length !== 0) {
+            this.toastViewModels = new ConcatList(...vms);
+        }
     }
 }

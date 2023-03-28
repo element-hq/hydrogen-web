@@ -34,7 +34,7 @@ export type SegmentType = {
     "details": true;
     "members": true;
     "member": string;
-    "device-verification": string;
+    "device-verification": string | boolean;
     "join-room": true;
 };
 

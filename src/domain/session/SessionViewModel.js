@@ -97,13 +97,12 @@ export class SessionViewModel extends ViewModel {
         }));
         this._updateJoinRoom(joinRoom.get());
 
-        if (this._client.session.features.crossSigning) {
-
-        const verification = this.navigation.observe("device-verification");
-            this.track(verification.subscribe((txnId) => {
-                this._updateVerification(txnId);
-            }));
-            this._updateVerification(verification.get());
+        if (this.features.crossSigning) {
+            const verification = this.navigation.observe("device-verification");
+                this.track(verification.subscribe((txnId) => {
+                    this._updateVerification(txnId);
+                }));
+                this._updateVerification(verification.get());
         }
 
         const lightbox = this.navigation.observe("lightbox");
