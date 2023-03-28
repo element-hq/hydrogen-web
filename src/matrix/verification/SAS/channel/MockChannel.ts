@@ -3,6 +3,8 @@ import {createCalculateMAC} from "../mac";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 import {IChannel} from "./Channel";
 import {CancelReason, VerificationEventType} from "./types";
+import {getKeyEd25519Key} from "../../CrossSigning";
+import {getDeviceEd25519Key} from "../../../e2ee/common";
 import anotherjson from "another-json";
 
 interface ITestChannel extends IChannel {
@@ -96,10 +98,11 @@ export class MockChannel implements ITestChannel {
             const deviceId = keyId.split(":", 2)[1];
             const device = await this.deviceTracker.deviceForId(this.otherUserDeviceId, deviceId);
             if (device) {
-                macContent.mac[keyId] = calculateMac(device.ed25519Key, baseInfo + keyId);
+                macContent.mac[keyId] = calculateMac(getDeviceEd25519Key(device), baseInfo + keyId);
             }
             else {
-                const {masterKey} = await this.deviceTracker.getCrossSigningKeysForUser(this.otherUserId);
+                const key = await this.deviceTracker.getCrossSigningKeyForUser(this.otherUserId);
+                const masterKey = getKeyEd25519Key(key)!;
                 macContent.mac[keyId] = calculateMac(masterKey, baseInfo + keyId);
             }
         }
@@ -112,7 +115,6 @@ export class MockChannel implements ITestChannel {
     }
 
     async cancelVerification(_: CancelReason): Promise<void> {
-        console.log("MockChannel.cancelVerification()");
         this.isCancelled = true;
     }
 

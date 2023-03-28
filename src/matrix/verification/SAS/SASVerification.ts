@@ -145,16 +145,25 @@ export function tests() {
             },
         };
         const deviceTracker = {
-            getCrossSigningKeysForUser: (userId, _hsApi, _) => {
+            getCrossSigningKeyForUser: (userId, __, _hsApi, _) => {
                 let masterKey =
                     userId === ourUserId
                         ? "5HIrEawRiiQioViNfezPDWfPWH2pdaw3pbQNHEVN2jM"
                         : "Ot8Y58PueQ7hJVpYWAJkg2qaREJAY/UhGZYOrsd52oo";
-                return { masterKey };
-            },
-            deviceForId: (_userId, _deviceId, _hsApi, _log) => {
                 return {
-                    ed25519Key: "D8w9mrokGdEZPdPgrU0kQkYi4vZyzKEBfvGyZsGK7+Q",
+                    user_id: userId,
+                    usage: ["master"],
+                    keys: {
+                        [`ed25519:${masterKey}`]: masterKey,
+                    }
+                };
+            },
+            deviceForId: (_userId, deviceId, _hsApi, _log) => {
+                return {
+                    device_id: deviceId,
+                    keys: {
+                        [`ed25519:${deviceId}`]: "D8w9mrokGdEZPdPgrU0kQkYi4vZyzKEBfvGyZsGK7+Q",
+                    }
                 };
             },
         };
@@ -177,6 +186,7 @@ export function tests() {
                 channel,
                 clock,
                 hsApi,
+            // @ts-ignore
                 deviceTracker,
                 e2eeAccount,
                 olm,

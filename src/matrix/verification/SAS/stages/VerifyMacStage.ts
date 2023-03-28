@@ -18,6 +18,8 @@ import {ILogItem} from "../../../../logging/types";
 import {CancelReason, VerificationEventType} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import {SendDoneStage} from "./SendDoneStage";
+import {KeyUsage, getKeyEd25519Key} from "../../CrossSigning";
+import {getDeviceEd25519Key} from "../../../e2ee/common";
 
 export type KeyVerifier = (keyId: string, device: any, keyInfo: string) => void;
 
@@ -66,11 +68,16 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             const deviceIdOrMSK = keyId.split(":", 2)[1];
             const device = await this.deviceTracker.deviceForId(userId, deviceIdOrMSK, this.hsApi, log);
             if (device) {
-                verifier(keyId, device.ed25519Key, keyInfo);
+                verifier(keyId, getDeviceEd25519Key(device), keyInfo);
                 // todo: mark device as verified here
             } else {
                 // If we were not able to find the device, then deviceIdOrMSK is actually the MSK!
-                const {masterKey} = await this.deviceTracker.getCrossSigningKeysForUser(userId, this.hsApi, log);
+                const key = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
+                if (!key) {
+                    log.log({ l: "Fetching msk failed", userId });
+                    throw new Error("Fetching MSK for user failed!");
+                }
+                const masterKey = getKeyEd25519Key(key);
                 verifier(keyId, masterKey, keyInfo);
                 // todo: mark user as verified here
             }

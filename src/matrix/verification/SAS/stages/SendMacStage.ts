@@ -18,6 +18,7 @@ import {ILogItem} from "../../../../logging/types";
 import {VerificationEventType} from "../channel/types";
 import {createCalculateMAC} from "../mac";
 import {VerifyMacStage} from "./VerifyMacStage";
+import {getKeyEd25519Key, KeyUsage} from "../../CrossSigning";
 
 export class SendMacStage extends BaseSASVerificationStage {
     async completeStage() {
@@ -47,7 +48,12 @@ export class SendMacStage extends BaseSASVerificationStage {
         mac[deviceKeyId] = calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 
-        const {masterKey: crossSigningKey} = await this.deviceTracker.getCrossSigningKeysForUser(this.ourUserId, this.hsApi, log);
+        const key = await this.deviceTracker.getCrossSigningKeyForUser(this.ourUserId, KeyUsage.Master, this.hsApi, log);
+        if (!key) {
+            log.log({ l: "Fetching msk failed", userId: this.ourUserId });
+            throw new Error("Fetching MSK for user failed!");
+        }
+        const crossSigningKey = getKeyEd25519Key(key);
         if (crossSigningKey) {
             const crossSigningKeyId = `ed25519:${crossSigningKey}`;
             mac[crossSigningKeyId] = calculateMAC(crossSigningKey, baseInfo + crossSigningKeyId);

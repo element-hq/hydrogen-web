@@ -211,13 +211,13 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         this.otherUserDeviceId = fromDevice;
         // We need to send cancel messages to all other devices
         const devices = await this.deviceTracker.devicesForUsers([this.otherUserId], this.hsApi, log);
-        const otherDevices = devices.filter(device => device.deviceId !== fromDevice && device.deviceId !== this.ourDeviceId);
+        const otherDevices = devices.filter(device => device.device_id !== fromDevice && device.device_id !== this.ourDeviceId);
         const cancelMessage = {
             code: CancelReason.OtherDeviceAccepted,
             reason: messageFromErrorType[CancelReason.OtherDeviceAccepted],
             transaction_id: this.id,
         };
-        const deviceMessages = otherDevices.reduce((acc, device) => { acc[device.deviceId] = cancelMessage; return acc; }, {});
+        const deviceMessages = otherDevices.reduce((acc, device) => { acc[device.device_id] = cancelMessage; return acc; }, {});
         const payload = {
             messages: {
                 [this.otherUserId]: deviceMessages
