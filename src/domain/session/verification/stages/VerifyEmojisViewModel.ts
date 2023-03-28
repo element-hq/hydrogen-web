@@ -26,12 +26,12 @@ type Options = BaseOptions & {
 };
 
 export class VerifyEmojisViewModel extends ErrorReportViewModel<SegmentType, Options> {
-    public isWaiting: boolean = false;
+    private _isWaiting: boolean = false;
 
     async setEmojiMatch(match: boolean) {
         await this.logAndCatch("VerifyEmojisViewModel.setEmojiMatch", async () => {
             await this.options.stage.setEmojiMatch(match);
-            this.isWaiting = true;
+            this._isWaiting = true;
             this.emitChange("isWaiting");
         });
     }
@@ -42,5 +42,9 @@ export class VerifyEmojisViewModel extends ErrorReportViewModel<SegmentType, Opt
 
     get kind(): string {
         return "verify-emojis";
+    }
+
+    get isWaiting(): boolean {
+        return this._isWaiting;
     }
 }
