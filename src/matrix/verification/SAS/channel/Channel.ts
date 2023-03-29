@@ -19,6 +19,7 @@ import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
 import type {ILogItem} from "../../../../logging/types";
 import type {Clock} from "../../../../platform/web/dom/Clock.js";
 import type {DeviceMessageHandler} from "../../../DeviceMessageHandler.js";
+import type {IChannel} from "./IChannel";
 import {makeTxnId} from "../../../common.js";
 import {CancelReason, VerificationEventType} from "./types";
 import {Disposables} from "../../../../utils/Disposables";
@@ -39,21 +40,6 @@ const messageFromErrorType = {
     [CancelReason.MismatchedSAS]: "Emoji/decimal does not match.",
 }
 
-export interface IChannel {
-    send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void>;
-    waitForEvent(eventType: VerificationEventType): Promise<any>;
-    getSentMessage(event: VerificationEventType): any;
-    getReceivedMessage(event: VerificationEventType): any;
-    setStartMessage(content: any): void;
-    cancelVerification(cancellationType: CancelReason): Promise<void>;
-    acceptMessage: any;
-    startMessage: any;
-    initiatedByUs: boolean;
-    isCancelled: boolean;
-    cancellation?: { code: CancelReason, cancelledByUs: boolean };
-    id: string;
-    otherUserDeviceId: string;
-} 
 
 type Options = {
     hsApi: HomeServerApi;
