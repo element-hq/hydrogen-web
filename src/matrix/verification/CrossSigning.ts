@@ -119,25 +119,7 @@ export class CrossSigning {
         this.deviceMessageHandler = options.deviceMessageHandler;
 
         this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
-            const txnId = unencryptedEvent.content.transaction_id;
-            if (unencryptedEvent.type === VerificationEventType.Cancel) {
-                this.receivedSASVerifications.remove(txnId);
-                return;
-            }
-            if (this.sasVerificationInProgress &&
-                (
-                    !this.sasVerificationInProgress.finished ||
-                    // If the start message is for the previous sasverification, ignore it.
-                    this.sasVerificationInProgress.channel.id === txnId
-                )) {
-                return;
-            }
-            if (unencryptedEvent.type === VerificationEventType.Request ||
-                unencryptedEvent.type === VerificationEventType.Start) {
-                this.platform.logger.run("Start verification from request", () => {
-                    this.receivedSASVerifications.set(txnId, new SASRequest(unencryptedEvent));
-                });
-            }
+            this._handleSASDeviceMessage(unencryptedEvent);
         })
     }
 
@@ -222,6 +204,35 @@ export class CrossSigning {
             clock: this.platform.clock,
         });
         return this.sasVerificationInProgress;
+    }
+
+    private _handleSASDeviceMessage(event: any) {
+        const txnId = event.content.transaction_id;
+        /**
+         * If we receive an event for the current/previously finished 
+         * SAS verification, we should ignore it because SASVerification
+         * object will take care of it (if needed).
+         */
+        const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
+        if (shouldIgnoreEvent) { return; }
+        /**
+         * 1. If we receive the cancel message, we need to update the requests map.
+         * 2. If we receive an starting message (viz request/start), we need to create the SASRequest from it.
+         */
+        switch (event.type) {
+            case VerificationEventType.Cancel: 
+                this.receivedSASVerifications.remove(txnId);
+                return;
+            case VerificationEventType.Request:
+            case VerificationEventType.Start:
+                this.platform.logger.run("Create SASRequest", () => {
+                    this.receivedSASVerifications.set(txnId, new SASRequest(event));
+                });
+                return;
+            default:
+                // we don't care about this event!
+                return;
+        }
     }
 
     /** returns our own device key signed by our self-signing key. Other signatures will be missing. */
