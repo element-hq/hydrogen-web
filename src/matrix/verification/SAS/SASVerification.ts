@@ -19,7 +19,7 @@ import type {BaseSASVerificationStage} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
 import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
-import type {IChannel} from "./channel/Channel";
+import type {IChannel} from "./channel/IChannel";
 import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {Timeout} from "../../../platform/types/types";
 import type {Clock} from "../../../platform/web/dom/Clock.js";

@@ -18,7 +18,7 @@ import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
 import {BaseObservableValue, RetainedObservableValue} from "../../observable/value";
 import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
-import {ToDeviceChannel} from "./SAS/channel/Channel";
+import {ToDeviceChannel} from "./SAS/channel/ToDeviceChannel";
 import {VerificationEventType} from "./SAS/channel/types";
 import {ObservableMap} from "../../observable/map";
 import {SASRequest} from "./SAS/SASRequest";

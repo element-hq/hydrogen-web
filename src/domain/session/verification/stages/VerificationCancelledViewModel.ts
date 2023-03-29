@@ -17,7 +17,7 @@ limitations under the License.
 import {ViewModel, Options as BaseOptions} from "../../../ViewModel";
 import {SegmentType} from "../../../navigation/index";
 import type {CancelReason} from "../../../../matrix/verification/SAS/channel/types";
-import type {IChannel} from "../../../../matrix/verification/SAS/channel/Channel";
+import type {IChannel} from "../../../../matrix/verification/SAS/channel/IChannel";
 
 type Options = BaseOptions & {
     cancellation: IChannel["cancellation"];

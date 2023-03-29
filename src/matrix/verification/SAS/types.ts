@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type {IChannel} from "./channel/Channel";
+import type {IChannel} from "./channel/IChannel";
 import type {CalculateSASStage} from "./stages/CalculateSASStage";
 import type {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 
