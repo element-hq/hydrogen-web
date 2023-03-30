@@ -157,6 +157,10 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
         }
     }
 
+    navigateToVerification(): void {
+        this.navigation.push("device-verification", true);
+    }
+
     get backupWriteStatus(): BackupWriteStatus {
         const keyBackup = this._keyBackup;
         if (!keyBackup || keyBackup.version === undefined) {

@@ -13,14 +13,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {VerificationEventType} from "../channel/types";
 
-export class SendDoneStage extends BaseSASVerificationStage {
-    async completeStage() {
-        await this.log.wrap("SendDoneStage.completeStage", async (log) => {
-            this.eventEmitter.emit("VerificationCompleted", this.otherUserDeviceId);
-            await this.channel.send(VerificationEventType.Done, {}, log);
-        });
+import {ViewModel, Options as BaseOptions} from "../../../ViewModel";
+import {SegmentType} from "../../../navigation/index";
+import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
+
+type Options = BaseOptions & {
+    sas: SASVerification;
+};
+
+export class WaitingForOtherUserViewModel extends ViewModel<SegmentType, Options> {
+    async cancel() {
+        await this.options.sas.abort();
+    }
+
+    get kind(): string {
+        return "waiting-for-user";
     }
 }

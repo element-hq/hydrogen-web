@@ -49,6 +49,8 @@ export interface IChannel {
     acceptMessage: any;
     startMessage: any;
     initiatedByUs: boolean;
+    isCancelled: boolean;
+    cancellation?: { code: CancelReason, cancelledByUs: boolean };
     id: string;
     otherUserDeviceId: string;
 } 
@@ -78,7 +80,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     public startMessage: any;
     public id: string;
     private _initiatedByUs: boolean;
-    private _isCancelled = false;
+    private _cancellation?: { code: CancelReason, cancelledByUs: boolean };
 
     /**
      * 
@@ -116,8 +118,12 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         }
     }
 
+    get cancellation(): IChannel["cancellation"] {
+        return this._cancellation;
+    };
+
     get isCancelled(): boolean {
-        return this._isCancelled;
+        return !!this._cancellation;
     }
 
     async send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void> {
@@ -199,7 +205,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                 return;
             }
             if (event.type === VerificationEventType.Cancel) {
-                this._isCancelled = true;
+                this._cancellation = { code: event.content.code, cancelledByUs: false };
                 this.dispose();
                 return;
             }
@@ -234,7 +240,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
             const payload = {
                 messages: {
                     [this.otherUserId]: {
-                        [this.otherUserDeviceId]: {
+                        [this.otherUserDeviceId ?? "*"]: {
                             code: cancellationType,
                             reason: messageFromErrorType[cancellationType],
                             transaction_id: this.id,
@@ -243,7 +249,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                 }
             }
             await this.hsApi.sendToDevice(VerificationEventType.Cancel, payload, makeTxnId(), { log }).response();
-            this._isCancelled = true;
+            this._cancellation = { code: cancellationType, cancelledByUs: true };
             this.dispose();
         });
     }
@@ -258,7 +264,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     }
 
     waitForEvent(eventType: VerificationEventType): Promise<any> {
-        if (this._isCancelled) {
+        if (this.isCancelled) {
             throw new VerificationCancelledError();
         }
         // Check if we already received the message

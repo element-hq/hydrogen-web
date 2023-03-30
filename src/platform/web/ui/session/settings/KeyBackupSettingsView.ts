@@ -62,11 +62,24 @@ export class KeyBackupSettingsView extends TemplateView<KeyBackupViewModel> {
                 return t.p("Cross-signing master key found and trusted.")
             }),
             t.if(vm => vm.canSignOwnDevice, t => {
-                return t.button({
-                    onClick: disableTargetCallback(async () => {
-                        await vm.signOwnDevice();
-                    })
-                }, "Sign own device");
+                return t.div([
+                    t.button(
+                        {
+                            onClick: disableTargetCallback(async (evt) => {
+                                await vm.signOwnDevice();
+                            }),
+                        },
+                        "Sign own device"
+                    ),
+                    t.button(
+                        {
+                            onClick: disableTargetCallback(async () => {
+                                vm.navigateToVerification();
+                            }),
+                        },
+                        "Verify by emoji"
+                    ),
+                ]);
             }),
 
         ]);

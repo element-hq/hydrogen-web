@@ -23,9 +23,11 @@ import type {ILogItem} from "../../../../logging/types";
 export class SelectVerificationMethodStage extends BaseSASVerificationStage {
     private hasSentStartMessage = false;
     private allowSelection = true;
+    public otherDeviceName: string;
 
     async completeStage() {
         await this.log.wrap("SelectVerificationMethodStage.completeStage", async (log) => {
+            await this.findDeviceName(log);
             this.eventEmitter.emit("SelectVerificationStage", this);
             const startMessage = this.channel.waitForEvent(VerificationEventType.Start);
             const acceptMessage = this.channel.waitForEvent(VerificationEventType.Accept);
@@ -79,6 +81,17 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
             log.log({ l: "Start message resolved", message: startMessageToUse, our, their })
             this.channel.setStartMessage(startMessageToUse);
         });
+    }
+
+    private async findDeviceName(log: ILogItem) {
+        await log.wrap("SelectVerificationMethodStage.findDeviceName", async () => {
+            const device = await this.options.deviceTracker.deviceForId(this.otherUserId, this.otherUserDeviceId, this.options.hsApi, log);
+            if (!device) {
+                log.log({ l: "Cannot find device", userId: this.otherUserId, deviceId: this.otherUserDeviceId });
+                throw new Error("Cannot find device");
+            }
+            this.otherDeviceName = device.unsigned.device_display_name ?? device.device_id;
+        })
     }
 
     async selectEmojiMethod(log: ILogItem) {
