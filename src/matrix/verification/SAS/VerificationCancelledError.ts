@@ -14,27 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export class Deferred<T> {
-    public readonly promise: Promise<T>;
-    public readonly resolve: (value: T) => void;
-    public readonly reject: (err: Error) => void;
-    private _value?: T;
-
-    constructor() {
-        let resolve;
-        let reject;
-        this.promise = new Promise<T>((_resolve, _reject) => {
-            resolve = _resolve;
-            reject = _reject;
-        })
-        this.resolve = (value: T) => {
-            this._value = value;
-            resolve(value);
-        };
-        this.reject = reject;
+export class VerificationCancelledError extends Error {
+    get name(): string  {
+        return "VerificationCancelledError";
     }
 
-    get value(): T | undefined {
-        return this._value;
+    get message(): string {
+        return "Verification is cancelled!";
     }
 }

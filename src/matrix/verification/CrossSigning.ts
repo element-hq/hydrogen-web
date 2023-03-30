@@ -14,17 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ILogItem} from "../../logging/types";
-import {pkSign} from "./common";
 import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
-
+import {pkSign} from "./common";
+import {SASVerification} from "./SAS/SASVerification";
+import {ToDeviceChannel} from "./SAS/channel/Channel";
+import {VerificationEventType} from "./SAS/channel/types";
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
-import type {Transaction} from "../storage/idb/Transaction";
 import type {Platform} from "../../platform/web/Platform";
 import type {DeviceTracker} from "../e2ee/DeviceTracker";
 import type {HomeServerApi} from "../net/HomeServerApi";
 import type {Account} from "../e2ee/Account";
+import type {ILogItem} from "../../logging/types";
+import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
@@ -82,7 +84,10 @@ export class CrossSigning {
     private readonly hsApi: HomeServerApi;
     private readonly ownUserId: string;
     private readonly e2eeAccount: Account;
+    private readonly deviceMessageHandler: DeviceMessageHandler;
     private _isMasterKeyTrusted: boolean = false;
+    private readonly deviceId: string;
+    private sasVerificationInProgress?: SASVerification;
 
     constructor(options: {
         storage: Storage,
@@ -92,8 +97,10 @@ export class CrossSigning {
         olm: Olm,
         olmUtil: Olm.Utility,
         ownUserId: string,
+        deviceId: string,
         hsApi: HomeServerApi,
-        e2eeAccount: Account
+        e2eeAccount: Account,
+        deviceMessageHandler: DeviceMessageHandler,
     }) {
         this.storage = options.storage;
         this.secretStorage = options.secretStorage;
@@ -103,7 +110,27 @@ export class CrossSigning {
         this.olmUtil = options.olmUtil;
         this.hsApi = options.hsApi;
         this.ownUserId = options.ownUserId;
+        this.deviceId = options.deviceId;
         this.e2eeAccount = options.e2eeAccount
+        this.deviceMessageHandler = options.deviceMessageHandler;
+
+        this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
+            if (this.sasVerificationInProgress &&
+                (
+                    !this.sasVerificationInProgress.finished ||
+                    // If the start message is for the previous sasverification, ignore it.
+                    this.sasVerificationInProgress.channel.id === unencryptedEvent.content.transaction_id
+                )) {
+                return;
+            }
+            if (unencryptedEvent.type === VerificationEventType.Request ||
+                unencryptedEvent.type === VerificationEventType.Start) {
+                await this.platform.logger.run("Start verification from request", async (log) => {
+                    const sas = this.startVerification(unencryptedEvent.sender, unencryptedEvent, log);
+                    await sas?.start();
+                });
+            }
+        })
     }
 
     /** @return {boolean} whether cross signing has been enabled on this account */
@@ -153,6 +180,36 @@ export class CrossSigning {
 
     get isMasterKeyTrusted(): boolean {
         return this._isMasterKeyTrusted;
+    }
+
+    startVerification(userId: string, startingMessage: any, log: ILogItem): SASVerification | undefined {
+        if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
+            return;
+        }
+        const channel = new ToDeviceChannel({
+            deviceTracker: this.deviceTracker,
+            hsApi: this.hsApi,
+            otherUserId: userId,
+            clock: this.platform.clock,
+            deviceMessageHandler: this.deviceMessageHandler,
+            ourUserDeviceId: this.deviceId,
+            log
+        }, startingMessage);
+
+        this.sasVerificationInProgress = new SASVerification({
+            olm: this.olm,
+            olmUtil: this.olmUtil,
+            ourUserId: this.ownUserId,
+            ourUserDeviceId: this.deviceId,
+            otherUserId: userId,
+            log,
+            channel,
+            e2eeAccount: this.e2eeAccount,
+            deviceTracker: this.deviceTracker,
+            hsApi: this.hsApi,
+            clock: this.platform.clock,
+        });
+        return this.sasVerificationInProgress;
     }
 
     /** returns our own device key signed by our self-signing key. Other signatures will be missing. */
