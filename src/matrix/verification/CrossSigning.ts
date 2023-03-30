@@ -210,7 +210,7 @@ export class CrossSigning {
         const txnId = event.content.transaction_id;
         /**
          * If we receive an event for the current/previously finished 
-         * SAS verification, we should ignore it because SASVerification
+         * SAS verification, we should ignore it because the device channel
          * object will take care of it (if needed).
          */
         const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
