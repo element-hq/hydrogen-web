@@ -46,7 +46,6 @@ export class MemberDetailsViewModel extends ViewModel {
     
     get trustDescription() {
         switch (this._userTrust?.get()) {
-            case undefined: return this.i18n`Please wait…`;
             case UserTrust.Trusted: return this.i18n`You have verified this user. This user has verified all of their sessions.`;
             case UserTrust.UserNotSigned: return this.i18n`You have not verified this user.`;
             case UserTrust.UserSignatureMismatch: return this.i18n`You appear to have signed this user, but the signature is invalid.`;
@@ -54,6 +53,9 @@ export class MemberDetailsViewModel extends ViewModel {
             case UserTrust.UserDeviceSignatureMismatch: return this.i18n`This user has a session signature that is invalid.`;
             case UserTrust.UserSetupError: return this.i18n`This user hasn't set up cross-signing correctly`;
             case UserTrust.OwnSetupError: return this.i18n`Cross-signing wasn't set up correctly on your side.`;
+            case undefined:
+            default: // adding default as well because jslint can't check for switch exhaustiveness
+                return this.i18n`Please wait…`;
         }
     }
 
@@ -153,7 +155,7 @@ export class MemberDetailsViewModel extends ViewModel {
         if (crossSigning) {
             this.logger.run("MemberDetailsViewModel.observeUserTrust", log => {
                 this._userTrust = crossSigning.observeUserTrust(this.userId, log);
-                this._userTrustSubscription = this.track(this._userTrust.subscribe(trust => {
+                this._userTrustSubscription = this.track(this._userTrust.subscribe(() => {
                     this.emitChange("trustShieldColor");
                 }));
             });
