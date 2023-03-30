@@ -6,6 +6,7 @@ import {CancelReason, VerificationEventType} from "./types";
 import {getKeyEd25519Key} from "../../CrossSigning";
 import {getDeviceEd25519Key} from "../../../e2ee/common";
 import anotherjson from "another-json";
+import {NullLogger} from "../../../../logging/NullLogger";
 
 interface ITestChannel extends IChannel {
     setOlmSas(olmSas): void;
@@ -82,31 +83,33 @@ export class MockChannel implements ITestChannel {
 
     private async recalculateMAC() {
         // We need to replace the mac with calculated mac
-        const baseInfo =
-            "MATRIX_KEY_VERIFICATION_MAC" +
-            this.otherUserId +
-            this.otherUserDeviceId +
-            this.ourUserId +
-            this.ourUserDeviceId +
-            this.id;
-        const { content: macContent } = this.receivedMessages.get(VerificationEventType.Mac);
-        const macMethod = this.acceptMessage.content.message_authentication_code;
-        const calculateMac = createCalculateMAC(this.olmSas, macMethod);
-        const input = Object.keys(macContent.mac).sort().join(",");
-        const properMac = calculateMac(input, baseInfo + "KEY_IDS");
-        macContent.keys = properMac;
-        for (const keyId of Object.keys(macContent.mac)) {
-            const deviceId = keyId.split(":", 2)[1];
-            const device = await this.deviceTracker.deviceForId(this.otherUserDeviceId, deviceId);
-            if (device) {
-                macContent.mac[keyId] = calculateMac(getDeviceEd25519Key(device), baseInfo + keyId);
+        await new NullLogger().run("log", async (log) => {
+            const baseInfo =
+                "MATRIX_KEY_VERIFICATION_MAC" +
+                this.otherUserId +
+                this.otherUserDeviceId +
+                this.ourUserId +
+                this.ourUserDeviceId +
+                this.id;
+            const { content: macContent } = this.receivedMessages.get(VerificationEventType.Mac);
+            const macMethod = this.acceptMessage.content.message_authentication_code;
+            const calculateMac = createCalculateMAC(this.olmSas, macMethod);
+            const input = Object.keys(macContent.mac).sort().join(",");
+            const properMac = calculateMac(input, baseInfo + "KEY_IDS", log);
+            macContent.keys = properMac;
+            for (const keyId of Object.keys(macContent.mac)) {
+                const deviceId = keyId.split(":", 2)[1];
+                const device = await this.deviceTracker.deviceForId(this.otherUserDeviceId, deviceId);
+                if (device) {
+                    macContent.mac[keyId] = calculateMac(getDeviceEd25519Key(device), baseInfo + keyId, log);
+                }
+                else {
+                    const key = await this.deviceTracker.getCrossSigningKeyForUser(this.otherUserId);
+                    const masterKey = getKeyEd25519Key(key)!;
+                    macContent.mac[keyId] = calculateMac(masterKey, baseInfo + keyId, log);
+                }
             }
-            else {
-                const key = await this.deviceTracker.getCrossSigningKeyForUser(this.otherUserId);
-                const masterKey = getKeyEd25519Key(key)!;
-                macContent.mac[keyId] = calculateMac(masterKey, baseInfo + keyId);
-            }
-        }
+        });
     }
 
     setStartMessage(event: any): void {

@@ -35,7 +35,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
         });
     }
 
-    private async checkMAC(calculateMAC: (input: string, info: string) => string, log: ILogItem): Promise<void> {
+    private async checkMAC(calculateMAC: (input: string, info: string, log: ILogItem) => string, log: ILogItem): Promise<void> {
         const {content} = this.channel.getReceivedMessage(VerificationEventType.Mac);
         const baseInfo =
             "MATRIX_KEY_VERIFICATION_MAC" +
@@ -45,7 +45,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             this.ourUserDeviceId +
             this.channel.id;
 
-        const calculatedMAC = calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS");
+        const calculatedMAC = calculateMAC(Object.keys(content.mac).sort().join(","), baseInfo + "KEY_IDS", log);
         if (content.keys !== calculatedMAC) {
             log.log({ l: "MAC verification failed for keys field", keys: content.keys, calculated: calculatedMAC });
             this.channel.cancelVerification(CancelReason.KeyMismatch);
@@ -53,7 +53,7 @@ export class VerifyMacStage extends BaseSASVerificationStage {
         }
 
         await this.verifyKeys(content.mac, (keyId, key, keyInfo) => {
-            const calculatedMAC = calculateMAC(key, baseInfo + keyId);
+            const calculatedMAC = calculateMAC(key, baseInfo + keyId, log);
             if (keyInfo !== calculatedMAC) {
                 log.log({ l: "Mac verification failed for key", keyMac: keyInfo, calculatedMAC, keyId, key });
                 this.channel.cancelVerification(CancelReason.KeyMismatch);
