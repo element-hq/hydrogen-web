@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import type {ILogItem} from "../../../logging/types";
 import type {MacMethod} from "./stages/constants";
 
 const macMethods: Record<MacMethod, string> = {
@@ -23,8 +24,10 @@ const macMethods: Record<MacMethod, string> = {
 };
 
 export function createCalculateMAC(olmSAS: Olm.SAS, method: MacMethod) {
-    return function (input: string, info: string): string {
-        const mac = olmSAS[macMethods[method]](input, info);
-        return mac;
+    return function (input: string, info: string, log: ILogItem): string {
+        return log.wrap({ l: "calculate MAC", method}, () => {
+            const mac = olmSAS[macMethods[method]](input, info);
+            return mac;
+        });
     };
 }

@@ -32,7 +32,7 @@ export class SendMacStage extends BaseSASVerificationStage {
         });
     }
 
-    private async sendMAC(calculateMAC: (input: string, info: string) => string, log: ILogItem): Promise<void> {
+    private async sendMAC(calculateMAC: (input: string, info: string, log: ILogItem) => string, log: ILogItem): Promise<void> {
         const mac: Record<string, string> = {};
         const keyList: string[] = [];
         const baseInfo =
@@ -45,7 +45,7 @@ export class SendMacStage extends BaseSASVerificationStage {
 
         const deviceKeyId = `ed25519:${this.ourUserDeviceId}`;
         const deviceKeys = this.e2eeAccount.getUnsignedDeviceKey();
-        mac[deviceKeyId] = calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
+        mac[deviceKeyId] = calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId, log);
         keyList.push(deviceKeyId);
 
         const key = await this.deviceTracker.getCrossSigningKeyForUser(this.ourUserId, KeyUsage.Master, this.hsApi, log);
@@ -56,11 +56,11 @@ export class SendMacStage extends BaseSASVerificationStage {
         const crossSigningKey = getKeyEd25519Key(key);
         if (crossSigningKey) {
             const crossSigningKeyId = `ed25519:${crossSigningKey}`;
-            mac[crossSigningKeyId] = calculateMAC(crossSigningKey, baseInfo + crossSigningKeyId);
+            mac[crossSigningKeyId] = calculateMAC(crossSigningKey, baseInfo + crossSigningKeyId, log);
             keyList.push(crossSigningKeyId);
         }
 
-        const keys = calculateMAC(keyList.sort().join(","), baseInfo + "KEY_IDS");
+        const keys = calculateMAC(keyList.sort().join(","), baseInfo + "KEY_IDS", log);
         await this.channel.send(VerificationEventType.Mac, { mac, keys }, log);
     }
 }
