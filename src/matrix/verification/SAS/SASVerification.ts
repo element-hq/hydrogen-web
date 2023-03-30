@@ -19,14 +19,14 @@ import type {BaseSASVerificationStage} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
 import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
-import {IChannel} from "./channel/Channel";
-import {HomeServerApi} from "../../net/HomeServerApi";
+import type {IChannel} from "./channel/Channel";
+import type {HomeServerApi} from "../../net/HomeServerApi";
+import type {Timeout} from "../../../platform/types/types";
+import type {Clock} from "../../../platform/web/dom/Clock.js";
 import {CancelReason, VerificationEventType} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 import {VerificationCancelledError} from "./VerificationCancelledError";
-import {Timeout} from "../../../platform/types/types";
-import {Clock} from "../../../platform/web/dom/Clock.js";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {SASProgressEvents} from "./types";
 
@@ -84,6 +84,10 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         }
     }
 
+    async abort() {
+        await this.channel.cancelVerification(CancelReason.UserCancelled);
+    }
+
     async start() {
         try {
             let stage = this.startStage;
@@ -98,6 +102,9 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
             }
         }
         finally {
+            if (this.channel.isCancelled) {
+                this.emit("VerificationCancelled", this.channel.cancellation);
+            }
             this.olmSas.free();
             this.timeout.abort();
             this.finished = true;
@@ -163,6 +170,9 @@ export function tests() {
                     device_id: deviceId,
                     keys: {
                         [`ed25519:${deviceId}`]: "D8w9mrokGdEZPdPgrU0kQkYi4vZyzKEBfvGyZsGK7+Q",
+                    },
+                    unsigned: {
+                        device_display_name: "lala10",
                     }
                 };
             },

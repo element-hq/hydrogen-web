@@ -17,9 +17,11 @@ limitations under the License.
 import {ConcatList} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
 import {CallToastCollectionViewModel} from "./calls/CallsToastCollectionViewModel";
+import {VerificationToastCollectionViewModel} from "./verification/VerificationToastCollectionViewModel";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
 import type {BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";
+import type {IToastCollection} from "./IToastCollection";
 
 type Options = {
     session: Session;
@@ -31,9 +33,16 @@ export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
     constructor(options: Options) {
         super(options);
         const session = this.getOption("session");
-        const vms = [
-            this.track(new CallToastCollectionViewModel(this.childOptions({ session }))),
-        ].map(vm => vm.toastViewModels);
-        this.toastViewModels = new ConcatList(...vms);
+        const collectionVms: IToastCollection[] = [];
+        if (this.features.calls) {
+            collectionVms.push(this.track(new CallToastCollectionViewModel(this.childOptions({ session }))));
+        }
+        if (this.features.crossSigning) {
+            collectionVms.push(this.track(new VerificationToastCollectionViewModel(this.childOptions({ session }))));
+        }
+        const vms: IToastCollection["toastViewModels"][] = collectionVms.map(vm => vm.toastViewModels);
+        if (vms.length !== 0) {
+            this.toastViewModels = new ConcatList(...vms);
+        }
     }
 }

@@ -19,6 +19,8 @@ import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/Channel";
 import {VerificationEventType} from "./SAS/channel/types";
+import {ObservableMap} from "../../observable/map";
+import {SASRequest} from "./SAS/SASRequest";
 import type {SecretStorage} from "../ssss/SecretStorage";
 import type {Storage} from "../storage/idb/Storage";
 import type {Platform} from "../../platform/web/Platform";
@@ -29,6 +31,7 @@ import type {ILogItem} from "../../logging/types";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
 import type * as OlmNamespace from "@matrix-org/olm";
+
 type Olm = typeof OlmNamespace;
 
 // we store cross-signing (and device) keys in the format we get them from the server
@@ -88,6 +91,7 @@ export class CrossSigning {
     private _isMasterKeyTrusted: boolean = false;
     private readonly deviceId: string;
     private sasVerificationInProgress?: SASVerification;
+    public receivedSASVerifications: ObservableMap<string, SASRequest> = new ObservableMap();
 
     constructor(options: {
         storage: Storage,
@@ -115,21 +119,7 @@ export class CrossSigning {
         this.deviceMessageHandler = options.deviceMessageHandler;
 
         this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
-            if (this.sasVerificationInProgress &&
-                (
-                    !this.sasVerificationInProgress.finished ||
-                    // If the start message is for the previous sasverification, ignore it.
-                    this.sasVerificationInProgress.channel.id === unencryptedEvent.content.transaction_id
-                )) {
-                return;
-            }
-            if (unencryptedEvent.type === VerificationEventType.Request ||
-                unencryptedEvent.type === VerificationEventType.Start) {
-                await this.platform.logger.run("Start verification from request", async (log) => {
-                    const sas = this.startVerification(unencryptedEvent.sender, unencryptedEvent, log);
-                    await sas?.start();
-                });
-            }
+            this._handleSASDeviceMessage(unencryptedEvent);
         })
     }
 
@@ -182,14 +172,18 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(userId: string, startingMessage: any, log: ILogItem): SASVerification | undefined {
+    startVerification(requestOrUserId: SASRequest, log: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string, log: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string | SASRequest, log: ILogItem): SASVerification | undefined {
         if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
             return;
         }
+        const otherUserId = requestOrUserId instanceof SASRequest ? requestOrUserId.sender : requestOrUserId;
+        const startingMessage = requestOrUserId instanceof SASRequest ? requestOrUserId.startingMessage : undefined;
         const channel = new ToDeviceChannel({
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
-            otherUserId: userId,
+            otherUserId,
             clock: this.platform.clock,
             deviceMessageHandler: this.deviceMessageHandler,
             ourUserDeviceId: this.deviceId,
@@ -201,7 +195,7 @@ export class CrossSigning {
             olmUtil: this.olmUtil,
             ourUserId: this.ownUserId,
             ourUserDeviceId: this.deviceId,
-            otherUserId: userId,
+            otherUserId,
             log,
             channel,
             e2eeAccount: this.e2eeAccount,
@@ -210,6 +204,35 @@ export class CrossSigning {
             clock: this.platform.clock,
         });
         return this.sasVerificationInProgress;
+    }
+
+    private _handleSASDeviceMessage(event: any) {
+        const txnId = event.content.transaction_id;
+        /**
+         * If we receive an event for the current/previously finished 
+         * SAS verification, we should ignore it because the device channel
+         * object (who also listens for to_device messages) will take care of it (if needed).
+         */
+        const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
+        if (shouldIgnoreEvent) { return; }
+        /**
+         * 1. If we receive the cancel message, we need to update the requests map.
+         * 2. If we receive an starting message (viz request/start), we need to create the SASRequest from it.
+         */
+        switch (event.type) {
+            case VerificationEventType.Cancel: 
+                this.receivedSASVerifications.remove(txnId);
+                return;
+            case VerificationEventType.Request:
+            case VerificationEventType.Start:
+                this.platform.logger.run("Create SASRequest", () => {
+                    this.receivedSASVerifications.set(txnId, new SASRequest(event));
+                });
+                return;
+            default:
+                // we don't care about this event!
+                return;
+        }
     }
 
     /** returns our own device key signed by our self-signing key. Other signatures will be missing. */

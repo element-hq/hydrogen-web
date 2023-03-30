@@ -365,9 +365,11 @@ export class Session {
                         olm: this._olm,
                         olmUtil: this._olmUtil,
                         deviceTracker: this._deviceTracker,
+                        deviceMessageHandler: this._deviceMessageHandler,
                         hsApi: this._hsApi,
                         ownUserId: this.userId,
-                        e2eeAccount: this._e2eeAccount
+                        e2eeAccount: this._e2eeAccount,
+                        deviceId: this.deviceId,
                     });
                     if (await crossSigning.load(log)) {
                         this._crossSigning.set(crossSigning);

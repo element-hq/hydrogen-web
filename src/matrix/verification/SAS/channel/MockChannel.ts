@@ -17,6 +17,7 @@ export class MockChannel implements ITestChannel {
     public initiatedByUs: boolean;
     public startMessage: any;
     public isCancelled: boolean = false;
+    public cancellation: { code: CancelReason; cancelledByUs: boolean; };
     private olmSas: any;
 
     constructor(

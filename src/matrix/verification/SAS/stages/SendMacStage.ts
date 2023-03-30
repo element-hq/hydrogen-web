@@ -44,7 +44,7 @@ export class SendMacStage extends BaseSASVerificationStage {
             this.channel.id;
 
         const deviceKeyId = `ed25519:${this.ourUserDeviceId}`;
-        const deviceKeys = this.e2eeAccount.getDeviceKeysToSignWithCrossSigning();
+        const deviceKeys = this.e2eeAccount.getUnsignedDeviceKey();
         mac[deviceKeyId] = calculateMAC(deviceKeys.keys[deviceKeyId], baseInfo + deviceKeyId);
         keyList.push(deviceKeyId);
 

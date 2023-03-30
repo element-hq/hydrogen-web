@@ -13,14 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {BaseSASVerificationStage} from "./BaseSASVerificationStage";
-import {VerificationEventType} from "../channel/types";
 
-export class SendDoneStage extends BaseSASVerificationStage {
-    async completeStage() {
-        await this.log.wrap("SendDoneStage.completeStage", async (log) => {
-            this.eventEmitter.emit("VerificationCompleted", this.otherUserDeviceId);
-            await this.channel.send(VerificationEventType.Done, {}, log);
-        });
+export class SASRequest {
+    constructor(public readonly startingMessage: any) {}
+
+    get deviceId(): string {
+        return this.startingMessage.content.from_device;
+    }
+
+    get sender(): string {
+        return this.startingMessage.sender;
+    }
+
+    get id(): string {
+        return this.startingMessage.content.transaction_id;
     }
 }

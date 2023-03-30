@@ -13,10 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import {CalculateSASStage} from "./stages/CalculateSASStage";
-import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
+import type {IChannel} from "./channel/Channel";
+import type {CalculateSASStage} from "./stages/CalculateSASStage";
+import type {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 
 export type SASProgressEvents = {
     SelectVerificationStage: SelectVerificationMethodStage;
     EmojiGenerated: CalculateSASStage;
+    VerificationCompleted: string;
+    VerificationCancelled: IChannel["cancellation"];
 }
