@@ -62,7 +62,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         this.olmSas = olmSas;
         this.channel = channel;
         this.setupCancelAfterTimeout(clock);
-        const stageOptions = {...options, olmSas, eventEmitter: this, crossSigning: options.crossSigning};
+        const stageOptions = {...options, olmSas, eventEmitter: this};
         if (channel.getReceivedMessage(VerificationEventType.Start)) {
             this.startStage = new SelectVerificationMethodStage(stageOptions);
         }
