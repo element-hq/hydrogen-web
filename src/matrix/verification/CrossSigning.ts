@@ -211,7 +211,7 @@ export class CrossSigning {
         /**
          * If we receive an event for the current/previously finished 
          * SAS verification, we should ignore it because the device channel
-         * object will take care of it (if needed).
+         * object (who also listens for to_device messages) will take care of it (if needed).
          */
         const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
         if (shouldIgnoreEvent) { return; }
