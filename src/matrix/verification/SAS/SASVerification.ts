@@ -142,7 +142,7 @@ export function tests() {
         await olm.init();
         const olmUtil = new Olm.Utility();
         const e2eeAccount = {
-            getDeviceKeysToSignWithCrossSigning: () => {
+            getUnsignedDeviceKey: () => {
                 return {
                     keys: {
                         [`ed25519:${ourDeviceId}`]:
