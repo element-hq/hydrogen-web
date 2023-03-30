@@ -16,6 +16,7 @@ limitations under the License.
 import type {ILogItem} from "../../../../logging/types";
 import type {Account} from "../../../e2ee/Account.js";
 import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
+import type {CrossSigning} from "../../CrossSigning";
 import {IChannel} from "../channel/Channel";
 import {HomeServerApi} from "../../../net/HomeServerApi";
 import {SASProgressEvents} from "../types";
@@ -33,6 +34,7 @@ export type Options = {
     deviceTracker: DeviceTracker;
     hsApi: HomeServerApi;
     eventEmitter: EventEmitter<SASProgressEvents>
+    crossSigning: CrossSigning
 }
 
 export abstract class BaseSASVerificationStage {

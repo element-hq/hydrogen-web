@@ -29,6 +29,7 @@ import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodSt
 import {VerificationCancelledError} from "./VerificationCancelledError";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {SASProgressEvents} from "./types";
+import type {CrossSigning} from "../CrossSigning";
 
 type Olm = typeof OlmNamespace;
 
@@ -44,6 +45,7 @@ type Options = {
     deviceTracker: DeviceTracker;
     hsApi: HomeServerApi;
     clock: Clock;
+    crossSigning: CrossSigning
 }
 
 export class SASVerification extends EventEmitter<SASProgressEvents> {
@@ -60,7 +62,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         this.olmSas = olmSas;
         this.channel = channel;
         this.setupCancelAfterTimeout(clock);
-        const stageOptions = {...options, olmSas, eventEmitter: this};
+        const stageOptions = {...options, olmSas, eventEmitter: this, crossSigning: options.crossSigning};
         if (channel.getReceivedMessage(VerificationEventType.Start)) {
             this.startStage = new SelectVerificationMethodStage(stageOptions);
         }
