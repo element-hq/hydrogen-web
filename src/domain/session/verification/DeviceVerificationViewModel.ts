@@ -90,6 +90,13 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         this.emitChange("currentStageViewModel");
     }
 
+    dispose(): void {
+        if (!this.sas.finished) {
+            this.sas.abort().catch(() => {/** ignore */});
+        }
+        super.dispose();
+    }
+
     get currentStageViewModel() {
         return this._currentStageViewModel;
     }
