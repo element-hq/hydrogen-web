@@ -29,6 +29,7 @@ import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodSt
 import {VerificationCancelledError} from "./VerificationCancelledError";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {SASProgressEvents} from "./types";
+import type {CrossSigning} from "../CrossSigning";
 
 type Olm = typeof OlmNamespace;
 
@@ -44,6 +45,7 @@ type Options = {
     deviceTracker: DeviceTracker;
     hsApi: HomeServerApi;
     clock: Clock;
+    crossSigning: CrossSigning
 }
 
 export class SASVerification extends EventEmitter<SASProgressEvents> {
@@ -126,7 +128,6 @@ import {SendDoneStage} from "./stages/SendDoneStage";
 import {SendAcceptVerificationStage} from "./stages/SendAcceptVerificationStage";
 
 export function tests() {
-
     async function createSASRequest(
         ourUserId: string,
         ourDeviceId: string,
@@ -188,6 +189,7 @@ export function tests() {
             olm,
             startingMessage,
         );
+        const crossSigning = new MockCrossSigning() as unknown as CrossSigning;
         const clock = new MockClock();
         const logger = new NullLogger();
         return logger.run("log", (log) => {
@@ -205,6 +207,7 @@ export function tests() {
                 ourUserId,
                 ourUserDeviceId: ourDeviceId,
                 log,
+                crossSigning
             });
             // @ts-ignore
             channel.setOlmSas(sas.olmSas);
@@ -213,6 +216,16 @@ export function tests() {
             });
             return { sas, clock, logger };
         });
+    }
+
+    class MockCrossSigning {
+        signDevice(deviceId: string, log: ILogItem) {
+            return Promise.resolve({}); // device keys, means signing succeeded
+        }
+
+        signUser(userId: string, log: ILogItem) {
+            return Promise.resolve({}); // cross-signing keys, means signing succeeded
+        }
     }
 
     return {

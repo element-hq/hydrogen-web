@@ -202,6 +202,7 @@ export class CrossSigning {
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
             clock: this.platform.clock,
+            crossSigning: this,
         });
         return this.sasVerificationInProgress;
     }

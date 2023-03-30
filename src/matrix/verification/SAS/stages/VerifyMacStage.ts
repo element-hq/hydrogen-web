@@ -21,7 +21,7 @@ import {SendDoneStage} from "./SendDoneStage";
 import {KeyUsage, getKeyEd25519Key} from "../../CrossSigning";
 import {getDeviceEd25519Key} from "../../../e2ee/common";
 
-export type KeyVerifier = (keyId: string, device: any, keyInfo: string) => void;
+export type KeyVerifier = (keyId: string, publicKey: string, keyInfo: string) => boolean;
 
 export class VerifyMacStage extends BaseSASVerificationStage {
     async completeStage() {
@@ -54,11 +54,12 @@ export class VerifyMacStage extends BaseSASVerificationStage {
 
         await this.verifyKeys(content.mac, (keyId, key, keyInfo) => {
             const calculatedMAC = calculateMAC(key, baseInfo + keyId, log);
-            if (keyInfo !== calculatedMAC) {
+            const matches = keyInfo === calculatedMAC;
+            if (!matches) {
                 log.log({ l: "Mac verification failed for key", keyMac: keyInfo, calculatedMAC, keyId, key });
                 this.channel.cancelVerification(CancelReason.KeyMismatch);
-                return;
             }
+            return matches;
         }, log);
     }
 
@@ -68,8 +69,12 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             const deviceIdOrMSK = keyId.split(":", 2)[1];
             const device = await this.deviceTracker.deviceForId(userId, deviceIdOrMSK, this.hsApi, log);
             if (device) {
-                verifier(keyId, getDeviceEd25519Key(device), keyInfo);
-                // todo: mark device as verified here
+                if (verifier(keyId, getDeviceEd25519Key(device), keyInfo)) {
+                    await log.wrap("signing device", async log => {
+                        const signedKey = await this.options.crossSigning.signDevice(device.device_id, log);
+                        log.set("success", !!signedKey);
+                    });
+                }
             } else {
                 // If we were not able to find the device, then deviceIdOrMSK is actually the MSK!
                 const key = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
@@ -78,8 +83,12 @@ export class VerifyMacStage extends BaseSASVerificationStage {
                     throw new Error("Fetching MSK for user failed!");
                 }
                 const masterKey = getKeyEd25519Key(key);
-                verifier(keyId, masterKey, keyInfo);
-                // todo: mark user as verified here
+                if(masterKey && verifier(keyId, masterKey, keyInfo)) {
+                    await log.wrap("signing user", async log => {
+                        const signedKey = await this.options.crossSigning.signUser(userId, log);
+                        log.set("success", !!signedKey);
+                    });
+                }
             }
         }
     }
