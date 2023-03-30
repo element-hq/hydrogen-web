@@ -41,11 +41,18 @@ export class SecretStorage {
     private readonly _key: Key;
     private readonly _platform: Platform;
     private readonly _storage: Storage;
+    private observedSecrets
 
     constructor({key, platform, storage}: {key: Key, platform: Platform, storage: Storage}) {
         this._key = key;
         this._platform = platform;
         this._storage = storage;
+    }
+
+    afterSync(accountData: ReadonlyArray<{type: string, content: Record<string, any>}>): void {
+        for(const event of accountData) {
+            if (type === )
+        }
     }
 
     /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */
@@ -67,6 +74,10 @@ export class SecretStorage {
             }
         }
         return false;
+    }
+
+    observeSecret(name: string): BaseObservableValue<string | undefined> {
+
     }
 
     /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */

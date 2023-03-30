@@ -89,6 +89,7 @@ export class Session {
         this._megolmDecryption = null;
         this._getSyncToken = () => this.syncToken;
         this._olmWorker = olmWorker;
+        this._secretStorage = undefined;
         this._keyBackup = new ObservableValue(undefined);
         this._crossSigning = new ObservableValue(undefined);
         this._observedRoomStatus = new Map();
@@ -332,13 +333,14 @@ export class Session {
             const isValid = await secretStorage.hasValidKeyForAnyAccountData();
             log.set("isValid", isValid);
             if (isValid) {
-                await this._loadSecretStorageServices(secretStorage, log);
+                this._secretStorage = secretStorage;
+                await this._loadSecretStorageService(log);
             }
             return isValid;
         });
     }
 
-    async _loadSecretStorageServices(secretStorage, log) {
+    async _loadSecretStorageServices(log) {
         try {
             await log.wrap("enable key backup", async log => {
                 const keyBackup = new KeyBackup(
@@ -348,7 +350,7 @@ export class Session {
                     this._storage,
                     this._platform,
                 );
-                if (await keyBackup.load(secretStorage, log)) {
+                if (await keyBackup.load(this._secretStorage, log)) {
                     for (const room of this._rooms.values()) {
                         if (room.isEncrypted) {
                             room.enableKeyBackup(keyBackup);
@@ -364,7 +366,7 @@ export class Session {
                 await log.wrap("enable cross-signing", async log => {
                     const crossSigning = new CrossSigning({
                         storage: this._storage,
-                        secretStorage,
+                        secretStorage: this._secretStorage,
                         platform: this._platform,
                         olm: this._olm,
                         olmUtil: this._olmUtil,
@@ -775,18 +777,22 @@ export class Session {
                     txn.accountData.set(event);
                 }
             }
+            changes.accountData = accountData.events;
         }
         return changes;
     }
 
     /** @internal */
-    afterSync({syncInfo, e2eeAccountChanges}) {
+    afterSync({syncInfo, e2eeAccountChanges, accountData}) {
         if (syncInfo) {
             // sync transaction succeeded, modify object state now
             this._syncInfo = syncInfo;
         }
         if (this._e2eeAccount) {
             this._e2eeAccount.afterSync(e2eeAccountChanges);
+        }
+        if (accountData && this._secretStorage) {
+            this._secretStorage.afterSync(accountData);
         }
     }
 
