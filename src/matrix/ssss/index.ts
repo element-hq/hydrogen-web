@@ -30,8 +30,8 @@ const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 const BACKUPVERSION_KEY = `${SESSION_E2EE_KEY_PREFIX}keyBackupVersion`;
 
 export enum KeyType {
-    "RecoveryKey",
-    "Passphrase"
+    RecoveryKey,
+    Passphrase
 }
 
 async function readDefaultKeyDescription(storage: Storage): Promise<KeyDescription | undefined> {

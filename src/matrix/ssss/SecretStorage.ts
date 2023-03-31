@@ -13,7 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-import type {Key} from "./common";
+import {BaseObservableValue, RetainedObservableValue} from "../../observable/value";
+import {KeyType} from "./index";
+import {keyFromPassphrase} from "./passphrase";
+import {keyFromRecoveryKey} from "./recoveryKey";
+import type {Key, KeyDescription} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {Storage} from "../storage/idb/Storage";
@@ -37,11 +41,25 @@ class DecryptionError extends Error {
     }
 }
 
+type AccountData = {type: string, content: Record<string, any>};
+
+type KeyCredentials = {
+    type: KeyType,
+    credential: string
+}
+
 export class SecretStorage {
-    private readonly _key: Key;
+    // we know the id but don't have the description yet
+    private _keyId?: string;
+    // we have the description but not the credentials yet
+    private _keyDescription?: KeyDescription;
+    // we have the credentials but not the id or description yet
+    private _keyCredentials?: KeyCredentials;
+    // we have everything to compose a valid key
+    private _key?: Key;
     private readonly _platform: Platform;
     private readonly _storage: Storage;
-    private observedSecrets
+    private observedSecrets: Map<string, RetainedObservableValue<string | undefined>>;
 
     constructor({key, platform, storage}: {key: Key, platform: Platform, storage: Storage}) {
         this._key = key;
@@ -49,10 +67,58 @@ export class SecretStorage {
         this._storage = storage;
     }
 
-    afterSync(accountData: ReadonlyArray<{type: string, content: Record<string, any>}>): void {
-        for(const event of accountData) {
-            if (type === )
+    load() {
+        // read key
+    }
+
+    async setKey(type: KeyType, credential: string) {
+        const credentials: KeyCredentials = {type, credential};
+        this._keyCredentials = credentials;
+        this.updateKey(this._keyDescription, this._keyCredentials);
+    }
+
+    async setKeyWithDehydratedDeviceKey() {
+        
+    }
+
+    private async updateKey(keyDescription: KeyDescription | undefined, credentials: KeyCredentials | undefined, txn: Transaction) {
+        if (keyDescription && credentials) {
+            if (credentials.type === KeyType.Passphrase) {
+                this._key = await keyFromPassphrase(keyDescription, credentials.credential, this._platform);
+            } else if (credentials.type === KeyType.RecoveryKey) {
+                this._key = await keyFromRecoveryKey(keyDescription, credentials.credential, this._olm, this._platform);
+            }
+            // 
         }
+    }
+
+    private update(keyDescription: KeyDescription, credentials: KeyCredentials) {
+
+    }
+
+    writeSync(accountData: ReadonlyArray<AccountData>, txn: Transaction, log: ILogItem): Promise<void> {
+
+        const newDefaultKey = accountData.find(e => e.type === "m.secret_storage.default_key");
+        const keyId: string | undefined = newDefaultKey ? newDefaultKey.content?.key : this._keyId;
+        const keyEventType = keyId ? `m.secret_storage.key.${keyId}` : undefined;
+        let newKey = keyEventType ? accountData.find(e => e.type === keyEventType) : undefined;
+        if (newDefaultKey && keyEventType && !newKey) {
+            newKey = await txn.accountData.get(keyEventType);
+        }
+        if (newKey) {
+            this.setKeyDescription()
+        }
+        const keyChanged = !!newDefaultKey || !!newKey;
+        if (keyChanged) {
+            // update all values
+        } else {
+            for(const event of accountData) {
+
+            }
+        }
+    }
+
+    afterSync(): void {
     }
 
     /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */

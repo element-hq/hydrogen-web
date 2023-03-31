@@ -777,13 +777,15 @@ export class Session {
                     txn.accountData.set(event);
                 }
             }
-            changes.accountData = accountData.events;
+            if (this._secretStorage) {
+                changes.secretStorageChanges = await this._secretStorage.writeSync(accountData.events, txn, log);
+            }
         }
         return changes;
     }
 
     /** @internal */
-    afterSync({syncInfo, e2eeAccountChanges, accountData}) {
+    afterSync({syncInfo, e2eeAccountChanges, secretStorageChanges}) {
         if (syncInfo) {
             // sync transaction succeeded, modify object state now
             this._syncInfo = syncInfo;
@@ -791,8 +793,8 @@ export class Session {
         if (this._e2eeAccount) {
             this._e2eeAccount.afterSync(e2eeAccountChanges);
         }
-        if (accountData && this._secretStorage) {
-            this._secretStorage.afterSync(accountData);
+        if (secretStorageChanges && this._secretStorage) {
+            this._secretStorage.afterSync(secretStorageChanges);
         }
     }
 
