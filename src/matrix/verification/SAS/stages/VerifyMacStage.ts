@@ -30,7 +30,6 @@ export class VerifyMacStage extends BaseSASVerificationStage {
             const macMethod = acceptMessage.message_authentication_code;
             const calculateMAC = createCalculateMAC(this.olmSAS, macMethod);
             await this.checkMAC(calculateMAC, log);
-            await this.channel.waitForEvent(VerificationEventType.Done);
             this.setNextStage(new SendDoneStage(this.options));
         });
     }

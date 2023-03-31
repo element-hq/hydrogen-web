@@ -19,8 +19,9 @@ import {VerificationEventType} from "../channel/types";
 export class SendDoneStage extends BaseSASVerificationStage {
     async completeStage() {
         await this.log.wrap("SendDoneStage.completeStage", async (log) => {
-            this.eventEmitter.emit("VerificationCompleted", this.otherUserDeviceId);
             await this.channel.send(VerificationEventType.Done, {}, log);
+            await this.channel.waitForEvent(VerificationEventType.Done);
+            this.eventEmitter.emit("VerificationCompleted", this.otherUserDeviceId);
         });
     }
 }
