@@ -411,7 +411,7 @@ export class CrossSigning {
         const request = this.hsApi.uploadSignatures(payload, {log});
         await request.response();
         // we don't write the signatures to storage, as we don't want to have too many special
-        // cases in the trust algorithm, so instead we just clear the cross signing keys
+        // cases in the trust algorithm, so instead we just clear the device keys
         // so that they will be refetched when trust is recalculated
         await this.deviceTracker.invalidateUserKeys(this.ownUserId);
         this.emitUserTrustUpdate(this.ownUserId, log);
