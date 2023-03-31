@@ -30,20 +30,14 @@ export class MemberDetailsViewModel extends ViewModel {
         this._session = options.session;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
-        this.track(this._session.crossSigning.subscribe(() => {
-            this.emitChange("trustShieldColor");
-        }));
         this._userTrust = undefined;
-        this.init(); // TODO: call this from parent view model and do something smart with error view model if it fails async?
-    }
-
-    async init() {
+        this._userTrustSubscription = undefined;
         if (this.features.crossSigning) {
-            this._userTrust = await this.logger.run({l: "MemberDetailsViewModel.get user trust", id: this._member.userId}, log => {
-                return this._session.crossSigning.get()?.getUserTrust(this._member.userId, log);
-            });
-            this.emitChange("trustShieldColor");
+            this.track(this._session.crossSigning.subscribe(() => {
+                this._onCrossSigningChange();
+            }));
         }
+        this._onCrossSigningChange();
     }
 
     get name() { return this._member.name; }
@@ -51,7 +45,7 @@ export class MemberDetailsViewModel extends ViewModel {
     get userId() { return this._member.userId; }
     
     get trustDescription() {
-        switch (this._userTrust) {
+        switch (this._userTrust?.get()) {
             case UserTrust.Trusted: return this.i18n`You have verified this user. This user has verified all of their sessions.`;
             case UserTrust.UserNotSigned: return this.i18n`You have not verified this user.`;
             case UserTrust.UserSignatureMismatch: return this.i18n`You appear to have signed this user, but the signature is invalid.`;
@@ -59,18 +53,20 @@ export class MemberDetailsViewModel extends ViewModel {
             case UserTrust.UserDeviceSignatureMismatch: return this.i18n`This user has a session signature that is invalid.`;
             case UserTrust.UserSetupError: return this.i18n`This user hasn't set up cross-signing correctly`;
             case UserTrust.OwnSetupError: return this.i18n`Cross-signing wasn't set up correctly on your side.`;
-            default: return this.i18n`Pending…`;
+            case undefined:
+            default: // adding default as well because jslint can't check for switch exhaustiveness
+                return this.i18n`Please wait…`;
         }
     }
 
     get trustShieldColor() {
         if (!this._isEncrypted) {
-            return undefined;
+            return "";
         }
-        switch (this._userTrust) {
+        switch (this._userTrust?.get()) {
             case undefined:
             case UserTrust.OwnSetupError:
-                return undefined;
+                return "";
             case UserTrust.Trusted:
                 return "green";
             case UserTrust.UserNotSigned:
@@ -103,9 +99,10 @@ export class MemberDetailsViewModel extends ViewModel {
     }
 
     async signUser() {
-        if (this._session.crossSigning) {
+        const crossSigning = this._session.crossSigning.get();
+        if (crossSigning) {
             await this.logger.run("MemberDetailsViewModel.signUser", async log => {
-                await this._session.crossSigning.signUser(this.userId, log);
+                await crossSigning.signUser(this.userId, log);
             });
         }
     }
@@ -149,5 +146,20 @@ export class MemberDetailsViewModel extends ViewModel {
             roomId = roomBeingCreated.id;
         }
         this.navigation.push("room", roomId);
+    }
+
+    _onCrossSigningChange() {
+        const crossSigning = this._session.crossSigning.get();
+        this._userTrustSubscription = this.disposeTracked(this._userTrustSubscription);
+        this._userTrust = undefined;
+        if (crossSigning) {
+            this.logger.run("MemberDetailsViewModel.observeUserTrust", log => {
+                this._userTrust = crossSigning.observeUserTrust(this.userId, log);
+                this._userTrustSubscription = this.track(this._userTrust.subscribe(() => {
+                    this.emitChange("trustShieldColor");
+                }));
+            });
+        }
+        this.emitChange("trustShieldColor");
     }
 }

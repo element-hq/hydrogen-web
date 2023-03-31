@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
+import {BaseObservableValue, RetainedObservableValue} from "../../observable/value";
 import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/Channel";
@@ -89,6 +90,7 @@ export class CrossSigning {
     private readonly e2eeAccount: Account;
     private readonly deviceMessageHandler: DeviceMessageHandler;
     private _isMasterKeyTrusted: boolean = false;
+    private readonly observedUsers: Map<string, RetainedObservableValue<UserTrust | undefined>> = new Map();
     private readonly deviceId: string;
     private sasVerificationInProgress?: SASVerification;
     public receivedSASVerifications: ObservableMap<string, SASRequest> = new ObservableMap();
@@ -295,50 +297,59 @@ export class CrossSigning {
             };
             const request = this.hsApi.uploadSignatures(payload, {log});
             await request.response();
+            // we don't write the signatures to storage, as we don't want to have too many special
+            // cases in the trust algorithm, so instead we just clear the cross signing keys
+            // so that they will be refetched when trust is recalculated
+            await this.deviceTracker.invalidateUserKeys(userId);
+            this.emitUserTrustUpdate(userId, log);
             return keyToSign;
         });
     }
 
-    async getUserTrust(userId: string, log: ILogItem): Promise<UserTrust> {
-        return log.wrap("getUserTrust", async log => {
+    getUserTrust(userId: string, log: ILogItem): Promise<UserTrust> {
+        return log.wrap("CrossSigning.getUserTrust", async log => {
             log.set("id", userId);
+            const logResult = (trust: UserTrust): UserTrust => {
+                log.set("result", trust);
+                return trust;
+            };
             if (!this.isMasterKeyTrusted) {
-                return UserTrust.OwnSetupError;
+                return logResult(UserTrust.OwnSetupError);
             }
             const ourMSK = await log.wrap("get our msk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.Master, this.hsApi, log));
             if (!ourMSK) {
-                return UserTrust.OwnSetupError;
+                return logResult(UserTrust.OwnSetupError);
             }
             const ourUSK = await log.wrap("get our usk", log => this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.UserSigning, this.hsApi, log));
             if (!ourUSK) {
-                return UserTrust.OwnSetupError;
+                return logResult(UserTrust.OwnSetupError);
             }
             const ourUSKVerification = log.wrap("verify our usk", log => this.hasValidSignatureFrom(ourUSK, ourMSK, log));
             if (ourUSKVerification !== SignatureVerification.Valid) {
-                return UserTrust.OwnSetupError;
+                return logResult(UserTrust.OwnSetupError);
             }
             const theirMSK = await log.wrap("get their msk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log));
             if (!theirMSK) {
                 /* assume that when they don't have an MSK, they've never enabled cross-signing on their client
                 (or it's not supported) rather than assuming a setup error on their side.
                 Later on, for their SSK, we _do_ assume it's a setup error as it doesn't make sense to have an MSK without a SSK */
-                return UserTrust.UserNotSigned;
+                return logResult(UserTrust.UserNotSigned);
             }
             const theirMSKVerification = log.wrap("verify their msk", log => this.hasValidSignatureFrom(theirMSK, ourUSK, log));
             if (theirMSKVerification !== SignatureVerification.Valid) {
                 if (theirMSKVerification === SignatureVerification.NotSigned) {
-                    return UserTrust.UserNotSigned;
+                    return logResult(UserTrust.UserNotSigned);
                 } else { /* SignatureVerification.Invalid */
-                    return UserTrust.UserSignatureMismatch;
+                    return logResult(UserTrust.UserSignatureMismatch);
                 }
             }
             const theirSSK = await log.wrap("get their ssk", log => this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.SelfSigning, this.hsApi, log));
             if (!theirSSK) {
-                return UserTrust.UserSetupError;
+                return logResult(UserTrust.UserSetupError);
             }
             const theirSSKVerification = log.wrap("verify their ssk", log => this.hasValidSignatureFrom(theirSSK, theirMSK, log));
             if (theirSSKVerification !== SignatureVerification.Valid) {
-                return UserTrust.UserSetupError;
+                return logResult(UserTrust.UserSetupError);
             }
             const theirDeviceKeys = await log.wrap("get their devices", log => this.deviceTracker.devicesForUsers([userId], this.hsApi, log));
             const lowestDeviceVerification = theirDeviceKeys.reduce((lowest, dk) => log.wrap({l: "verify device", id: dk.device_id}, log => {
@@ -356,13 +367,30 @@ export class CrossSigning {
             }), SignatureVerification.Valid);
             if (lowestDeviceVerification !== SignatureVerification.Valid) {
                 if (lowestDeviceVerification === SignatureVerification.NotSigned) {
-                    return UserTrust.UserDeviceNotSigned;
+                    return logResult(UserTrust.UserDeviceNotSigned);
                 } else { /* SignatureVerification.Invalid */
-                    return UserTrust.UserDeviceSignatureMismatch;
+                    return logResult(UserTrust.UserDeviceSignatureMismatch);
                 }
             }
-            return UserTrust.Trusted;
+            return logResult(UserTrust.Trusted);
         });
+    }
+
+    observeUserTrust(userId: string, log: ILogItem): BaseObservableValue<UserTrust | undefined> {
+        const existingValue = this.observedUsers.get(userId);
+        if (existingValue) {
+            return existingValue;
+        }
+        const observable = new RetainedObservableValue<UserTrust | undefined>(undefined, () => {
+            this.observedUsers.delete(userId);
+        });
+        this.observedUsers.set(userId, observable);
+        log.wrapDetached("get user trust", async log => {
+            if (observable.get() === undefined) {
+                observable.set(await this.getUserTrust(userId, log));
+            }
+        });
+        return observable;
     }
 
     private async signDeviceKey(keyToSign: DeviceKey, log: ILogItem): Promise<DeviceKey | undefined> {
@@ -382,6 +410,11 @@ export class CrossSigning {
         };
         const request = this.hsApi.uploadSignatures(payload, {log});
         await request.response();
+        // we don't write the signatures to storage, as we don't want to have too many special
+        // cases in the trust algorithm, so instead we just clear the device keys
+        // so that they will be refetched when trust is recalculated
+        await this.deviceTracker.invalidateUserKeys(this.ownUserId);
+        this.emitUserTrustUpdate(this.ownUserId, log);
         return keyToSign;
     }
 
@@ -402,6 +435,16 @@ export class CrossSigning {
             return SignatureVerification.NotSigned;
         }
         return verifyEd25519Signature(this.olmUtil, signingKey.user_id, pubKey, pubKey, key, log);
+    }
+
+    private emitUserTrustUpdate(userId: string, log: ILogItem) {
+        const observable = this.observedUsers.get(userId);
+        if (observable && observable.get() !== undefined) {
+            observable.set(undefined);
+            log.wrapDetached("update user trust", async log => {
+                observable.set(await this.getUserTrust(userId, log));
+            });
+        }
     }
 }
 

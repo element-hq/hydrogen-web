@@ -163,6 +163,16 @@ export class DeviceTracker {
         }
     }
 
+    async invalidateUserKeys(userId: string): Promise<void> {
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.userIdentities]);
+        const userIdentity = await txn.userIdentities.get(userId);
+        if (userIdentity) {
+            userIdentity.keysTrackingStatus = KeysTrackingStatus.Outdated;
+            txn.userIdentities.set(userIdentity);
+        }
+        await txn.complete();
+    }
+
     async getCrossSigningKeyForUser(userId: string, usage: KeyUsage, hsApi: HomeServerApi | undefined, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return await log.wrap({l: "DeviceTracker.getCrossSigningKeyForUser", id: userId, usage}, async log => {
             const txn = await this._storage.readTxn([
