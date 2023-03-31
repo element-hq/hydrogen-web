@@ -119,10 +119,8 @@ export class CrossSigning {
         this.deviceId = options.deviceId;
         this.e2eeAccount = options.e2eeAccount
         this.deviceMessageHandler = options.deviceMessageHandler;
-
-        this.deviceMessageHandler.on("message", async ({ unencrypted: unencryptedEvent }) => {
-            this._handleSASDeviceMessage(unencryptedEvent);
-        })
+        this.handleSASDeviceMessage = this.handleSASDeviceMessage.bind(this);
+        this.deviceMessageHandler.on("message", this.handleSASDeviceMessage);
     }
 
     /** @return {boolean} whether cross signing has been enabled on this account */
@@ -209,7 +207,7 @@ export class CrossSigning {
         return this.sasVerificationInProgress;
     }
 
-    private _handleSASDeviceMessage(event: any) {
+    private handleSASDeviceMessage({ unencrypted: event }) {
         const txnId = event.content.transaction_id;
         /**
          * If we receive an event for the current/previously finished 
@@ -374,6 +372,10 @@ export class CrossSigning {
             }
             return logResult(UserTrust.Trusted);
         });
+    }
+
+    dispose(): void {
+        this.deviceMessageHandler.off("message", this.handleSASDeviceMessage);
     }
 
     observeUserTrust(userId: string, log: ILogItem): BaseObservableValue<UserTrust | undefined> {

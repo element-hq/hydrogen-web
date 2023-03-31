@@ -252,7 +252,9 @@ export class Session {
                 this._keyBackup.get().dispose();
                 this._keyBackup.set(undefined);
             }
-            if (this._crossSigning.get()) {
+            const crossSigning = this._crossSigning.get();
+            if (crossSigning) {
+                crossSigning.dispose();
                 this._crossSigning.set(undefined);
             }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
@@ -317,7 +319,9 @@ export class Session {
             this._keyBackup.get().dispose();
             this._keyBackup.set(undefined);
         }
-        if (this._crossSigning.get()) {
+        const crossSigning = this._crossSigning.get();
+        if (crossSigning) {
+            crossSigning.dispose();
             this._crossSigning.set(undefined);
         }
     }
@@ -373,6 +377,9 @@ export class Session {
                     });
                     if (await crossSigning.load(log)) {
                         this._crossSigning.set(crossSigning);
+                    }
+                    else {
+                        crossSigning.dispose();
                     }
                 });
             }
@@ -547,6 +554,7 @@ export class Session {
         this._e2eeAccount = undefined;
         this._callHandler?.dispose();
         this._callHandler = undefined;
+        this._crossSigning.get()?.dispose();
         for (const room of this._rooms.values()) {
             room.dispose();
         }
