@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {HomeServerApi} from "../../../net/HomeServerApi";
 import type {ILogItem} from "../../../../logging/types";
 import type {IChannel} from "./IChannel";
 import type {Room} from "../../../room/Room.js";
@@ -27,7 +26,6 @@ import {Deferred} from "../../../../utils/Deferred";
 import {getRelatedEventId, createReference} from "../../../room/timeline/relations.js";
 
 type Options = {
-    hsApi: HomeServerApi;
     otherUserId: string;
     log: ILogItem;
     ourUserDeviceId: string;
@@ -35,7 +33,6 @@ type Options = {
 }
 
 export class RoomChannel extends Disposables implements IChannel {
-    private readonly hsApi: HomeServerApi;
     private ourDeviceId: string;
     private readonly otherUserId: string;
     private readonly sentMessages: Map<VerificationEventType, any> = new Map();
@@ -58,7 +55,6 @@ export class RoomChannel extends Disposables implements IChannel {
      */
     constructor(options: Options, startingMessage?: any) {
         super();
-        this.hsApi = options.hsApi;
         this.otherUserId = options.otherUserId;
         this.ourDeviceId = options.ourUserDeviceId;
         this.log = options.log;
