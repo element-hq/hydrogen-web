@@ -18,6 +18,7 @@ import {REDACTION_TYPE} from "../common";
 
 export const REACTION_TYPE = "m.reaction";
 export const ANNOTATION_RELATION_TYPE = "m.annotation";
+export const REFERENCE_RELATION_TYPE = "m.reference";
 
 export function createAnnotation(targetId, key) {
     return {
@@ -25,6 +26,15 @@ export function createAnnotation(targetId, key) {
             "event_id": targetId,
             key,
             "rel_type": ANNOTATION_RELATION_TYPE
+        }
+    };
+}
+
+export function createReference(targetId) {
+    return {
+        "m.relates_to": {
+            "event_id": targetId,
+            "rel_type": REFERENCE_RELATION_TYPE
         }
     };
 }

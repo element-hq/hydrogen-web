@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import {EventEmitter} from "../../../utils/EventEmitter";
 import {createEnum} from "../../../utils/enum";
 import {AbortError} from "../../../utils/error";
 import {REDACTION_TYPE} from "../common";
@@ -30,8 +31,9 @@ export const SendStatus = createEnum(
 
 const unencryptedContentFields = [ "m.relates_to" ];
 
-export class PendingEvent {
+export class PendingEvent extends EventEmitter {
     constructor({data, remove, emitUpdate, attachments}) {
+        super();
         this._data = data;
         this._attachments = attachments;
         this._emitUpdate = emitUpdate;
@@ -228,6 +230,7 @@ export class PendingEvent {
         this._sendRequest = null;
         // both /send and /redact have the same response format
         this._data.remoteId = response.event_id;
+        this.emit("remote-id", this.remoteId);
         log.set("id", this._data.remoteId);
         this._status = SendStatus.Sent;
         this._emitUpdate("status");

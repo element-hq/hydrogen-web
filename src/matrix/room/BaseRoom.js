@@ -545,7 +545,8 @@ export class BaseRoom extends EventEmitter {
         return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
             log.set("id", this.id);
             if (this._timeline) {
-                throw new Error("not dealing with load race here for now");
+                log.log({ l: "Returning existing timeline" });
+                return this._timeline;
             }
             this._timeline = new Timeline({
                 roomId: this.id,
@@ -610,7 +611,6 @@ export class BaseRoom extends EventEmitter {
 
     dispose() {
         this._roomEncryption?.dispose();
-        this._timeline?.dispose();
     }
 }
 

@@ -15,41 +15,39 @@ limitations under the License.
 */
 
 import type {HomeServerApi} from "../../../net/HomeServerApi";
-import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
 import type {ILogItem} from "../../../../logging/types";
-import type {Clock} from "../../../../platform/web/dom/Clock.js";
-import type {DeviceMessageHandler} from "../../../DeviceMessageHandler.js";
 import type {IChannel} from "./IChannel";
+import type {Room} from "../../../room/Room.js";
+import type {EventEntry} from "../../../room/timeline/entries/EventEntry.js";
 import {messageFromErrorType} from "./IChannel";
-import {makeTxnId} from "../../../common.js";
 import {CancelReason, VerificationEventType} from "./types";
 import {Disposables} from "../../../../utils/Disposables";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 import {Deferred} from "../../../../utils/Deferred";
+import {getRelatedEventId, createReference} from "../../../room/timeline/relations.js";
 
 type Options = {
     hsApi: HomeServerApi;
-    deviceTracker: DeviceTracker;
     otherUserId: string;
-    clock: Clock;
-    deviceMessageHandler: DeviceMessageHandler;
     log: ILogItem;
     ourUserDeviceId: string;
+    room: Room;
 }
 
-export class ToDeviceChannel extends Disposables implements IChannel {
+export class RoomChannel extends Disposables implements IChannel {
     private readonly hsApi: HomeServerApi;
-    private readonly deviceTracker: DeviceTracker;
     private ourDeviceId: string;
     private readonly otherUserId: string;
-    private readonly clock: Clock;
-    private readonly deviceMessageHandler: DeviceMessageHandler;
     private readonly sentMessages: Map<VerificationEventType, any> = new Map();
     private readonly receivedMessages: Map<VerificationEventType, any> = new Map();
     private readonly waitMap: Map<string, Deferred<any>> = new Map();
     private readonly log: ILogItem;
+    private readonly room: Room;
     public otherUserDeviceId: string;
     public startMessage: any;
+    /**
+     * This is the event-id of the starting message (request/start)
+     */
     public id: string;
     private _initiatedByUs: boolean;
     private _cancellation?: { code: CancelReason, cancelledByUs: boolean };
@@ -61,19 +59,11 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     constructor(options: Options, startingMessage?: any) {
         super();
         this.hsApi = options.hsApi;
-        this.deviceTracker = options.deviceTracker;
         this.otherUserId = options.otherUserId;
         this.ourDeviceId = options.ourUserDeviceId;
-        this.clock = options.clock;
         this.log = options.log;
-        this.deviceMessageHandler = options.deviceMessageHandler;
-        this.track(
-            this.deviceMessageHandler.disposableOn(
-                "message",
-                async ({ unencrypted }) =>
-                    await this.handleDeviceMessage(unencrypted)
-            )
-        );
+        this.room = options.room;
+        this.subscribeToTimeline();
         this.track(() => {
             this.waitMap.forEach((value) => {
                 value.reject(new VerificationCancelledError());
@@ -90,6 +80,21 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         }
     }
 
+    private async subscribeToTimeline() {
+        const timeline = await this.room.openTimeline();
+        timeline.retain();
+        this.track(() => timeline.release());
+        this.track(
+           timeline.entries.subscribe({
+                onAdd: async (_, entry: EventEntry) => {
+                    this.handleRoomMessage(entry);
+                },
+                onRemove: () => { /** noop */ },
+                onUpdate: () => { /** noop */ },
+            })
+        );
+    }
+
     get cancellation(): IChannel["cancellation"] {
         return this._cancellation;
     };
@@ -99,7 +104,7 @@ export class ToDeviceChannel extends Disposables implements IChannel {
     }
 
     async send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void> {
-        await log.wrap("ToDeviceChannel.send", async () => {
+        await log.wrap("RoomChannel.send", async () => {
             if (this.isCancelled) {
                 throw new VerificationCancelledError();
             }
@@ -108,33 +113,21 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                 await this.handleRequestEventSpecially(eventType, content, log);
                 return;
             }
-            Object.assign(content, { transaction_id: this.id });
-            const payload = {
-                messages: {
-                    [this.otherUserId]: {
-                        [this.otherUserDeviceId]: content
-                    }
-                }
-            }
-            await this.hsApi.sendToDevice(eventType, payload, makeTxnId(), { log }).response();
+            Object.assign(content, createReference(this.id));
+            await this.room.sendEvent(eventType, content, undefined, log);
             this.sentMessages.set(eventType, {content});
         });
     }
 
     private async handleRequestEventSpecially(eventType: VerificationEventType, content: any, log: ILogItem) {
-        await log.wrap("ToDeviceChannel.handleRequestEventSpecially", async () => {
-            const timestamp = this.clock.now();
-            const txnId = makeTxnId();
-            this.id = txnId;
-            Object.assign(content, { timestamp, transaction_id: txnId });
-            const payload = {
-                messages: {
-                    [this.otherUserId]: {
-                        "*": content
-                    }
-                }
-            }
-            await this.hsApi.sendToDevice(eventType, payload, makeTxnId(), { log }).response();
+        await log.wrap("RoomChannel.handleRequestEventSpecially", async () => {
+            Object.assign(content, {
+                body: `${this.otherUserId} is requesting to verify your key, but your client does not support in-chat key verification.  You will need to use legacy key verification to verify keys.`,
+                msgtype: VerificationEventType.Request,
+                to: this.otherUserId,
+            });
+            const pendingEvent = await this.room.sendEvent("m.room.message", content, undefined, log);
+            this.track(pendingEvent.disposableOn("remote-id", (id: string) => { this.id = id; }));
             this.sentMessages.set(eventType, {content});
         });
     }
@@ -152,86 +145,63 @@ export class ToDeviceChannel extends Disposables implements IChannel {
             this.sentMessages.get(VerificationEventType.Accept);
     }
 
-
-    private async handleDeviceMessage(event) {
-        await this.log.wrap("ToDeviceChannel.handleDeviceMessage", async (log) => {
-            if (!event.type.startsWith("m.key.verification.")) {
-                return;
+    private async handleRoomMessage(entry: EventEntry) {
+        const type = entry.content.msgtype ?? entry.eventType;
+        if (!type.startsWith("m.key.verification")) {
+            return; 
+        }
+        await this.log.wrap("RoomChannel.handleRoomMessage", async (log) => {
+            console.log("entry", entry);
+            log.log({ l: "entry", entry });
+            if (!this.id) {
+                throw new Error("Couldn't find event-id of request message!");
             }
-            if (event.content.transaction_id !== this.id) {
+            if (getRelatedEventId(entry) !== this.id) {
                 /**
                  * When a device receives an unknown transaction_id, it should send an appropriate
                  * m.key.verification.cancel message to the other device indicating as such.
                  * This does not apply for inbound m.key.verification.start or m.key.verification.cancel messages.
                  */
-                console.log("Received event with unknown transaction id: ", event);
+                console.log("Received entry with unknown transaction id: ", entry);
                 await this.cancelVerification(CancelReason.UnknownTransaction);
                 return;
             }
-            console.log("event", event);
-            log.log({ l: "event", event });
-            this.resolveAnyWaits(event);
-            this.receivedMessages.set(event.type, event);
-            if (event.type === VerificationEventType.Ready) {
-                this.handleReadyMessage(event, log);
+            this.resolveAnyWaits(entry);
+            this.receivedMessages.set(entry.eventType, entry);
+            if (entry.eventType === VerificationEventType.Ready) {
+                const fromDevice = entry.content.from_device;
+                this.otherUserDeviceId = fromDevice;
                 return;
             }
-            if (event.type === VerificationEventType.Cancel) {
-                this._cancellation = { code: event.content.code, cancelledByUs: false };
+            if (entry.eventType === VerificationEventType.Cancel) {
+                this._cancellation = { code: entry.content.code, cancelledByUs: false };
                 this.dispose();
                 return;
             }
         });
     }
 
-    private async handleReadyMessage(event, log: ILogItem) {
-        const fromDevice = event.content.from_device;
-        this.otherUserDeviceId = fromDevice;
-        // We need to send cancel messages to all other devices
-        const devices = await this.deviceTracker.devicesForUsers([this.otherUserId], this.hsApi, log);
-        const otherDevices = devices.filter(device => device.device_id !== fromDevice && device.device_id !== this.ourDeviceId);
-        const cancelMessage = {
-            code: CancelReason.OtherDeviceAccepted,
-            reason: messageFromErrorType[CancelReason.OtherDeviceAccepted],
-            transaction_id: this.id,
-        };
-        const deviceMessages = otherDevices.reduce((acc, device) => { acc[device.device_id] = cancelMessage; return acc; }, {});
-        const payload = {
-            messages: {
-                [this.otherUserId]: deviceMessages
-            }
-        }
-        await this.hsApi.sendToDevice(VerificationEventType.Cancel, payload, makeTxnId(), { log }).response();
-    }
-
     async cancelVerification(cancellationType: CancelReason) {
-        await this.log.wrap("Channel.cancelVerification", async log => {
+        await this.log.wrap("RoomChannel.cancelVerification", async log => {
             if (this.isCancelled) {
                 throw new VerificationCancelledError();
             }
-            const payload = {
-                messages: {
-                    [this.otherUserId]: {
-                        [this.otherUserDeviceId ?? "*"]: {
-                            code: cancellationType,
-                            reason: messageFromErrorType[cancellationType],
-                            transaction_id: this.id,
-                        }
-                    }
-                }
+            const content = {
+                code: cancellationType,
+                reason: messageFromErrorType[cancellationType],
             }
-            await this.hsApi.sendToDevice(VerificationEventType.Cancel, payload, makeTxnId(), { log }).response();
+            await this.send(VerificationEventType.Cancel, content, log);
             this._cancellation = { code: cancellationType, cancelledByUs: true };
             this.dispose();
         });
     }
 
-    private resolveAnyWaits(event) {
-        const { type } = event;
-        const wait = this.waitMap.get(type);
+    private resolveAnyWaits(entry: EventEntry) {
+        const { eventType } = entry;
+        const wait = this.waitMap.get(eventType);
         if (wait) {
-            wait.resolve(event);
-            this.waitMap.delete(type);
+            wait.resolve(entry);
+            this.waitMap.delete(eventType);
         }
     }
 

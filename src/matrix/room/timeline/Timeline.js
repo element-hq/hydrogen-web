@@ -25,9 +25,13 @@ import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
+import {RetainedValue} from "../../../utils/RetainedValue";
 
-export class Timeline {
+export class Timeline extends RetainedValue {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
+        super(() => {
+            this.dispose();
+        });
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;

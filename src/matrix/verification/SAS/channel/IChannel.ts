@@ -17,6 +17,20 @@ limitations under the License.
 import type {ILogItem} from "../../../../logging/types";
 import {CancelReason, VerificationEventType} from "./types";
 
+export const messageFromErrorType = {
+    [CancelReason.UserCancelled]: "User declined",
+    [CancelReason.InvalidMessage]: "Invalid Message.",
+    [CancelReason.KeyMismatch]: "Key Mismatch.",
+    [CancelReason.OtherDeviceAccepted]: "Another device has accepted this request.",
+    [CancelReason.TimedOut]: "Timed Out",
+    [CancelReason.UnexpectedMessage]: "Unexpected Message.",
+    [CancelReason.UnknownMethod]: "Unknown method.",
+    [CancelReason.UnknownTransaction]: "Unknown Transaction.",
+    [CancelReason.UserMismatch]: "User Mismatch",
+    [CancelReason.MismatchedCommitment]: "Hash commitment does not match.",
+    [CancelReason.MismatchedSAS]: "Emoji/decimal does not match.",
+}
+
 export interface IChannel {
     send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void>;
     waitForEvent(eventType: VerificationEventType): Promise<any>;
