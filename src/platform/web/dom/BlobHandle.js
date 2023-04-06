@@ -74,10 +74,21 @@ const ALLOWED_BLOB_MIMETYPES = {
 const DEFAULT_MIMETYPE = 'application/octet-stream';
 
 export class BlobHandle {
+    /** 
+     * @internal
+     * Don't use the constructor directly, instead use fromBuffer, fromBlob or fromBufferUnsafe
+     * */
     constructor(blob, buffer = null) {
         this._blob = blob;
         this._buffer = buffer;
         this._url = null;
+    }
+
+    /** Does not filter out mimetypes that could execute embedded javascript.
+     * It's up to the callee of this method to ensure that the blob won't be
+     * rendered by the browser in a way that could allow cross-signing scripting. */
+    static fromBufferUnsafe(buffer, mimetype) {
+        return new BlobHandle(new Blob([buffer], {type: mimetype}), buffer);
     }
 
     static fromBuffer(buffer, mimetype) {
