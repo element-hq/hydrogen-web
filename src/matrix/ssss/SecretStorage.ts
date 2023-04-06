@@ -17,11 +17,13 @@ import {BaseObservableValue, RetainedObservableValue} from "../../observable/val
 import {KeyType} from "./index";
 import {keyFromPassphrase} from "./passphrase";
 import {keyFromRecoveryKey} from "./recoveryKey";
-import type {Key, KeyDescription} from "./common";
+import {Key, KeyDescription, KeyDescriptionData} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
 import type {Transaction} from "../storage/idb/Transaction";
 import type {Storage} from "../storage/idb/Storage";
 import type {AccountDataEntry} from "../storage/idb/stores/AccountDataStore";
+import type * as OlmNamespace from "@matrix-org/olm";
+type Olm = typeof OlmNamespace;
 
 type EncryptedData = {
     iv: string;
@@ -30,6 +32,7 @@ type EncryptedData = {
 }
 
 export enum DecryptionFailure {
+    NoKey = 1,
     NotEncryptedWithKey,
     BadMAC,
     UnsupportedAlgorithm,
@@ -39,9 +42,11 @@ class DecryptionError extends Error {
     constructor(msg: string, public readonly reason: DecryptionFailure) {
         super(msg);
     }
-}
 
-type AccountData = {type: string, content: Record<string, any>};
+    toString() {
+        return `${this.constructor.name}: ${super.message}: ${this.reason}`
+    }
+}
 
 type KeyCredentials = {
     type: KeyType,
@@ -50,21 +55,22 @@ type KeyCredentials = {
 
 export class SecretStorage {
     // we know the id but don't have the description yet
-    private _keyId?: string;
+    private keyId?: string;
     // we have the description but not the credentials yet
-    private _keyDescription?: KeyDescription;
+    private keyDescription?: KeyDescription;
     // we have the credentials but not the id or description yet
-    private _keyCredentials?: KeyCredentials;
+    private keyCredentials?: KeyCredentials;
     // we have everything to compose a valid key
-    private _key?: Key;
-    private readonly _platform: Platform;
-    private readonly _storage: Storage;
+    private key?: Key;
+    private readonly platform: Platform;
+    private readonly storage: Storage;
     private observedSecrets: Map<string, RetainedObservableValue<string | undefined>>;
-
-    constructor({key, platform, storage}: {key: Key, platform: Platform, storage: Storage}) {
-        this._key = key;
-        this._platform = platform;
-        this._storage = storage;
+    private readonly olm: Olm;
+    constructor({platform, storage, olm}: {platform: Platform, storage: Storage, olm: Olm}) {
+        this.platform = platform;
+        this.storage = storage;
+        this.olm = olm;
+        this.observedSecrets = new Map();
     }
 
     load() {
@@ -73,63 +79,179 @@ export class SecretStorage {
 
     async setKey(type: KeyType, credential: string) {
         const credentials: KeyCredentials = {type, credential};
-        this._keyCredentials = credentials;
-        this.updateKey(this._keyDescription, this._keyCredentials);
+        this.keyCredentials = credentials;
+        this.updateKey(this.keyDescription, this.keyCredentials);
     }
 
-    async setKeyWithDehydratedDeviceKey() {
-        
+    async setKeyWithDehydratedDeviceKey(dehydrationKey: Key): Promise<boolean> {
+        const {keyDescription} = this;
+        if (!keyDescription) {
+            return false;
+        }
+        if (await keyDescription.isCompatible(dehydrationKey, this.platform)) {
+            const key = dehydrationKey.withDescription(keyDescription);
+            this.key = key;
+            return true;
+        }
+        return false;
     }
 
-    private async updateKey(keyDescription: KeyDescription | undefined, credentials: KeyCredentials | undefined, txn: Transaction) {
+    private async updateKey(keyDescription: KeyDescription | undefined, credentials: KeyCredentials | undefined): Promise<boolean> {
         if (keyDescription && credentials) {
             if (credentials.type === KeyType.Passphrase) {
-                this._key = await keyFromPassphrase(keyDescription, credentials.credential, this._platform);
+                this.key = await keyFromPassphrase(keyDescription, credentials.credential, this.platform);
+                return true;
             } else if (credentials.type === KeyType.RecoveryKey) {
-                this._key = await keyFromRecoveryKey(keyDescription, credentials.credential, this._olm, this._platform);
+                this.key = await keyFromRecoveryKey(keyDescription, credentials.credential, this.olm, this.platform);
+                return true;
             }
-            // 
         }
+        return false;
     }
 
-    private update(keyDescription: KeyDescription, credentials: KeyCredentials) {
-
-    }
-
-    writeSync(accountData: ReadonlyArray<AccountData>, txn: Transaction, log: ILogItem): Promise<void> {
-
+    async writeSync(accountData: ReadonlyArray<AccountDataEntry>, txn: Transaction): Promise<{newKey?: KeyDescription, accountData: ReadonlyArray<AccountDataEntry>}> {
         const newDefaultKey = accountData.find(e => e.type === "m.secret_storage.default_key");
-        const keyId: string | undefined = newDefaultKey ? newDefaultKey.content?.key : this._keyId;
+        const keyId: string | undefined = newDefaultKey ? newDefaultKey.content?.key : this.keyId;
         const keyEventType = keyId ? `m.secret_storage.key.${keyId}` : undefined;
-        let newKey = keyEventType ? accountData.find(e => e.type === keyEventType) : undefined;
-        if (newDefaultKey && keyEventType && !newKey) {
-            newKey = await txn.accountData.get(keyEventType);
+        let newKeyData = keyEventType ? accountData.find(e => e.type === keyEventType) : undefined;
+        // if the default key was changed but the key itself wasn't in the sync, get it from storage
+        if (newDefaultKey && keyEventType && !newKeyData) {
+            newKeyData = await txn.accountData.get(keyEventType);
         }
-        if (newKey) {
-            this.setKeyDescription()
+        let newKey: KeyDescription | undefined;
+        if (newKeyData && keyId) {
+            newKey = new KeyDescription(keyId, newKeyData.content as KeyDescriptionData);
         }
-        const keyChanged = !!newDefaultKey || !!newKey;
-        if (keyChanged) {
-            // update all values
-        } else {
-            for(const event of accountData) {
+        return {
+            newKey,
+            accountData
+        };
+    }
 
-            }
+    afterSync({newKey, accountData}: {newKey?: KeyDescription, accountData: ReadonlyArray<AccountDataEntry>}): void {
+        if (newKey) {
+            this.updateKeyAndAllValues(newKey);
+        } else if (this.key) {
+            const observedValues = accountData.filter(a => this.observedSecrets.has(a.type));
+            Promise.all(observedValues.map(async entry => {
+                const observable = this.observedSecrets.get(entry.type)!;
+                const secret = await this.decryptAccountData(entry);
+                observable.set(secret);
+            })).then(undefined, reason => {
+                this.platform.logger.log("SecretStorage.afterSync: decryption failed").catch(reason);
+            });
         }
     }
 
-    afterSync(): void {
+    observeSecret(name: string): BaseObservableValue<string | undefined> {
+        const existingObservable = this.observedSecrets.get(name);
+        if (existingObservable) {
+            return existingObservable;
+        }
+        const observable: RetainedObservableValue<string | undefined> = new RetainedObservableValue(undefined, () => {
+            this.observedSecrets.delete(name);
+        });
+        this.observedSecrets.set(name, observable);
+        this.readSecret(name).then(secret => {
+            observable.set(secret);
+        });
+        return observable;
     }
 
     /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */
-    async hasValidKeyForAnyAccountData() {
-        const txn = await this._storage.readTxn([
-            this._storage.storeNames.accountData,
+    async readSecret(name: string): Promise<string | undefined> {
+        const txn = await this.storage.readTxn([
+            this.storage.storeNames.accountData,
+        ]);
+        const accountData = await txn.accountData.get(name);
+        if (!accountData) {
+            return;
+        }
+        try {
+            return await this.decryptAccountData(accountData);
+        } catch (err) {
+            this.platform.logger.log({l: "SecretStorage.readSecret: failed to read secret", id: name}).catch(err);
+            return undefined;
+        }
+    }
+
+    private async decryptAccountData(accountData: AccountDataEntry): Promise<string | undefined> {
+        if (!this.key) {
+            throw new DecryptionError("No key set", DecryptionFailure.NoKey);
+        }
+        const encryptedData = accountData?.content?.encrypted?.[this.key.id] as EncryptedData;
+        if (!encryptedData) {
+            throw new DecryptionError(`Secret ${accountData.type} is not encrypted for key ${this.key.id}`, DecryptionFailure.NotEncryptedWithKey);
+        }
+
+        if (this.key.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
+            return await this.decryptAESSecret(accountData.type, encryptedData, this.key.binaryKey);
+        } else {
+            throw new DecryptionError(`Unsupported algorithm for key ${this.key.id}: ${this.key.algorithm}`, DecryptionFailure.UnsupportedAlgorithm);
+        }
+    }
+
+    private async decryptAESSecret(type: string, encryptedData: EncryptedData, binaryKey: Uint8Array): Promise<string> {
+        const {base64, utf8} = this.platform.encoding;
+        // now derive the aes and mac key from the 4s key
+        const hkdfKey = await this.platform.crypto.derive.hkdf(
+            binaryKey,
+            new Uint8Array(8).buffer,   //zero salt
+            utf8.encode(type), // info
+            "SHA-256",
+            512 // 512 bits or 64 bytes
+        );
+        const aesKey = hkdfKey.slice(0, 32);
+        const hmacKey = hkdfKey.slice(32);
+        const ciphertextBytes = base64.decode(encryptedData.ciphertext);
+
+        const isVerified = await this.platform.crypto.hmac.verify(
+            hmacKey, base64.decode(encryptedData.mac),
+            ciphertextBytes, "SHA-256");
+
+        if (!isVerified) {
+            throw new DecryptionError("Bad MAC", DecryptionFailure.BadMAC);
+        }
+
+        const plaintextBytes = await this.platform.crypto.aes.decryptCTR({
+            key: aesKey,
+            iv: base64.decode(encryptedData.iv),
+            data: ciphertextBytes
+        });
+
+        return utf8.decode(plaintextBytes);
+    }
+
+    private async updateKeyAndAllValues(newKey: KeyDescription) {
+        this.keyDescription = newKey;
+        if (await this.updateKey(this.keyDescription, this.keyCredentials)) {
+            const valuesToUpdate = Array.from(this.observedSecrets.keys());
+            const txn = await this.storage.readTxn([this.storage.storeNames.accountData]);
+            const entries = await Promise.all(valuesToUpdate.map(type => txn.accountData.get(type)));
+            const foundEntries = entries.filter(e => !!e) as ReadonlyArray<AccountDataEntry>;
+            this.decryptAndUpdateEntries(foundEntries);
+        }
+    }
+
+    private decryptAndUpdateEntries(entries: ReadonlyArray<AccountDataEntry>): void {
+        Promise.all(entries.map(async entry => {
+            const observable = this.observedSecrets.get(entry.type)!;
+            const secret = await this.decryptAccountData(entry);
+            observable.set(secret);
+        })).then(undefined, reason => {
+            this.platform.logger.log("SecretStorage.afterSync: decryption failed").catch(reason);
+        });
+    }
+
+    /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */
+    private async hasValidKeyForAnyAccountData() {
+        const txn = await this.storage.readTxn([
+            this.storage.storeNames.accountData,
         ]);
         const allAccountData = await txn.accountData.getAll();
         for (const accountData of allAccountData) {
             try {
-                const secret = await this._decryptAccountData(accountData);
+                const secret = await this.decryptAccountData(accountData);
                 return true; // decryption succeeded
             } catch (err) {
                 if (err instanceof DecryptionError && err.reason !== DecryptionFailure.NotEncryptedWithKey) {
@@ -140,65 +262,5 @@ export class SecretStorage {
             }
         }
         return false;
-    }
-
-    observeSecret(name: string): BaseObservableValue<string | undefined> {
-
-    }
-
-    /** this method will auto-commit any indexeddb transaction because of its use of the webcrypto api */
-    async readSecret(name: string): Promise<string | undefined> {
-        const txn = await this._storage.readTxn([
-            this._storage.storeNames.accountData,
-        ]);
-        const accountData = await txn.accountData.get(name);
-        if (!accountData) {
-            return;
-        }
-        return await this._decryptAccountData(accountData);
-    }
-
-    async _decryptAccountData(accountData: AccountDataEntry): Promise<string> {
-        const encryptedData = accountData?.content?.encrypted?.[this._key.id] as EncryptedData;
-        if (!encryptedData) {
-            throw new DecryptionError(`Secret ${accountData.type} is not encrypted for key ${this._key.id}`, DecryptionFailure.NotEncryptedWithKey);
-        }
-
-        if (this._key.algorithm === "m.secret_storage.v1.aes-hmac-sha2") {
-            return await this._decryptAESSecret(accountData.type, encryptedData);
-        } else {
-            throw new DecryptionError(`Unsupported algorithm for key ${this._key.id}: ${this._key.algorithm}`, DecryptionFailure.UnsupportedAlgorithm);
-        }
-    }
-
-    async _decryptAESSecret(type: string, encryptedData: EncryptedData): Promise<string> {
-        const {base64, utf8} = this._platform.encoding;
-        // now derive the aes and mac key from the 4s key
-        const hkdfKey = await this._platform.crypto.derive.hkdf(
-            this._key.binaryKey,
-            new Uint8Array(8).buffer,   //zero salt
-            utf8.encode(type), // info
-            "SHA-256",
-            512 // 512 bits or 64 bytes
-        );
-        const aesKey = hkdfKey.slice(0, 32);
-        const hmacKey = hkdfKey.slice(32);
-        const ciphertextBytes = base64.decode(encryptedData.ciphertext);
-
-        const isVerified = await this._platform.crypto.hmac.verify(
-            hmacKey, base64.decode(encryptedData.mac),
-            ciphertextBytes, "SHA-256");
-
-        if (!isVerified) {
-            throw new DecryptionError("Bad MAC", DecryptionFailure.BadMAC);
-        }
-
-        const plaintextBytes = await this._platform.crypto.aes.decryptCTR({
-            key: aesKey,
-            iv: base64.decode(encryptedData.iv),
-            data: ciphertextBytes
-        });
-
-        return utf8.decode(plaintextBytes);
     }
 }
