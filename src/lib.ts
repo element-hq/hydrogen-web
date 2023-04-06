@@ -21,6 +21,7 @@ export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
 export {FeatureSet, FeatureFlag} from "./features.js";
 export {Client, LoadStatus, LoginFailure} from "./matrix/Client.js";
+export {BlobHandle} from "./platform/web/dom/BlobHandle";
 export {RoomStatus} from "./matrix/room/common";
 export {AttachmentUpload} from "./matrix/room/AttachmentUpload";
 export {CallIntent} from "./matrix/calls/callEventTypes";
