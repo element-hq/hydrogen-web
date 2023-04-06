@@ -19,6 +19,7 @@ export type {ILogItem} from "./logging/types";
 export {IDBLogPersister} from "./logging/IDBLogPersister";
 export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
+export {BlobHandle} from "./platform/web/dom/BlobHandle";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
 // export everything needed to observe state events on all rooms using session.observeRoomState
