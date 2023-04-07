@@ -536,12 +536,12 @@ export class Session {
             }
         }
         if (this._olm && this._e2eeAccount) {
-            // try set up session backup and cross-signing if we stored the ssss key
-            const ssssKey = await ssssReadKey(txn);
-            if (ssssKey) {
-                // this will close the txn above, so we do it last
-                await this._tryLoadSecretStorage(ssssKey, log);
-            }
+            this._secretStorage = new SecretStorage({
+                platform: this._platform,
+                storage: this._storage,
+                olm: this._olm
+            });
+            await this._secretStorage.load(txn);
         }
     }
 

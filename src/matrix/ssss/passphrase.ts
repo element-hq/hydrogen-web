@@ -27,7 +27,7 @@ const DEFAULT_BITSIZE = 256;
  * @param  {Platform} platform
  * @return {Key}
  */
-export async function keyFromPassphrase(passphrase: string, platform: Platform): Promise<Key> {
+export async function keyFromPassphrase(keyDescription: KeyDescription, passphrase: string, platform: Platform): Promise<Key> {
     const {passphraseParams} = keyDescription;
     if (!passphraseParams) {
         throw new Error("not a passphrase key");

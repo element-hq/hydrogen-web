@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import {BaseObservableValue, RetainedObservableValue} from "../../observable/value";
-import {KeyType} from "./index";
+import {KeyType, SSSS_KEY} from "./index";
 import {keyFromPassphrase} from "./passphrase";
 import {keyFromRecoveryKey} from "./recoveryKey";
 import {Key, KeyDescription, KeyDescriptionData} from "./common";
@@ -48,10 +48,16 @@ class DecryptionError extends Error {
     }
 }
 
-type KeyCredentials = {
-    type: KeyType,
+type StringKeyCredential = {
+    type: KeyType.Passphrase | KeyType.RecoveryKey,
     credential: string
 }
+
+type BitsKeyCredential = {
+    type: KeyType.KeyBits,
+    credential: Uint8Array
+}
+type KeyCredentials = StringKeyCredential | BitsKeyCredential;
 
 export class SecretStorage {
     // we know the id but don't have the description yet
@@ -73,11 +79,32 @@ export class SecretStorage {
         this.observedSecrets = new Map();
     }
 
-    load() {
-        // read key
+    async load(txn: Transaction) {
+        // first try to read the key bits from previously enabling 4S
+        const keyData = await txn.session.get(SSSS_KEY);
+        if (keyData) {
+            const keyAccountData = await txn.accountData.get(`m.secret_storage.key.${keyData.id}`);
+            if (keyAccountData) {
+                this.keyId = keyData.id;
+                this.keyDescription = new KeyDescription(keyData.id, keyAccountData.content as KeyDescriptionData);
+                this.keyCredentials = {type: KeyType.KeyBits, credential: keyData.binaryKey};
+            }
+        } else {
+            // then prepare to track the default key
+            const defaultKey = await txn.accountData.get("m.secret_storage.default_key");
+            const keyId = defaultKey?.content?.key;
+            if (keyId) {
+                this.keyId = keyId;
+                const keyData = await txn.accountData.get(`m.secret_storage.key.${keyId}`);
+                if (keyData) {
+                    this.keyDescription = new KeyDescription(keyId, keyData.content as KeyDescriptionData);
+                }
+            }
+        }
+        this.updateKey(this.keyDescription, this.keyCredentials);
     }
 
-    async setKey(type: KeyType, credential: string) {
+    async setKey(type: KeyType.Passphrase | KeyType.RecoveryKey, credential: string) {
         const credentials: KeyCredentials = {type, credential};
         this.keyCredentials = credentials;
         this.updateKey(this.keyDescription, this.keyCredentials);
@@ -104,6 +131,8 @@ export class SecretStorage {
             } else if (credentials.type === KeyType.RecoveryKey) {
                 this.key = await keyFromRecoveryKey(keyDescription, credentials.credential, this.olm, this.platform);
                 return true;
+            } else if (credentials.type === KeyType.KeyBits) {
+                this.key = new Key(keyDescription, credentials.credential);
             }
         }
         return false;
