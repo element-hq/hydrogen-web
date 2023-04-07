@@ -300,7 +300,8 @@ export class Platform {
                 const file = input.files[0];
                 this._container.removeChild(input);
                 if (file) {
-                    resolve({name: file.name, blob: BlobHandle.fromBlob(file)});
+                    // ok to not filter mimetypes as these are local files
+                    resolve({name: file.name, blob: BlobHandle.fromBlobUnsafe(file)});
                 } else {
                     resolve();
                 }
