@@ -28,12 +28,17 @@ export class FeaturesViewModel extends ViewModel {
             new FeatureViewModel(this.childOptions({
                 name: this.i18n`Audio/video calls`,
                 description: this.i18n`Allows starting and participating in A/V calls compatible with Element Call (MSC3401). Look for the start call option in the room menu ((...) in the right corner) to start a call.`,
-                feature: FeatureFlag.Calls
+                feature: FeatureFlag.Calls,
             })),
             new FeatureViewModel(this.childOptions({
                 name: this.i18n`Cross-Signing`,
                 description: this.i18n`Allows verifying the identity of people you chat with. This feature is still evolving constantly, expect things to break.`,
-                feature: FeatureFlag.CrossSigning
+                feature: FeatureFlag.CrossSigning,
+            })),
+            new FeatureViewModel(this.childOptions({
+                name: this.i18n`Open the same session in multiple tabs`,
+                description: this.i18n`Allows having the same session open in multiple browser tabs or windows. This feature is currently not functional and is intended only for usage by Hydrogen developers. Do not enable.`,
+                feature: FeatureFlag.SameSessionInMultipleTabs,
             })),
         ];
     }

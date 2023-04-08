@@ -35,7 +35,6 @@ export async function main(platform) {
         // const request = recorder.request;
         // window.getBrawlFetchLog = () => recorder.log();
         await platform.init();
-        const features = await FeatureSet.load(platform.settingsStorage);
         const navigation = createNavigation();
         platform.setNavigation(navigation);
         const urlRouter = createRouter({navigation, history: platform.history});
@@ -46,7 +45,7 @@ export async function main(platform) {
             // so we call it that in the view models
             urlRouter: urlRouter,
             navigation,
-            features
+            features: platform.features,
         });
         await vm.load();
         platform.createAndMountRootView(vm);

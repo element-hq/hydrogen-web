@@ -51,6 +51,7 @@ function timelineIsEmpty(roomResponse) {
  * await room.afterSyncCompleted(changes);
  * ```
  */
+// TODO: When this file gets converted to Typescript, Sync must implement ISync.
 export class Sync {
     constructor({hsApi, session, storage, logger}) {
         this._hsApi = hsApi;
@@ -71,7 +72,7 @@ export class Sync {
         return this._error;
     }
 
-    start() {
+    async start() {
         // not already syncing?
         if (this._status.get() !== SyncStatus.Stopped) {
             return;
@@ -83,7 +84,7 @@ export class Sync {
         } else {
             this._status.set(SyncStatus.InitialSync);
         }
-        this._syncLoop(syncToken);
+        void this._syncLoop(syncToken);
     }
 
     async _syncLoop(syncToken) {

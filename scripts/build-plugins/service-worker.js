@@ -72,6 +72,21 @@ const NON_PRECACHED_JS = [
 
 function isPreCached(asset) {
     const {name, fileName} = asset;
+
+    // For sync-worker.js and sync-worker.js.map, `name` isn't set, so we must rely on `fileName` only.
+    if (!name && fileName.includes("sync-worker")) {
+        // Don't precache sourcemap.
+        if (fileName.endsWith(".js.map")) {
+            return false;
+        }
+
+        // sync-worker.js is only used when the SameSessionInMultipleTabs feature is enabled, so we don't precache it.
+        // TODO: Once the SameSessionInMultipleTabs feature is removed, we should probably precache sync-worker.js by returning true below.
+        if (fileName.endsWith(".js")) {
+            return false;
+        }
+    }
+
     return  name.endsWith(".svg") ||
             name.endsWith(".png") ||
             name.endsWith(".css") ||

@@ -291,14 +291,18 @@ export class Client {
             await log.wrap("createIdentity", log => this._session.createIdentity(log));
         }
 
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
+        this._sync = this._platform.syncFactory.make({
+            scheduler: this._requestScheduler,
+            storage: this._storage,
+            session: this._session,
+        });
         // notify sync and session when back online
         this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
             if (state === ConnectionStatus.Online) {
                 this._platform.logger.runDetached("reconnect", async log => {
                     // needs to happen before sync and session or it would abort all requests
                     this._requestScheduler.start();
-                    this._sync.start();
+                    await this._sync.start();
                     this._sessionStartedByReconnector = true;
                     const d = dehydratedDevice;
                     dehydratedDevice = undefined;
@@ -329,7 +333,7 @@ export class Client {
     }
 
     async _waitForFirstSync() {
-        this._sync.start();
+        await this._sync.start();
         this._status.set(LoadStatus.FirstSync);
         // only transition into Ready once the first sync has succeeded
         this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
