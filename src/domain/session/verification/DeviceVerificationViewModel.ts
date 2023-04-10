@@ -55,7 +55,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             if (typeof requestOrUserId === "string") {
                 this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
             }
-            return this.sas.start();
+            return crossSigning.signDevice(this.sas, log);
         });
     }
     

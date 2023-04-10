@@ -78,6 +78,11 @@ enum MSKVerification {
     Valid
 }
 
+export interface IVerificationMethod {
+    verify(): Promise<boolean>;
+    otherDeviceId: string;
+}
+
 export class CrossSigning {
     private readonly storage: Storage;
     private readonly secretStorage: SecretStorage;
@@ -202,7 +207,6 @@ export class CrossSigning {
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
             clock: this.platform.clock,
-            crossSigning: this,
         });
         return this.sasVerificationInProgress;
     }
@@ -249,13 +253,19 @@ export class CrossSigning {
     }
 
     /** @return the signed device key for the given device id */
-    async signDevice(deviceId: string, log: ILogItem): Promise<DeviceKey | undefined> {
+    async signDevice(verification: IVerificationMethod, log: ILogItem): Promise<DeviceKey | undefined> {
         return log.wrap("CrossSigning.signDevice", async log => {
-            log.set("id", deviceId);
             if (!this._isMasterKeyTrusted) {
                 log.set("mskNotTrusted", true);
                 return;
             }
+            const shouldSign = await verification.verify();
+            log.set("shouldSign", shouldSign);
+            if (!shouldSign) {
+                return; 
+            }
+            const deviceId = verification.otherDeviceId;
+            log.set("id", deviceId);
             const keyToSign = await this.deviceTracker.deviceForId(this.ownUserId, deviceId, this.hsApi, log);
             if (!keyToSign) {
                 return undefined;
@@ -266,7 +276,7 @@ export class CrossSigning {
     }
 
     /** @return the signed MSK for the given user id */
-    async signUser(userId: string, log: ILogItem): Promise<CrossSigningKey | undefined> {
+    async signUser(userId: string, verification: IVerificationMethod, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return log.wrap("CrossSigning.signUser", async log => {
             log.set("id", userId);
             if (!this._isMasterKeyTrusted) {
@@ -276,6 +286,11 @@ export class CrossSigning {
             // can't sign own user
             if (userId === this.ownUserId) {
                 return;
+            }
+            const shouldSign = await verification.verify();
+            log.set("shouldSign", shouldSign);
+            if (!shouldSign) {
+                return; 
             }
             const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
             if (!keyToSign) {
