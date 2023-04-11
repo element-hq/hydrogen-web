@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BaseMediaView} from "./BaseMediaView.js";
-import {domEventAsPromise} from "../../../../dom/utils.js";
+import {domEventAsPromise} from "../../../../dom/utils";
 
 export class VideoView extends BaseMediaView {
     renderMedia(t) {
