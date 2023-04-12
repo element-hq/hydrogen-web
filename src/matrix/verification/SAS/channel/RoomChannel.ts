@@ -27,6 +27,7 @@ import {getRelatedEventId, createReference} from "../../../room/timeline/relatio
 
 type Options = {
     otherUserId: string;
+    ourUserId: string;
     log: ILogItem;
     ourUserDeviceId: string;
     room: Room;
@@ -40,6 +41,7 @@ export class RoomChannel extends Disposables implements IChannel {
     private readonly waitMap: Map<string, Deferred<any>> = new Map();
     private readonly log: ILogItem;
     private readonly room: Room;
+    private readonly ourUserId: string;
     public otherUserDeviceId: string;
     public startMessage: any;
     /**
@@ -56,6 +58,7 @@ export class RoomChannel extends Disposables implements IChannel {
     constructor(options: Options, startingMessage?: any) {
         super();
         this.otherUserId = options.otherUserId;
+        this.ourUserId = options.ourUserId;
         this.ourDeviceId = options.ourUserDeviceId;
         this.log = options.log;
         this.room = options.room;
@@ -143,16 +146,17 @@ export class RoomChannel extends Disposables implements IChannel {
 
     private async handleRoomMessage(entry: EventEntry) {
         const type = entry.content.msgtype ?? entry.eventType;
-        if (!type.startsWith("m.key.verification")) {
+        if (!type.startsWith("m.key.verification") || entry.sender === this.ourUserId) {
             return; 
         }
+        console.log("entry", entry);
         await this.log.wrap("RoomChannel.handleRoomMessage", async (log) => {
             console.log("entry", entry);
             log.log({ l: "entry", entry });
             if (!this.id) {
                 throw new Error("Couldn't find event-id of request message!");
             }
-            if (getRelatedEventId(entry) !== this.id) {
+            if (getRelatedEventId(entry.event) !== this.id) {
                 /**
                  * When a device receives an unknown transaction_id, it should send an appropriate
                  * m.key.verification.cancel message to the other device indicating as such.
@@ -220,9 +224,11 @@ export class RoomChannel extends Disposables implements IChannel {
         return deferred.promise;
     }
 
-    setStartMessage(event) {
-        this.startMessage = event;
-        this._initiatedByUs = event.content.from_device === this.ourDeviceId;
+    setStartMessage(entry) {
+        const clone = entry.clone();
+        clone.content["m.relates_to"] = clone.event.content["m.relates_to"];
+        this.startMessage = clone;
+        this._initiatedByUs = entry.content.from_device === this.ourDeviceId;
     }
 
     get initiatedByUs(): boolean {

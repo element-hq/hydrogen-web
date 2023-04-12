@@ -19,6 +19,7 @@ import {BaseObservableValue, RetainedObservableValue} from "../../observable/val
 import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/ToDeviceChannel";
+import {RoomChannel} from "./SAS/channel/RoomChannel";
 import {VerificationEventType} from "./SAS/channel/types";
 import {ObservableMap} from "../../observable/map";
 import {SASRequest} from "./SAS/SASRequest";
@@ -31,6 +32,8 @@ import type {Account} from "../e2ee/Account";
 import type {ILogItem} from "../../logging/types";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
+import type {Room} from "../room/Room.js";
+import type {IChannel} from "./SAS/channel/IChannel";
 import type * as OlmNamespace from "@matrix-org/olm";
 
 type Olm = typeof OlmNamespace;
@@ -177,23 +180,38 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(requestOrUserId: SASRequest, log: ILogItem): SASVerification | undefined;
-    startVerification(requestOrUserId: string, log: ILogItem): SASVerification | undefined;
-    startVerification(requestOrUserId: string | SASRequest, log: ILogItem): SASVerification | undefined {
+    startVerification(requestOrUserId: SASRequest, logOrRoom: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string, logOrRoom: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: SASRequest, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string | SASRequest, logOrRoom: Room | ILogItem, _log?: ILogItem): SASVerification | undefined {
         if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
             return;
         }
         const otherUserId = requestOrUserId instanceof SASRequest ? requestOrUserId.sender : requestOrUserId;
         const startingMessage = requestOrUserId instanceof SASRequest ? requestOrUserId.startingMessage : undefined;
-        const channel = new ToDeviceChannel({
-            deviceTracker: this.deviceTracker,
-            hsApi: this.hsApi,
-            otherUserId,
-            clock: this.platform.clock,
-            deviceMessageHandler: this.deviceMessageHandler,
-            ourUserDeviceId: this.deviceId,
-            log
-        }, startingMessage);
+        const log = _log ?? logOrRoom;
+        let channel: IChannel;
+        if (otherUserId === this.ownUserId) {
+            channel = new ToDeviceChannel({
+                deviceTracker: this.deviceTracker,
+                hsApi: this.hsApi,
+                otherUserId,
+                clock: this.platform.clock,
+                deviceMessageHandler: this.deviceMessageHandler,
+                ourUserDeviceId: this.deviceId,
+                log
+            }, startingMessage);
+        }
+        else {
+            channel = new RoomChannel({
+                room: logOrRoom,
+                otherUserId,
+                ourUserId: this.ownUserId,
+                ourUserDeviceId: this.deviceId,
+                log,
+            }, startingMessage);
+        }
 
         this.sasVerificationInProgress = new SASVerification({
             olm: this.olm,

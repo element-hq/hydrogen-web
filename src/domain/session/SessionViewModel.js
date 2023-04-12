@@ -55,6 +55,24 @@ export class SessionViewModel extends ViewModel {
         })));
         this._setupNavigation();
         this._setupForcedLogoutOnAccessTokenInvalidation();
+        this.addTestCode__REMOVE();
+    }
+
+    async addTestCode__REMOVE() {
+        window.run = (userId) => {
+            return this.logger.run("testRun", async (log) => {
+                const crossSigning = this._client.session.crossSigning.get();
+                const room = this.currentRoomViewModel.room;
+                const sas = crossSigning.startVerification(userId, room, log);
+                sas.on("EmojiGenerated", async (stage) => {
+                    console.log("emoji", stage.emoji);
+                    await new Promise(r => setTimeout(r, 2000));
+                    await stage.setEmojiMatch(true);
+                });
+                console.log("sas", sas);
+                await sas.verify();
+            });
+        }
     }
 
     _setupNavigation() {
