@@ -183,6 +183,16 @@ export class Member {
         return this.callDeviceMembership.device_id;
     }
 
+    /** @internal, to emulate deviceKey properties when calling formatToDeviceMessagesPayload */   
+    get user_id(): string {
+        return this.userId;
+    }
+    
+    /** @internal, to emulate deviceKey properties when calling formatToDeviceMessagesPayload */
+    get device_id(): string {
+        return this.deviceId;
+    }
+
     /** session id of the member */
     get sessionId(): string {
         return this.callDeviceMembership.session_id;
