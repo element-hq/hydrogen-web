@@ -15,6 +15,7 @@ yarn create vite
 cd <your-project-name>
 yarn
 yarn add hydrogen-view-sdk
+yarn add https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.14.tgz
 ```
 
 You should see a `index.html` in the project root directory, containing an element with `id="app"`. Add the attribute `class="hydrogen"` to this element, as the CSS we'll include from the SDK assumes for now that the app is rendered in an element with this classname.
