@@ -18,6 +18,7 @@ import {ViewModel} from "../../ViewModel";
 import {RoomDetailsViewModel} from "./RoomDetailsViewModel.js";
 import {MemberListViewModel} from "./MemberListViewModel.js";
 import {MemberDetailsViewModel} from "./MemberDetailsViewModel.js";
+import {DeviceVerificationViewModel} from "../verification/DeviceVerificationViewModel";
 
 export class RightPanelViewModel extends ViewModel {
     constructor(options) {
@@ -68,6 +69,12 @@ export class RightPanelViewModel extends ViewModel {
                 this.urlRouter.pushUrl(url);
             }
         );
+        this._hookUpdaterToSegment("verification", DeviceVerificationViewModel, () => {
+            return {
+                session: this._session,
+                room: this._room,
+            }
+        });
     }
 
     _hookUpdaterToSegment(segment, viewmodel, argCreator, failCallback) {

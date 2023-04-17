@@ -35,6 +35,7 @@ export type SegmentType = {
     "members": true;
     "member": string;
     "device-verification": string | boolean;
+    "verification": boolean;
     "join-room": true;
 };
 
@@ -60,7 +61,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
         case "room":
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
-            return type === "details"|| type === "members" || type === "member";
+            return type === "details"|| type === "members" || type === "member" || type === "verification";
         case "logout":
             return type === "forced";
         default:
@@ -176,7 +177,7 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
             if (sessionSegment) {
                 segments.push(sessionSegment);
             }
-        } else if (type === "details" || type === "members") {
+        } else if (type === "details" || type === "members" || type === "verification") {
             pushRightPanelSegment(segments, type);
         } else if (type === "member") {
             let userId = iterator.next().value;
