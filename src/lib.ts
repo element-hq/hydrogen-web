@@ -22,6 +22,7 @@ export {Platform} from "./platform/web/Platform.js";
 export {BlobHandle} from "./platform/web/dom/BlobHandle";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {RoomStatus} from "./matrix/room/common";
+export {FeatureSet, FeatureFlag} from "./features";
 // export everything needed to observe state events on all rooms using session.observeRoomState
 export type {RoomStateHandler} from "./matrix/room/state/types";
 export type {MemberChange} from "./matrix/room/members/RoomMember";
