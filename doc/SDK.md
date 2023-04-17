@@ -32,7 +32,8 @@ import {
     createRouter,
     RoomViewModel,
     TimelineView,
-    viewClassForTile
+    viewClassForTile,
+    FeatureSet
 } from "hydrogen-view-sdk";
 import downloadSandboxPath from 'hydrogen-view-sdk/download-sandbox.html?url';
 import workerPath from 'hydrogen-view-sdk/main.js?url';
@@ -81,12 +82,14 @@ async function main() {
         const {session} = client;
         // looks for room corresponding to #element-dev:matrix.org, assuming it is already joined
         const room = session.rooms.get("!bEWtlqtDwCLFIAKAcv:matrix.org");
+        const features = await FeatureSet.load(platform.settingsStorage);
         const vm = new RoomViewModel({
             room,
             ownUserId: session.userId,
             platform,
             urlRouter: urlRouter,
             navigation,
+            features,
         });
         await vm.load();
         const view = new TimelineView(vm.timelineViewModel, viewClassForTile);
