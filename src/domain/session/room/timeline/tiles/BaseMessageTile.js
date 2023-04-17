@@ -18,6 +18,7 @@ import {SimpleTile} from "./SimpleTile.js";
 import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
 
+
 export class BaseMessageTile extends SimpleTile {
     constructor(entry, options) {
         super(entry, options);
@@ -42,6 +43,10 @@ export class BaseMessageTile extends SimpleTile {
 
     get permaLink() {
         return `https://matrix.to/#/${encodeURIComponent(this._room.id)}/${encodeURIComponent(this._entry.id)}`;
+    }
+
+    copyPermalink() {
+        this.platform.copyPlaintext(this.permaLink);
     }
 
     get senderProfileLink() {
