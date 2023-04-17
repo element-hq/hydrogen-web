@@ -53,6 +53,8 @@ export class SASVerification extends EventEmitter<SASProgressEvents> implements 
     public finished: boolean = false;
     public readonly channel: IChannel;
     private timeout: Timeout;
+    public otherUserId: string;
+    private ourUserId: string;
    
     constructor(options: Options) {
         super();
@@ -60,6 +62,8 @@ export class SASVerification extends EventEmitter<SASProgressEvents> implements 
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         this.channel = channel;
+        this.otherUserId = options.otherUserId;
+        this.ourUserId = options.ourUserId;
         this.setupCancelAfterTimeout(clock);
         const stageOptions = {...options, olmSas, eventEmitter: this};
         if (channel.getReceivedMessage(VerificationEventType.Start)) {
@@ -117,6 +121,10 @@ export class SASVerification extends EventEmitter<SASProgressEvents> implements 
 
     get otherDeviceId(): string {
         return this.channel.otherUserDeviceId;
+    }
+
+    get isCrossSigningAnotherUser(): boolean {
+        return !(this.otherUserId === this.ourUserId);
     }
 }
 

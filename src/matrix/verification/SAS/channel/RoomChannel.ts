@@ -225,9 +225,14 @@ export class RoomChannel extends Disposables implements IChannel {
     }
 
     setStartMessage(entry) {
-        const clone = entry.clone();
-        clone.content["m.relates_to"] = clone.event.content["m.relates_to"];
-        this.startMessage = clone;
+        if (!entry.content["m.relates_to"]) {
+            const clone = entry.clone();
+            clone.content["m.relates_to"] = clone.event.content["m.relates_to"];
+            this.startMessage = clone;
+        }
+        else {
+            this.startMessage = entry;
+        }
         this._initiatedByUs = entry.content.from_device === this.ourDeviceId;
     }
 

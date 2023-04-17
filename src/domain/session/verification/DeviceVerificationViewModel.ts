@@ -25,10 +25,12 @@ import {VerificationCompleteViewModel} from "./stages/VerificationCompleteViewMo
 import type {Session} from "../../../matrix/Session.js";
 import type {SASVerification} from "../../../matrix/verification/SAS/SASVerification";
 import type {SASRequest} from "../../../matrix/verification/SAS/SASRequest";
+import type {Room} from "../../../matrix/room/Room.js";
 
 type Options = BaseOptions & {
     session: Session;
-    request: SASRequest;
+    request?: SASRequest;
+    room?: Room;
 };
 
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
@@ -37,26 +39,50 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     constructor(options: Readonly<Options>) {
         super(options);
-        const sasRequest = options.request;
-        if (options.request) {
-            this.start(sasRequest);
-        }
-        else {
-            // We are about to send the request
-            this.start(this.getOption("session").userId);
-        }
+        this.init(options);
     }
 
-    private async start(requestOrUserId: SASRequest | string) {
+    private async init(options: Options): Promise<void> {
+        const room = options.room;
+        let requestOrUserId: SASRequest | string;
+        if (options.request) {
+            requestOrUserId = options.request;
+        }
+        else if (room) {
+            requestOrUserId = await this.findMemberFromRoom(room);
+        }
+        else {
+            requestOrUserId = this.getOption("session").userId;
+        }
+        await this.start(requestOrUserId, room);
+    }
+
+    private async start(requestOrUserId: SASRequest | string, room?: Room) {
         await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
             const crossSigning = this.getOption("session").crossSigning.get();
-            this.sas = crossSigning.startVerification(requestOrUserId, log);
+            this.sas = crossSigning.startVerification(requestOrUserId, room, log);
             this.addEventListeners();
             if (typeof requestOrUserId === "string") {
                 this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
             }
-            return crossSigning.signDevice(this.sas, log);
+            return this.sas.verify();
+            // return crossSigning.signDevice(this.sas, log);
         });
+    }
+
+    private async findMemberFromRoom(room: Room) {
+        const memberlist = await room.loadMemberList();
+        const members = memberlist.members;
+        if (members.size !== 2) {
+            throw new Error("There are more than two members in this room!");
+        }
+        const ourUserId = this.getOption("session").userId; 
+        for (const userId of members.keys()) {
+            if (userId !== ourUserId) {
+                memberlist.release();
+                return userId;
+            }
+        }
     }
     
     private addEventListeners() {
@@ -79,7 +105,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         }));
         this.track(this.sas.disposableOn("VerificationCompleted", (deviceId) => {
             this.updateCurrentStageViewModel(
-                new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
+                new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId!, sas: this.sas }))
             );
         }));
     }
@@ -99,5 +125,9 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     get currentStageViewModel() {
         return this._currentStageViewModel;
+    }
+
+    get type(): string { 
+        return "verification";
     }
 }

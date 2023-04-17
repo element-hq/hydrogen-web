@@ -28,9 +28,7 @@ export class VerificationCompleteView extends TemplateView<VerificationCompleteV
                 ),
             ]),
             t.p(
-                { className: "VerificationCompleteView__description" },
-                vm.i18n`You successfully verified device ${vm.otherDeviceId}`
-            ),
+                { className: "VerificationCompleteView__description" }, vm.verificationSuccessfulMessage),
             t.div({ className: "VerificationCompleteView__actions" }, [
                 t.button({
                     className: {

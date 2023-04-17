@@ -1399,6 +1399,10 @@ button.RoomDetailsView_row::after {
     justify-content: center;
 }
 
+.VerifyEmojisView {
+    width: 100%;
+}
+
 .VerificationCompleteView,
 .DeviceVerificationView,
 .SelectMethodView {
@@ -1406,6 +1410,13 @@ button.RoomDetailsView_row::after {
     align-items: center;
     justify-content: center;
     flex-direction: column;
+    width: 100%;
+}
+
+.SelectMethodView > div,
+.SelectMethodView__heading,
+.SelectMethodView__title {
+    width: inherit;
 }
 
 .VerificationCompleteView__heading,
@@ -1425,6 +1436,15 @@ button.RoomDetailsView_row::after {
 .VerifyEmojisView>*,
 .WaitingForOtherUserView>* {
     padding: 16px;
+}
+
+.VerificationCancelledView__title,
+.VerificationCompleteView__title,
+.VerifyEmojisView__title,
+.SelectMethodView__title,
+.WaitingForOtherUserView__title {
+    font-size: 1.5em;
+    text-align: center;
 }
 
 .VerificationCompleteView__title,
@@ -1454,6 +1474,7 @@ button.RoomDetailsView_row::after {
     display: flex;
     justify-content: center;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .EmojiContainer__emoji {
@@ -1481,4 +1502,11 @@ button.RoomDetailsView_row::after {
     background-size: contain;
     width: 128px;
     height: 128px;
+}
+
+.SelectMethodView__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: inline-block;
 }
