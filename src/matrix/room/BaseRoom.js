@@ -59,6 +59,7 @@ export class BaseRoom extends EventEmitter {
         this._powerLevels = null;
         this._powerLevelLoading = null;
         this._observedMembers = null;
+        this._timelineLoadPromise = null;
     }
 
     async observeStateType(type, txn = undefined) {
@@ -545,6 +546,11 @@ export class BaseRoom extends EventEmitter {
         return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
             log.set("id", this.id);
             if (this._timeline) {
+                /**
+                 * It's possible that timeline was created but timeline.load() has not yet finished.
+                 * We only return the timeline when it has completely loaded!
+                 */
+                await this._timelineLoadPromise;
                 log.log({ l: "Returning existing timeline" });
                 return this._timeline;
             }
@@ -568,7 +574,8 @@ export class BaseRoom extends EventEmitter {
                 if (this._roomEncryption) {
                     this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
                 }
-                await this._timeline.load(this._user, this.membership, log);
+                this._timelineLoadPromise = this._timeline.load(this._user, this.membership, log);
+                await this._timelineLoadPromise;
             } catch (err) {
                 // this also clears this._timeline in the closeCallback
                 this._timeline.dispose();
