@@ -19,15 +19,16 @@ import {getPrevContentFromStateEvent, isRedacted} from "../../common";
 import {getRelationFromContent, getRelatedEventId} from "../relations.js";
 
 export class EventEntry extends BaseEventEntry {
-    constructor(eventEntry, fragmentIdComparer) {
+    constructor(eventEntry, fragmentIdComparer, isLoadedFromStorage = false) {
         super(fragmentIdComparer);
         this._eventEntry = eventEntry;
         this._decryptionError = null;
         this._decryptionResult = null;
+        this._isLoadedFromStorage = isLoadedFromStorage;
     }
 
     clone() {
-        const clone = new EventEntry(this._eventEntry, this._fragmentIdComparer);
+        const clone = new EventEntry(this._eventEntry, this._fragmentIdComparer, this._isLoadedFromStorage);
         clone.updateFrom(this);
         return clone;
     }
@@ -87,6 +88,10 @@ export class EventEntry extends BaseEventEntry {
 
     get timestamp() {
         return this._eventEntry.event.origin_server_ts;
+    }
+
+    get isLoadedFromStorage() {
+        return this._isLoadedFromStorage;
     }
 
     get id() {
