@@ -77,14 +77,17 @@ export class RightPanelViewModel extends ViewModel {
         });
     }
 
-    _hookUpdaterToSegment(segment, viewmodel, argCreator, failCallback) {
+    async _hookUpdaterToSegment(segment, ViewModel, argCreator, failCallback) {
         const observable = this.navigation.observe(segment);
-        const updater = this._setupUpdater(segment, viewmodel, argCreator, failCallback);
+        const updater = await this._setupUpdater(segment, ViewModel, argCreator, failCallback);
         this.track(observable.subscribe(updater));
     }
 
-    _setupUpdater(segment, viewmodel, argCreator, failCallback) {
+    async _setupUpdater(segment, ViewModel, argCreator, failCallback) {
         const updater = async (skipDispose = false) => {
+            if (this._activeViewModel instanceof ViewModel) {
+                return;
+            }
             if (!skipDispose) {
                 this._activeViewModel = this.disposeTracked(this._activeViewModel);
             }
@@ -95,11 +98,11 @@ export class RightPanelViewModel extends ViewModel {
                     failCallback();
                     return;
                 }
-                this._activeViewModel = this.track(new viewmodel(this.childOptions(args)));
+                this._activeViewModel = this.track(new ViewModel(this.childOptions(args)));
             }
             this.emitChange("activeViewModel");
         };
-        updater(true);
+        await updater(true);
         return updater;
     }
 

@@ -56,7 +56,7 @@ class ButtonsView extends TemplateView {
                 className: {
                     "back": true,
                     "button-utility": true,
-                    "hide": !vm.activeViewModel.shouldShowBackButton
+                    "hide": (vm) => !vm.activeViewModel.shouldShowBackButton
                 }, onClick: () => vm.showPreviousPanel()}),
             t.button({className: "close button-utility", onClick: () => vm.closePanel()})
         ]);

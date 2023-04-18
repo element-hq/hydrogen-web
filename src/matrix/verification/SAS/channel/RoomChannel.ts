@@ -183,6 +183,7 @@ export class RoomChannel extends Disposables implements IChannel {
 
     async cancelVerification(cancellationType: CancelReason) {
         await this.log.wrap("RoomChannel.cancelVerification", async log => {
+            log.log({ reason: messageFromErrorType[cancellationType] });
             if (this.isCancelled) {
                 throw new VerificationCancelledError();
             }
