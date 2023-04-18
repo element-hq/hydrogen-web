@@ -145,13 +145,14 @@ export class RoomChannel extends Disposables implements IChannel {
     }
 
     private async handleRoomMessage(entry: EventEntry) {
-        const type = entry.content.msgtype ?? entry.eventType;
-        if (!type.startsWith("m.key.verification") || entry.sender === this.ourUserId) {
+        const type = entry.content?.msgtype ?? entry.eventType;
+        if (!type?.startsWith("m.key.verification") ||
+            entry.sender === this.ourUserId ||
+            entry.isLoadedFromStorage) {
             return; 
         }
         console.log("entry", entry);
         await this.log.wrap("RoomChannel.handleRoomMessage", async (log) => {
-            console.log("entry", entry);
             log.log({ l: "entry", entry });
             if (!this.id) {
                 throw new Error("Couldn't find event-id of request message!");
