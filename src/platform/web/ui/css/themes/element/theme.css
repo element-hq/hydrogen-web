@@ -1510,3 +1510,31 @@ button.RoomDetailsView_row::after {
     width: 100%;
     display: inline-block;
 }
+
+.VerificationTileView,
+.VerificationTileView__actions {
+    display: flex;
+    gap: 16px;
+}
+
+.VerificationTileView__description {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.4rem;
+    color: var(--text-color);
+}
+
+.VerificationTileView {
+    background: var(--background-color-primary--darker-5);
+    padding: 12px;
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+
+.VerificationTileContainer {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}

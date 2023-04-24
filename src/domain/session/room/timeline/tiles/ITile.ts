@@ -18,6 +18,7 @@ export enum TileShape {
     Video = "video",
     DateHeader = "date-header",
     Call = "call",
+    Verification = "verification",
 }
 
 // TODO: should we imply inheriting from view model here?

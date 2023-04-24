@@ -132,6 +132,10 @@ export class Session {
         return this._callHandler;
     }
 
+    get features() {
+        return this._features;
+    }
+
     _setupCallHandler() {
         this._callHandler = new CallHandler({
             clock: this._platform.clock,

@@ -70,9 +70,12 @@ export class RightPanelViewModel extends ViewModel {
             }
         );
         this._hookUpdaterToSegment("verification", DeviceVerificationViewModel, () => {
+            const id = this.navigation.path.get("verification").value; 
+            const request = this._session?.crossSigning.get()?.receivedSASVerifications.get(id);
             return {
                 session: this._session,
                 room: this._room,
+                request,
             }
         });
     }

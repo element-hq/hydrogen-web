@@ -27,6 +27,7 @@ import {EncryptedEventTile} from "./EncryptedEventTile.js";
 import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 import {CallTile} from "./CallTile.js";
+import {VerificationTile} from "./VerificationTile.js";
 
 import type {ITile, TileShape} from "./ITile";
 import type {Room} from "../../../../../matrix/room/Room";
@@ -73,6 +74,15 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         return FileTile;
                     case "m.location":
                         return LocationTile;
+                    case "m.key.verification.request":
+                        const isCrossSigningEnabled = !options.session.features.crossSigning;
+                        const userId = options.session.userId;
+                        if (isCrossSigningEnabled||
+                            entry.isLoadedFromStorage ||
+                            entry.sender === userId) {
+                            return undefined;
+                        }
+                        return VerificationTile as unknown as TileConstructor;
                     default:
                         // unknown msgtype not rendered
                         return undefined;

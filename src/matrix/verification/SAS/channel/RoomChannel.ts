@@ -73,8 +73,9 @@ export class RoomChannel extends Disposables implements IChannel {
             /**
              * startingMessage may be the ready message or the start message.
              */
-            this.id = startingMessage.content.transaction_id;
-            this.receivedMessages.set(startingMessage.type, startingMessage);
+            this.id = startingMessage.id;
+            const type = startingMessage.content?.msgtype ?? startingMessage.eventType;
+            this.receivedMessages.set(type, startingMessage);
             this.otherUserDeviceId = startingMessage.content.from_device;
         }
     }
