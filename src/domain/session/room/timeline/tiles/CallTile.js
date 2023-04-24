@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SimpleTile} from "./SimpleTile.js";
+import {SimpleTile} from "./SimpleTile";
 import {ViewModel} from "../../../../ViewModel";
 import {LocalMedia} from "../../../../../matrix/calls/LocalMedia";
 import {CallType} from "../../../../../matrix/calls/callEventTypes";
