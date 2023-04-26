@@ -433,7 +433,7 @@ only loads when the top comes into view*/
 .DateHeader time {
     margin: 0 auto;
     padding: 12px 4px;
-    width: 250px;
+    max-width: 350px;
     padding: 12px;
     display: block;
     color: var(--light-text-color);
