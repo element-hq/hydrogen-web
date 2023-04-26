@@ -99,7 +99,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         this.track(this.sas.disposableOn("VerificationCancelled", (cancellation) => {
             this.updateCurrentStageViewModel(
                 new VerificationCancelledViewModel(
-                    this.childOptions({ cancellation: cancellation! })
+                    this.childOptions({ cancellation: cancellation!, sas: this.sas })
                 )
             );
         }));

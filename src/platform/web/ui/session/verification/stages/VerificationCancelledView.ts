@@ -41,7 +41,7 @@ export class VerificationCancelledView extends TemplateView<VerificationCancelle
                             "button-action": true,
                             "primary": true,
                         },
-                        onclick: () => vm.gotoSettings(),
+                        onclick: () => vm.dismiss(),
                     }, "Got it")
                 ]),
             ]

@@ -17,15 +17,31 @@ limitations under the License.
 import {SASRequest} from "../../../../../matrix/verification/SAS/SASRequest";
 import {TileShape} from "./ITile";
 import {SimpleTile} from "./SimpleTile";
+import type {SASVerification} from "../../../../../matrix/verification/SAS/SASVerification";
 import type {EventEntry} from "../../../../../matrix/room/timeline/entries/EventEntry.js";
 import type {Options} from "./SimpleTile";
 
+export const enum Status {
+    Ready,
+    InProgress,
+    Completed,
+    Cancelled,
+};
+
 export class VerificationTile extends SimpleTile {
     private request: SASRequest;
+    public isCancelledByUs: boolean;
+    public status: Status = Status.Ready;
 
     constructor(entry: EventEntry, options: Options) {
         super(entry, options);
         this.request = new SASRequest(this.lowerEntry);
+        const crossSigning = this.getOption("session").crossSigning.get();
+        this.track(
+            crossSigning.sasVerificationObservable.subscribe(sas => {
+                this.subscribeToSASVerification(sas);
+            })
+        )
     }
 
     get shape(): TileShape {
@@ -40,6 +56,8 @@ export class VerificationTile extends SimpleTile {
         const crossSigning = this.getOption("session").crossSigning.get()
         crossSigning.receivedSASVerifications.set(this.eventId, this.request);
         this.openVerificationPanel(this.eventId);
+        this.status = Status.InProgress;
+        this.emitChange("status");
     }
 
     async reject(): Promise<void> {
@@ -47,6 +65,9 @@ export class VerificationTile extends SimpleTile {
         await this.logAndCatch("VerificationTile.reject", async (log) => {
             const crossSigning = this.getOption("session").crossSigning.get();
             await this.request.reject(crossSigning, this._room, log);
+            this.isCancelledByUs = true;
+            this.status = Status.Cancelled;
+            this.emitChange("status");
         });
     }
 
@@ -55,5 +76,28 @@ export class VerificationTile extends SimpleTile {
         path = path.with(this.navigation.segment("right-panel", true))!;
         path = path.with(this.navigation.segment("verification", eventId))!;
         this.navigation.applyPath(path);
+    }
+
+    private subscribeToSASVerification(sas: SASVerification | undefined) {
+        if (!sas || sas.channel.id !== this.eventId) {
+            return;
+        }
+        /**
+         * Subscribe to SAS events so that we can update the UI when each stage is
+         * completed.
+         */
+        this.track(
+            sas.disposableOn("VerificationCancelled", (cancellation) => {
+                this.isCancelledByUs = cancellation?.cancelledByUs!;
+                this.status = Status.Cancelled;
+                this.emitChange("status");
+             })
+        );
+        this.track(
+            sas.disposableOn("VerificationCompleted", () => {
+                this.status = Status.Completed;
+                this.emitChange("status");
+             })
+        );
     }
 }

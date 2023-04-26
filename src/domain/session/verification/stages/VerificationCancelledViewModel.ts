@@ -14,26 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel, Options as BaseOptions} from "../../../ViewModel";
-import {SegmentType} from "../../../navigation/index";
+import {Options as BaseOptions} from "../../../ViewModel";
 import type {CancelReason} from "../../../../matrix/verification/SAS/channel/types";
+import type {Session} from "../../../../matrix/Session.js";
 import type {IChannel} from "../../../../matrix/verification/SAS/channel/IChannel";
+import {DismissibleVerificationViewModel} from "./DismissibleVerificationViewModel";
+import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
 
 type Options = BaseOptions & {
     cancellation: IChannel["cancellation"];
+    session: Session;
+    sas: SASVerification; 
 };
 
-export class VerificationCancelledViewModel extends ViewModel<SegmentType, Options> {
+export class VerificationCancelledViewModel extends DismissibleVerificationViewModel<Options> {
     get cancelCode(): CancelReason {
         return this.options.cancellation!.code;
     }
 
     get isCancelledByUs(): boolean {
         return this.options.cancellation!.cancelledByUs;
-    }
-
-    gotoSettings() {
-        this.navigation.push("settings", true);
     }
 
     get kind(): string {

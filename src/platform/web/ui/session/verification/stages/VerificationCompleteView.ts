@@ -35,7 +35,7 @@ export class VerificationCompleteView extends TemplateView<VerificationCompleteV
                         "button-action": true,
                         "primary": true,
                     },
-                    onclick: () => vm.gotoSettings(),
+                    onclick: () => vm.dismiss(),
                 }, "Got it")
             ]),
         ]);
