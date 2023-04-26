@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ObservableValue} from "../../observable/ObservableValue";
+import {ObservableValue} from "../../observable/value";
 import type {ExponentialRetryDelay} from "./ExponentialRetryDelay";
 import type {TimeMeasure} from "../../platform/web/dom/Clock.js";
 import type {OnlineStatus} from "../../platform/web/dom/OnlineStatus.js";

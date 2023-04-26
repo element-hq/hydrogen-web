@@ -29,17 +29,17 @@ function objHasFns(obj: ClassNames<unknown>): obj is { [className: string]: bool
     return false;
 }
 
-export type RenderFn<T> = (t: Builder<T>, vm: T) => ViewNode;
-type TextBinding<T> = (T) => string | number | boolean | undefined | null;
-type Child<T> = NonBoundChild | TextBinding<T>;
-type Children<T> = Child<T> | Child<T>[];
+export type RenderFn<T extends IObservableValue> = (t: Builder<T>, vm: T) => ViewNode;
+type TextBinding<T extends IObservableValue> = (T) => string | number | boolean | undefined | null;
+type Child<T extends IObservableValue> = NonBoundChild | TextBinding<T>;
+type Children<T extends IObservableValue> = Child<T> | Child<T>[];
 type EventHandler = ((event: Event) => void);
 type AttributeStaticValue = string | boolean;
-type AttributeBinding<T> = (value: T) => AttributeStaticValue;
-export type AttrValue<T> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
-export type Attributes<T> = { [attribute: string]: AttrValue<T> };
-type ElementFn<T> = (attributes?: Attributes<T> | Children<T>, children?: Children<T>) => Element;
-export type Builder<T> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
+type AttributeBinding<T extends IObservableValue> = (value: T) => AttributeStaticValue;
+export type AttrValue<T extends IObservableValue> = AttributeStaticValue | AttributeBinding<T> | EventHandler | ClassNames<T>;
+export type Attributes<T extends IObservableValue> = { [attribute: string]: AttrValue<T> };
+type ElementFn<T extends IObservableValue> = (attributes?: Attributes<T> | Children<T>, children?: Children<T>) => Element;
+export type Builder<T extends IObservableValue> = TemplateBuilder<T> & { [tagName in typeof TAG_NAMES[string][number]]: ElementFn<T> };
 
 /**
     Bindable template. Renders once, and allows bindings for given nodes. If you need
@@ -181,7 +181,7 @@ export class TemplateBuilder<T extends IObservableValue> {
         this._templateView._addEventListener(node, name, fn, useCapture);
     }
 
-    _addAttributeBinding(node: Element, name: string, fn: (value: T) => boolean | string): void {
+    _addAttributeBinding(node: Element, name: string, fn: AttributeBinding<T>): void {
         let prevValue: string | boolean | undefined = undefined;
         const binding = () => {
             const newValue = fn(this._value);
@@ -337,7 +337,7 @@ export class TemplateBuilder<T extends IObservableValue> {
     // Special case of mapView for a TemplateView.
     // Always creates a TemplateView, if this is optional depending
     // on mappedValue, use `if` or `mapView`
-    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode): ViewNode {
+    map<R>(mapFn: (value: T) => R, renderFn: (mapped: R, t: Builder<T>, vm: T) => ViewNode | undefined): ViewNode {
         return this.mapView(mapFn, mappedValue => {
             return new InlineTemplateView(this._value, (t, vm) => {
                 const rootNode = renderFn(mappedValue, t, vm);
@@ -371,17 +371,17 @@ export class TemplateBuilder<T extends IObservableValue> {
     event handlers, ...
     You should not call the TemplateBuilder (e.g. `t.xxx()`) at all from the side effect,
     instead use tags from html.ts to help you construct any DOM you need. */
-    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined) => void) {
+    mapSideEffect<R>(mapFn: (value: T) => R, sideEffect: (newV: R, oldV: R | undefined, value: T) => void) {
         let prevValue = mapFn(this._value);
         const binding = () => {
             const newValue = mapFn(this._value);
             if (prevValue !== newValue) {
-                sideEffect(newValue, prevValue);
+                sideEffect(newValue, prevValue, this._value);
                 prevValue = newValue;
             }
         };
         this._addBinding(binding);
-        sideEffect(prevValue, undefined);
+        sideEffect(prevValue, undefined, this._value);
     }
 }
 
@@ -394,7 +394,7 @@ for (const [ns, tags] of Object.entries(TAG_NAMES)) {
     }
 }
 
-export class InlineTemplateView<T> extends TemplateView<T> {
+export class InlineTemplateView<T extends IObservableValue> extends TemplateView<T> {
     private _render: RenderFn<T>;
 
     constructor(value: T, render: RenderFn<T>) {

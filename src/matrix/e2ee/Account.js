@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import anotherjson from "another-json";
-import {SESSION_E2EE_KEY_PREFIX, OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./common.js";
+import {SESSION_E2EE_KEY_PREFIX, OLM_ALGORITHM, MEGOLM_ALGORITHM} from "./common";
 
 // use common prefix so it's easy to clear properties that are not e2ee related during session clear
 const ACCOUNT_SESSION_KEY = SESSION_E2EE_KEY_PREFIX + "olmAccount";
@@ -246,7 +246,7 @@ export class Account {
         }
     }
 
-    _deviceKeysPayload(identityKeys) {
+    _keysAsSignableObject(identityKeys) {
         const obj = {
             user_id: this._userId,
             device_id: this._deviceId,
@@ -256,6 +256,16 @@ export class Account {
         for (const [algorithm, pubKey] of Object.entries(identityKeys)) {
             obj.keys[`${algorithm}:${this._deviceId}`] = pubKey;
         }
+        return obj;
+    }
+
+    getUnsignedDeviceKey() {
+        const identityKeys = JSON.parse(this._account.identity_keys());
+        return this._keysAsSignableObject(identityKeys);
+    }
+
+    _deviceKeysPayload(identityKeys) {
+        const obj = this._keysAsSignableObject(identityKeys);
         this.signObject(obj);
         return obj;
     }

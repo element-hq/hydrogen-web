@@ -28,6 +28,8 @@ export function isRedacted(event) {
     return !!event?.unsigned?.redacted_because;
 }
 
+export type UnsentStateEvent = { type: string; state_key: string; content: Record<string, any> };
+
 export enum RoomStatus {
     None = 1 << 0,
     BeingCreated = 1 << 1,
@@ -53,6 +55,7 @@ type RoomResponse = {
 }
 
 /** iterates over any state events in a sync room response, in the order that they should be applied (from older to younger events) */
+
 export function iterateResponseStateEvents(roomResponse: RoomResponse, callback: (StateEvent) => Promise<void> | void): Promise<void> | void {
     let promises: Promise<void>[] | undefined = undefined;
     const callCallback = stateEvent => {

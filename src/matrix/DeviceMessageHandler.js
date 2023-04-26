@@ -14,14 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {OLM_ALGORITHM} from "./e2ee/common.js";
+import {OLM_ALGORITHM} from "./e2ee/common";
 import {countBy, groupBy} from "../utils/groupBy";
+import {LRUCache} from "../utils/LRUCache";
+import {EventEmitter} from "../utils/EventEmitter";
 
-export class DeviceMessageHandler {
-    constructor({storage}) {
+export class DeviceMessageHandler extends EventEmitter{
+    constructor({storage, callHandler}) {
+        super();
         this._storage = storage;
         this._olmDecryption = null;
         this._megolmDecryption = null;
+        this._callHandler = callHandler;
+        this._senderDeviceCache = new LRUCache(10, di => di.curve25519Key);
     }
 
     enableEncryption({olmDecryption, megolmDecryption}) {
@@ -36,6 +41,7 @@ export class DeviceMessageHandler {
     async prepareSync(toDeviceEvents, lock, txn, log) {
         log.set("messageTypes", countBy(toDeviceEvents, e => e.type));
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
+        this._emitUnencryptedEvents(toDeviceEvents);
         if (!this._olmDecryption) {
             log.log("can't decrypt, encryption not enabled", log.level.Warn);
             return;
@@ -49,6 +55,11 @@ export class DeviceMessageHandler {
                 log.child("decrypt_error").catch(err);
             }
             const newRoomKeys = this._megolmDecryption.roomKeysFromDeviceMessages(olmDecryptChanges.results, log);
+            
+            // TODO: somehow include rooms that received a call to_device message in the sync state?
+            // or have updates flow through event emitter?
+            // well, we don't really need to update the room other then when a call starts or stops
+            // any changes within the call will be emitted on the call object?
             return new SyncPreparation(olmDecryptChanges, newRoomKeys);
         }
     }
@@ -58,7 +69,55 @@ export class DeviceMessageHandler {
         // write olm changes
         prep.olmDecryptChanges.write(txn);
         const didWriteValues = await Promise.all(prep.newRoomKeys.map(key => this._megolmDecryption.writeRoomKey(key, txn)));
-        return didWriteValues.some(didWrite => !!didWrite);
+        const hasNewRoomKeys = didWriteValues.some(didWrite => !!didWrite);
+        return {
+            hasNewRoomKeys,
+            decryptionResults: prep.olmDecryptChanges.results
+        };
+    }
+
+    async afterSyncCompleted(decryptionResults, deviceTracker, hsApi, log) {
+        this._emitEncryptedEvents(decryptionResults);
+        if (this._callHandler) {
+            // if we don't have a device, we need to fetch the device keys the message claims
+            // and check the keys, and we should only do network requests during
+            // sync processing in the afterSyncCompleted step.
+            const callMessages = decryptionResults.filter(dr => this._callHandler.handlesDeviceMessageEventType(dr.event?.type));
+            if (callMessages.length) {
+                await log.wrap("process call signalling messages", async log => {
+                    for (const dr of callMessages) {
+                        // serialize device loading, so subsequent messages for the same device take advantage of the cache
+                        const device = await deviceTracker.deviceForId(dr.event.sender, dr.event.content.device_id, hsApi, log);
+                        dr.setDevice(device);
+                        if (dr.isVerified) {
+                            this._callHandler.handleDeviceMessage(dr.event, dr.userId, dr.deviceId, log);
+                        } else {
+                            log.log({
+                                l: "could not verify olm fingerprint key matches, ignoring",
+                                ed25519Key: dr.device.ed25519Key,
+                                claimedEd25519Key: dr.claimedEd25519Key,
+                                deviceId: device.deviceId,
+                                userId: device.userId,
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    _emitUnencryptedEvents(toDeviceEvents) {
+        const unencryptedEvents = toDeviceEvents.filter(e => e.type !== "m.room.encrypted");
+        for (const event of unencryptedEvents) {
+            this.emit("message", { unencrypted: event });
+        }
+    }
+
+    _emitEncryptedEvents(decryptionResults) {
+        // We don't emit for now as we're not verifying the identity of the sender
+        // for (const result of decryptionResults) {
+        //     this.emit("message", { encrypted: result });
+        // }
     }
 }
 

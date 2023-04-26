@@ -144,7 +144,7 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
 
     openRoomActionUrl(roomId: string): string {
         // not a segment to navigation knowns about, so append it manually
-        const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${roomId}`;
+        const urlPath = `${this._stringifyPath(this._navigation.path.until("session"))}/open-room/${encodeURIComponent(roomId)}`;
         return this._history.pathAsUrl(urlPath);
     }
 

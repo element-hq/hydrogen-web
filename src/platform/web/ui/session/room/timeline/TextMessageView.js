@@ -20,7 +20,7 @@ import {ReplyPreviewError, ReplyPreviewView} from "./ReplyPreviewView.js";
 
 export class TextMessageView extends BaseMessageView {
     renderMessageBody(t, vm) {
-        const time = t.time({className: {hidden: !vm.date}}, vm.date + " " + vm.time);
+        const time = t.time({className: {hidden: !vm.time}}, vm.time);
         const container = t.div({
             className: {
                 "Timeline_messageBody": true,

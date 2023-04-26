@@ -243,7 +243,7 @@ export function tests() {
         get keySource(): KeySource { return KeySource.DeviceMessage; }
 
         loadInto(session: Olm.InboundGroupSession) {
-            const mockSession = session as MockInboundSession;
+            const mockSession = session as unknown as MockInboundSession;
             mockSession.sessionId = this.sessionId;
             mockSession.firstKnownIndex = this._firstKnownIndex;
         }

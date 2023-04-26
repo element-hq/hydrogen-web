@@ -181,7 +181,7 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
-    reply(msgtype, body) {
+    createReplyContent(msgtype, body) {
         return createReplyContent(this, msgtype, body);
     }
 

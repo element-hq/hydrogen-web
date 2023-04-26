@@ -29,13 +29,15 @@ import {RoomMemberStore} from "./stores/RoomMemberStore";
 import {TimelineFragmentStore} from "./stores/TimelineFragmentStore";
 import {PendingEventStore} from "./stores/PendingEventStore";
 import {UserIdentityStore} from "./stores/UserIdentityStore";
-import {DeviceIdentityStore} from "./stores/DeviceIdentityStore";
+import {DeviceKeyStore} from "./stores/DeviceKeyStore";
+import {CrossSigningKeyStore} from "./stores/CrossSigningKeyStore";
 import {OlmSessionStore} from "./stores/OlmSessionStore";
 import {InboundGroupSessionStore} from "./stores/InboundGroupSessionStore";
 import {OutboundGroupSessionStore} from "./stores/OutboundGroupSessionStore";
 import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore";
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
+import {CallStore} from "./stores/CallStore";
 import type {ILogger, ILogItem} from "../../../logging/types";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
@@ -140,8 +142,12 @@ export class Transaction {
         return this._store(StoreNames.userIdentities, idbStore => new UserIdentityStore(idbStore));
     }
 
-    get deviceIdentities(): DeviceIdentityStore {
-        return this._store(StoreNames.deviceIdentities, idbStore => new DeviceIdentityStore(idbStore));
+    get deviceKeys(): DeviceKeyStore {
+        return this._store(StoreNames.deviceKeys, idbStore => new DeviceKeyStore(idbStore));
+    }
+    
+    get crossSigningKeys(): CrossSigningKeyStore {
+        return this._store(StoreNames.crossSigningKeys, idbStore => new CrossSigningKeyStore(idbStore));
     }
     
     get olmSessions(): OlmSessionStore {
@@ -166,6 +172,10 @@ export class Transaction {
 
     get accountData(): AccountDataStore {
         return this._store(StoreNames.accountData, idbStore => new AccountDataStore(idbStore));
+    }
+    
+    get calls(): CallStore {
+        return this._store(StoreNames.calls, idbStore => new CallStore(idbStore));
     }
 
     async complete(log?: ILogItem): Promise<void> {

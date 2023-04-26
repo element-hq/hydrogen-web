@@ -2,7 +2,7 @@ import {IDOMStorage} from "./types";
 import {ITransaction} from "./QueryTarget";
 import {iterateCursor, NOT_DONE, reqAsPromise} from "./utils";
 import {RoomMember, EVENT_TYPE as MEMBER_EVENT_TYPE} from "../../room/members/RoomMember.js";
-import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common.js";
+import {SESSION_E2EE_KEY_PREFIX} from "../../e2ee/common";
 import {SummaryData} from "../../room/RoomSummary";
 import {RoomMemberStore, MemberData} from "./stores/RoomMemberStore";
 import {InboundGroupSessionStore, InboundGroupSessionEntry, BackupStatus, KeySource} from "./stores/InboundGroupSessionStore";
@@ -13,6 +13,8 @@ import {encodeScopeTypeKey} from "./stores/OperationStore";
 import {MAX_UNICODE} from "./stores/common";
 import {ILogItem} from "../../../logging/types";
 
+import type {UserIdentity} from "../../e2ee/DeviceTracker";
+import {KeysTrackingStatus} from "../../e2ee/DeviceTracker";
 
 export type MigrationFunc = (db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) => Promise<void> | void;
 // FUNCTIONS SHOULD ONLY BE APPENDED!!
@@ -33,7 +35,9 @@ export const schema: MigrationFunc[] = [
     backupAndRestoreE2EEAccountToLocalStorage,
     clearAllStores,
     addInboundSessionBackupIndex,
-    migrateBackupStatus
+    migrateBackupStatus,
+    createCallStore,
+    applyCrossSigningChanges
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -268,4 +272,30 @@ async function migrateBackupStatus(db: IDBDatabase, txn: IDBTransaction, localSt
     });
     log.set("countWithoutSession", countWithoutSession);
     log.set("countWithSession", countWithSession);
+}
+
+//v17 create calls store
+function createCallStore(db: IDBDatabase) : void {
+    db.createObjectStore("calls", {keyPath: "key"});
+}
+
+//v18 add crossSigningKeys store, rename deviceIdentities to deviceKeys and empties userIdentities 
+async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction, localStorage: IDOMStorage, log: ILogItem) : Promise<void> {
+    db.createObjectStore("crossSigningKeys", {keyPath: "key"});
+    db.deleteObjectStore("deviceIdentities");
+    const deviceKeys = db.createObjectStore("deviceKeys", {keyPath: "key"});
+    deviceKeys.createIndex("byCurve25519Key", "curve25519Key", {unique: true});
+    // mark all userIdentities as outdated as cross-signing keys won't be stored
+    // also rename the deviceTrackingStatus field to keysTrackingStatus
+    const userIdentities = txn.objectStore("userIdentities");
+    let counter = 0;
+    await iterateCursor<UserIdentity>(userIdentities.openCursor(), (value, key, cursor) => {
+        delete value["deviceTrackingStatus"];
+        delete value["crossSigningKeys"];
+        value.keysTrackingStatus = KeysTrackingStatus.Outdated;
+        cursor.update(value);
+        counter += 1;
+        return NOT_DONE;
+    });
+    log.set("marked_outdated", counter);
 }

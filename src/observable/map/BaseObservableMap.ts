@@ -18,6 +18,7 @@ import {BaseObservable} from "../BaseObservable";
 import {JoinedMap} from "./index";
 import {MappedMap} from "./index";
 import {FilteredMap} from "./index";
+import {BaseObservableValue, MapSizeObservableValue} from "../value/index";
 import {SortedMapList} from "../list/SortedMapList.js";
 
 
@@ -66,19 +67,23 @@ export abstract class BaseObservableMap<K, V> extends BaseObservable<IMapObserve
 
     join<E extends BaseObservableMap<K, V>>(...otherMaps: Array<E>): JoinedMap<K, V> {
         return new JoinedMap([this as BaseObservableMap<K, V>].concat(otherMaps));
-     }
+    }
 
-     mapValues<MappedV>(mapper: Mapper<V, MappedV>, updater?: Updater<V, MappedV>): MappedMap<K, V, MappedV> {
-         return new MappedMap(this, mapper, updater);
-     }
+    mapValues<MappedV>(mapper: Mapper<V, MappedV>, updater?: Updater<V, MappedV>): MappedMap<K, V, MappedV> {
+        return new MappedMap(this, mapper, updater);
+    }
 
-     sortValues(comparator: Comparator<V>): SortedMapList {
-         return new SortedMapList(this, comparator);
-     }
+    sortValues(comparator: Comparator<V>): SortedMapList {
+        return new SortedMapList(this, comparator);
+    }
 
-     filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
-         return new FilteredMap(this, filter);
-     }
+    filterValues(filter: Filter<K, V>): FilteredMap<K, V> {
+        return new FilteredMap(this, filter);
+    }
+
+    observeSize(): BaseObservableValue<number> {
+        return new MapSizeObservableValue(this);
+    }
 
     abstract [Symbol.iterator](): Iterator<[K, V]>;
     abstract get size(): number;

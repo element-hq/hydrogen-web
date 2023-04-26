@@ -57,6 +57,7 @@ export class BackupEncryption {
             encryption.set_recipient_key(pubKey);
         } catch(err) {
             decryption.free();
+            encryption.free();
             throw err;
         }
         return new BackupEncryption(encryption, decryption);

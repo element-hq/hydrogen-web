@@ -158,7 +158,7 @@ export class RootViewModel extends ViewModel {
     }
 
     _showSessionLoader(sessionId) {
-        const client = new Client(this.platform);
+        const client = new Client(this.platform, this.features);
         client.startWithExistingSession(sessionId);
         this._setSection(() => {
             this._sessionLoadViewModel = new SessionLoadViewModel(this.childOptions({

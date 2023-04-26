@@ -16,6 +16,7 @@ limitations under the License.
 
 import {TemplateView} from "../../../general/TemplateView";
 import {spinner} from "../../../common.js";
+import {ErrorView} from "../../../general/ErrorView";
 
 export class GapView extends TemplateView {
     // ignore other argument
@@ -23,15 +24,20 @@ export class GapView extends TemplateView {
         super(vm);
     }
 
-    render(t) {
+    render(t, vm) {
         const className = {
             GapView: true,
             isLoading: vm => vm.isLoading,
             isAtTop: vm => vm.isAtTop,
         };
         return t.li({ className }, [
-            t.if(vm => vm.showSpinner, (t) => spinner(t)),
-            t.span(vm => vm.currentAction)
+            t.div({class: "GapView_container"}, [
+                t.if(vm => vm.showSpinner, (t) => spinner(t)),
+                t.span(vm => vm.status),
+            ]),
+            t.if(vm => !!vm.errorViewModel, t => {
+                return t.view(new ErrorView(vm.errorViewModel, {inline: true}));
+            })
         ]);
     }
 

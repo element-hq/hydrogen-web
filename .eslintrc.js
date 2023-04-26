@@ -17,6 +17,7 @@ module.exports = {
     "globals": {
         "DEFINE_VERSION": "readonly",
         "DEFINE_GLOBAL_HASH": "readonly",
+        "DEFINE_PROJECT_DIR": "readonly",
         // only available in sw.js
         "DEFINE_UNHASHED_PRECACHED_ASSETS": "readonly",
         "DEFINE_HASHED_PRECACHED_ASSETS": "readonly",

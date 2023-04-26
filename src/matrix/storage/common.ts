@@ -26,13 +26,15 @@ export enum StoreNames {
     timelineFragments = "timelineFragments",
     pendingEvents = "pendingEvents",
     userIdentities = "userIdentities",
-    deviceIdentities = "deviceIdentities",
+    deviceKeys = "deviceKeys",
     olmSessions = "olmSessions",
     inboundGroupSessions = "inboundGroupSessions",
     outboundGroupSessions = "outboundGroupSessions",
     groupSessionDecryptions = "groupSessionDecryptions",
     operations = "operations",
     accountData = "accountData",
+    calls = "calls",
+    crossSigningKeys = "crossSigningKeys"
 }
 
 export const STORE_NAMES: Readonly<StoreNames[]> = Object.values(StoreNames);

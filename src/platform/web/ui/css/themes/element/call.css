@@ -1,0 +1,238 @@
+/*
+Copyright 2022 The Matrix.org Foundation C.I.C.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.CallView {
+    height: 40vh;
+    display: grid;
+}
+
+.CallView > * {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.CallView_error {
+    align-self: start;
+    justify-self: center;
+    margin: 16px;
+    /** Chrome (v100) requires this to make the buttons clickable
+     * where they overlap with the video element, even though
+     * the buttons come later in the DOM. */
+    z-index: 1;
+}
+
+.CallView_members {
+    display: grid;
+    gap: 12px;
+    background: var(--background-color-secondary--darker-5);
+    padding: 12px;
+    margin: 0;
+    min-height: 0;
+    list-style: none;
+    align-self: stretch;
+}
+
+.StreamView {
+    display: grid;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: black;
+}
+
+.StreamView > * {
+    grid-column: 1;
+    grid-row: 1;
+} 
+
+.StreamView video {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: contain;
+}
+
+.StreamView_avatar {
+    align-self: center;
+    justify-self: center;
+}
+
+.StreamView_error {
+    align-self: start;
+    justify-self: center;
+    /** Chrome (v100) requires this to make the buttons clickable
+     * where they overlap with the video element, even though
+     * the buttons come later in the DOM. */
+    z-index: 1;
+}
+
+.StreamView_muteStatus {
+    align-self: start;
+    justify-self: end;
+    width: 24px;
+    height: 24px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 14px;
+    display: block;
+    background-color: var(--text-color);
+    border-radius: 4px;
+    margin: 4px;
+}
+
+.StreamView_muteStatus.microphoneMuted {
+    background-image: url("./icons/mic-muted.svg?primary=text-color--lighter-80");
+}
+
+.StreamView_muteStatus.cameraMuted {
+    background-image: url("./icons/cam-muted.svg?primary=text-color--lighter-80");
+}
+
+.CallView_buttons {
+    align-self: end;
+    justify-self: center;
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    /** Chrome (v100) requires this to make the buttons clickable
+     * where they overlap with the video element, even though
+     * the buttons come later in the DOM. */
+    z-index: 1;
+}
+
+.CallView_buttons button {
+    border-radius: 100%;
+    width: 48px;
+    height: 48px;
+    border: none;
+    background-color: var(--accent-color);
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.CallView_buttons button:disabled {
+    background-color: var(--accent-color--lighter-10);
+}
+
+.CallView_buttons .CallView_hangup {
+    background-color: var(--error-color);
+    background-image: url("./icons/hangup.svg?primary=background-color-primary");
+}
+
+.CallView_buttons .CallView_hangup:disabled {
+    background-color: var(--error-color--lighter-10);
+}
+
+.CallView_buttons .CallView_mutedMicrophone {
+    background-color: var(--background-color-primary);
+    background-image: url("./icons/mic-muted.svg?primary=text-color");
+}
+
+.CallView_buttons .CallView_unmutedMicrophone {
+    background-image: url("./icons/mic-unmuted.svg?primary=background-color-primary");
+}
+
+.CallView_buttons .CallView_mutedCamera {
+    background-color: var(--background-color-primary);
+    background-image: url("./icons/cam-muted.svg?primary=text-color");
+}
+
+.CallView_buttons .CallView_unmutedCamera {
+    background-image: url("./icons/cam-unmuted.svg?primary=background-color-primary");
+}
+
+.CallView_members.size1 {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+}
+
+.CallView_members.size2 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(2, 1fr);
+}
+
+/* square */
+.CallView_members.square.size3,
+.CallView_members.square.size4 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+.CallView_members.square.size5,
+.CallView_members.square.size6 {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+.CallView_members.square.size7,
+.CallView_members.square.size8,
+.CallView_members.square.size9 {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+}
+.CallView_members.square.size10 {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+}
+/** tall */
+.CallView_members.tall.size3 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 1fr);
+}
+.CallView_members.tall.size4 {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+}
+.CallView_members.tall.size5,
+.CallView_members.tall.size6 {
+    grid-template-rows: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+}
+.CallView_members.tall.size7,
+.CallView_members.tall.size8 {
+    grid-template-rows: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+}
+.CallView_members.tall.size9,
+.CallView_members.tall.size10 {
+    grid-template-rows: repeat(5, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+}
+/** wide */
+.CallView_members.wide.size2 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
+}
+.CallView_members.wide.size3 {
+    grid-template-rows: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+}
+.CallView_members.wide.size4 {
+    grid-template-rows: 1fr;
+    grid-template-columns: repeat(4, 1fr);
+}
+.CallView_members.wide.size5,
+.CallView_members.wide.size6 {
+    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+}
+.CallView_members.wide.size7,
+.CallView_members.wide.size8 {
+    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+}
+.CallView_members.wide.size9,
+.CallView_members.wide.size10 {
+    grid-template-rows: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+}

@@ -30,6 +30,8 @@ import {CreateRoomView} from "./CreateRoomView.js";
 import {RightPanelView} from "./rightpanel/RightPanelView.js";
 import {viewClassForTile} from "./room/common";
 import {JoinRoomView} from "./JoinRoomView";
+import {DeviceVerificationView} from "./verification/DeviceVerificationView";
+import {ToastCollectionView} from "./toast/ToastCollectionView";
 
 export class SessionView extends TemplateView {
     render(t, vm) {
@@ -40,6 +42,7 @@ export class SessionView extends TemplateView {
                 "right-shown": vm => !!vm.rightPanelViewModel
             },
         }, [
+            t.view(new ToastCollectionView(vm.toastCollectionViewModel)),
             t.view(new SessionStatusView(vm.sessionStatusViewModel)),
             t.view(new LeftPanelView(vm.leftPanelViewModel)),
             t.mapView(vm => vm.activeMiddleViewModel, () => {
@@ -51,6 +54,8 @@ export class SessionView extends TemplateView {
                     return new CreateRoomView(vm.createRoomViewModel);
                 } else if (vm.joinRoomViewModel) {
                     return new JoinRoomView(vm.joinRoomViewModel);
+                } else if (vm.verificationViewModel) {
+                    return new DeviceVerificationView(vm.verificationViewModel);
                 } else if (vm.currentRoomViewModel) {
                     if (vm.currentRoomViewModel.kind === "invite") {
                         return new InviteView(vm.currentRoomViewModel);

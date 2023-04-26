@@ -36,5 +36,8 @@ export function derive(value, operation, argument, isDark) {
             const newColorString = offColor(value).lighten(argumentAsNumber / 100).hex();
             return newColorString;
         }
+        case "alpha": {
+            return offColor(value).rgba(argumentAsNumber / 100);
+        }
     }
 }
