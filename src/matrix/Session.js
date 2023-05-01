@@ -78,6 +78,9 @@ export class Session {
         this._roomsBeingCreated = new ObservableMap();
         this._user = new User(sessionInfo.userId);
         this._roomStateHandler = new RoomStateHandlerSet();
+        if (features.calls) {
+            this._setupCallHandler();
+        }
         this._deviceMessageHandler = new DeviceMessageHandler({storage, callHandler: this._callHandler});
         this._olm = olm;
         this._olmUtil = null;
@@ -106,10 +109,6 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
-
-        if (features.calls) {
-            this._setupCallHandler();
-        }
     }
 
     get fingerprintKey() {
