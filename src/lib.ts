@@ -104,6 +104,7 @@ export {Disposables} from "./utils/Disposables";
 export {LocalMedia} from "./matrix/calls/LocalMedia";
 // these should eventually be moved to another library
 export {
+    ApplyMap,
     ObservableArray,
     SortedArray,
     MappedList,
