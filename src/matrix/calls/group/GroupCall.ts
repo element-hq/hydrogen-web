@@ -424,6 +424,11 @@ export class GroupCall extends EventEmitter<{change: never}> {
                                     member.dispose();
                                     this._members.remove(memberKey);
                                     log.set("removed", true);
+                                } else {
+                                    // We don't want to pollute the logs with all the expired members.
+                                    // This can be an issue for long lived calls that have had a large number
+                                    // of users join and leave at some point in time.
+                                    log.discard();
                                 }
                                 return;
                             }
