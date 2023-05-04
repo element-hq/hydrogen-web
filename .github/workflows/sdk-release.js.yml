@@ -16,6 +16,11 @@ jobs:
             - name: 🧮 Checkout code
               uses: actions/checkout@v3
 
+            - name: Install tools
+              uses: actions/setup-node@v2
+              with:
+                node-version: ${{ matrix.node-version }}
+
             - name: 🔧 Yarn cache
               uses: actions/setup-node@v3
               with:
