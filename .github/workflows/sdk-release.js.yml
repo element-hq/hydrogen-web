@@ -1,9 +1,8 @@
-# Must only be called from `release#published` triggers
 name: Publish to npm
 on:
     push:
         tags:
-            - sdk-v**
+            - "sdk-v**"
 jobs:
     npm:
         name: Publish to npm
