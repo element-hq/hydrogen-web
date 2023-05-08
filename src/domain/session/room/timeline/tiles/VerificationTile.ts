@@ -55,7 +55,7 @@ export class VerificationTile extends SimpleTile {
 
     get status(): Status {
         const contextEventEntry = this.lowerEntry.contextForEntries?.[0];
-        if (contextEventEntry.eventType === VerificationEventType.Cancel) {
+        if (contextEventEntry?.eventType === VerificationEventType.Cancel) {
             this._status = Status.Cancelled;
             this.isCancelledByUs = false;
 
