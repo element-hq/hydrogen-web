@@ -28,6 +28,7 @@ export {CallIntent} from "./matrix/calls/callEventTypes";
 export {OidcApi} from "./matrix/net/OidcApi";
 export {OIDCLoginMethod} from "./matrix/login/OIDCLoginMethod";
 export { makeTxnId } from './matrix/common'
+export { submitLogsToRageshakeServer } from './domain/rageshake'
 // export everything needed to observe state events on all rooms using session.observeRoomState
 export type {RoomStateHandler} from "./matrix/room/state/types";
 export type {MemberChange} from "./matrix/room/members/RoomMember";
