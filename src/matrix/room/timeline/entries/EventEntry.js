@@ -155,7 +155,7 @@ export class EventEntry extends BaseEventEntry {
 
     // similar to relatedEventID but only for replies
     get contextEventId() {
-        if (this.isReply) {
+        if (this.isReply || this.isReference) {
             return this.relatedEventId;
         }
         return null;
