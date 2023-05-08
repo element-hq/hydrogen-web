@@ -1417,6 +1417,7 @@ button.RoomDetailsView_row::after {
 .SelectMethodView__heading,
 .SelectMethodView__title {
     width: inherit;
+    box-sizing: border-box;
 }
 
 .VerificationCompleteView__heading,
