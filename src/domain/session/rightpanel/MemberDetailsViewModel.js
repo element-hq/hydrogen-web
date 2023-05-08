@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {RoomType} from "../../../matrix/room/common";
+import {RoomVisibility} from "../../../matrix/room/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {UserTrust} from "../../../matrix/verification/CrossSigning";
 
@@ -140,7 +140,7 @@ export class MemberDetailsViewModel extends ViewModel {
         let roomId = room?.id;
         if (!roomId) {
             const roomBeingCreated = await this._session.createRoom({
-                type: RoomType.DirectMessage,
+                type: RoomVisibility.DirectMessage,
                 invites: [this.userId]
             });
             roomId = roomBeingCreated.id;

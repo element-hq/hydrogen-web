@@ -117,6 +117,8 @@ export class Member {
     constructor(
         public member: RoomMember,
         private callDeviceMembership: CallDeviceMembership,
+        private _deviceIndex: number,
+        private _eventTimestamp: number,
         private options: Options,
         updateMemberLog: ILogItem
     ) {
@@ -202,6 +204,14 @@ export class Member {
         return this.connection?.peerCall?.dataChannel;
     }
 
+    get deviceIndex(): number {
+        return this._deviceIndex;
+    }
+
+    get eventTimestamp(): number {
+        return this._eventTimestamp;
+    }
+
     /** @internal */
     connect(localMedia: LocalMedia, localMuteSettings: MuteSettings, turnServer: BaseObservableValue<RTCIceServer>, memberLogItem: ILogItem): Promise<ILogItem | undefined> | undefined {
         return this.errorBoundary.try(async () => {
@@ -271,9 +281,17 @@ export class Member {
     }
 
     /** @internal */
-    updateCallInfo(callDeviceMembership: CallDeviceMembership, causeItem: ILogItem) {
+    updateCallInfo(
+        callDeviceMembership: CallDeviceMembership,
+        deviceIndex: number,
+        eventTimestamp: number,
+        causeItem: ILogItem
+    ) {
         this.errorBoundary.try(() => {
             this.callDeviceMembership = callDeviceMembership;
+            this._deviceIndex = deviceIndex;
+            this._eventTimestamp = eventTimestamp;
+
             this._renewExpireTimeout(causeItem);
             if (this.connection) {
                 this.connection.logItem.refDetached(causeItem);
@@ -538,7 +556,7 @@ export function tests() {
                     }
                 }
             } as Options;
-            const member = new Member(roomMember, callDeviceMembership, options, logger.child("member"));
+            const member = new Member(roomMember, callDeviceMembership, 0, Date.now(), options, logger.child("member"));
             member.connect(new MockMedia() as LocalMedia, new MuteSettings(), turnServer, logger.child("connect"));
             // pretend we've already received 3 messages
             // @ts-ignore

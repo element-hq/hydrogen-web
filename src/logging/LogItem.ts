@@ -196,9 +196,6 @@ export class LogItem implements ILogItem {
      * @return {[type]}            [description]
      */
     run<T>(callback: LogCallback<T>): T {
-        if (this.end !== undefined) {
-            console.trace("log item is finished, additional logs will likely not be recorded");
-        }
         try {
             const result = callback(this);
             if (result instanceof Promise) {
@@ -250,9 +247,6 @@ export class LogItem implements ILogItem {
     }
 
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): LogItem {
-        if (this.end) {
-            console.trace(`log item ${this.values.l} finished, additional log ${JSON.stringify(labelOrValues)} will likely not be recorded`);
-        }
         if (!logLevel) {
             logLevel = this.logLevel || LogLevel.Info;
         }

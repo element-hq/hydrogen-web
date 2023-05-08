@@ -41,6 +41,7 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
+        this.track(this.navigation.observe("oidc").subscribe(() => this._applyNavigation()));
         this._applyNavigation(true);
     }
 
@@ -50,6 +51,7 @@ export class RootViewModel extends ViewModel {
         const isForcedLogout = this.navigation.path.get("forced")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
+        const oidcCallback = this.navigation.path.get("oidc")?.value;
         if (isLogin) {
             if (this.activeSection !== "login") {
                 this._showLogin();
@@ -85,7 +87,14 @@ export class RootViewModel extends ViewModel {
         } else if (loginToken) {
             this.urlRouter.normalizeUrl();
             if (this.activeSection !== "login") {
-                this._showLogin(loginToken);
+                this._showLogin({loginToken});
+            }
+        } else if (oidcCallback) {
+            this.urlRouter.normalizeUrl();
+            if (this.activeSection !== "login") {
+                this._showLogin({
+                    oidc: oidcCallback,
+                });
             }
         }
         else {
@@ -117,7 +126,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(loginToken) {
+    _showLogin({loginToken, oidc} = {}) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
@@ -133,7 +142,8 @@ export class RootViewModel extends ViewModel {
                     this._pendingClient = client;
                     this.navigation.push("session", client.sessionId);
                 },
-                loginToken
+                loginToken,
+                oidc,
             }));
         });
     }

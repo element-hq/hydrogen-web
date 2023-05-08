@@ -21,13 +21,19 @@ interface ISessionInfo {
     homeserver: string;
     homeServer: string; // deprecate this over time
     accessToken: string;
+    accessTokenExpiresAt?: number;
+    refreshToken?: string;
+    oidcIssuer?: string;
+    accountManagementUrl?: string;
     lastUsed: number;
+    idToken?: string;
 }
 
 // todo: this should probably be in platform/types?
 interface ISessionInfoStorage {
     getAll(): Promise<ISessionInfo[]>;
     updateLastUsed(id: string, timestamp: number): Promise<void>;
+    updateToken(id: string, accessToken: string, accessTokenExpiresAt: number, refreshToken: string): Promise<void>;
     get(id: string): Promise<ISessionInfo | undefined>;
     add(sessionInfo: ISessionInfo): Promise<void>;
     delete(sessionId: string): Promise<void>;
@@ -57,6 +63,19 @@ export class SessionInfoStorage implements ISessionInfoStorage {
             const session = sessions.find(session => session.id === id);
             if (session) {
                 session.lastUsed = timestamp;
+                localStorage.setItem(this._name, JSON.stringify(sessions));
+            }
+        }
+    }
+
+    async updateToken(id: string, accessToken: string, accessTokenExpiresAt: number, refreshToken: string): Promise<void> {
+        const sessions = await this.getAll();
+        if (sessions) {
+            const session = sessions.find(session => session.id === id);
+            if (session) {
+                session.accessToken = accessToken;
+                session.accessTokenExpiresAt = accessTokenExpiresAt;
+                session.refreshToken = refreshToken;
                 localStorage.setItem(this._name, JSON.stringify(sessions));
             }
         }

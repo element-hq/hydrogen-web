@@ -47,6 +47,7 @@ export class BaseRoom extends EventEmitter {
         this._fragmentIdComparer = new FragmentIdComparer([]);
         this._emitCollectionChange = emitCollectionChange;
         this._timeline = null;
+        this._openTimelinePromise = null;
         this._user = user;
         this._changedMembersDuringSync = null;
         this._memberList = null;
@@ -71,6 +72,11 @@ export class BaseRoom extends EventEmitter {
         const value = new ObservedStateKeyValue(type, stateKey);
         await this._addStateObserver(value, txn);
         return value;
+    }
+
+    async getStateEvent(type, key = '') {
+        const txn = await this._storage.readTxn(['roomState']);
+        return txn.roomState.get(this.id, type, key);
     }
 
     async _addStateObserver(stateObserver, txn) {
@@ -422,6 +428,10 @@ export class BaseRoom extends EventEmitter {
         return this._roomId;
     }
 
+    get type() {
+        return this._summary.data.type ?? undefined;
+    }
+
     get lastMessageTimestamp() {
         return this._summary.data.lastMessageTimestamp;
     }
@@ -457,6 +467,10 @@ export class BaseRoom extends EventEmitter {
 
     get membership() {
         return this._summary.data.membership;
+    }
+
+    get isDirectMessage() {
+        return this._summary.data.isDirectMessage;
     }
 
     get user() {
@@ -542,7 +556,8 @@ export class BaseRoom extends EventEmitter {
 
     /** @public */
     openTimeline(log = null) {
-        return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+        if (this._openTimelinePromise) return this._openTimelinePromise;
+        this._openTimelinePromise = this._platform.logger.wrapOrRun(log, "open timeline", async log => {
             log.set("id", this.id);
             if (this._timeline) {
                 throw new Error("not dealing with load race here for now");
@@ -554,6 +569,7 @@ export class BaseRoom extends EventEmitter {
                 pendingEvents: this._getPendingEvents(),
                 closeCallback: () => {
                     this._timeline = null;
+                    this._openTimelinePromise = null;
                     if (this._roomEncryption) {
                         this._roomEncryption.notifyTimelineClosed();
                     }
@@ -575,6 +591,7 @@ export class BaseRoom extends EventEmitter {
             }
             return this._timeline;
         });
+        return this._openTimelinePromise;
     }
 
     /* allow subclasses to provide an observable list with pending events when opening the timeline */

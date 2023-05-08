@@ -254,11 +254,12 @@ export class CallHandler implements RoomStateHandler {
         const userId = event.state_key;
         const roomMemberKey = getRoomMemberKey(roomId, userId)
         const calls = event.content["m.calls"] ?? [];
+        const eventTimestamp = event.origin_server_ts;
         for (const call of calls) {
             const callId = call["m.call_id"];
             const groupCall = this._calls.get(callId);
             // TODO: also check the member when receiving the m.call event
-            groupCall?.updateMembership(userId, member, call, log);
+            groupCall?.updateMembership(userId, member, call, eventTimestamp, log);
         };
         const newCallIdsMemberOf = new Set<string>(calls.map(call => call["m.call_id"]));
         let previousCallIdsMemberOf = this.roomMemberToCallIds.get(roomMemberKey);

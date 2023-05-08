@@ -1114,7 +1114,6 @@ export class PeerCall implements IDisposable {
         // we really don't want to trigger any code in Member after this
         this.options.emitUpdate = (_, __, log) => {
             log.log("emitting update from PeerCall after disposal", this.logItem.level.Error);
-            console.trace("emitting update from PeerCall after disposal");
         };
     }
 

@@ -111,6 +111,14 @@ export class Session {
         this.needsKeyBackup = new ObservableValue(false);
     }
 
+    get hsApi() {
+        return this._hsApi;
+    }
+
+    get sessionInfo() {
+        return this._sessionInfo;
+    }
+
     get fingerprintKey() {
         return this._e2eeAccount?.identityKeys.ed25519;
     }
@@ -1010,6 +1018,42 @@ export class Session {
 
     observeRoomState(roomStateHandler) {
         return this._roomStateHandler.subscribe(roomStateHandler);
+    }
+
+    async setAccountData(type, content) {
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.accountData]);
+
+        if (txn) {
+            txn.accountData.set({ type, content });
+            await txn.complete();
+        }
+
+        await this.hsApi.setAccountData(this.userId, type, content).response();
+    }
+
+    async getAccountData(type) {
+        const txn = await this._storage.readWriteTxn([this._storage.storeNames.accountData]);
+
+        const entry = await txn.accountData.get(type);
+
+        if (entry) {
+            await txn.complete();
+            return entry.content;
+        } else {
+            try {
+                const content = await this.hsApi.accountData(this.userId, type).response();
+
+                if (content) {
+                    txn.accountData.set({ type, content });
+                    await txn.complete();
+                }
+
+                return content;
+            } catch (error) {
+                txn.abort();
+                return undefined;
+            }
+        }
     }
 
     /**

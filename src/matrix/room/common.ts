@@ -39,10 +39,15 @@ export enum RoomStatus {
     Archived = 1 << 5,
 }
 
-export enum RoomType {
+export enum RoomVisibility {
     DirectMessage,
     Private,
-    Public
+    Public,
+}
+
+export enum RoomType {
+    World,
+    Profile,
 }
 
 type RoomResponse = {

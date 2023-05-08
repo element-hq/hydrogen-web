@@ -31,7 +31,7 @@ const DEHYDRATION_PREFIX = "/_matrix/client/unstable/org.matrix.msc2697.v2";
 
 type Options = {
     homeserver: string;
-    accessToken: string;
+    accessToken: BaseObservableValue<string>;
     request: RequestFunction;
     reconnector: Reconnector;
 };
@@ -42,11 +42,12 @@ type BaseRequestOptions = {
     uploadProgress?: (loadedBytes: number) => void;
     timeout?: number;
     prefix?: string;
+    accessTokenOverride?: string;
 };
 
 export class HomeServerApi {
     private readonly _homeserver: string;
-    private readonly _accessToken: string;
+    private readonly _accessToken: BaseObservableValue<string>;
     private readonly _requestFn: RequestFunction;
     private readonly _reconnector: Reconnector;
 
@@ -63,11 +64,19 @@ export class HomeServerApi {
         return this._homeserver + prefix + csPath;
     }
 
-    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions, accessToken?: string): IHomeServerRequest {
+    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions, accessTokenSource?: BaseObservableValue<string>): IHomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let encodedBody: EncodedBody["body"];
         const headers: Map<string, string | number> = new Map();
+
+        let accessToken: string | null = null;
+        if (options?.accessTokenOverride) {
+            accessToken = options.accessTokenOverride;
+        } else if (accessTokenSource) {
+            accessToken = accessTokenSource.get();
+        }
+
         if (accessToken) {
             headers.set("Authorization", `Bearer ${accessToken}`);
         }
@@ -145,6 +154,10 @@ export class HomeServerApi {
 
     send(roomId: string, eventType: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
+    }
+    
+    event(roomId: string, eventId: string , options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`, undefined, undefined, options);
     }
 
     redact(roomId: string, eventId: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
@@ -275,6 +288,12 @@ export class HomeServerApi {
         return this._post(`/join/${encodeURIComponent(roomIdOrAlias)}`, {}, {}, options);
     }
 
+    invite(roomId: string, userId: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/invite`, {}, {
+            user_id: userId
+        }, options);
+    }
+
     leave(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/leave`, {}, {}, options);
     }
@@ -283,8 +302,33 @@ export class HomeServerApi {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/forget`, {}, {}, options);
     }
 
+    kick(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/kick`, {}, {
+            user_id: userId,
+            reason: reason,
+        }, options);
+    }
+
+    ban(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/ban`, {}, {
+            user_id: userId,
+            reason: reason,
+        }, options);
+    }
+
+    unban(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/unban`, {}, {
+            user_id: userId,
+            reason: reason,
+        }, options);
+    }
+
     logout(options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/logout`, {}, {}, options);
+    }
+
+    whoami(options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(`/account/whoami`, undefined, undefined, options);
     }
 
     getDehydratedDevice(options: BaseRequestOptions = {}): IHomeServerRequest {
@@ -302,16 +346,58 @@ export class HomeServerApi {
         return this._post(`/dehydrated_device/claim`, {}, {device_id: deviceId}, options);
     }
 
+    searchProfile(searchTerm: string, limit?: number, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(`/user_directory/search`, {}, {
+            limit: limit ?? 10,
+            search_term: searchTerm,
+        }, options);
+    }
+
     profile(userId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._get(`/profile/${encodeURIComponent(userId)}`);
+    }
+
+    setProfileDisplayName(userId, displayName, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/profile/${encodeURIComponent(userId)}/displayname`, {}, { displayname: displayName }, options);
+    }
+
+    setProfileAvatarUrl(userId, avatarUrl, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(`/profile/${encodeURIComponent(userId)}/avatar_url`, {}, { avatar_url: avatarUrl }, options);
     }
 
     createRoom(payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/createRoom`, {}, payload, options);
     }
 
+    accountData(ownUserId: string, type: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(
+            `/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`,
+            undefined,
+            undefined,
+            options,
+        );
+    }
+    
     setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
+    }
+
+    roomAccountData(ownUserId: string, roomId: string, type: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get(
+            `/user/${encodeURIComponent(ownUserId)}/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
+            undefined,
+            undefined,
+            options
+        );
+    }
+
+    setRoomAccountData(ownUserId: string, roomId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._put(
+            `/user/${encodeURIComponent(ownUserId)}/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
+            {},
+            content,
+            options
+        );
     }
 
     getTurnServer(options?: BaseRequestOptions): IHomeServerRequest {
@@ -320,6 +406,7 @@ export class HomeServerApi {
 }
 
 import {Request as MockRequest} from "../../mocks/Request.js";
+import {BaseObservableValue} from "../../observable/ObservableValue";
 
 export function tests() {
     return {

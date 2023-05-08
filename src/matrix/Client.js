@@ -20,6 +20,8 @@ import {lookupHomeserver} from "./well-known.js";
 import {AbortableOperation} from "../utils/AbortableOperation";
 import {ObservableValue} from "../observable/value";
 import {HomeServerApi} from "./net/HomeServerApi";
+import {OidcApi} from "./net/OidcApi";
+import {TokenRefresher} from "./net/TokenRefresher";
 import {Reconnector, ConnectionStatus} from "./net/Reconnector";
 import {ExponentialRetryDelay} from "./net/ExponentialRetryDelay";
 import {MediaRepository} from "./net/MediaRepository";
@@ -54,7 +56,7 @@ export const LoginFailure = createEnum(
 );
 
 export class Client {
-    constructor(platform, features = new FeatureSet(0)) {
+    constructor(platform, features = new FeatureSet(0), options = {}) {
         this._platform = platform;
         this._sessionStartedByReconnector = false;
         this._status = new ObservableValue(LoadStatus.NotLoading);
@@ -69,6 +71,7 @@ export class Client {
         this._olmPromise = platform.loadOlm();
         this._workerPromise = platform.loadOlmWorker();
         this._accountSetup = undefined;
+        this._deviceName = options?.deviceName || "Hydrogen";
         this._features = features;
     }
 
@@ -125,11 +128,32 @@ export class Client {
         return result;
     }
 
-    queryLogin(homeserver) {
+    queryLogin(initialHomeserver) {
         return new AbortableOperation(async setAbortable => {
-            homeserver = await lookupHomeserver(homeserver, (url, options) => {
+            const { homeserver, issuer, account } = await lookupHomeserver(initialHomeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
+            if (issuer) {
+                try {
+                    const oidcApi = new OidcApi({
+                        issuer,
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                        crypto: this._platform.crypto,
+                        staticClients: this._platform.config["staticOidcClients"],
+                    });
+                    await oidcApi.validate();
+
+                    const guestAvailable = await oidcApi.isGuestAvailable();
+
+                    return {
+                        homeserver,
+                        oidc: { issuer, account, guestAvailable },
+                    };
+                } catch (e) {
+                    console.log(e);
+                }
+            }
             const hsApi = new HomeServerApi({homeserver, request: this._platform.request});
             const response = await setAbortable(hsApi.getLoginFlows()).response();
             return this._parseLoginOptions(response, homeserver);
@@ -168,17 +192,37 @@ export class Client {
         this._resetStatus();
         await this._platform.logger.run("login", async log => {
             this._status.set(LoadStatus.Login);
+            const clock = this._platform.clock;
             let sessionInfo;
             try {
                 const request = this._platform.request;
                 const hsApi = new HomeServerApi({homeserver: loginMethod.homeserver, request});
-                const loginData = await loginMethod.login(hsApi, "Hydrogen", log);
+                const loginData = await loginMethod.login(hsApi, this._deviceName, log);
+                const sessionId = this.createNewSessionId();
                 sessionInfo = {
                     deviceId: loginData.device_id,
                     userId: loginData.user_id,
                     homeserver: loginMethod.homeserver,
                     accessToken: loginData.access_token,
                 };
+
+                if (loginData.refresh_token) {
+                    sessionInfo.refreshToken = loginData.refresh_token;
+                }
+
+                if (loginData.expires_in) {
+                    sessionInfo.expiresIn = loginData.expires_in;
+                }
+
+                if (loginData.id_token) {
+                    sessionInfo.idToken = loginData.id_token;
+                }
+
+                if (loginData.oidc_issuer) {
+                    sessionInfo.oidcIssuer = loginData.oidc_issuer;
+                    sessionInfo.oidcClientId = loginData.oidc_client_id;
+                    sessionInfo.accountManagementUrl = loginData.oidc_account_management_url;
+                }
             } catch (err) {
                 this._error = err;
                 if (err.name === "HomeServerError") {
@@ -201,7 +245,7 @@ export class Client {
         });
     }
 
-    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+    async _createSessionAfterAuth({deviceId, userId, accessToken, refreshToken, homeserver, expiresIn, idToken, oidcIssuer, oidcClientId, accountManagementUrl}, inspectAccountSetup, log) {
         const id = this.createNewSessionId();
         const lastUsed = this._platform.clock.now();
         const sessionInfo = {
@@ -212,7 +256,15 @@ export class Client {
             homeserver,
             accessToken,
             lastUsed,
+            refreshToken,
+            oidcIssuer,
+            oidcClientId,
+            accountManagementUrl,
+            idToken,
         };
+        if (expiresIn) {
+            sessionInfo.accessTokenExpiresAt = lastUsed + expiresIn * 1000;
+        }
         let dehydratedDevice;
         if (inspectAccountSetup) {
             dehydratedDevice = await this._inspectAccountAfterLogin(sessionInfo, log);
@@ -220,6 +272,7 @@ export class Client {
                 sessionInfo.deviceId = dehydratedDevice.deviceId;
             }
         }
+        log.set("id", id);
         await this._platform.sessionInfoStorage.add(sessionInfo);
         // loading the session can only lead to
         // LoadStatus.Error in case of an error,
@@ -246,9 +299,42 @@ export class Client {
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
             createMeasure: clock.createMeasure
         });
+
+        let accessToken;
+
+        if (sessionInfo.oidcIssuer) {
+            const oidcApi = new OidcApi({
+                issuer: sessionInfo.oidcIssuer,
+                staticClients: this._platform.config["staticOidcClients"],
+                clientId: sessionInfo.oidcClientId,
+                request: this._platform.request,
+                encoding: this._platform.encoding,
+                crypto: this._platform.crypto,
+            });
+
+            this._tokenRefresher = new TokenRefresher({
+                oidcApi,
+                clock: this._platform.clock,
+                accessToken: sessionInfo.accessToken,
+                accessTokenExpiresAt: sessionInfo.accessTokenExpiresAt,
+                refreshToken: sessionInfo.refreshToken,
+                anticipation: 30 * 1000,
+            });
+
+            this._tokenRefresher.token.subscribe(t => {
+                this._platform.sessionInfoStorage.updateToken(sessionInfo.id, t.accessToken, t.accessTokenExpiresAt, t.refreshToken);
+            });
+
+            await this._tokenRefresher.start();
+
+            accessToken = this._tokenRefresher.accessToken;
+        } else {
+            accessToken = new ObservableValue(sessionInfo.accessToken);
+        }
+
         const hsApi = new HomeServerApi({
             homeserver: sessionInfo.homeServer,
-            accessToken: sessionInfo.accessToken,
+            accessToken,
             request: this._platform.request,
             reconnector: this._reconnector,
         });
@@ -261,6 +347,9 @@ export class Client {
             userId: sessionInfo.userId,
             homeserver: sessionInfo.homeServer,
         };
+        if (sessionInfo.accountManagementUrl) {
+            filteredSessionInfo.accountManagementUrl = sessionInfo.accountManagementUrl;
+        }
         const olm = await this._olmPromise;
         let olmWorker = null;
         if (this._workerPromise) {
@@ -423,7 +512,7 @@ export class Client {
         return !this._reconnector;
     }
 
-    startLogout(sessionId) {
+    startLogout(sessionId, urlRouter) {
         return this._platform.logger.run("logout", async log => {
             this._sessionId = sessionId;
             log.set("id", this._sessionId);
@@ -431,15 +520,44 @@ export class Client {
             if (!sessionInfo) {
                 throw new Error(`Could not find session for id ${this._sessionId}`);
             }
+            let endSessionRedirectEndpoint;
             try {
-                const hsApi = new HomeServerApi({
-                    homeserver: sessionInfo.homeServer,
-                    accessToken: sessionInfo.accessToken,
-                    request: this._platform.request
-                });
-                await hsApi.logout({log}).response();
-            } catch (err) {}
+                if (sessionInfo.oidcClientId) {
+                    // OIDC logout
+                    const oidcApi = new OidcApi({
+                        issuer: sessionInfo.oidcIssuer,
+                        staticClients: this._platform.config["staticOidcClients"],
+                        clientId: sessionInfo.oidcClientId,
+                        request: this._platform.request,
+                        encoding: this._platform.encoding,
+                        crypto: this._platform.crypto,
+                        urlRouter,
+                    });
+                    await oidcApi.revokeToken({ token: sessionInfo.accessToken, type: "access" });
+                    if (sessionInfo.refreshToken) {
+                        await oidcApi.revokeToken({ token: sessionInfo.refreshToken, type: "refresh" });
+                    }
+                    endSessionRedirectEndpoint = await oidcApi.endSessionEndpoint({
+                        idTokenHint: sessionInfo.idToken,
+                        logoutHint: sessionInfo.userId,
+                    })
+                } else {
+                    // regular logout
+                    const hsApi = new HomeServerApi({
+                        homeserver: sessionInfo.homeServer,
+                        accessToken: sessionInfo.accessToken,
+                        request: this._platform.request
+                    });
+                    await hsApi.logout({log}).response();
+                }
+            } catch (err) {
+                console.error(err);
+            }
             await this.deleteSession(log);
+            // OIDC might have given us a redirect URI to go to do tell the OP we are signing out
+            if (endSessionRedirectEndpoint) {
+                this._platform.openUrl(endSessionRedirectEndpoint);
+            }
         });
     }
 
@@ -464,6 +582,10 @@ export class Client {
         if (this._sync) {
             this._sync.stop();
             this._sync = null;
+        }
+        if (this._tokenRefresher) {
+            this._tokenRefresher.stop();
+            this._tokenRefresher = null;
         }
         if (this._session) {
             this._session.dispose();
