@@ -91,6 +91,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> implements 
 
     async abort(): Promise<void> {
         await this.channel.cancelVerification(CancelReason.UserCancelled);
+        this.finished = true;
     }
 
     async verify(): Promise<boolean> {
