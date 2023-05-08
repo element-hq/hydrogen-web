@@ -154,7 +154,6 @@ export class RoomChannel extends Disposables implements IChannel {
         }
         console.log("entry", entry);
         await this.log.wrap("RoomChannel.handleRoomMessage", async (log) => {
-            log.log({ l: "entry", entry });
             if (!this.id) {
                 throw new Error("Couldn't find event-id of request message!");
             }
