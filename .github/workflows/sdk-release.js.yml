@@ -52,4 +52,3 @@ jobs:
                   token: ${{ secrets.NPM_TOKEN }}
                   access: public
                   package: ./target
-                  dry-run: true
