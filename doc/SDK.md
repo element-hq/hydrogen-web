@@ -3,6 +3,9 @@
 
 The Hydrogen view SDK allows developers to integrate parts of the Hydrogen application into the UI of their own application. Hydrogen is written with the MVVM pattern, so to construct a view, you'd first construct a view model, which you then pass into the view. For most view models, you will first need a running client.
 
+## Changelog
+[See CHANGELOG.md](./CHANGELOG.md)  
+
 ## Example
 
 The Hydrogen SDK requires some assets to be shipped along with your app for things like downloading attachments, and end-to-end encryption. A convenient way to make this happen is provided by the SDK (importing `hydrogen-view-sdk/paths/vite`) but depends on your build system. Currently, only [vite](https://vitejs.dev/) is supported, so that's what we'll be using in the example below.
