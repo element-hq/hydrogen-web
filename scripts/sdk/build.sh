@@ -16,6 +16,7 @@ mkdir target/paths
 # this doesn't work, the ?url imports need to be in the consuming project, so disable for now
 # ./scripts/sdk/transform-paths.js ./src/platform/web/sdk/paths/vite.js ./target/paths/vite.js
 cp doc/SDK.md target/README.md
+cp doc/SDK-CHANGELOG.md target/CHANGELOG.md
 pushd target/asset-build
 rm index.html
 popd
