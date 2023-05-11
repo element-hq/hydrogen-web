@@ -24,6 +24,7 @@ export class VideoView extends BaseMediaView {
             // Chrome/Electron need this to enable the play button.
             src: vm => vm.videoUrl || `data:${vm.mimeType},`,
             title: vm => vm.label,
+            'data-mxc-url': vm => vm.mxcUrl,
             controls: true,
             preload: "none",
             poster: vm => vm.thumbnailUrl,

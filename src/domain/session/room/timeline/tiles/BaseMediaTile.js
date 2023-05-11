@@ -86,6 +86,14 @@ export class BaseMediaTile extends BaseMessageTile {
         }
     }
 
+    get mxcUrl() {
+        return this._getContent().url;
+    }
+
+    get thumbnailMxcUrl() {
+        return this._getContent().info?.thumbnail_url;
+    }
+
     get thumbnailUrl() {
         if (!this._isVisible) {
             return "";
@@ -93,7 +101,7 @@ export class BaseMediaTile extends BaseMessageTile {
         if (this._decryptedThumbnail) {
             return this._decryptedThumbnail.url;
         } else {
-            const thumbnailMxc = this._getContent().info?.thumbnail_url;
+            const thumbnailMxc = this.thumbnailMxcUrl;
             if (thumbnailMxc) {
                 return this._mediaRepository.mxcUrlThumbnail(thumbnailMxc, this.width, this.height, "scale");
             }
