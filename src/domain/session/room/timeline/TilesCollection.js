@@ -144,22 +144,10 @@ export class TilesCollection extends BaseObservableList {
             this._addTileAt(tileIdx, newTile);
             this._evaluateDateHeaderAtIdx(tileIdx);
         }
-
-        // Emit updates for context entry
-        this._sendUpdateToContextForEntry(entry);
-
         // find position by sort key
         // ask siblings to be included? both? yes, twice: a (insert c here) b, ask a(c), if yes ask b(a), else ask b(c)? if yes then b(a)?
     }
 
-    _sendUpdateToContextForEntry(entry) {
-        const { contextEntry } = entry;
-        if (contextEntry) {
-            const tileIdx = this._findTileIdx(contextEntry);
-            const tile = this._findTileAtIdx(contextEntry, tileIdx);
-            tile?.onContextForEntryAdded?.(entry);
-        }
-    }
 
     _evaluateDateHeaderAtIdx(tileIdx) {
         // consider two tiles after the inserted tile, because

@@ -17,6 +17,7 @@ limitations under the License.
 import {SASRequest} from "../../../../../matrix/verification/SAS/SASRequest";
 import {TileShape} from "./ITile";
 import {SimpleTile} from "./SimpleTile";
+import {UpdateAction} from "../UpdateAction.js"
 import {VerificationEventType} from "../../../../../matrix/verification/SAS/channel/types";
 import type {SASVerification} from "../../../../../matrix/verification/SAS/SASVerification";
 import type {EventEntry} from "../../../../../matrix/room/timeline/entries/EventEntry.js";
@@ -44,7 +45,7 @@ export class VerificationTile extends SimpleTile {
             })
         );
         // Calculate status based on available context-for entries
-        entry.contextForEntries?.forEach(e => this.onContextForEntryAdded(e));
+        this.updateStatusFromAvailableContextForEntries();
     }
 
     get shape(): TileShape {
@@ -104,18 +105,30 @@ export class VerificationTile extends SimpleTile {
         );
     }
 
-    onContextForEntryAdded(context: EventEntry) {
-        switch (context.eventType) {
-            case VerificationEventType.Cancel:
-                this.status = Status.Cancelled;
-                this.isCancelledByUs = false;
-                break;
-            case VerificationEventType.Done:
-                this.status = Status.Completed;
-                break;
-            default:
-                return;
+    updateEntry(entry: any, param: any) {
+        if (param === "context-added") {
+            // We received a new contextForEntry, maybe it tells us that
+            // this request was cancelled? Let's check.
+            if (this.updateStatusFromAvailableContextForEntries()) {
+                return UpdateAction.Update(param);
+            }
+            return UpdateAction.Nothing();
+        } 
+        return super.updateEntry(entry, param);
+    }
+
+    updateStatusFromAvailableContextForEntries(): boolean {
+        for (const e of this.lowerEntry.contextForEntries ?? []) {
+            switch (e.eventType) {
+                case VerificationEventType.Cancel:
+                    this.status = Status.Cancelled;
+                    this.isCancelledByUs = false;
+                    return true;
+                case VerificationEventType.Done:
+                    this.status = Status.Completed;
+                    return true;
+            }
         }
-        this.emitChange("status");
+        return false;
     }
 }

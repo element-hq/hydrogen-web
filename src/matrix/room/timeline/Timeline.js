@@ -324,15 +324,18 @@ export class Timeline extends RetainedValue {
             }
             const id = entry.contextEventId;
             // before looking into remoteEntries, check the entries
-            // that about to be added first
+            // that are about to be added first
             let contextEvent = entries.find(e => e.id === id);
             if (!contextEvent) {
                 contextEvent = this._findLoadedEventById(id);
             }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
-                // we don't emit an update here, as the add or update
+                // we don't emit an update for `entry` here, as the add or update
                 // that the callee will emit hasn't been emitted yet.
+                // however we do emit an update for the `contextEvent` so that it
+                // can do something in response to `entry` being added (if needed).
+                this._emitUpdateForEntry(contextEvent, "context-added");
             } else {
                 // we don't await here, which is not ideal,
                 // but one of our callers, addEntries, is not async

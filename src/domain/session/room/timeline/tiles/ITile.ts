@@ -52,12 +52,6 @@ export interface ITile<E extends BaseEntry = BaseEntry> extends IDisposable {
     updatePreviousSibling(prev: ITile<BaseEntry> | undefined): void;
     // let item know it has a new sibling
     updateNextSibling(next: ITile<BaseEntry> | undefined): void;
-    /**
-     * If an entry claims that the entry associated with this tile is its
-     * context entry, then this method is called.
-     * @param context Event entry that is claiming us to be its context entry
-     */
-    onContextForEntryAdded?(context: E): void;
     notifyVisible(): void;
     get needsDateSeparator(): boolean;
     createDateSeparator(): ITile<BaseEntry> | undefined;
