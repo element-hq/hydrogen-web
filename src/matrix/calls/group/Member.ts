@@ -33,6 +33,8 @@ import type {ILogItem} from "../../../logging/types";
 import type {BaseObservableValue} from "../../../observable/value";
 import type {Clock, Timeout} from "../../../platform/web/dom/Clock";
 
+export type MemberUpdateEmitter = (participant: Member, params?: any) => void;
+
 export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessage" | "turnServer"> & {
     confId: string,
     ownUserId: string,
@@ -41,7 +43,7 @@ export type Options = Omit<PeerCallOptions, "emitUpdate" | "sendSignallingMessag
     sessionId: string,
     hsApi: HomeServerApi,
     encryptDeviceMessage: (userId: string, deviceId: string, message: SignallingMessage<MGroupCallBase>, log: ILogItem) => Promise<EncryptedMessage | undefined>,
-    emitUpdate: (participant: Member, params?: any) => void,
+    emitUpdate: MemberUpdateEmitter,
     clock: Clock
 }
 
@@ -105,8 +107,9 @@ class MemberConnection {
 export class Member {
     private connection?: MemberConnection;
     private expireTimeout?: Timeout;
+    private emitMemberUpdate: MemberUpdateEmitter;
     private errorBoundary = new ErrorBoundary(err => {
-        this.options.emitUpdate(this, "error");
+        this.emitMemberUpdate(this, "error");
         if (this.connection) {
             // in case the error happens in code that does not log,
             // log it here to make sure it isn't swallowed
@@ -122,6 +125,7 @@ export class Member {
         private options: Options,
         updateMemberLog: ILogItem
     ) {
+        this.emitMemberUpdate = this.options.emitUpdate;
         this._renewExpireTimeout(updateMemberLog);
     }
 
@@ -146,7 +150,7 @@ export class Member {
         // add 10ms to make sure isExpired returns true
         this.expireTimeout = this.options.clock.createTimeout(expiresFromNow + 10);
         this.expireTimeout.elapsed().then(
-            () => { this.options.emitUpdate(this, "isExpired"); },
+            () => { this.emitMemberUpdate(this, "isExpired"); },
             (err) => { /* ignore abort error */ },
         );
     }
@@ -183,6 +187,16 @@ export class Member {
 
     get deviceId(): string {
         return this.callDeviceMembership.device_id;
+    }
+
+    /** @internal, to emulate deviceKey properties when calling formatToDeviceMessagesPayload */   
+    get user_id(): string {
+        return this.userId;
+    }
+    
+    /** @internal, to emulate deviceKey properties when calling formatToDeviceMessagesPayload */
+    get device_id(): string {
+        return this.deviceId;
     }
 
     /** session id of the member */
@@ -293,7 +307,7 @@ export class Member {
     updateRoomMember(roomMember: RoomMember) {
         this.member = roomMember;
         // TODO: this emits an update during the writeSync phase, which we usually try to avoid
-        this.options.emitUpdate(this);
+        this.emitMemberUpdate(this);
     }
 
     /** @internal */
@@ -325,7 +339,7 @@ export class Member {
                 });
             }
         }
-        this.options.emitUpdate(this, params);
+        this.emitMemberUpdate(this, params);
     }
 
     /** @internal */
@@ -474,8 +488,8 @@ export class Member {
         this.connection = undefined;
         this.expireTimeout?.dispose();
         this.expireTimeout = undefined;
-        // ensure the emitUpdate callback can't be called anymore
-        this.options.emitUpdate = () => {};
+        // ensure the emitMemberUpdate callback can't be called anymore
+        this.emitMemberUpdate = () => {};
     }
 }
 

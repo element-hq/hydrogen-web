@@ -16,6 +16,9 @@ limitations under the License.
 
 export const EVENT_TYPE = "m.room.power_levels";
 
+// See https://spec.matrix.org/latest/client-server-api/#mroompower_levels
+const STATE_DEFAULT_POWER_LEVEL = 50;
+
 export class PowerLevels {
     constructor({powerLevelEvent, createEvent, ownUserId, membership}) {
         this._plEvent = powerLevelEvent;
@@ -66,11 +69,11 @@ export class PowerLevels {
 
     /** @param {string} action either "invite", "kick", "ban" or "redact". */
     _getActionLevel(action) {
-        const level = this._plEvent?.content[action];
+        const level = this._plEvent?.content?.[action];
         if (typeof level === "number") {
             return level;
         } else {
-            return 50;
+            return STATE_DEFAULT_POWER_LEVEL;
         }
     }
 

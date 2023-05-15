@@ -17,6 +17,7 @@ limitations under the License.
 import {ViewModel} from "../../ViewModel";
 import {RoomVisibility} from "../../../matrix/room/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
+import {UserTrust} from "../../../matrix/verification/CrossSigning";
 
 export class MemberDetailsViewModel extends ViewModel {
     constructor(options) {
@@ -29,13 +30,56 @@ export class MemberDetailsViewModel extends ViewModel {
         this._session = options.session;
         this.track(this._powerLevelsObservable.subscribe(() => this._onPowerLevelsChange()));
         this.track(this._observableMember.subscribe( () => this._onMemberChange()));
+        this._userTrust = undefined;
+        this._userTrustSubscription = undefined;
+        if (this.features.crossSigning) {
+            this.track(this._session.crossSigning.subscribe(() => {
+                this._onCrossSigningChange();
+            }));
+        }
+        this._onCrossSigningChange();
     }
 
     get name() { return this._member.name; }
+    
     get userId() { return this._member.userId; }
+    
+    get trustDescription() {
+        switch (this._userTrust?.get()) {
+            case UserTrust.Trusted: return this.i18n`You have verified this user. This user has verified all of their sessions.`;
+            case UserTrust.UserNotSigned: return this.i18n`You have not verified this user.`;
+            case UserTrust.UserSignatureMismatch: return this.i18n`You appear to have signed this user, but the signature is invalid.`;
+            case UserTrust.UserDeviceNotSigned: return this.i18n`You have verified this user, but they have one or more unverified sessions.`;
+            case UserTrust.UserDeviceSignatureMismatch: return this.i18n`This user has a session signature that is invalid.`;
+            case UserTrust.UserSetupError: return this.i18n`This user hasn't set up cross-signing correctly`;
+            case UserTrust.OwnSetupError: return this.i18n`Cross-signing wasn't set up correctly on your side.`;
+            case undefined:
+            default: // adding default as well because jslint can't check for switch exhaustiveness
+                return this.i18n`Please wait…`;
+        }
+    }
+
+    get trustShieldColor() {
+        if (!this._isEncrypted) {
+            return "";
+        }
+        switch (this._userTrust?.get()) {
+            case undefined:
+            case UserTrust.OwnSetupError:
+                return "";
+            case UserTrust.Trusted:
+                return "green";
+            case UserTrust.UserNotSigned:
+                return "black";
+            default:
+                return "red";
+        }
+    }
 
     get type() { return "member-details"; }
+    
     get shouldShowBackButton() { return true; }
+    
     get previousSegmentName() { return "members"; }
     
     get role() {
@@ -52,6 +96,15 @@ export class MemberDetailsViewModel extends ViewModel {
 
     _onPowerLevelsChange() {
         this.emitChange("role");
+    }
+
+    async signUser() {
+        const crossSigning = this._session.crossSigning.get();
+        if (crossSigning) {
+            await this.logger.run("MemberDetailsViewModel.signUser", async log => {
+                await crossSigning.signUser(this.userId, log);
+            });
+        }
     }
 
     get avatarLetter() {
@@ -93,5 +146,20 @@ export class MemberDetailsViewModel extends ViewModel {
             roomId = roomBeingCreated.id;
         }
         this.navigation.push("room", roomId);
+    }
+
+    _onCrossSigningChange() {
+        const crossSigning = this._session.crossSigning.get();
+        this._userTrustSubscription = this.disposeTracked(this._userTrustSubscription);
+        this._userTrust = undefined;
+        if (crossSigning) {
+            this.logger.run("MemberDetailsViewModel.observeUserTrust", log => {
+                this._userTrust = crossSigning.observeUserTrust(this.userId, log);
+                this._userTrustSubscription = this.track(this._userTrust.subscribe(() => {
+                    this.emitChange("trustShieldColor");
+                }));
+            });
+        }
+        this.emitChange("trustShieldColor");
     }
 }

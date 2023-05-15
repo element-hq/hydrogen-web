@@ -33,11 +33,11 @@ export function isTxnId(txnId) {
 }
 
 export function formatToDeviceMessagesPayload(messages) {
-    const messagesByUser = groupBy(messages, message => message.device.userId);
+    const messagesByUser = groupBy(messages, message => message.device.user_id);
     const payload = {
         messages: Array.from(messagesByUser.entries()).reduce((userMap, [userId, messages]) => {
             userMap[userId] = messages.reduce((deviceMap, message) => {
-                deviceMap[message.device.deviceId] = message.content;
+                deviceMap[message.device.device_id] = message.content;
                 return deviceMap;
             }, {});
             return userMap;

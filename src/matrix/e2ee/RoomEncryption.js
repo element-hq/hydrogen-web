@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {MEGOLM_ALGORITHM, DecryptionSource} from "./common.js";
+import {MEGOLM_ALGORITHM, DecryptionSource} from "./common";
 import {groupEventsBySession} from "./megolm/decryption/utils";
 import {mergeMap} from "../../utils/mergeMap";
 import {groupBy} from "../../utils/groupBy";
@@ -235,7 +235,7 @@ export class RoomEncryption {
                 // Use devicesForUsers rather than devicesForRoomMembers as the room might not be tracked yet
                 await this._deviceTracker.devicesForUsers(sendersWithoutDevice, hsApi, log);
                 // now that we've fetched the missing devices, try verifying the results again
-                const txn = await this._storage.readTxn([this._storage.storeNames.deviceIdentities]);
+                const txn = await this._storage.readTxn([this._storage.storeNames.deviceKeys]);
                 await this._verifyDecryptionResults(resultsWithoutDevice, txn);
                 const resultsWithFoundDevice = resultsWithoutDevice.filter(r => !r.isVerificationUnknown);
                 const resultsToEventIdMap = resultsWithFoundDevice.reduce((map, r) => {
@@ -353,7 +353,7 @@ export class RoomEncryption {
         this._historyVisibility = await this._loadHistoryVisibilityIfNeeded(this._historyVisibility);
         await this._deviceTracker.trackRoom(this._room, this._historyVisibility, log);
         const devices = await this._deviceTracker.devicesForTrackedRoom(this._room.id, hsApi, log);
-        const userIds = Array.from(devices.reduce((set, device) => set.add(device.userId), new Set()));
+        const userIds = Array.from(devices.reduce((set, device) => set.add(device.user_id), new Set()));
             
         let writeOpTxn = await this._storage.readWriteTxn([this._storage.storeNames.operations]);
         let operation;
@@ -431,8 +431,8 @@ export class RoomEncryption {
         await log.wrap("send", log => this._sendMessagesToDevices(ENCRYPTED_TYPE, messages, hsApi, log));
         if (missingDevices.length) {
             await log.wrap("missingDevices", async log => {
-                log.set("devices", missingDevices.map(d => d.deviceId));
-                const unsentUserIds = operation.userIds.filter(userId => missingDevices.some(d => d.userId === userId));
+                log.set("devices", missingDevices.map(d => d.device_id));
+                const unsentUserIds = operation.userIds.filter(userId => missingDevices.some(d => d.user_id === userId));
                 log.set("unsentUserIds", unsentUserIds);
                 operation.userIds = unsentUserIds;
                 // first remove the users that we've sent the keys already from the operation,
@@ -459,11 +459,11 @@ export class RoomEncryption {
 
     // TODO: make this use _sendMessagesToDevices
     async _sendSharedMessageToDevices(type, message, devices, hsApi, log) {
-        const devicesByUser = groupBy(devices, device => device.userId);
+        const devicesByUser = groupBy(devices, device => device.user_id);
         const payload = {
             messages: Array.from(devicesByUser.entries()).reduce((userMap, [userId, devices]) => {
                 userMap[userId] = devices.reduce((deviceMap, device) => {
-                    deviceMap[device.deviceId] = message;
+                    deviceMap[device.device_id] = message;
                     return deviceMap;
                 }, {});
                 return userMap;

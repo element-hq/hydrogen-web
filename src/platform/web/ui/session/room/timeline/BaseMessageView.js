@@ -126,6 +126,7 @@ export class BaseMessageView extends TemplateView {
         } else if (vm.canRedact) {
             options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()).setDestructive());
         }
+        options.push(Menu.option(vm.i18n`Copy matrix.to permalink`, () => vm.copyPermalink()));
         return options;
     }
 

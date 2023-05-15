@@ -99,8 +99,10 @@ export class BlobHandle {
         return new BlobHandle(new Blob([buffer], {type: mimetype}), buffer);
     }
 
-    static fromBlob(blob) {
-        // ok to not filter mimetypes as these are local files
+    /** Does not filter out mimetypes that could execute embedded javascript.
+     * It's up to the callee of this method to ensure that the blob won't be
+     * rendered by the browser in a way that could allow cross-signing scripting. */
+    static fromBlobUnsafe(blob) {
         return new BlobHandle(blob);
     }
 

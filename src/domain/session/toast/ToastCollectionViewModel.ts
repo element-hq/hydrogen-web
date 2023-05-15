@@ -14,83 +14,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {CallToastNotificationViewModel} from "./CallToastNotificationViewModel";
-import {ObservableArray} from "../../../observable";
+import {ConcatList} from "../../../observable";
 import {ViewModel, Options as BaseOptions} from "../../ViewModel";
-import type {GroupCall} from "../../../matrix/calls/group/GroupCall";
-import type {Room} from "../../../matrix/room/Room.js";
+import {CallToastCollectionViewModel} from "./calls/CallsToastCollectionViewModel";
+import {VerificationToastCollectionViewModel} from "./verification/VerificationToastCollectionViewModel";
 import type {Session} from "../../../matrix/Session.js";
 import type {SegmentType} from "../../navigation";
-import { RoomStatus } from "../../../lib";
+import type {BaseToastNotificationViewModel} from "./BaseToastNotificationViewModel";
+import type {IToastCollection} from "./IToastCollection";
 
 type Options = {
     session: Session;
 } & BaseOptions;
 
 export class ToastCollectionViewModel extends ViewModel<SegmentType, Options> {
-    public readonly toastViewModels: ObservableArray<CallToastNotificationViewModel> = new ObservableArray();
+    public readonly toastViewModels: ConcatList<BaseToastNotificationViewModel>;
 
     constructor(options: Options) {
         super(options);
         const session = this.getOption("session");
+        const collectionVms: IToastCollection[] = [];
         if (this.features.calls) {
-            const callsObservableMap = session.callHandler.calls;
-            this.track(callsObservableMap.subscribe(this));
+            collectionVms.push(this.track(new CallToastCollectionViewModel(this.childOptions({ session }))));
         }
-    }
-
-    async onAdd(_, call: GroupCall) {
-        if (this._shouldShowNotification(call)) {
-            const room = await this._findRoomForCall(call);
-            const dismiss = () => {
-                const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
-                if (idx !== -1) {
-                    this.toastViewModels.remove(idx);
-                }
-             };
-            this.toastViewModels.append(
-                new CallToastNotificationViewModel(this.childOptions({ call, room, dismiss }))
-            );
+        if (this.features.crossSigning) {
+            collectionVms.push(this.track(new VerificationToastCollectionViewModel(this.childOptions({ session }))));
         }
-    }
-
-    onRemove(_, call: GroupCall) {
-        const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
-        if (idx !== -1) {
-            this.toastViewModels.remove(idx);
+        const vms: IToastCollection["toastViewModels"][] = collectionVms.map(vm => vm.toastViewModels);
+        if (vms.length !== 0) {
+            this.toastViewModels = new ConcatList(...vms);
         }
-    }
-
-    onUpdate(_, call: GroupCall) {
-        const idx = this.toastViewModels.array.findIndex(vm => vm.call === call);
-        if (idx !== -1) {
-            this.toastViewModels.update(idx, this.toastViewModels.at(idx)!);
-        }
-    }
-
-    onReset() {
-        for (let i = 0; i < this.toastViewModels.length; ++i) {
-            this.toastViewModels.remove(i);
-        }
-    }
-
-    private async _findRoomForCall(call: GroupCall): Promise<Room> {
-        const id = call.roomId;
-        const session = this.getOption("session");
-        const rooms = session.rooms;
-        // Make sure that we know of this room, 
-        // otherwise wait for it to come through sync
-        const observable = await session.observeRoomStatus(id);
-        await observable.waitFor(s => s === RoomStatus.Joined).promise;
-        const room = rooms.get(id);
-        return room;
-    }
-    
-    private _shouldShowNotification(call: GroupCall): boolean {
-        const currentlyOpenedRoomId = this.navigation.path.get("room")?.value;
-        if (!call.isLoadedFromStorage && call.roomId !== currentlyOpenedRoomId && !call.usesFoci) {
-            return true;
-        }
-        return false;
     }
 }

@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {OLM_ALGORITHM} from "./e2ee/common.js";
+import {OLM_ALGORITHM} from "./e2ee/common";
 import {countBy, groupBy} from "../utils/groupBy";
 import {LRUCache} from "../utils/LRUCache";
+import {EventEmitter} from "../utils/EventEmitter";
 
-export class DeviceMessageHandler {
+export class DeviceMessageHandler extends EventEmitter{
     constructor({storage, callHandler}) {
+        super();
         this._storage = storage;
         this._olmDecryption = null;
         this._megolmDecryption = null;
@@ -39,6 +41,7 @@ export class DeviceMessageHandler {
     async prepareSync(toDeviceEvents, lock, txn, log) {
         log.set("messageTypes", countBy(toDeviceEvents, e => e.type));
         const encryptedEvents = toDeviceEvents.filter(e => e.type === "m.room.encrypted");
+        this._emitUnencryptedEvents(toDeviceEvents);
         if (!this._olmDecryption) {
             log.log("can't decrypt, encryption not enabled", log.level.Warn);
             return;
@@ -74,6 +77,7 @@ export class DeviceMessageHandler {
     }
 
     async afterSyncCompleted(decryptionResults, deviceTracker, hsApi, log) {
+        this._emitEncryptedEvents(decryptionResults);
         if (this._callHandler) {
             // if we don't have a device, we need to fetch the device keys the message claims
             // and check the keys, and we should only do network requests during
@@ -100,6 +104,20 @@ export class DeviceMessageHandler {
                 });
             }
         }
+    }
+
+    _emitUnencryptedEvents(toDeviceEvents) {
+        const unencryptedEvents = toDeviceEvents.filter(e => e.type !== "m.room.encrypted");
+        for (const event of unencryptedEvents) {
+            this.emit("message", { unencrypted: event });
+        }
+    }
+
+    _emitEncryptedEvents(decryptionResults) {
+        // We don't emit for now as we're not verifying the identity of the sender
+        // for (const result of decryptionResults) {
+        //     this.emit("message", { encrypted: result });
+        // }
     }
 }
 

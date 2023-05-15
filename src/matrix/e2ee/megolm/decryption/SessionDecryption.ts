@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {DecryptionResult} from "../../DecryptionResult";
-import {DecryptionError} from "../../common.js";
+import {DecryptionError} from "../../common";
 import {ReplayDetectionEntry} from "./ReplayDetectionEntry";
 import type {RoomKey} from "./RoomKey";
 import type {KeyLoader, OlmDecryptionResult} from "./KeyLoader";
@@ -58,7 +58,9 @@ export class SessionDecryption {
                         this.decryptionRequests!.push(request);
                         decryptionResult = await request.response();
                     } else {
-                        decryptionResult = session.decrypt(ciphertext) as OlmDecryptionResult;
+                        // the return type of Olm.InboundGroupSession::decrypt is likely wrong, message_index is a number and not a string AFAIK
+                        // getting it fixed upstream but fixing it like this for now.
+                        decryptionResult = session.decrypt(ciphertext) as unknown as OlmDecryptionResult;
                     }
                     const {plaintext} = decryptionResult!;
                     let payload;

@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel} from "../../ViewModel";
-import {KeyBackupViewModel} from "./KeyBackupViewModel.js";
+import {KeyBackupViewModel} from "./KeyBackupViewModel";
 import {FeaturesViewModel} from "./FeaturesViewModel";
 import {submitLogsFromSessionToDefaultServer} from "../../../domain/rageshake";
 

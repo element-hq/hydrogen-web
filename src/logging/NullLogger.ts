@@ -74,6 +74,10 @@ export class NullLogItem implements ILogItem {
         this.logger = logger;
     }
 
+    discard(): void {
+        // noop
+    }
+
     wrap<T>(_: LabelOrValues, callback: LogCallback<T>): T {
         return this.run(callback);
     }

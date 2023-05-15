@@ -16,23 +16,9 @@ limitations under the License.
 
 import { PkSigning } from "@matrix-org/olm";
 import anotherjson from "another-json";
+import type {SignedValue} from "../e2ee/common";
 import type * as OlmNamespace from "@matrix-org/olm";
 type Olm = typeof OlmNamespace;
-
-export interface IObject {
-    unsigned?: object;
-    signatures?: ISignatures;
-}
-
-export interface ISignatures {
-    [entity: string]: {
-        [keyId: string]: string;
-    };
-}
-
-export interface ISigned {
-    signatures?: ISignatures;
-}
 
 // from matrix-js-sdk
 /**
@@ -45,7 +31,7 @@ export interface ISigned {
  * @param pubKey - The public key (ignored if key is a seed)
  * @returns the signature for the object
  */
- export function pkSign(olmUtil: Olm, obj: object & IObject, key: Uint8Array | PkSigning, userId: string, pubKey: string): string {
+ export function pkSign(olmUtil: Olm, obj: SignedValue, key: Uint8Array | PkSigning, userId: string, pubKey: string): string {
     let createdKey = false;
     if (key instanceof Uint8Array) {
         const keyObj = new olmUtil.PkSigning();

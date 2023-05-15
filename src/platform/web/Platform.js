@@ -43,6 +43,7 @@ import {MediaDevicesWrapper} from "./dom/MediaDevices";
 import {DOMWebRTC} from "./dom/WebRTC";
 import {ThemeLoader} from "./theming/ThemeLoader";
 import {TimeFormatter} from "./dom/TimeFormatter";
+import {copyPlaintext} from "./dom/utils";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
@@ -283,6 +284,10 @@ export class Platform {
         }
     }
 
+    async copyPlaintext(text) {
+        return await copyPlaintext(text);
+    }
+
     restart() {
         document.location.reload();
     }
@@ -300,7 +305,8 @@ export class Platform {
                 const file = input.files[0];
                 this._container.removeChild(input);
                 if (file) {
-                    resolve({name: file.name, blob: BlobHandle.fromBlob(file)});
+                    // ok to not filter mimetypes as these are local files
+                    resolve({name: file.name, blob: BlobHandle.fromBlobUnsafe(file)});
                 } else {
                     resolve();
                 }

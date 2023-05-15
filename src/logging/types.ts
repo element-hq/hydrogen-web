@@ -55,6 +55,7 @@ export interface ILogItem {
     finish(): void;
     forceFinish(): void;
     child(labelOrValues: LabelOrValues, logLevel?: LogLevel, filterCreator?: FilterCreator): ILogItem;
+    discard(): void;
 }
 /*
 extend both ILogger and ILogItem from this interface, but need to rename ILogger.run => wrap then. Or both to `span`?

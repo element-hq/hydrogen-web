@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {BlobHandle} from "./BlobHandle.js";
-import {domEventAsPromise} from "./utils.js";
+import {domEventAsPromise} from "./utils";
 
 export class ImageHandle {
     static async fromBlob(blob) {
@@ -64,7 +64,8 @@ export class ImageHandle {
         } else {
             throw new Error("canvas can't be turned into blob");
         }
-        const blob = BlobHandle.fromBlob(nativeBlob);
+        // unsafe is ok because it's a jpeg or png image
+        const blob = BlobHandle.fromBlobUnsafe(nativeBlob);
         return new ImageHandle(blob, scaledWidth, scaledHeight, null);
     }
 

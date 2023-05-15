@@ -65,7 +65,7 @@ export class MediaDevicesWrapper implements IMediaDevices {
         };
     }
 
-    private getScreenshareContraints(): DisplayMediaStreamConstraints {
+    private getScreenshareContraints(): MediaStreamConstraints {
         return {
             audio: false,
             video: true,

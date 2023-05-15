@@ -28,6 +28,7 @@ export class LogItem implements ILogItem {
     protected _logger: Logger;
     private _filterCreator?: FilterCreator;
     private _children?: Array<LogItem>;
+    private _discard: boolean = false;
 
     constructor(labelOrValues: LabelOrValues, logLevel: LogLevel, logger: Logger, filterCreator?: FilterCreator) {
         this._logger = logger;
@@ -36,6 +37,13 @@ export class LogItem implements ILogItem {
         this._values = typeof labelOrValues === "string" ? {l: labelOrValues} : labelOrValues;
         this.logLevel = logLevel;
         this._filterCreator = filterCreator;
+    }
+
+    /**
+     * Prevents this log item from being present in the exported output.
+     */
+    discard(): void {
+        this._discard = true;
     }
 
     /** start a new root log item and run it detached mode, see Logger.runDetached */
@@ -119,6 +127,9 @@ export class LogItem implements ILogItem {
     }
 
     serialize(filter: LogFilter, parentStartTime: number | undefined, forced: boolean): ISerializedItem | undefined {
+        if (this._discard) {
+            return;
+        }
         if (this._filterCreator) {
             try {
                 filter = this._filterCreator(new LogFilter(filter), this);

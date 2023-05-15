@@ -16,7 +16,7 @@ limitations under the License.
 import {Store} from "../Store";
 import {Content} from "../../types";
 
-interface AccountDataEntry {
+export interface AccountDataEntry {
     type: string;
     content: Content;
 }
@@ -34,5 +34,9 @@ export class AccountDataStore {
 
     set(event: AccountDataEntry): void {
         this._store.put(event);
+    }
+
+    async getAll(): Promise<ReadonlyArray<AccountDataEntry>> {
+        return await this._store.selectAll();
     }
 }

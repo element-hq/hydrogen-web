@@ -16,7 +16,7 @@ limitations under the License.
 
 import {ViewModel} from "./ViewModel";
 import {KeyType} from "../matrix/ssss/index";
-import {Status} from "./session/settings/KeyBackupViewModel.js";
+import {Status} from "./session/settings/KeyBackupViewModel";
 
 export class AccountSetupViewModel extends ViewModel {
     constructor(options) {
