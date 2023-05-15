@@ -89,7 +89,7 @@ export class Timeline extends RetainedValue {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
-            this._loadContextEntriesWhereNeeded(entries);
+            await this._loadContextEntriesWhereNeeded(entries);
             this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);

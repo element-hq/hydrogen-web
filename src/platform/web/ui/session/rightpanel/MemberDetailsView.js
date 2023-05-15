@@ -56,6 +56,9 @@ export class MemberDetailsView extends TemplateView {
             t.button({className: "text", onClick: () => vm.openDirectMessage()}, vm.i18n`Open direct message`)
         ];
         if (vm.features.crossSigning) {
+            if (vm.canVerifyUser) {
+                options.push(t.button({ className: "text", onClick: () => vm.verifyUser() }, vm.i18n`Verify`));
+            }
             const onClick = () => {
                 if (confirm("You don't want to do this with any account but a test account. This will cross-sign this user without verifying their keys first. You won't be able to undo this apart from resetting your cross-signing keys.")) {
                     vm.signUser();

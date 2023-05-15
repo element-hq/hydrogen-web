@@ -78,7 +78,7 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         const isCrossSigningEnabled = !options.session.features.crossSigning;
                         const userId = options.session.userId;
                         if (isCrossSigningEnabled||
-                            entry.isLoadedFromStorage ||
+                            // entry.isLoadedFromStorage ||
                             entry.sender === userId) {
                             return undefined;
                         }

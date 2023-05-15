@@ -70,13 +70,17 @@ export class RightPanelViewModel extends ViewModel {
             }
         );
         this._hookUpdaterToSegment("verification", DeviceVerificationViewModel, () => {
-            const id = this.navigation.path.get("verification").value; 
-            const request = this._session?.crossSigning.get()?.receivedSASVerifications.get(id);
-            return {
+            const options = {
                 session: this._session,
                 room: this._room,
-                request,
+            };
+            const id = this.navigation.path.get("verification").value; 
+            if (typeof id === "string") {
+                const request = this._session?.crossSigning.get()?.receivedSASVerifications.get(id);
+                const extraOptions = request ? { request } : { userId: id };
+                Object.assign(options, extraOptions);
             }
+            return options;
         });
     }
 

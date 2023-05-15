@@ -32,17 +32,19 @@ export const enum Status {
 export class VerificationTile extends SimpleTile {
     private request: SASRequest;
     public isCancelledByUs: boolean;
-    private _status: Status = Status.Ready;
+    public status: Status = Status.Ready;
 
     constructor(entry: EventEntry, options: Options) {
         super(entry, options);
         this.request = new SASRequest(this.lowerEntry);
         const crossSigning = this.getOption("session").crossSigning.get();
         this.track(
-            crossSigning.sasVerificationObservable.subscribe(sas => {
+            crossSigning.sasVerificationObservable.subscribe((sas) => {
                 this.subscribeToSASVerification(sas);
             })
         );
+        // Calculate status based on available context-for entries
+        entry.contextForEntries?.forEach(e => this.onContextForEntryAdded(e));
     }
 
     get shape(): TileShape {
@@ -53,21 +55,11 @@ export class VerificationTile extends SimpleTile {
         return this.i18n`${this.sender} wants to verify`;
     }
 
-    get status(): Status {
-        const contextEventEntry = this.lowerEntry.contextForEntries?.[0];
-        if (contextEventEntry?.eventType === VerificationEventType.Cancel) {
-            this._status = Status.Cancelled;
-            this.isCancelledByUs = false;
-
-        }
-        return this._status;
-    }
-
     accept(): void {
-        const crossSigning = this.getOption("session").crossSigning.get()
+        const crossSigning = this.getOption("session").crossSigning.get();
         crossSigning.receivedSASVerifications.set(this.eventId, this.request);
         this.openVerificationPanel(this.eventId);
-        this._status = Status.InProgress;
+        this.status = Status.InProgress;
         this.emitChange("status");
     }
 
@@ -77,7 +69,7 @@ export class VerificationTile extends SimpleTile {
             const crossSigning = this.getOption("session").crossSigning.get();
             await this.request.reject(crossSigning, this._room, log);
             this.isCancelledByUs = true;
-            this._status = Status.Cancelled;
+            this.status = Status.Cancelled;
             this.emitChange("status");
         });
     }
@@ -100,15 +92,30 @@ export class VerificationTile extends SimpleTile {
         this.track(
             sas.disposableOn("VerificationCancelled", (cancellation) => {
                 this.isCancelledByUs = cancellation?.cancelledByUs!;
-                this._status = Status.Cancelled;
+                this.status = Status.Cancelled;
                 this.emitChange("status");
-             })
+            })
         );
         this.track(
             sas.disposableOn("VerificationCompleted", () => {
-                this._status = Status.Completed;
+                this.status = Status.Completed;
                 this.emitChange("status");
-             })
+            })
         );
+    }
+
+    onContextForEntryAdded(context: EventEntry) {
+        switch (context.eventType) {
+            case VerificationEventType.Cancel:
+                this.status = Status.Cancelled;
+                this.isCancelledByUs = false;
+                break;
+            case VerificationEventType.Done:
+                this.status = Status.Completed;
+                break;
+            default:
+                return;
+        }
+        this.emitChange("status");
     }
 }

@@ -31,6 +31,7 @@ type Options = BaseOptions & {
     session: Session;
     request?: SASRequest;
     room?: Room;
+    userId?: string;
 };
 
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
@@ -45,15 +46,10 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     private async init(options: Options): Promise<void> {
         const room = options.room;
         let requestOrUserId: SASRequest | string;
-        if (options.request) {
-            requestOrUserId = options.request;
-        }
-        else if (room) {
-            requestOrUserId = await this.findMemberFromRoom(room);
-        }
-        else {
-            requestOrUserId = this.getOption("session").userId;
-        }
+        requestOrUserId =
+            options.request ??
+            options.userId ??
+            this.getOption("session").userId;
         await this.start(requestOrUserId, room);
     }
 
@@ -61,6 +57,9 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
             const crossSigning = this.getOption("session").crossSigning.get();
             this.sas = crossSigning.startVerification(requestOrUserId, room, log);
+            if (!this.sas) {
+                throw new Error("CrossSigning.startVerification did not return a sas object!");
+            }
             this.addEventListeners();
             if (typeof requestOrUserId === "string") {
                 this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
@@ -70,20 +69,6 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         });
     }
 
-    private async findMemberFromRoom(room: Room) {
-        const memberlist = await room.loadMemberList();
-        const members = memberlist.members;
-        if (members.size !== 2) {
-            throw new Error("There are more than two members in this room!");
-        }
-        const ourUserId = this.getOption("session").userId; 
-        for (const userId of members.keys()) {
-            if (userId !== ourUserId) {
-                memberlist.release();
-                return userId;
-            }
-        }
-    }
     
     private addEventListeners() {
         this.track(this.sas.disposableOn("SelectVerificationStage", (stage) => {

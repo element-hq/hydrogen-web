@@ -60,6 +60,7 @@ export class BaseRoom extends EventEmitter {
         this._powerLevelLoading = null;
         this._observedMembers = null;
         this._timelineLoadPromise = null;
+        this._timelineRunningPromise = null;
     }
 
     async observeStateType(type, txn = undefined) {
@@ -542,15 +543,24 @@ export class BaseRoom extends EventEmitter {
     }
 
     /** @public */
-    openTimeline(log = null) {
-        return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+    async openTimeline(log = null) {
+        return await this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+            if (this._timelineLoadPromise) {
+                await this._timelineLoadPromise;
+            }
+            let resolve;
+            this._timelineLoadPromise = new Promise(r => {
+                resolve = () => { 
+                    this._timelineLoadPromise = null;
+                    r();
+                };
+            });
             log.set("id", this.id);
             if (this._timeline) {
                 /**
                  * It's possible that timeline was created but timeline.load() has not yet finished.
                  * We only return the timeline when it has completely loaded!
                  */
-                await this._timelineLoadPromise;
                 log.log({ l: "Returning existing timeline" });
                 return this._timeline;
             }
@@ -574,8 +584,8 @@ export class BaseRoom extends EventEmitter {
                 if (this._roomEncryption) {
                     this._timeline.enableEncryption(this._decryptEntries.bind(this, DecryptionSource.Timeline));
                 }
-                this._timelineLoadPromise = this._timeline.load(this._user, this.membership, log);
-                await this._timelineLoadPromise;
+                await this._timeline.load(this._user, this.membership, log);
+                resolve();
             } catch (err) {
                 // this also clears this._timeline in the closeCallback
                 this._timeline.dispose();

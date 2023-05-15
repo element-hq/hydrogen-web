@@ -186,13 +186,14 @@ export class CrossSigning {
     startVerification(requestOrUserId: SASRequest, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
     startVerification(requestOrUserId: string, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
     startVerification(requestOrUserId: string | SASRequest, logOrRoom: Room | ILogItem, _log?: ILogItem): SASVerification | undefined {
+        const log: ILogItem = _log ?? logOrRoom;
         const sasVerificationInProgress = this.sasVerificationObservable.get();
         if (sasVerificationInProgress && !sasVerificationInProgress.finished) {
+            log.log({ sasVerificationAlreadyInProgress: true });
             return;
         }
         const otherUserId = requestOrUserId instanceof SASRequest ? requestOrUserId.sender : requestOrUserId;
         const startingMessage = requestOrUserId instanceof SASRequest ? requestOrUserId.startingMessage : undefined;
-        const log = _log ?? logOrRoom;
         let channel: IChannel;
         if (otherUserId === this.ownUserId) {
             channel = new ToDeviceChannel({

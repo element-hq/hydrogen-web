@@ -699,9 +699,9 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom(options) {
+    async createRoom(options) {
         let roomBeingCreated;
-        this._platform.logger.runDetached("create room", async log => {
+        await this._platform.logger.run("create room", async log => {
             const id = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
             roomBeingCreated = new RoomBeingCreated(
                 id, options, this._roomsBeingCreatedUpdateCallback,
@@ -860,6 +860,7 @@ export class Session {
             for (const rs of roomStates) {
                 if (rs.shouldAdd) {
                     this._observedRoomStatus.get(rs.id)?.set(RoomStatus.Joined);
+                    console.log("rs set Joined", rs, this._observedRoomStatus.get(rs.id));
                 }
             }
             for (const is of inviteStates) {
