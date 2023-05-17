@@ -14,12 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SegmentType} from "../../../navigation/index";
-import {ErrorReportViewModel} from "../../../ErrorReportViewModel";
+import {DismissibleVerificationViewModel} from "./DismissibleVerificationViewModel";
 import type {Options as BaseOptions} from "../../../ViewModel";
 import type {Session} from "../../../../matrix/Session.js";
 import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
-import { DismissibleVerificationViewModel } from "./DismissibleVerificationViewModel";
 
 type Options = BaseOptions & {
     deviceId: string;
