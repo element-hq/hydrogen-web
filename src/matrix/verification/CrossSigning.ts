@@ -16,7 +16,6 @@ limitations under the License.
 
 import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
 import {BaseObservableValue, RetainedObservableValue} from "../../observable/value";
-import {ObservableValue} from "../../observable/value";
 import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
 import {ToDeviceChannel} from "./SAS/channel/ToDeviceChannel";
@@ -101,7 +100,7 @@ export class CrossSigning {
     private _isMasterKeyTrusted: boolean = false;
     private readonly observedUsers: Map<string, RetainedObservableValue<UserTrust | undefined>> = new Map();
     private readonly deviceId: string;
-    public sasVerificationObservable: ObservableValue<SASVerification | undefined> = new ObservableValue(undefined);
+    private sasVerificationInProgress?: SASVerification;
     public receivedSASVerifications: ObservableMap<string, SASRequest> = new ObservableMap();
 
     constructor(options: {
@@ -187,8 +186,7 @@ export class CrossSigning {
     startVerification(requestOrUserId: string, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
     startVerification(requestOrUserId: string | SASRequest, logOrRoom: Room | ILogItem, _log?: ILogItem): SASVerification | undefined {
         const log: ILogItem = _log ?? logOrRoom;
-        const sasVerificationInProgress = this.sasVerificationObservable.get();
-        if (sasVerificationInProgress && !sasVerificationInProgress.finished) {
+        if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
             log.log({ sasVerificationAlreadyInProgress: true });
             return;
         }
@@ -216,7 +214,7 @@ export class CrossSigning {
             }, startingMessage);
         }
 
-        const sas = new SASVerification({
+        this.sasVerificationInProgress =  new SASVerification({
             olm: this.olm,
             olmUtil: this.olmUtil,
             ourUserId: this.ownUserId,
@@ -229,8 +227,7 @@ export class CrossSigning {
             hsApi: this.hsApi,
             clock: this.platform.clock,
         });
-        this.sasVerificationObservable.set(sas);
-        return sas;
+        return this.sasVerificationInProgress;
     }
 
     private handleSASDeviceMessage({ unencrypted: event }) {
@@ -240,8 +237,7 @@ export class CrossSigning {
          * SAS verification, we should ignore it because the device channel
          * object (who also listens for to_device messages) will take care of it (if needed).
          */
-        const sasVerificationInProgress = this.sasVerificationObservable.get();
-        const shouldIgnoreEvent = sasVerificationInProgress?.channel.id === txnId;
+        const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
         if (shouldIgnoreEvent) { return; }
         /**
          * 1. If we receive the cancel message, we need to update the requests map.

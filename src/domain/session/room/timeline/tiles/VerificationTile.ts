@@ -19,7 +19,6 @@ import {TileShape} from "./ITile";
 import {SimpleTile} from "./SimpleTile";
 import {UpdateAction} from "../UpdateAction.js"
 import {VerificationEventType} from "../../../../../matrix/verification/SAS/channel/types";
-import type {SASVerification} from "../../../../../matrix/verification/SAS/SASVerification";
 import type {EventEntry} from "../../../../../matrix/room/timeline/entries/EventEntry.js";
 import type {Options} from "./SimpleTile";
 
@@ -38,12 +37,6 @@ export class VerificationTile extends SimpleTile {
     constructor(entry: EventEntry, options: Options) {
         super(entry, options);
         this.request = new SASRequest(this.lowerEntry);
-        const crossSigning = this.getOption("session").crossSigning.get();
-        this.track(
-            crossSigning.sasVerificationObservable.subscribe((sas) => {
-                this.subscribeToSASVerification(sas);
-            })
-        );
         // Calculate status based on available context-for entries
         this.updateStatusFromAvailableContextForEntries();
     }
@@ -80,29 +73,6 @@ export class VerificationTile extends SimpleTile {
         path = path.with(this.navigation.segment("right-panel", true))!;
         path = path.with(this.navigation.segment("verification", eventId))!;
         this.navigation.applyPath(path);
-    }
-
-    private subscribeToSASVerification(sas: SASVerification | undefined) {
-        if (!sas || sas.channel.id !== this.eventId) {
-            return;
-        }
-        /**
-         * Subscribe to SAS events so that we can update the UI when each stage is
-         * completed.
-         */
-        this.track(
-            sas.disposableOn("VerificationCancelled", (cancellation) => {
-                this.isCancelledByUs = cancellation?.cancelledByUs!;
-                this.status = Status.Cancelled;
-                this.emitChange("status");
-            })
-        );
-        this.track(
-            sas.disposableOn("VerificationCompleted", () => {
-                this.status = Status.Completed;
-                this.emitChange("status");
-            })
-        );
     }
 
     updateEntry(entry: any, param: any) {
