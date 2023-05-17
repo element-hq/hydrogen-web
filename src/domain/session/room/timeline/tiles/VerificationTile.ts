@@ -53,8 +53,6 @@ export class VerificationTile extends SimpleTile {
         const crossSigning = this.getOption("session").crossSigning.get();
         crossSigning.receivedSASVerifications.set(this.eventId, this.request);
         this.openVerificationPanel(this.eventId);
-        this.status = Status.InProgress;
-        this.emitChange("status");
     }
 
     async reject(): Promise<void> {
@@ -62,9 +60,6 @@ export class VerificationTile extends SimpleTile {
         await this.logAndCatch("VerificationTile.reject", async (log) => {
             const crossSigning = this.getOption("session").crossSigning.get();
             await this.request.reject(crossSigning, this._room, log);
-            this.isCancelledByUs = true;
-            this.status = Status.Cancelled;
-            this.emitChange("status");
         });
     }
 
@@ -77,8 +72,11 @@ export class VerificationTile extends SimpleTile {
 
     updateEntry(entry: any, param: any) {
         if (param === "context-added") {
-            // We received a new contextForEntry, maybe it tells us that
-            // this request was cancelled? Let's check.
+            /**
+             * We received a new contextForEntry, maybe it tells us that
+             * this request was cancelled or that the verification is completed?
+             * Let's check.
+             */
             if (this.updateStatusFromAvailableContextForEntries()) {
                 return UpdateAction.Update(param);
             }
@@ -92,11 +90,13 @@ export class VerificationTile extends SimpleTile {
             switch (e.eventType) {
                 case VerificationEventType.Cancel:
                     this.status = Status.Cancelled;
-                    this.isCancelledByUs = false;
+                    this.isCancelledByUs = e.sender === this.getOption("session").userId;
                     return true;
                 case VerificationEventType.Done:
                     this.status = Status.Completed;
                     return true;
+                default:
+                    this.status = Status.InProgress;
             }
         }
         return false;
