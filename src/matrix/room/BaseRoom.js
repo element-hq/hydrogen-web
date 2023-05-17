@@ -60,7 +60,6 @@ export class BaseRoom extends EventEmitter {
         this._powerLevelLoading = null;
         this._observedMembers = null;
         this._timelineLoadPromise = null;
-        this._timelineRunningPromise = null;
     }
 
     async observeStateType(type, txn = undefined) {
