@@ -80,7 +80,6 @@ export class RoomViewModel extends ErrorReportViewModel {
         await this.logAndCatch("RoomViewModel.load", async log => {
             this._room.on("change", this._onRoomChange);
             const timeline = await this._room.openTimeline(log);
-            timeline.retain();
             this.track(() => timeline.release());
             this._tileOptions = this.childOptions({
                 session: this.getOption("session"),

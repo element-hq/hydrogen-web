@@ -82,7 +82,6 @@ export class RoomChannel extends Disposables implements IChannel {
 
     private async subscribeToTimeline() {
         const timeline = await this.room.openTimeline();
-        timeline.retain();
         this.track(() => timeline.release());
         this.track(
            timeline.entries.subscribe({

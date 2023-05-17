@@ -589,6 +589,7 @@ export class BaseRoom extends EventEmitter {
             } finally {
                 resolve();
             }
+            this._timeline.retain();
             return this._timeline;
         });
     }
