@@ -76,6 +76,11 @@ export class RightPanelViewModel extends ViewModel {
             };
             const id = this.navigation.path.get("verification").value; 
             if (typeof id === "string") {
+                /**
+                 * Here id is:
+                 * 1. id of the request when we receive a sas verification request
+                 * 2. id of the user we are trying to verify when we initiate the verification process
+                 */
                 const request = this._session?.crossSigning.get()?.receivedSASVerifications.get(id);
                 const extraOptions = request ? { request } : { userId: id };
                 Object.assign(options, extraOptions);
