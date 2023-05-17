@@ -38,6 +38,8 @@ export class VerificationTile extends SimpleTile {
         super(entry, options);
         this.request = new SASRequest(this.lowerEntry);
         // Calculate status based on available context-for entries
+        // Needed so that tiles reflect their final status when
+        // events are loaded from storage i.e after a reload.
         this.updateStatusFromAvailableContextForEntries();
     }
 
@@ -56,7 +58,6 @@ export class VerificationTile extends SimpleTile {
     }
 
     async reject(): Promise<void> {
-        // create the SasVerification object and call abort() on it
         await this.logAndCatch("VerificationTile.reject", async (log) => {
             const crossSigning = this.getOption("session").crossSigning.get();
             await this.request.reject(crossSigning, this._room, log);
@@ -70,7 +71,7 @@ export class VerificationTile extends SimpleTile {
         this.navigation.applyPath(path);
     }
 
-    updateEntry(entry: any, param: any) {
+    updateEntry(entry: EventEntry, param: any) {
         if (param === "context-added") {
             /**
              * We received a new contextForEntry, maybe it tells us that
@@ -85,7 +86,8 @@ export class VerificationTile extends SimpleTile {
         return super.updateEntry(entry, param);
     }
 
-    updateStatusFromAvailableContextForEntries(): boolean {
+    private updateStatusFromAvailableContextForEntries(): boolean {
+        let needsUpdate = false;
         for (const e of this.lowerEntry.contextForEntries ?? []) {
             switch (e.eventType) {
                 case VerificationEventType.Cancel:
@@ -97,8 +99,9 @@ export class VerificationTile extends SimpleTile {
                     return true;
                 default:
                     this.status = Status.InProgress;
+                    needsUpdate = true;
             }
         }
-        return false;
+        return needsUpdate;
     }
 }
