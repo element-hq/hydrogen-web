@@ -54,7 +54,7 @@ async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount
         } else {
             eventsWithinFragment = await timelineStore.eventsBefore(roomId, eventKey, amount);
         }
-        let eventEntries = eventsWithinFragment.map(e => new EventEntry(e, fragmentIdComparer, true));
+        let eventEntries = eventsWithinFragment.map(e => new EventEntry(e, fragmentIdComparer));
         entries = directionalConcat(entries, eventEntries, direction);
         // prepend or append eventsWithinFragment to entries, and wrap them in EventEntry
 
@@ -140,7 +140,7 @@ export class TimelineReader {
         const txn = await this._storage.readTxn(stores); // todo: can we just use this.readTxnStores here? probably
         const storageEntry = await txn.timelineEvents.getByEventId(this._roomId, id);
         if (storageEntry) {
-            const entry = new EventEntry(storageEntry, this._fragmentIdComparer, true);
+            const entry = new EventEntry(storageEntry, this._fragmentIdComparer);
             if (this._decryptEntries) {
                 const request = this._decryptEntries([entry], txn, log);
                 await request.complete();
