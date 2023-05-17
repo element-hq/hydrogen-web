@@ -545,6 +545,7 @@ export class BaseRoom extends EventEmitter {
     async openTimeline(log = null) {
         return await this._platform.logger.wrapOrRun(log, "open timeline", async log => {
             if (this._timelineLoadPromise) {
+                // This is to prevent races between multiple calls to this method
                 await this._timelineLoadPromise;
             }
             let resolve;
@@ -556,10 +557,6 @@ export class BaseRoom extends EventEmitter {
             });
             log.set("id", this.id);
             if (this._timeline) {
-                /**
-                 * It's possible that timeline was created but timeline.load() has not yet finished.
-                 * We only return the timeline when it has completely loaded!
-                 */
                 log.log({ l: "Returning existing timeline" });
                 resolve();
                 return this._timeline;
