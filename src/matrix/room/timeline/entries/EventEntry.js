@@ -89,10 +89,6 @@ export class EventEntry extends BaseEventEntry {
         return this._eventEntry.event.origin_server_ts;
     }
 
-    get isLoadedFromStorage() {
-        return this._isLoadedFromStorage;
-    }
-
     get id() {
         return this._eventEntry.event.event_id;
     }
