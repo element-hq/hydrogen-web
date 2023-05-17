@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 import {Options as BaseOptions} from "../../../ViewModel";
+import {DismissibleVerificationViewModel} from "./DismissibleVerificationViewModel";
 import type {CancelReason} from "../../../../matrix/verification/SAS/channel/types";
 import type {Session} from "../../../../matrix/Session.js";
 import type {IChannel} from "../../../../matrix/verification/SAS/channel/IChannel";
-import {DismissibleVerificationViewModel} from "./DismissibleVerificationViewModel";
 import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
 
 type Options = BaseOptions & {
