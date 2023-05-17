@@ -148,7 +148,6 @@ export class TilesCollection extends BaseObservableList {
         // ask siblings to be included? both? yes, twice: a (insert c here) b, ask a(c), if yes ask b(a), else ask b(c)? if yes then b(a)?
     }
 
-
     _evaluateDateHeaderAtIdx(tileIdx) {
         // consider two tiles after the inserted tile, because
         // the first of the two tiles may be a DateTile in which case,
