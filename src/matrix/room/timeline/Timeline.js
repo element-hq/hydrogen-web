@@ -29,9 +29,7 @@ import {RetainedValue} from "../../../utils/RetainedValue";
 
 export class Timeline extends RetainedValue {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
-        super(() => {
-            this.dispose();
-        });
+        super(() => { this.dispose(); });
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
@@ -89,7 +87,7 @@ export class Timeline extends RetainedValue {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
-            await this._loadContextEntriesWhereNeeded(entries);
+            this._loadContextEntriesWhereNeeded(entries);
             this._setupEntries(entries);
         } finally {
             this._disposables.disposeTracked(readerRequest);
