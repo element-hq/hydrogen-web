@@ -26,12 +26,13 @@ import type * as OlmNamespace from "@matrix-org/olm"
 
 type Olm = typeof OlmNamespace;
 
-const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
+export const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
 const BACKUPVERSION_KEY = `${SESSION_E2EE_KEY_PREFIX}keyBackupVersion`;
 
 export enum KeyType {
-    "RecoveryKey",
-    "Passphrase"
+    RecoveryKey,
+    Passphrase,
+    KeyBits // decoded bits from either recovery key or passphrase, as stored on disk
 }
 
 async function readDefaultKeyDescription(storage: Storage): Promise<KeyDescription | undefined> {
