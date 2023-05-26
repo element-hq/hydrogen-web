@@ -12,6 +12,11 @@ yarn run vite build -c vite.sdk-assets-config.js
 yarn run vite build -c vite.sdk-lib-config.js
 yarn tsc -p tsconfig-declaration.json
 ./scripts/sdk/create-manifest.js ./target/package.json
+pushd target/
+# Make sure the dependencies are available for any consuming project that uses
+# `npm link hydrogen-view-sdk`
+yarn install --no-lockfile
+popd
 mkdir target/paths
 # this doesn't work, the ?url imports need to be in the consuming project, so disable for now
 # ./scripts/sdk/transform-paths.js ./src/platform/web/sdk/paths/vite.js ./target/paths/vite.js
