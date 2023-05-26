@@ -40,20 +40,20 @@ interface TimelineEventEntry {
 
 type TimelineEventStorageEntry = TimelineEventEntry & { key: string, eventIdKey: string };
 
-function encodeKey(roomId: string, fragmentId: number, eventIndex: number): string {
+export function encodeKey(roomId: string, fragmentId: number, eventIndex: number): string {
     return `${roomId}|${encodeUint32(fragmentId)}|${encodeUint32(eventIndex)}`;
 }
 
-function decodeKey(key: string): { roomId: string, eventKey: EventKey } {
+export function decodeKey(key: string): { roomId: string, eventKey: EventKey } {
     const [roomId, fragmentId, eventIndex] = key.split("|");
     return {roomId, eventKey: new EventKey(decodeUint32(fragmentId), decodeUint32(eventIndex))};
 }
 
-function encodeEventIdKey(roomId: string, eventId: string): string {
+export function encodeEventIdKey(roomId: string, eventId: string): string {
     return `${roomId}|${eventId}`;
 }
 
-function decodeEventIdKey(eventIdKey: string): { roomId: string, eventId: string } {
+export function decodeEventIdKey(eventIdKey: string): { roomId: string, eventId: string } {
     const [roomId, eventId] = eventIdKey.split("|");
     return {roomId, eventId};
 }

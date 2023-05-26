@@ -85,6 +85,7 @@ export class Timeline {
         const readerRequest = this._disposables.track(this._timelineReader.readFromEnd(20, txn, log));
         try {
             const entries = await readerRequest.complete();
+            console.log('entries', entries)
             this._loadContextEntriesWhereNeeded(entries);
             this._setupEntries(entries);
         } finally {
@@ -198,8 +199,10 @@ export class Timeline {
         if (!this._localEntries?.hasSubscriptions) {
             return;
         }
-        // find any local relations to this new remote event
-        for (const pee of this._localEntries) {
+        // find any local relations to these new remote events or maybe these
+        // new remote events reference one of the other new remote events we have.
+        const entryList = new ConcatList(entries, this._localEntries);
+        for (const pee of entryList) {
             // this will work because we set relatedEventId when removing remote echos
             if (pee.relatedEventId) {
                 const relationTarget = entries.find(e => e.id === pee.relatedEventId);

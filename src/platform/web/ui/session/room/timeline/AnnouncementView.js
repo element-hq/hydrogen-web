@@ -24,7 +24,10 @@ export class AnnouncementView extends TemplateView {
 
     render(t, vm) {
         return t.li({
-            className: "AnnouncementView",
+            className: {
+                "AnnouncementView": true,
+                "highlighted": vm => vm.isHighlighted,
+            },
             'data-event-id': vm.eventId
         }, t.div(vm => vm.announcement));
     }

@@ -41,6 +41,10 @@ export class SimpleTile extends ErrorReportViewModel {
         return false;
     }
 
+    get isHighlighted() {
+        return this._entry.isHighlighted;
+    }
+
     get needsDateSeparator() {
         return this._needsDateSeparator;
     }

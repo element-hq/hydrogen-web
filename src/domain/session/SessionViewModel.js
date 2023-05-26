@@ -20,7 +20,7 @@ import {RoomViewModel} from "./room/RoomViewModel.js";
 import {UnknownRoomViewModel} from "./room/UnknownRoomViewModel.js";
 import {InviteViewModel} from "./room/InviteViewModel.js";
 import {RoomBeingCreatedViewModel} from "./room/RoomBeingCreatedViewModel.js";
-import {LightboxViewModel} from "./room/LightboxViewModel.js";
+import {setupLightboxNavigation} from "./room/lightbox-navigation.js";
 import {SessionStatusViewModel} from "./SessionStatusViewModel.js";
 import {RoomGridViewModel} from "./RoomGridViewModel.js";
 import {SettingsViewModel} from "./settings/SettingsViewModel.js";
@@ -105,12 +105,12 @@ export class SessionViewModel extends ViewModel {
                 this._updateVerification(verification.get());
         }
 
-        const lightbox = this.navigation.observe("lightbox");
-        this.track(lightbox.subscribe(eventId => {
-            this._updateLightbox(eventId);
-        }));
-        this._updateLightbox(lightbox.get());
-
+        setupLightboxNavigation(this, 'lightboxViewModel', (eventId) => {
+            return {
+                room: this._roomFromNavigation(),
+                eventId,
+            };
+        });
 
         const rightpanel = this.navigation.observe("right-panel");
         this.track(rightpanel.subscribe(() => this._updateRightPanel()));

@@ -49,6 +49,7 @@ export class BaseMessageView extends TemplateView {
                 unverified: vm => vm.isUnverified,
                 disabled: !this._interactive,
                 continuation: vm => vm.isContinuation,
+                "highlighted": vm => vm.isHighlighted,
             },
             'data-event-id': vm.eventId
         }, children);
@@ -126,6 +127,7 @@ export class BaseMessageView extends TemplateView {
         } else if (vm.canRedact) {
             options.push(Menu.option(vm.i18n`Delete`, () => vm.redact()).setDestructive());
         }
+
         options.push(Menu.option(vm.i18n`Copy matrix.to permalink`, () => vm.copyPermalink()));
         return options;
     }

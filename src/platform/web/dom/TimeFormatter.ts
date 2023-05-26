@@ -32,19 +32,21 @@ export class TimeFormatter implements ITimeFormatter {
         this.todayMidnight = new Date();
         this.todayMidnight.setHours(0, 0, 0, 0);
         this.relativeDayFormatter = new Intl.RelativeTimeFormat(undefined, {numeric: "auto"});
-        this.weekdayFormatter = new Intl.DateTimeFormat(undefined, {weekday: 'long'});
+        this.weekdayFormatter = new Intl.DateTimeFormat(undefined, {weekday: 'long', timeZone: 'UTC'});
         this.currentYearFormatter = new Intl.DateTimeFormat(undefined, {
             weekday: 'long',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: 'UTC'
         });
         this.otherYearFormatter = new Intl.DateTimeFormat(undefined, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: 'UTC'
         });
-        this.timeFormatter = new Intl.DateTimeFormat(undefined, {hour: "numeric", minute: "2-digit"});
+        this.timeFormatter = new Intl.DateTimeFormat(undefined, {hour: "numeric", minute: "2-digit", timeZone: 'UTC'});
     }
     
     formatTime(date: Date): string {

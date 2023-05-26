@@ -54,6 +54,7 @@ async function readRawTimelineEntriesWithTxn(roomId, eventKey, direction, amount
         } else {
             eventsWithinFragment = await timelineStore.eventsBefore(roomId, eventKey, amount);
         }
+        console.log('readRawTimelineEntriesWithTxn eventsWithinFragment', eventsWithinFragment)
         let eventEntries = eventsWithinFragment.map(e => new EventEntry(e, fragmentIdComparer));
         entries = directionalConcat(entries, eventEntries, direction);
         // prepend or append eventsWithinFragment to entries, and wrap them in EventEntry

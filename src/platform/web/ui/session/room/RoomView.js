@@ -26,27 +26,42 @@ import {AvatarView} from "../../AvatarView.js";
 import {CallView} from "./CallView";
 import { ErrorView } from "../../general/ErrorView";
 
+class RoomHeaderView extends TemplateView {
+    render(t, vm) {
+      return t.div({className: "RoomHeader middle-header"}, [
+        t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
+        t.view(new AvatarView(vm, 32)),
+        t.div({className: "room-description"}, [
+            t.h2(vm => vm.name),
+        ]),
+        t.button({
+            className: "button-utility room-options",
+            "aria-label":vm.i18n`Room options`,
+            onClick: evt => this._toggleOptionsMenu(evt)
+        })
+    ])
+    }
+}
+
 export class RoomView extends TemplateView {
-    constructor(vm, viewClassForTile) {
+    constructor(vm, viewClassForTile, slots) {
         super(vm);
         this._viewClassForTile = viewClassForTile;
         this._optionsPopup = null;
+        this._slots = slots || {};
     }
 
     render(t, vm) {
+        let headerView;
+        if (this._slots.RoomHeaderView) {
+            headerView = new this._slots.RoomHeaderView(vm)
+        } else {
+            headerView = new RoomHeaderView(vm)
+        }
+
+
         return t.main({className: "RoomView middle"}, [
-            t.div({className: "RoomHeader middle-header"}, [
-                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
-                t.view(new AvatarView(vm, 32)),
-                t.div({className: "room-description"}, [
-                    t.h2(vm => vm.name),
-                ]),
-                t.button({
-                    className: "button-utility room-options",
-                    "aria-label":vm.i18n`Room options`,
-                    onClick: evt => this._toggleOptionsMenu(evt)
-                })
-            ]),
+            t.view(headerView),
             t.div({className: "RoomView_body"}, [
                 t.if(vm => vm.errorViewModel, t => t.div({className: "RoomView_error"}, t.view(new ErrorView(vm.errorViewModel)))),
                 t.mapView(vm => vm.callViewModel, callViewModel => callViewModel ? new CallView(callViewModel) : null),

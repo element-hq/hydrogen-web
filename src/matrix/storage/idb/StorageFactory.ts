@@ -35,12 +35,11 @@ interface ServiceWorkerHandler {
 
 async function requestPersistedStorage(): Promise<boolean> {
     // don't assume browser so we can run in node with fake-idb
-    const glob = this;
-    if (glob?.navigator?.storage?.persist) {
-        return await glob.navigator.storage.persist();
-    } else if (glob?.document.requestStorageAccess) {
+    if (window?.navigator?.storage?.persist) {
+        return await window.navigator.storage.persist();
+    } else if (window?.document.requestStorageAccess) {
         try {
-            await glob.document.requestStorageAccess();
+            await window.document.requestStorageAccess();
             return true;
         } catch (err) {
             console.warn("requestStorageAccess threw an error:", err);

@@ -29,6 +29,7 @@ import type {ILogger} from "../logging/types";
 import type {Navigation} from "./navigation/Navigation";
 import type {SegmentType} from "./navigation/index";
 import type {IURLRouter} from "./navigation/URLRouter";
+import type {History} from "../platform/web/dom/History";
 import type { ITimeFormatter } from "../platform/types/types";
 import type { FeatureSet } from "../features";
 
@@ -37,6 +38,7 @@ export type Options<T extends object = SegmentType> = {
     logger: ILogger;
     urlRouter: IURLRouter<T>;
     navigation: Navigation<T>;
+    history: History;
     emitChange?: (params: any) => void;
     features: FeatureSet
 }
@@ -151,6 +153,10 @@ export class ViewModel<N extends object = SegmentType, O extends Options<N> = Op
     get navigation(): Navigation<N> {
         // typescript needs a little help here
         return this._options.navigation as unknown as Navigation<N>;
+    }
+
+    get history(): History {
+        return this._options.history;
     }
 
     get timeFormatter(): ITimeFormatter {

@@ -38,6 +38,18 @@ export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
+export {LightboxView} from "./platform/web/ui/session/room/LightboxView.js";
+export {setupLightboxNavigation} from "./domain/session/room/lightbox-navigation.js";
+export {RightPanelView} from "./platform/web/ui/session/rightpanel/RightPanelView.js";
+export {MediaRepository} from "./matrix/net/MediaRepository";
+export {HomeServerApi} from "./matrix/net/HomeServerApi";
+export {Storage} from "./matrix/storage/idb/Storage";
+export {StorageFactory} from "./matrix/storage/idb/StorageFactory";
+export {TilesCollection} from "./domain/session/room/timeline/TilesCollection.js";
+export {FragmentIdComparer} from "./matrix/room/timeline/FragmentIdComparer.js";
+export {EventEntry} from "./matrix/room/timeline/entries/EventEntry.js";
+export {encodeKey, decodeKey, encodeEventIdKey, decodeEventIdKey} from "./matrix/storage/idb/stores/TimelineEventStore";
+export {Timeline} from "./matrix/room/timeline/Timeline.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
 export type {TimelineEntry, TileClassForEntryFn, Options, TileConstructor} from "./domain/session/room/timeline/tiles/index";
@@ -75,18 +87,24 @@ export {TextMessageView} from "./platform/web/ui/session/room/timeline/TextMessa
 export {VideoView} from "./platform/web/ui/session/room/timeline/VideoView.js";
 
 export {Navigation} from "./domain/navigation/Navigation.js";
+export {URLRouter} from "./domain/navigation/URLRouter";
+export {History} from "./platform/web/dom/History.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
+export {text, tag} from "./platform/web/ui/general/html";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
+export {ListView} from "./platform/web/ui/general/ListView";
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
+export {avatarInitials, getIdentifierColorNumber} from "./domain/avatar"
 export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
 export {LocalMedia} from "./matrix/calls/LocalMedia";
 // these should eventually be moved to another library
 export {
+    ApplyMap,
     ObservableArray,
     SortedArray,
     MappedList,

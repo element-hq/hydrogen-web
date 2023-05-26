@@ -22,6 +22,8 @@ export class ImageView extends BaseMediaView {
             src: vm => vm.thumbnailUrl,
             alt: vm => vm.label,
             title: vm => vm.label,
+            'data-mxc-url': vm => vm.mxcUrl,
+            'data-thumbnail-mxc-url': vm => vm.thumbnailMxcUrl,
             style: `max-width: ${vm.width}px; max-height: ${vm.height}px;`
         });
         return vm.isPending || !vm.lightboxUrl ? img : t.a({href: vm.lightboxUrl}, img);

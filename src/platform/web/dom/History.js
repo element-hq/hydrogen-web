@@ -36,10 +36,10 @@ export class History extends BaseObservableValue {
         But for SSO, we need to handle <root>/?loginToken=<TOKEN>
         Handle that as a special case for now.
         */
-        if (document.location.search.includes("loginToken")) {
+        if (document?.location?.search.includes("loginToken")) {
             return document.location.search;
         }
-        return document.location.hash;
+        return document?.location?.hash;
     }
 
     /** does not emit */

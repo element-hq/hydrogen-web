@@ -17,6 +17,8 @@ limitations under the License.
 import {SimpleTile} from "./SimpleTile.js";
 import {ReactionsViewModel} from "../ReactionsViewModel.js";
 import {getIdentifierColorNumber, avatarInitials, getAvatarHttpUrl} from "../../../../avatar";
+import {copyPlaintext} from "../../../../../platform/web/dom/utils";
+
 
 
 export class BaseMessageTile extends SimpleTile {
@@ -57,6 +59,10 @@ export class BaseMessageTile extends SimpleTile {
         return `${this.urlRouter.urlUntilSegment("room")}/member/${this.sender}`;
     }
 
+    get eventId() {
+        return this._entry.id;
+    }
+
     // Avatar view model contract
     get avatarColorNumber() {
         return getIdentifierColorNumber(this._entry.sender);
@@ -79,7 +85,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     get isOwn() {
-        return this._entry.sender === this._ownMember.userId;
+        return this._entry.sender === this._ownMember?.userId;
     }
 
     get isContinuation() {

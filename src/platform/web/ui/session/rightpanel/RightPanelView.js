@@ -39,6 +39,8 @@ export class RightPanelView extends TemplateView {
                 return new MemberListView(vm);
             case "member-details":
                 return new MemberDetailsView(vm);
+            case "custom":
+                return new vm.customView(vm);
             default:
                 return new LoadingView();
         }
