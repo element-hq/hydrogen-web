@@ -37,7 +37,8 @@ export const schema: MigrationFunc[] = [
     addInboundSessionBackupIndex,
     migrateBackupStatus,
     createCallStore,
-    applyCrossSigningChanges
+    applyCrossSigningChanges,
+    createSharedSecretStore,
 ];
 // TODO: how to deal with git merge conflicts of this array?
 
@@ -298,4 +299,9 @@ async function applyCrossSigningChanges(db: IDBDatabase, txn: IDBTransaction, lo
         return NOT_DONE;
     });
     log.set("marked_outdated", counter);
+}
+
+//v19 create shared secrets store
+function createSharedSecretStore(db: IDBDatabase) : void {
+    db.createObjectStore("sharedSecrets", {keyPath: "key"});
 }

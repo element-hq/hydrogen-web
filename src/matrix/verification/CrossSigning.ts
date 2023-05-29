@@ -32,6 +32,7 @@ import type {ILogItem} from "../../logging/types";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
 import type * as OlmNamespace from "@matrix-org/olm";
+import { SecretFetcher } from "../ssss";
 
 type Olm = typeof OlmNamespace;
 
@@ -80,7 +81,8 @@ enum MSKVerification {
 
 export class CrossSigning {
     private readonly storage: Storage;
-    private readonly secretStorage: SecretStorage;
+    // private readonly secretStorage: SecretStorage;
+    private readonly secretFetcher: SecretFetcher;
     private readonly platform: Platform;
     private readonly deviceTracker: DeviceTracker;
     private readonly olm: Olm;
@@ -97,7 +99,8 @@ export class CrossSigning {
 
     constructor(options: {
         storage: Storage,
-        secretStorage: SecretStorage,
+        // secretStorage: SecretStorage,
+        secretFetcher: SecretFetcher,
         deviceTracker: DeviceTracker,
         platform: Platform,
         olm: Olm,
@@ -109,7 +112,8 @@ export class CrossSigning {
         deviceMessageHandler: DeviceMessageHandler,
     }) {
         this.storage = options.storage;
-        this.secretStorage = options.secretStorage;
+        // this.secretStorage = options.secretStorage;
+        this.secretFetcher = options.secretFetcher;
         this.platform = options.platform;
         this.deviceTracker = options.deviceTracker;
         this.olm = options.olm;
@@ -208,6 +212,7 @@ export class CrossSigning {
     }
 
     private handleSASDeviceMessage({ unencrypted: event }) {
+        if (!event) { return; }
         const txnId = event.content.transaction_id;
         /**
          * If we receive an event for the current/previously finished 
@@ -301,6 +306,20 @@ export class CrossSigning {
             await this.deviceTracker.invalidateUserKeys(userId);
             this.emitUserTrustUpdate(userId, log);
             return keyToSign;
+        });
+    }
+
+    async isOurUserDeviceTrusted(device: DeviceKey, log: ILogItem): Promise<boolean> {
+        return await log.wrap("CrossSigning.getDeviceTrust", async () => {
+            const ourSSK = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.SelfSigning, this.hsApi, log);
+            if (!ourSSK) {
+                return false;
+            }
+            const verification = this.hasValidSignatureFrom(device, ourSSK, log);
+            if (verification === SignatureVerification.Valid) {
+                return true;
+            }
+            return false;
         });
     }
 
@@ -421,7 +440,7 @@ export class CrossSigning {
     }
 
     private async getSigningKey(usage: KeyUsage): Promise<Uint8Array | undefined> {
-        const seedStr = await this.secretStorage.readSecret(`m.cross_signing.${usage}`);
+        const seedStr = await this.secretFetcher.getSecret(`m.cross_signing.${usage}`);
         if (seedStr) {
             return new Uint8Array(this.platform.encoding.base64.decode(seedStr));
         }

@@ -38,6 +38,7 @@ import {GroupSessionDecryptionStore} from "./stores/GroupSessionDecryptionStore"
 import {OperationStore} from "./stores/OperationStore";
 import {AccountDataStore} from "./stores/AccountDataStore";
 import {CallStore} from "./stores/CallStore";
+import {SharedSecretStore} from "./stores/SharedSecretStore";
 import type {ILogger, ILogItem} from "../../../logging/types";
 
 export type IDBKey = IDBValidKey | IDBKeyRange;
@@ -176,6 +177,10 @@ export class Transaction {
     
     get calls(): CallStore {
         return this._store(StoreNames.calls, idbStore => new CallStore(idbStore));
+    }
+
+    get sharedSecrets(): SharedSecretStore {
+        return this._store(StoreNames.sharedSecrets, idbStore => new SharedSecretStore(idbStore));
     }
 
     async complete(log?: ILogItem): Promise<void> {

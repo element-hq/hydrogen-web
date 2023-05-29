@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-export function groupBy<K, V>(array: V[], groupFn: (V) => K): Map<K, V[]> {
+export function groupBy<K, V>(array: V[], groupFn: (element: V) => K): Map<K, V[]> {
     return groupByWithCreator<K, V, V[]>(array, groupFn,
         () => {return [];},
         (array, value) => array.push(value)
     );
 }
 
-export function groupByWithCreator<K, V, C>(array: V[], groupFn: (V) => K, createCollectionFn: () => C, addCollectionFn: (C, V) => void): Map<K, C> {
+export function groupByWithCreator<K, V, C>(array: V[], groupFn: (element: V) => K, createCollectionFn: () => C, addCollectionFn: (C, V) => void): Map<K, C> {
     return array.reduce((map, value) => {
         const key = groupFn(value);
         let collection = map.get(key);

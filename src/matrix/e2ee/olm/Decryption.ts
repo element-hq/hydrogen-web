@@ -165,7 +165,7 @@ export class Decryption {
                 throw new DecryptionError("PLAINTEXT_NOT_JSON", event, {plaintext, error});
             }
             this._validatePayload(payload, event);
-            return new DecryptionResult(payload, senderKey, payload.keys!.ed25519!);
+            return new DecryptionResult(payload, senderKey, payload.keys!.ed25519!, event);
         } else {
             throw new DecryptionError("OLM_NO_MATCHING_SESSION", event,
                 {knownSessionIds: senderKeyDecryption.sessions.map(s => s.id)});

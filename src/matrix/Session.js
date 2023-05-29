@@ -43,9 +43,11 @@ import {
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
     removeKey as ssssRemoveKey,
-    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
+    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey,
+    SecretStorage,
+    SharedSecret,
+    SecretFetcher
 } from "./ssss/index";
-import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/value";
 import {CallHandler} from "./calls/CallHandler";
 import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
@@ -107,6 +109,7 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+        this.secretFetcher = new SecretFetcher();
 
         if (features.calls) {
             this._setupCallHandler();
@@ -200,6 +203,20 @@ export class Session {
         });
         this._megolmDecryption = new MegOlmDecryption(this._keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
+        this._sharedSecret = new SharedSecret({
+            hsApi: this._hsApi,
+            storage: this._storage,
+            deviceMessageHandler: this._deviceMessageHandler,
+            deviceTracker: this._deviceTracker,
+            ourUserId: this.userId,
+            olmEncryption: this._olmEncryption,
+            crypto: this._platform.crypto,
+            encoding: this._platform.encoding,
+            crossSigning: this._crossSigning,
+            logger: this._platform.logger,
+        });
+        this.secretFetcher.setSecretSharing(this._sharedSecret);
+
     }
 
     _createRoomEncryption(room, encryptionParams) {
@@ -253,11 +270,11 @@ export class Session {
                 this._keyBackup.get().dispose();
                 this._keyBackup.set(undefined);
             }
-            const crossSigning = this._crossSigning.get();
-            if (crossSigning) {
-                crossSigning.dispose();
-                this._crossSigning.set(undefined);
-            }
+            // const crossSigning = this._crossSigning.get();
+            // if (crossSigning) {
+            //     crossSigning.dispose();
+            //     this._crossSigning.set(undefined);
+            // }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
             if (await this._tryLoadSecretStorage(key, log)) {
                 // only after having read a secret, write the key
@@ -335,6 +352,7 @@ export class Session {
             if (isValid) {
                 this._secretStorage = secretStorage;
                 await this._loadSecretStorageService(log);
+                this.secretFetcher.secretStorage(secretStorage);
             }
             return isValid;
         });
@@ -362,29 +380,6 @@ export class Session {
                     log.set("no_backup", true);
                 }
             });
-            if (this._features.crossSigning) {
-                await log.wrap("enable cross-signing", async log => {
-                    const crossSigning = new CrossSigning({
-                        storage: this._storage,
-                        secretStorage: this._secretStorage,
-                        platform: this._platform,
-                        olm: this._olm,
-                        olmUtil: this._olmUtil,
-                        deviceTracker: this._deviceTracker,
-                        deviceMessageHandler: this._deviceMessageHandler,
-                        hsApi: this._hsApi,
-                        ownUserId: this.userId,
-                        e2eeAccount: this._e2eeAccount,
-                        deviceId: this.deviceId,
-                    });
-                    if (await crossSigning.load(log)) {
-                        this._crossSigning.set(crossSigning);
-                    }
-                    else {
-                        crossSigning.dispose();
-                    }
-                });
-            }
         } catch (err) {
             log.catch(err);
         }
@@ -589,6 +584,32 @@ export class Session {
                         await this._writeSSSSKey(ssssKey);
                     }
                 }
+            });
+        }
+
+        if (this._features.crossSigning) {
+            this._platform.logger.run("enable cross-signing", async log => {
+                const crossSigning = new CrossSigning({
+                    storage: this._storage,
+                    // secretStorage: this._secretStorage,
+                    secretFetcher: this.secretFetcher,
+                    platform: this._platform,
+                    olm: this._olm,
+                    olmUtil: this._olmUtil,
+                    deviceTracker: this._deviceTracker,
+                    deviceMessageHandler: this._deviceMessageHandler,
+                    hsApi: this._hsApi,
+                    ownUserId: this.userId,
+                    e2eeAccount: this._e2eeAccount,
+                    deviceId: this.deviceId,
+                });
+                this._crossSigning.set(crossSigning);
+                // if (await crossSigning.load(log)) {
+                //     this._crossSigning.set(crossSigning);
+                // }
+                // else {
+                //     crossSigning.dispose();
+                // }
             });
         }
         await this._keyBackup.get()?.start(log);
