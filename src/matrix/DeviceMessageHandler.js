@@ -81,8 +81,13 @@ export class DeviceMessageHandler extends EventEmitter{
         await log.wrap("Verifying fingerprint of encrypted toDevice messages", async (log) => {
             for (const result of decryptionResults) {
                 console.log("result", result);
-                const deviceId = result.event.sender_device ?? result.event.content.requesting_device_id;
-                const device = await deviceTracker.deviceForId(result.event.sender, deviceId, hsApi, log);
+                const sender = result.event.sender;
+                const device = await deviceTracker.deviceForCurveKey(
+                    sender,
+                    result.senderCurve25519Key,
+                    hsApi,
+                    log
+                );
                 result.setDevice(device);
                 if (result.isVerified) {
                     console.log("Received encrypted toDevice messages", decryptionResults);

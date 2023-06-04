@@ -41,5 +41,6 @@ export class SecretFetcher {
 
     setSecretSharing(sharing: SharedSecret) {
         this.secretSharing = sharing;
+        this.secretSharing.setSecretFetcher(this);
     }
 }

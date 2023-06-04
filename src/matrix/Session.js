@@ -352,7 +352,7 @@ export class Session {
             if (isValid) {
                 this._secretStorage = secretStorage;
                 await this._loadSecretStorageService(log);
-                this.secretFetcher.secretStorage(secretStorage);
+                this.secretFetcher.setSecretStorage(secretStorage);
             }
             return isValid;
         });
