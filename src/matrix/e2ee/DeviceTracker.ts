@@ -528,6 +528,21 @@ export class DeviceTracker {
 
     /** Gets a single device */
     async deviceForId(userId: string, deviceId: string, hsApi: HomeServerApi, log: ILogItem) {
+        /**
+         * 1. If the device keys are outdated, we will fetch all the keys and update them.
+         */
+        const userIdentityTxn = await this._storage.readTxn([this._storage.storeNames.userIdentities]);
+        const userIdentity = await userIdentityTxn.userIdentities.get(userId);
+        if (userIdentity?.keysTrackingStatus !== KeysTrackingStatus.UpToDate) {
+            const {deviceKeys} = await this._queryKeys([userId], hsApi, log);
+            const keyList = deviceKeys.get(userId);
+            const device = keyList!.find(device => device.device_id === deviceId);
+            return device;
+        }
+
+        /**
+         * 2. If keys are up to date, return from storage.
+         */
         const txn = await this._storage.readTxn([
             this._storage.storeNames.deviceKeys,
         ]);
@@ -554,6 +569,9 @@ export class DeviceTracker {
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.deviceKeys,
             ]);
+            // todo: the following comment states what the code does
+            // but it fails to explain why it does what it does...
+
             // check again we don't have the device already.
             // when updating all keys for a user we allow updating the
             // device when the key hasn't changed so the device display name
