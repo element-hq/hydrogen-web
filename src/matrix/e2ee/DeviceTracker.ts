@@ -645,7 +645,7 @@ export class DeviceTracker {
 
     /** Gets the device identites for a set of user identities that
      * are known to be up to date, and a set of userIds that are known
-     * to be absent from our store our outdated. The outdated user ids
+     * to be absent from our store or are outdated. The outdated user ids
      * will have their keys fetched from the homeserver. */
     async _devicesForUserIdentities(upToDateIdentities: UserIdentity[], outdatedUserIds: string[], hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey[]> {
         log.set("uptodate", upToDateIdentities.length);
