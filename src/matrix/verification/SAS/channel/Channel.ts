@@ -98,8 +98,12 @@ export class ToDeviceChannel extends Disposables implements IChannel {
         this.track(
             this.deviceMessageHandler.disposableOn(
                 "message",
-                async ({ unencrypted }) =>
-                    await this.handleDeviceMessage(unencrypted)
+                async ({ unencrypted }) => {
+                    if (!unencrypted) {
+                        return;
+                    }
+                    await this.handleDeviceMessage(unencrypted);
+                }
             )
         );
         this.track(() => {
