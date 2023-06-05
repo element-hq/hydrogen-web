@@ -48,7 +48,7 @@ const enum EVENT_TYPE {
     SEND = "m.secret.send",
 }
 
-export class SharedSecret {
+export class SecretSharing {
     private readonly hsApi: HomeServerApi;
     private readonly storage: Storage;
     private readonly deviceMessageHandler: DeviceMessageHandler;

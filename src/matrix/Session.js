@@ -45,7 +45,7 @@ import {
     removeKey as ssssRemoveKey,
     keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey,
     SecretStorage,
-    SharedSecret,
+    SecretSharing,
     SecretFetcher
 } from "./ssss/index";
 import {ObservableValue, RetainedObservableValue} from "../observable/value";
@@ -201,7 +201,7 @@ export class Session {
         });
         this._megolmDecryption = new MegOlmDecryption(this._keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
-        this._sharedSecret = new SharedSecret({
+        this._secretSharing = new SecretSharing({
             hsApi: this._hsApi,
             storage: this._storage,
             deviceMessageHandler: this._deviceMessageHandler,
@@ -213,7 +213,7 @@ export class Session {
             crossSigning: this._crossSigning,
             logger: this._platform.logger,
         });
-        this.secretFetcher.setSecretSharing(this._sharedSecret);
+        this.secretFetcher.setSecretSharing(this._secretSharing);
 
     }
 

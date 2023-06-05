@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type {SecretStorage} from "./SecretStorage";
-import type {SharedSecret} from "./SharedSecret";
+import type {SecretSharing} from "./SecretSharing";
 
 /**
  * This is a wrapper around SecretStorage and SecretSharing so that 
@@ -23,7 +23,7 @@ import type {SharedSecret} from "./SharedSecret";
  */
 export class SecretFetcher {
     public secretStorage: SecretStorage;
-    public secretSharing: SharedSecret;
+    public secretSharing: SecretSharing;
 
     async getSecret(name: string): Promise<string | undefined> {
         ;
@@ -39,7 +39,7 @@ export class SecretFetcher {
         this.secretStorage = storage;
     }
 
-    setSecretSharing(sharing: SharedSecret) {
+    setSecretSharing(sharing: SecretSharing) {
         this.secretSharing = sharing;
         this.secretSharing.setSecretFetcher(this);
     }
