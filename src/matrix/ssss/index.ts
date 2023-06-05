@@ -24,6 +24,12 @@ import type {KeyDescriptionData} from "./common";
 import type {Platform} from "../../platform/web/Platform.js";
 import type * as OlmNamespace from "@matrix-org/olm"
 
+// Add exports for other classes
+export {SecretFetcher} from "./SecretFetcher";
+export {SharedSecret} from "./SharedSecret";
+export {SecretStorage} from "./SecretStorage";
+
+
 type Olm = typeof OlmNamespace;
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
