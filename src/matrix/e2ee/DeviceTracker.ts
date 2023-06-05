@@ -677,6 +677,10 @@ export class DeviceTracker {
     async getDeviceByCurve25519Key(curve25519Key, txn: Transaction): Promise<DeviceKey | undefined> {
         return await txn.deviceKeys.getByCurve25519Key(curve25519Key);
     }
+
+    get ownDeviceId(): string {
+        return this._ownDeviceId;
+    }
 }
 
 import {createMockStorage} from "../../mocks/Storage";
