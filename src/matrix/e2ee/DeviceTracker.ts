@@ -595,6 +595,22 @@ export class DeviceTracker {
         return deviceKey;
     }
 
+    async deviceForCurveKey(userId: string, key: string, hsApi: HomeServerApi, log: ILogItem) {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.deviceKeys,
+            this._storage.storeNames.userIdentities,
+        ]);
+        const userIdentity = await txn.userIdentities.get(userId);
+        if (userIdentity?.keysTrackingStatus !== KeysTrackingStatus.UpToDate) {
+            const {deviceKeys} = await this._queryKeys([userId], hsApi, log);
+            const keyList = deviceKeys.get(userId);
+            const device = keyList!.find(device => device.keys.curve25519 === key);
+            return device;
+        }
+        const device = await txn.deviceKeys.getByCurve25519Key(key);
+        return device;
+    }
+
     /**
      * Gets all the device identities with which keys should be shared for a set of users in a tracked room.
      * If any userIdentities are outdated, it will fetch them from the homeserver.
