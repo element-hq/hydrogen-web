@@ -604,7 +604,7 @@ export class DeviceTracker {
         if (userIdentity?.keysTrackingStatus !== KeysTrackingStatus.UpToDate) {
             const {deviceKeys} = await this._queryKeys([userId], hsApi, log);
             const keyList = deviceKeys.get(userId);
-            const device = keyList!.find(device => device.keys.curve25519 === key);
+            const device = keyList!.find(device => getDeviceCurve25519Key(device) === key);
             return device;
         }
         const device = await txn.deviceKeys.getByCurve25519Key(key);
