@@ -25,6 +25,7 @@ import {VerificationCompleteViewModel} from "./stages/VerificationCompleteViewMo
 import type {Session} from "../../../matrix/Session.js";
 import type {SASVerification} from "../../../matrix/verification/SAS/SASVerification";
 import type {SASRequest} from "../../../matrix/verification/SAS/SASRequest";
+import type {CrossSigning} from "../../../matrix/verification/CrossSigning";
 
 type Options = BaseOptions & {
     session: Session;
@@ -34,6 +35,7 @@ type Options = BaseOptions & {
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
     private sas: SASVerification;
     private _currentStageViewModel: any;
+    private _needsToRequestSecret: boolean;
 
     constructor(options: Readonly<Options>) {
         super(options);
@@ -48,13 +50,14 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     }
 
     private async start(requestOrUserId: SASRequest | string) {
-        await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
-            const crossSigning = this.getOption("session").crossSigning.get();
-            this.sas = crossSigning.startVerification(requestOrUserId, log);
+        await this.logAndCatch("DeviceVerificationViewModel.start", async (log) => {
+            const crossSigning = this.getOption("session").crossSigning.get() as CrossSigning;
+            this.sas = crossSigning.startVerification(requestOrUserId, log)!;
             this.addEventListeners();
             if (typeof requestOrUserId === "string") {
                 this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
             }
+            this._needsToRequestSecret = !await crossSigning.areWeVerified(log);
             return this.sas.start();
         });
     }
@@ -81,7 +84,23 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             this.updateCurrentStageViewModel(
                 new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
             );
+            this.requestSecrets();
         }));
+    }
+
+    private async requestSecrets() {
+        await this.platform.logger.run("DeviceVerificationViewModel.requestSecrets", async (log) => {
+            if (this._needsToRequestSecret) {
+                const neededSecrets = [
+                    "m.cross_signing.master",
+                    "m.cross_signing.self_signing",
+                    "m.cross_signing.user_signing",
+                ];
+                const secretSharing = this.getOption("session").secretSharing;
+                const promises = neededSecrets.map((secret) => secretSharing.requestSecret(secret, log));
+                await Promise.all(promises);
+            }
+        });
     }
 
     private updateCurrentStageViewModel(vm) {
