@@ -172,8 +172,6 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(requestOrUserId: SASRequest, log: ILogItem): SASVerification | undefined;
-    startVerification(requestOrUserId: string, log: ILogItem): SASVerification | undefined;
     startVerification(requestOrUserId: string | SASRequest, log: ILogItem): SASVerification | undefined {
         if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
             return;
@@ -317,6 +315,13 @@ export class CrossSigning {
             }
             return false;
         });
+    }
+
+    areWeVerified(log: ILogItem): Promise<boolean> {
+        return log.wrap("CrossSigning.areWeVerified", async () => {
+            const device = await this.deviceTracker.deviceForId(this.ownUserId, this.deviceId, this.hsApi, log);
+            return this.isOurUserDeviceTrusted(device!, log);
+       }); 
     }
 
     getUserTrust(userId: string, log: ILogItem): Promise<UserTrust> {
