@@ -55,7 +55,7 @@ export class SecretSharing {
     private readonly deviceTracker: DeviceTracker;
     private readonly ourUserId: string;
     private readonly olmEncryption: OlmEncryption;
-    private readonly waitMap: Map<string, Deferred<any>> = new Map();
+    private readonly waitMap: Map<string, { deferred: Deferred<any>, name: string }> = new Map();
     private readonly crypto: Crypto;
     private readonly encoding: Encoding;
     private readonly aesEncryption: AESEncryption;
@@ -87,10 +87,14 @@ export class SecretSharing {
                     this._respondToRequest(encrypted);
                 }
                 case EVENT_TYPE.SEND: {
-                    const { request_id } = encrypted.event.content;
-                    const deffered = this.waitMap.get(request_id);
-                    deffered?.resolve(encrypted);
-                    this.waitMap.delete(request_id);
+                    const { request_id, secret } = encrypted.event.content;
+                    const obj = this.waitMap.get(request_id);
+                    if (obj) {
+                        const { deferred, name } = obj;
+                        deferred.resolve(encrypted);
+                        this.waitMap.delete(request_id);
+                        this.writeToStorage(name, secret);
+                    }
                     break;
                 }
             }
@@ -188,15 +192,13 @@ export class SecretSharing {
     }
 
     // todo: this will break if two different pieces of code call this method
-    requestSecret(name: string, log: ILogItem): Promise<string> {
+    requestSecret(name: string, log: ILogItem): Promise<SecretRequest> {
         return log.wrap("SharedSecret.requestSecret", async (_log) => {
             const request_id = makeTxnId();
-            const promise = this.trackSecretRequest(request_id);
+            const promise = this.trackSecretRequest(request_id, name);
             await this.sendRequestForSecret(name, request_id, _log);
-            const result = await promise;
-            const secret = result.event.content.secret;
-            await this.writeToStorage(name, secret);
-            return secret;
+            const request = new SecretRequest(promise);
+            return request;
         });
     }
 
@@ -206,9 +208,9 @@ export class SecretSharing {
         txn.sharedSecrets.set(name, { encrypted });
     }
 
-    private trackSecretRequest(request_id: string): Promise<any> {
+    private trackSecretRequest(request_id: string, name: string): Promise<any> {
         const deferred = new Deferred(); 
-        this.waitMap.set(request_id, deferred);
+        this.waitMap.set(request_id, { deferred, name });
         return deferred.promise;
     }
     
@@ -234,6 +236,31 @@ export class SecretSharing {
     }
 }
 
+class SecretRequest {
+    constructor(private receivedSecretPromise: Promise<any>) {
+    }
+
+    /**
+     * Wait for any of your device to respond to this secret request.
+     * If you're going to await this method, make sure you do that within a try catch block.
+     * @param timeout The max time (in seconds) that we will wait, after which the promise rejects
+     */
+    async waitForResponse(timeout: number = 30): Promise<string> {
+        const timeoutPromise: Promise<string> = new Promise((_, reject) => {
+            setTimeout(reject, timeout * 1000);
+        });
+        const response = await Promise.race([this.receivedSecretPromise, timeoutPromise]);
+        return response.event.content.secret;
+    }
+}
+
+
+/**
+ * The idea is to encrypt the secret with AES before persisting to storage.
+ * The AES key is also in storage so this isn't really that much more secure.
+ * But it's a tiny bit better than storing the secret in plaintext.
+ */
+// todo: We could also encrypt the access-token using AES like element does
 class AESEncryption {
     private key: JsonWebKey;
     private iv: Uint8Array;
@@ -248,6 +275,11 @@ class AESEncryption {
 
         // 2. If no key, create it and store in session store
         if (!key) {
+            /**
+             * Element creates the key as "non-extractable", meaning that it cannot
+             * be exported through the crypto API. But since it is going
+             * to end up in local-storage anyway, I don't see a reason to do that.
+             */
             key = await this.crypto.aes.generateKey("jwk");
             iv = await this.crypto.aes.generateIV();
             const txn = await this.storage.readWriteTxn([StoreNames.session]);
