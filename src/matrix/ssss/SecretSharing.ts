@@ -132,6 +132,10 @@ export class SecretSharing {
 
     private async shouldRespondToRequest(request: any, log: ILogItem): Promise<boolean> {
         return log.wrap("SecretSharing.shouldRespondToRequest", async () => {
+            if (request.event.content.requesting_device_id === this.deviceTracker.ownDeviceId) {
+                // This is the request that we sent, so ignore
+                return false;
+            }
             const crossSigning = this.crossSigning.get();
             if (!crossSigning) {
                 // We're not in a position to respond to this request
