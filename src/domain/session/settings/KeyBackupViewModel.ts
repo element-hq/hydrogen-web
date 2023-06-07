@@ -66,6 +66,9 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
             this._onKeyBackupChange(); // update status
         };
         this.track(this._session.keyBackup.subscribe(onKeyBackupSet));
+        this.track(this._session.crossSigning.subscribe(() => {
+            this.emitChange("crossSigning");
+        }));
         onKeyBackupSet(this._keyBackup);
     }
 
