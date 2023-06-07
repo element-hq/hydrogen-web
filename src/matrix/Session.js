@@ -111,7 +111,8 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
-        this.secretFetcher = new SecretFetcher();
+        this._secretFetcher = new SecretFetcher();
+        this._secretSharing = null;
     }
 
     get fingerprintKey() {
@@ -213,7 +214,7 @@ export class Session {
             crossSigning: this._crossSigning,
             logger: this._platform.logger,
         });
-        this.secretFetcher.setSecretSharing(this._secretSharing);
+        this._secretFetcher.setSecretSharing(this._secretSharing);
 
     }
 
@@ -349,8 +350,8 @@ export class Session {
             log.set("isValid", isValid);
             if (isValid) {
                 this._secretStorage = secretStorage;
-                await this._loadSecretStorageService(log);
-                this.secretFetcher.setSecretStorage(secretStorage);
+                await this._loadSecretStorageServices(secretStorage, log);
+                this._secretFetcher.setSecretStorage(secretStorage);
             }
             return isValid;
         });
@@ -394,6 +395,10 @@ export class Session {
 
     get crossSigning() {
         return this._crossSigning;
+    }
+
+    get secretSharing() {
+        return this._secretSharing;
     }
 
     get hasIdentity() {
@@ -590,7 +595,7 @@ export class Session {
                 const crossSigning = new CrossSigning({
                     storage: this._storage,
                     // secretStorage: this._secretStorage,
-                    secretFetcher: this.secretFetcher,
+                    secretFetcher: this._secretFetcher,
                     platform: this._platform,
                     olm: this._olm,
                     olmUtil: this._olmUtil,
