@@ -188,8 +188,23 @@ export class SecretSharing {
      * @param decryptionResult Encrypted to-device event that contains the secret
      */
     async shouldAcceptSecret(decryptionResult: DecryptionResult): Promise<string | undefined> {
+        // 1. Check if we can trust this response
+        const crossSigning = this.crossSigning.get();
+        if (!crossSigning) {
+            return;
+        }
+        const device = decryptionResult.device;
+        if (!device) {
+            return;
+        }
+        if (!await crossSigning.isOurUserDeviceTrusted(device)) {
+            // We don't want to accept secrets from an untrusted device
+            console.log("received secret, but ignoring because not verified");
+            return;
+        }
         const content = decryptionResult.event.content!;
         const requestId = content.request_id;
+        // 2. Check if this request is in waitMap
         const obj = this.waitMap.get(requestId);
         if (obj) {
             const { name, deferred } = obj;
@@ -198,6 +213,7 @@ export class SecretSharing {
             await this.removeStoredRequestId(requestId);
             return name;
         }
+        // 3. Check if we've persisted the request to storage
         const txn = await this.storage.readTxn([this.storage.storeNames.session]);
         const storedIds = await txn.session.get(STORAGE_KEY);
         const name = storedIds?.[requestId];

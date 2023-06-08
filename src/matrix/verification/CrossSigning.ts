@@ -303,13 +303,13 @@ export class CrossSigning {
         });
     }
 
-    async isOurUserDeviceTrusted(device: DeviceKey, log: ILogItem): Promise<boolean> {
-        return await log.wrap("CrossSigning.getDeviceTrust", async () => {
-            const ourSSK = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.SelfSigning, this.hsApi, log);
+    async isOurUserDeviceTrusted(device: DeviceKey, log?: ILogItem): Promise<boolean> {
+        return await this.platform.logger.wrapOrRun(log, "CrossSigning.getDeviceTrust", async (_log) => {
+            const ourSSK = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.SelfSigning, this.hsApi, _log);
             if (!ourSSK) {
                 return false;
             }
-            const verification = this.hasValidSignatureFrom(device, ourSSK, log);
+            const verification = this.hasValidSignatureFrom(device, ourSSK, _log);
             if (verification === SignatureVerification.Valid) {
                 return true;
             }
