@@ -25,6 +25,7 @@ import type {Encoding} from "../../platform/web/utils/Encoding.js";
 import type {CrossSigning} from "../verification/CrossSigning";
 import type {SecretFetcher} from "./SecretFetcher";
 import type {ObservableValue} from "../../observable/value";
+import type {DecryptionResult} from "../e2ee/DecryptionResult";
 import {makeTxnId, formatToDeviceMessagesPayload} from "../common.js";
 import {Deferred} from "../../utils/Deferred";
 import {StoreNames} from "../storage/common";
@@ -47,6 +48,9 @@ const enum EVENT_TYPE {
     REQUEST = "m.secret.request",
     SEND = "m.secret.send",
 }
+
+
+const STORAGE_KEY = "secretRequestIds";
 
 export class SecretSharing {
     private readonly hsApi: HomeServerApi;
@@ -80,20 +84,18 @@ export class SecretSharing {
     }
 
     private async init() {
-        this.deviceMessageHandler.on("message", ({ encrypted }) => {
+        this.deviceMessageHandler.on("message", async ({ encrypted }) => {
             const type: EVENT_TYPE = encrypted?.event.type;
             switch (type) {
                 case EVENT_TYPE.REQUEST: {
                     this._respondToRequest(encrypted);
+                    break;
                 }
                 case EVENT_TYPE.SEND: {
-                    const { request_id, secret } = encrypted.event.content;
-                    const obj = this.waitMap.get(request_id);
-                    if (obj) {
-                        const { deferred, name } = obj;
-                        deferred.resolve(encrypted);
-                        this.waitMap.delete(request_id);
-                        this.writeToStorage(name, secret);
+                    const {secret} = encrypted.event.content;
+                    const name = await this.shouldAcceptSecret(encrypted);
+                    if (name) {
+                        this.writeSecretToStorage(name, secret);
                     }
                     break;
                 }
@@ -180,6 +182,40 @@ export class SecretSharing {
 
     }
 
+    /**
+     * Returns name of the secret if we can accept the response.
+     * Returns undefined otherwise.
+     * @param decryptionResult Encrypted to-device event that contains the secret
+     */
+    async shouldAcceptSecret(decryptionResult: DecryptionResult): Promise<string | undefined> {
+        const content = decryptionResult.event.content!;
+        const requestId = content.request_id;
+        const obj = this.waitMap.get(requestId);
+        if (obj) {
+            const { name, deferred } = obj;
+            deferred.resolve(decryptionResult);
+            this.waitMap.delete(requestId);
+            await this.removeStoredRequestId(requestId);
+            return name;
+        }
+        const txn = await this.storage.readTxn([this.storage.storeNames.session]);
+        const storedIds = await txn.session.get(STORAGE_KEY);
+        const name = storedIds?.[requestId];
+        if (name) {
+            await this.removeStoredRequestId(requestId);
+            return name;
+        }
+    }
+
+    async removeStoredRequestId(requestId: string): Promise<void> {
+        const txn = await this.storage.readWriteTxn([this.storage.storeNames.session]);
+        const storedIds = await txn.session.get(STORAGE_KEY);
+        if (storedIds) {
+            delete storedIds[requestId];
+            txn.session.set(STORAGE_KEY, storedIds);
+        }
+    }
+
     async getLocallyStoredSecret(name: string): Promise<any> {
         const txn = await this.storage.readTxn([
             this.storage.storeNames.sharedSecrets,
@@ -197,12 +233,28 @@ export class SecretSharing {
             const request_id = makeTxnId();
             const promise = this.trackSecretRequest(request_id, name);
             await this.sendRequestForSecret(name, request_id, _log);
+            await this.writeRequestIdToStorage(request_id, name);
             const request = new SecretRequest(promise);
             return request;
         });
     }
 
-    private async writeToStorage(name:string, secret: any) {
+    /**
+     * We will store the request-id of every secret request that we send.
+     * If a device responds to our secret request when we're offline and we receive
+     * it via sync when we come online at some later time, we can use this persisted
+     * request-id to determine if we should accept the secret.
+     */
+    private async writeRequestIdToStorage(requestId: string, name: string): Promise<void> {
+        const txn = await this.storage.readWriteTxn([
+            this.storage.storeNames.session,
+        ]);
+        const txnIds = await txn.session.get(STORAGE_KEY) ?? {};
+        txnIds[requestId] = name;
+        txn.session.set(STORAGE_KEY, txnIds)
+    }
+
+    private async writeSecretToStorage(name:string, secret: any): Promise<void> {
         const encrypted = await this.aesEncryption.encrypt(secret);
         const txn = await this.storage.readWriteTxn([StoreNames.sharedSecrets]);
         txn.sharedSecrets.set(name, { encrypted });
