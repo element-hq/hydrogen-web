@@ -860,7 +860,6 @@ export class Session {
             for (const rs of roomStates) {
                 if (rs.shouldAdd) {
                     this._observedRoomStatus.get(rs.id)?.set(RoomStatus.Joined);
-                    console.log("rs set Joined", rs, this._observedRoomStatus.get(rs.id));
                 }
             }
             for (const is of inviteStates) {
