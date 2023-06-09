@@ -559,6 +559,7 @@ export class BaseRoom extends EventEmitter {
             if (this._timeline) {
                 log.log({ l: "Returning existing timeline" });
                 resolve();
+                this._timeline.retain();
                 return this._timeline;
             }
             this._timeline = new Timeline({
