@@ -3,6 +3,7 @@ import {UpdateAction} from "../UpdateAction";
 import {BaseEntry} from "../../../../../matrix/room/timeline/entries/BaseEntry";
 import {BaseEventEntry} from "../../../../../matrix/room/timeline/entries/BaseEventEntry";
 import {ViewModel} from "../../../../ViewModel";
+import type {SegmentType} from "../../../../navigation";
 import type {Options} from "../../../../ViewModel";
 
 /**
@@ -164,7 +165,6 @@ export class DateTile<T extends object = SegmentType> extends ViewModel<T, Optio
 
 import { EventEntry } from "../../../../../matrix/room/timeline/entries/EventEntry.js";
 import { SimpleTile } from "./SimpleTile";
-import { SegmentType } from "../../../../navigation";
 
 export function tests() {
     return {
