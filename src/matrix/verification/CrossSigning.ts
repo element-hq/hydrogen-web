@@ -214,7 +214,7 @@ export class CrossSigning {
             }, startingMessage);
         }
 
-        this.sasVerificationInProgress =  new SASVerification({
+        this.sasVerificationInProgress = new SASVerification({
             olm: this.olm,
             olmUtil: this.olmUtil,
             ourUserId: this.ownUserId,
