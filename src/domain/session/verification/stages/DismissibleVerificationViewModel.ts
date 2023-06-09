@@ -27,6 +27,10 @@ type Options = BaseOptions & {
 
 export abstract class DismissibleVerificationViewModel<O extends Options> extends ErrorReportViewModel<SegmentType, O> {
     dismiss(): void {
+        /**
+         * If we're cross-signing another user, redirect to the room (which will just close the right panel).
+         * If we're verifying a device, redirect to settings.
+         */
         if (this.getOption("sas").isCrossSigningAnotherUser) {
             const path = this.navigation.path.until("room");
             this.navigation.applyPath(path);
