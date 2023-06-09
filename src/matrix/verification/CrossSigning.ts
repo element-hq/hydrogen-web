@@ -84,6 +84,7 @@ enum MSKVerification {
 export interface IVerificationMethod {
     verify(): Promise<boolean>;
     otherDeviceId: string;
+    otherUserId: string;
 }
 
 export class CrossSigning {
@@ -295,8 +296,9 @@ export class CrossSigning {
     }
 
     /** @return the signed MSK for the given user id */
-    async signUser(userId: string, verification: IVerificationMethod, log: ILogItem): Promise<CrossSigningKey | undefined> {
+    async signUser(verification: IVerificationMethod, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return log.wrap("CrossSigning.signUser", async log => {
+            const userId = verification.otherUserId;
             log.set("id", userId);
             if (!this._isMasterKeyTrusted) {
                 log.set("mskNotTrusted", true);

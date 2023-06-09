@@ -40,20 +40,20 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     constructor(options: Readonly<Options>) {
         super(options);
-        this.init(options);
+        this.start(options);
     }
 
-    private async init(options: Options): Promise<void> {
+    private async start(options: Options): Promise<void> {
         const room = options.room;
         let requestOrUserId: SASRequest | string;
         requestOrUserId =
             options.request ??
             options.userId ??
             this.getOption("session").userId;
-        await this.start(requestOrUserId, room);
+        await this.startVerification(requestOrUserId, room);
     }
 
-    private async start(requestOrUserId: SASRequest | string, room?: Room) {
+    private async startVerification(requestOrUserId: SASRequest | string, room?: Room) {
         await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
             const crossSigning = this.getOption("session").crossSigning.get();
             this.sas = crossSigning.startVerification(requestOrUserId, room, log);
@@ -64,7 +64,12 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             if (typeof requestOrUserId === "string") {
                 this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
             }
-            return this.sas.verify();
+            if (this.sas.isCrossSigningAnotherUser) {
+                return crossSigning.signUser(this.sas, log);
+            }
+            else {
+                return crossSigning.signDevice(this.sas, log);
+            }
         });
     }
     
