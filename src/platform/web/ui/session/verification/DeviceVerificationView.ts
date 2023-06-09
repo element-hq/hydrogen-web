@@ -21,6 +21,7 @@ import {VerificationCancelledView} from "./stages/VerificationCancelledView";
 import {SelectMethodView} from "./stages/SelectMethodView";
 import {VerifyEmojisView} from "./stages/VerifyEmojisView";
 import {VerificationCompleteView} from "./stages/VerificationCompleteView";
+import {MissingKeysView} from "./stages/MissingKeysView";
 
 export class DeviceVerificationView extends TemplateView<DeviceVerificationViewModel> {
     render(t: Builder<DeviceVerificationViewModel>) {
@@ -37,6 +38,7 @@ export class DeviceVerificationView extends TemplateView<DeviceVerificationViewM
                     case "select-method": return new SelectMethodView(vm);
                     case "verify-emojis": return new VerifyEmojisView(vm);
                     case "verification-completed": return new VerificationCompleteView(vm);
+                    case "keys-missing": return new MissingKeysView(vm);
                     default: return null;
                 }
             })

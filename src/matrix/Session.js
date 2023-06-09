@@ -401,6 +401,10 @@ export class Session {
         return this._secretSharing;
     }
 
+    get secretFetcher() {
+        return this._secretFetcher;
+    }
+
     get hasIdentity() {
         return !!this._e2eeAccount;
     }
