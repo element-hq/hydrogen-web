@@ -126,7 +126,7 @@ export class RoomChannel extends Disposables implements IChannel {
                 to: this.otherUserId,
             });
             const pendingEvent = await this.room.sendEvent("m.room.message", content, undefined, log);
-            this.track(pendingEvent.disposableOn("remote-id", (id: string) => { this.id = id; }));
+            this.id = await pendingEvent.getRemoteId();
             this.sentMessages.set(eventType, {content});
         });
     }
