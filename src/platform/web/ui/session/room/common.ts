@@ -26,8 +26,8 @@ import {ITile, TileShape} from "../../../../../domain/session/room/timeline/tile
 import {GapView} from "./timeline/GapView.js";
 import {CallTileView} from "./timeline/CallTileView";
 import {DateHeaderView} from "./timeline/DateHeaderView";
-import type {TileViewConstructor} from "./TimelineView";
 import {VerificationTileView} from "./timeline/VerificationTileView";
+import type {TileViewConstructor} from "./TimelineView";
 
 export function viewClassForTile(vm: ITile): TileViewConstructor {
     switch (vm.shape) {
