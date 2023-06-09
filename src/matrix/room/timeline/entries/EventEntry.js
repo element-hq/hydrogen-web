@@ -148,7 +148,7 @@ export class EventEntry extends BaseEventEntry {
         return originalRelation || getRelationFromContent(this.content);
     }
 
-    // similar to relatedEventID but only for replies
+    // similar to relatedEventID but only for replies and reference relations
     get contextEventId() {
         if (this.isReply || this.isReference) {
             return this.relatedEventId;
