@@ -64,8 +64,9 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     }
 
     private async startVerification(requestOrUserId: SASRequest | string, room?: Room) {
-        await this.logAndCatch("DeviceVerificationViewModel.start", async (log) => {
-            const crossSigning = this.getOption("session").crossSigning.get();
+        await this.logAndCatch("DeviceVerificationViewModel.startVerification", async (log) => {
+            const crossSigningObservable = this.getOption("session").crossSigning;
+            const crossSigning = await crossSigningObservable.waitFor(c => !!c).promise;
             this.sas = crossSigning.startVerification(requestOrUserId, room, log);
             if (!this.sas) {
                 throw new Error("CrossSigning.startVerification did not return a sas object!");
