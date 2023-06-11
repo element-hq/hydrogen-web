@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {SimpleTile} from "./SimpleTile.js";
+import {SimpleTile} from "./SimpleTile";
 import {UpdateAction} from "../UpdateAction.js";
 import {ConnectionError} from "../../../../../matrix/error.js";
 import {ConnectionStatus} from "../../../../../matrix/net/Reconnector";

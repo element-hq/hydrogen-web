@@ -14,36 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {DismissibleVerificationViewModel} from "./DismissibleVerificationViewModel";
+import {SegmentType} from "../../../navigation/index";
+import {ErrorReportViewModel} from "../../../ErrorReportViewModel";
 import type {Options as BaseOptions} from "../../../ViewModel";
 import type {Session} from "../../../../matrix/Session.js";
 import type {SASVerification} from "../../../../matrix/verification/SAS/SASVerification";
 
 type Options = BaseOptions & {
-    deviceId: string;
-    session: Session;
     sas: SASVerification;
+    session: Session;
 };
 
-export class VerificationCompleteViewModel extends DismissibleVerificationViewModel<Options> {
-    get otherDeviceId(): string {
-        return this.options.deviceId;
-    }
-
-    get otherUsername(): string {
-        return this.getOption("sas").otherUserId;
-    }
-
-    get kind(): string {
-        return "verification-completed";
-    }
-
-    get verificationSuccessfulMessage(): string {
+export abstract class DismissibleVerificationViewModel<O extends Options> extends ErrorReportViewModel<SegmentType, O> {
+    dismiss(): void {
+        /**
+         * If we're cross-signing another user, redirect to the room (which will just close the right panel).
+         * If we're verifying a device, redirect to settings.
+         */
         if (this.getOption("sas").isCrossSigningAnotherUser) {
-            return this.i18n`You successfully verified user ${this.otherUsername}`;
-        }
-        else {
-            return this.i18n`You successfully verified device ${this.otherDeviceId}`;
+            const path = this.navigation.path.until("room");
+            this.navigation.applyPath(path);
+        } else {
+            this.navigation.push("settings", true);
         }
     }
 }

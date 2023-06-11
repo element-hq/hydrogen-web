@@ -15,6 +15,7 @@ limitations under the License.
 */
 import {createEnum} from "../../../utils/enum";
 import {AbortError} from "../../../utils/error";
+import {Deferred} from "../../../utils/Deferred";
 import {REDACTION_TYPE} from "../common";
 import {getRelationFromContent, getRelationTarget, setRelationTarget} from "../timeline/relations.js";
 
@@ -40,6 +41,7 @@ export class PendingEvent {
         this._status = SendStatus.Waiting;
         this._sendRequest = null;
         this._attachmentsTotalBytes = 0;
+        this._deferred = new Deferred()
         if (this._attachments) {
             this._attachmentsTotalBytes = Object.values(this._attachments).reduce((t, a) => t + a.size, 0);
         }
@@ -228,9 +230,14 @@ export class PendingEvent {
         this._sendRequest = null;
         // both /send and /redact have the same response format
         this._data.remoteId = response.event_id;
+        this._deferred.resolve(response.event_id);
         log.set("id", this._data.remoteId);
         this._status = SendStatus.Sent;
         this._emitUpdate("status");
+    }
+
+    getRemoteId() {
+        return this._deferred.promise;
     }
 
     dispose() {

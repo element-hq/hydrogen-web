@@ -1399,6 +1399,10 @@ button.RoomDetailsView_row::after {
     justify-content: center;
 }
 
+.VerifyEmojisView {
+    width: 100%;
+}
+
 .VerificationCompleteView,
 .DeviceVerificationView,
 .SelectMethodView {
@@ -1406,6 +1410,14 @@ button.RoomDetailsView_row::after {
     align-items: center;
     justify-content: center;
     flex-direction: column;
+    width: 100%;
+}
+
+.SelectMethodView > div,
+.SelectMethodView__heading,
+.SelectMethodView__title {
+    width: inherit;
+    box-sizing: border-box;
 }
 
 .VerificationCompleteView__heading,
@@ -1425,6 +1437,15 @@ button.RoomDetailsView_row::after {
 .VerifyEmojisView>*,
 .WaitingForOtherUserView>* {
     padding: 16px;
+}
+
+.VerificationCancelledView__title,
+.VerificationCompleteView__title,
+.VerifyEmojisView__title,
+.SelectMethodView__title,
+.WaitingForOtherUserView__title {
+    font-size: 1.5em;
+    text-align: center;
 }
 
 .VerificationCompleteView__title,
@@ -1454,6 +1475,7 @@ button.RoomDetailsView_row::after {
     display: flex;
     justify-content: center;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .EmojiContainer__emoji {
@@ -1481,4 +1503,67 @@ button.RoomDetailsView_row::after {
     background-size: contain;
     width: 128px;
     height: 128px;
+}
+
+.SelectMethodView__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: inline-block;
+}
+
+.VerificationInProgressTileView,
+.VerificationCompletedTileView,
+.VerificationCancelledTileView,
+.VerificationReadyTileView {
+    display: flex;
+    gap: 20px;
+}
+
+.VerificationTileView__actions {
+    display: flex;
+    gap: 16px;
+}
+
+.VerificationTileView__description {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.4rem;
+    color: var(--text-color);
+    gap: 4px;
+}
+
+.VerificationInProgressTileView,
+.VerificationCompletedTileView,
+.VerificationCancelledTileView,
+.VerificationReadyTileView {
+    background: var(--background-color-primary--darker-5);
+    padding: 12px;
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+
+.VerificationTileView {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+
+.VerificationInProgressTileView .VerificationTileView__shield,
+.VerificationReadyTileView .VerificationTileView__shield {
+    background: url("./icons/e2ee-normal.svg?primary=background-color-secondary--darker-40");
+}
+
+.VerificationCompletedTileView .VerificationTileView__shield {
+    background: url("./icons/e2ee-normal.svg?primary=accent-color");
+}
+
+.VerificationTileView__shield {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-self: center;
 }

@@ -59,6 +59,7 @@ export class BaseRoom extends EventEmitter {
         this._powerLevels = null;
         this._powerLevelLoading = null;
         this._observedMembers = null;
+        this._timelineLoadPromise = null;
     }
 
     async observeStateType(type, txn = undefined) {
@@ -541,11 +542,25 @@ export class BaseRoom extends EventEmitter {
     }
 
     /** @public */
-    openTimeline(log = null) {
-        return this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+    async openTimeline(log = null) {
+        return await this._platform.logger.wrapOrRun(log, "open timeline", async log => {
+            if (this._timelineLoadPromise) {
+                // This is to prevent races between multiple calls to this method
+                await this._timelineLoadPromise;
+            }
+            let resolve;
+            this._timelineLoadPromise = new Promise(r => {
+                resolve = () => { 
+                    this._timelineLoadPromise = null;
+                    r();
+                };
+            });
             log.set("id", this.id);
             if (this._timeline) {
-                throw new Error("not dealing with load race here for now");
+                log.log({ l: "Returning existing timeline" });
+                resolve();
+                this._timeline.retain();
+                return this._timeline;
             }
             this._timeline = new Timeline({
                 roomId: this.id,
@@ -572,7 +587,10 @@ export class BaseRoom extends EventEmitter {
                 // this also clears this._timeline in the closeCallback
                 this._timeline.dispose();
                 throw err;
+            } finally {
+                resolve();
             }
+            this._timeline.retain();
             return this._timeline;
         });
     }
@@ -610,7 +628,6 @@ export class BaseRoom extends EventEmitter {
 
     dispose() {
         this._roomEncryption?.dispose();
-        this._timeline?.dispose();
     }
 }
 

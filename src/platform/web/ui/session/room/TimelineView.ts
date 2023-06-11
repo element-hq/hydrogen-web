@@ -15,31 +15,28 @@ limitations under the License.
 */
 
 import {ListView} from "../../general/ListView";
-import type {IView} from "../../general/types";
 import {TemplateView, Builder} from "../../general/TemplateView";
 import {IObservableValue} from "../../general/BaseUpdateView";
-import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
-import {AnnouncementView} from "./timeline/AnnouncementView.js";
-import {RedactedView} from "./timeline/RedactedView.js";
-import {SimpleTile} from "../../../../../domain/session/room/timeline/tiles/SimpleTile.js";
 import {BaseObservableList as ObservableList} from "../../../../../observable/list/BaseObservableList";
+import type {IView} from "../../general/types";
+import type {ITile} from "../../../../../domain/session/room/timeline/tiles/ITile";
 
 export interface TileView extends IView {
-    readonly value: SimpleTile;
+    readonly value: ITile;
     onClick(event: UIEvent);
 } 
 export type TileViewConstructor = new (
-    tile: SimpleTile,
+    tile: ITile,
     viewClassForTile: ViewClassForEntryFn,
     renderFlags?: { reply?: boolean, interactive?: boolean }
 ) => TileView;
-export type ViewClassForEntryFn = (tile: SimpleTile) => TileViewConstructor;
+export type ViewClassForEntryFn = (tile: ITile) => TileViewConstructor;
 
 //import {TimelineViewModel} from "../../../../../domain/session/room/timeline/TimelineViewModel.js";
 export interface TimelineViewModel extends IObservableValue {
     showJumpDown: boolean;
-    tiles: ObservableList<SimpleTile>;
-    setVisibleTileRange(start?: SimpleTile, end?: SimpleTile);
+    tiles: ObservableList<ITile>;
+    setVisibleTileRange(start?: ITile, end?: ITile);
 }
 
 function bottom(node: HTMLElement): number {
@@ -184,11 +181,11 @@ export class TimelineView extends TemplateView<TimelineViewModel> {
     }
 }
 
-class TilesListView extends ListView<SimpleTile, TileView> {
+class TilesListView extends ListView<ITile, TileView> {
 
     private onChanged: () => void;
 
-    constructor(tiles: ObservableList<SimpleTile>, onChanged: () => void, private readonly viewClassForTile: ViewClassForEntryFn) {
+    constructor(tiles: ObservableList<ITile>, onChanged: () => void, private readonly viewClassForTile: ViewClassForEntryFn) {
         super({
             list: tiles,
             onItemClick: (tileView, evt) => tileView.onClick(evt),
@@ -204,7 +201,7 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         this.onChanged();
     }
 
-    onUpdate(index: number, value: SimpleTile, param: any) {
+    onUpdate(index: number, value: ITile, param: any) {
         if (param === "shape") {
             const ExpectedClass = this.viewClassForTile(value);
             const child = this.getChildInstanceByIndex(index);
@@ -220,17 +217,17 @@ class TilesListView extends ListView<SimpleTile, TileView> {
         this.onChanged();
     }
 
-    onAdd(idx: number, value: SimpleTile) {
+    onAdd(idx: number, value: ITile) {
         super.onAdd(idx, value);
         this.onChanged();
     }
 
-    onRemove(idx: number, value: SimpleTile) {
+    onRemove(idx: number, value: ITile) {
         super.onRemove(idx, value);
         this.onChanged();
     }
 
-    onMove(fromIdx: number, toIdx: number, value: SimpleTile) {
+    onMove(fromIdx: number, toIdx: number, value: ITile) {
         super.onMove(fromIdx, toIdx, value);
         this.onChanged();
     }

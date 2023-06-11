@@ -22,11 +22,12 @@ import {LocationView} from "./timeline/LocationView.js";
 import {MissingAttachmentView} from "./timeline/MissingAttachmentView.js";
 import {AnnouncementView} from "./timeline/AnnouncementView.js";
 import {RedactedView} from "./timeline/RedactedView.js";
-import {ITile, TileShape} from "../../../../../domain/session/room/timeline/tiles/ITile.js";
+import {ITile, TileShape} from "../../../../../domain/session/room/timeline/tiles/ITile";
 import {GapView} from "./timeline/GapView.js";
 import {CallTileView} from "./timeline/CallTileView";
 import {DateHeaderView} from "./timeline/DateHeaderView";
-import type {TileViewConstructor, ViewClassForEntryFn} from "./TimelineView";
+import {VerificationTileView} from "./timeline/VerificationTileView";
+import type {TileViewConstructor} from "./TimelineView";
 
 export function viewClassForTile(vm: ITile): TileViewConstructor {
     switch (vm.shape) {
@@ -53,6 +54,8 @@ export function viewClassForTile(vm: ITile): TileViewConstructor {
             return CallTileView;
         case TileShape.DateHeader:
             return DateHeaderView;
+        case TileShape.Verification:
+            return VerificationTileView;
         default:
             throw new Error(`Tiles of shape "${vm.shape}" are not supported, check the tileClassForEntry function in the view model`);
     }

@@ -16,24 +16,38 @@ limitations under the License.
 
 import {UpdateAction} from "../UpdateAction.js";
 import {ErrorReportViewModel} from "../../../../ErrorReportViewModel";
-import {TileShape} from "./ITile";
+import {ITile, TileShape} from "./ITile";
 import {SendStatus} from "../../../../../matrix/room/sending/PendingEvent.js";
 import {DateTile} from "./DateTile";
+import {Options as BaseOptions} from "../../../../ErrorReportViewModel";
+import {EventEntry} from "../../../../../matrix/room/timeline/entries/EventEntry.js";
+import type {RoomViewModel} from "../../RoomViewModel.js";
+import type {Timeline} from "../../../../../matrix/room/timeline/Timeline.js";
+import type {SegmentType} from "../../../../navigation/index.js";
 
-export class SimpleTile extends ErrorReportViewModel {
-    constructor(entry, options) {
+export type Options<T extends object = SegmentType> = {
+    roomVM: RoomViewModel; 
+    timeline: Timeline;
+} & BaseOptions<T>;
+
+type EmitUpdate<T extends object = SegmentType> = (tile: SimpleTile<T>, params: any) => void; 
+
+
+export abstract class SimpleTile<T extends object = SegmentType> extends ErrorReportViewModel<T, Options<T>> implements ITile {
+    private _entry: EventEntry;
+    private _date?: Date;
+    private _needsDateSeparator: boolean = false;
+    private _emitUpdate?: EmitUpdate<T>;
+    
+    constructor(entry: EventEntry, options: Options<T>) {
         super(options);
         this._entry = entry;
         this._date = this._entry.timestamp ? new Date(this._entry.timestamp) : undefined;
-        this._needsDateSeparator = false;
-        this._emitUpdate = undefined;
     }
     // view model props for all subclasses
     // hmmm, could also do instanceof ... ?
-    get shape() {
-        return null;
-        // "gap" | "message" | "image" | ... ?
-    }
+    // "gap" | "message" | "image" | ... ?
+    abstract get shape(): TileShape;
 
     // don't show display name / avatar
     // probably only for BaseMessageTiles of some sort?
@@ -49,7 +63,7 @@ export class SimpleTile extends ErrorReportViewModel {
         return new DateTile(this, this.childOptions({}));
     }
 
-    _updateDateSeparator(prev) {
+    _updateDateSeparator(prev: SimpleTile) {
         if (prev && prev._date && this._date) {
             this._needsDateSeparator = prev._date.getFullYear() !== this._date.getFullYear() ||
                 prev._date.getMonth() !== this._date.getMonth() ||
@@ -80,12 +94,12 @@ export class SimpleTile extends ErrorReportViewModel {
             !this._entry.pendingEvent.hasStartedSending;
     }
 
-    abortSending() {
-        this._entry.pendingEvent?.abort();
+    async abortSending(): Promise<void> {
+        await this._entry.pendingEvent?.abort();
     }
 
     // TilesCollection contract below
-    setUpdateEmit(emitUpdate) {
+    setUpdateEmit(emitUpdate?: EmitUpdate<T>) {
         this._emitUpdate = emitUpdate;
     }
 
@@ -114,7 +128,7 @@ export class SimpleTile extends ErrorReportViewModel {
         return false;
     }
 
-    compare(tile) {
+    compare(tile: SimpleTile<T>) {
         if (tile.comparisonIsNotCommutative) {
             return -tile.compare(this);
         } else {
@@ -122,7 +136,7 @@ export class SimpleTile extends ErrorReportViewModel {
         }
     }
 
-    compareEntry(entry) {
+    compareEntry(entry: EventEntry) {
         return this._entry.compare(entry);
     }
 
@@ -163,7 +177,7 @@ export class SimpleTile extends ErrorReportViewModel {
     notifyVisible() {}
 
     dispose() {
-        this.setUpdateEmit(null);
+        this.setUpdateEmit(undefined);
         super.dispose();
     }
     // TilesCollection contract above
@@ -173,11 +187,11 @@ export class SimpleTile extends ErrorReportViewModel {
     }
 
     get _roomVM() {
-        return this._options.roomVM;
+        return this.options.roomVM;
     }
 
     get _timeline() {
-        return this._options.timeline;
+        return this.options.timeline;
     }
 
     get _powerLevels() {
@@ -185,7 +199,7 @@ export class SimpleTile extends ErrorReportViewModel {
     }
 
     get _ownMember() {
-        return this._options.timeline.me;
+        return this.options.timeline.me;
     }
 
     get displayName() {
@@ -197,7 +211,6 @@ export class SimpleTile extends ErrorReportViewModel {
     }
 }
 
-import { EventEntry } from "../../../../../matrix/room/timeline/entries/EventEntry.js";
 
 export function tests() {
     return {
@@ -216,7 +229,9 @@ export function tests() {
                     content: {}
                 }
             }, undefined);
+            //@ts-ignore
             const fridayTile = new SimpleTile(fridayEntry, {});
+            //@ts-ignore
             const thursdayTile = new SimpleTile(thursdayEntry, {});
             assert.equal(fridayTile.needsDateSeparator, false);
             fridayTile.updatePreviousSibling(thursdayTile);
@@ -237,7 +252,9 @@ export function tests() {
                     content: {}
                 }
             }, undefined);
+            //@ts-ignore
             const fridayTile = new SimpleTile(fridayEntry, {});
+            //@ts-ignore
             const thursdayTile = new SimpleTile(thursdayEntry, {});
             assert.equal(fridayTile.needsDateSeparator, false);
             fridayTile.updatePreviousSibling(thursdayTile);
@@ -251,6 +268,7 @@ export function tests() {
                     content: {}
                 }
             }, undefined);
+            //@ts-ignore
             const fridayTile = new SimpleTile(fridayEntry, {});
             assert.equal(fridayTile.needsDateSeparator, false);
             fridayTile.updatePreviousSibling(undefined);

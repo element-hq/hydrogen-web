@@ -43,6 +43,10 @@ export class VerificationToastCollectionViewModel extends ViewModel<SegmentType,
 
 
     async onAdd(_, request: SASRequest) {
+        if (request.sender !== this.getOption("session").userId) {
+            // Don't show toast for cross-signing other users
+            return;
+        }
         const dismiss = () => {
             const idx = this.toastViewModels.array.findIndex(vm => vm.request.id === request.id);
             if (idx !== -1) {
