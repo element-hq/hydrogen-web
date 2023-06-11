@@ -614,13 +614,8 @@ export class Session {
                     e2eeAccount: this._e2eeAccount,
                     deviceId: this.deviceId,
                 });
+                await crossSigning.load(log);
                 this._crossSigning.set(crossSigning);
-                // if (await crossSigning.load(log)) {
-                //     this._crossSigning.set(crossSigning);
-                // }
-                // else {
-                //     crossSigning.dispose();
-                // }
             });
         }
         await this._keyBackup.get()?.start(log);

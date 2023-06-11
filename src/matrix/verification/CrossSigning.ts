@@ -277,10 +277,17 @@ export class CrossSigning {
     async signDevice(verification: IVerificationMethod, log: ILogItem): Promise<DeviceKey | undefined> {
         return log.wrap("CrossSigning.signDevice", async log => {
             if (!this._isMasterKeyTrusted) {
+                /**
+                 * If we're the unverified device that is participating in
+                 * the verification process, it is expected that we do not
+                 * have access to the private part of MSK and thus
+                 * cannot determine if the MSK is trusted. In this case, we
+                 * do not need to sign anything because the other (verified)
+                 * device will sign our device key with the SSK.
+                 */
                 log.set("mskNotTrusted", true);
-                return;
             }
-            const shouldSign = await verification.verify();
+            const shouldSign = await verification.verify() && this._isMasterKeyTrusted;
             log.set("shouldSign", shouldSign);
             if (!shouldSign) {
                 return; 
