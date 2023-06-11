@@ -1,6 +1,5 @@
 import {UpdateAction} from "../UpdateAction.js";
 import {BaseEntry} from "../../../../../matrix/room/timeline/entries/BaseEntry";
-import {BaseEventEntry} from "../../../../../matrix/room/timeline/entries/BaseEventEntry";
 import {IDisposable} from "../../../../../utils/Disposables";
 
 export type EmitUpdateFn = (tile: ITile<BaseEntry>, props: any) => void
@@ -18,6 +17,7 @@ export enum TileShape {
     Video = "video",
     DateHeader = "date-header",
     Call = "call",
+    Verification = "verification",
 }
 
 // TODO: should we imply inheriting from view model here?

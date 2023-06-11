@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type {CrossSigning} from "../CrossSigning";
+import type {Room} from "../../room/Room.js";
+import type {ILogItem} from "../../../logging/types";
+
 export class SASRequest {
     constructor(public readonly startingMessage: any) {}
 
@@ -26,6 +30,11 @@ export class SASRequest {
     }
 
     get id(): string {
-        return this.startingMessage.content.transaction_id;
+        return this.startingMessage.content.transaction_id ?? this.startingMessage.eventId;
+    }
+
+    async reject(crossSigning: CrossSigning, room: Room, log: ILogItem): Promise<void> {
+        const sas = crossSigning.startVerification(this, room, log);
+        await sas?.abort();
     }
 }

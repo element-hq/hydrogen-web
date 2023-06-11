@@ -28,10 +28,13 @@ import type {SASVerification} from "../../../matrix/verification/SAS/SASVerifica
 import type {SASRequest} from "../../../matrix/verification/SAS/SASRequest";
 import type {CrossSigning} from "../../../matrix/verification/CrossSigning";
 import type {ILogItem} from "../../../logging/types";
+import type {Room} from "../../../matrix/room/Room.js";
 
 type Options = BaseOptions & {
     session: Session;
-    request: SASRequest;
+    request?: SASRequest;
+    room?: Room;
+    userId?: string;
 };
 
 const neededSecrets = [
@@ -47,20 +50,26 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     constructor(options: Readonly<Options>) {
         super(options);
-        const sasRequest = options.request;
-        if (options.request) {
-            this.start(sasRequest);
-        }
-        else {
-            // We are about to send the request
-            this.start(this.getOption("session").userId);
-        }
+        this.start(options);
     }
 
-    private async start(requestOrUserId: SASRequest | string) {
+    private async start(options: Options): Promise<void> {
+        const room = options.room;
+        let requestOrUserId: SASRequest | string;
+        requestOrUserId =
+            options.request ??
+            options.userId ??
+            this.getOption("session").userId;
+        await this.startVerification(requestOrUserId, room);
+    }
+
+    private async startVerification(requestOrUserId: SASRequest | string, room?: Room) {
         await this.logAndCatch("DeviceVerificationViewModel.start", async (log) => {
-            const crossSigning = this.getOption("session").crossSigning.get() as CrossSigning;
-            this.sas = crossSigning.startVerification(requestOrUserId, log)!;
+            const crossSigning = this.getOption("session").crossSigning.get();
+            this.sas = crossSigning.startVerification(requestOrUserId, room, log);
+            if (!this.sas) {
+                throw new Error("CrossSigning.startVerification did not return a sas object!");
+            }
             if (!await this.performPreVerificationChecks(crossSigning, log)) {
                 return;
             }
@@ -68,7 +77,12 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             if (typeof requestOrUserId === "string") {
                 this.updateCurrentStageViewModel(new WaitingForOtherUserViewModel(this.childOptions({ sas: this.sas })));
             }
-            return this.sas.start();
+            if (this.sas.isCrossSigningAnotherUser) {
+                return crossSigning.signUser(this.sas, log);
+            }
+            else {
+                return crossSigning.signDevice(this.sas, log);
+            }
         });
     }
 
@@ -117,13 +131,13 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         this.track(this.sas.disposableOn("VerificationCancelled", (cancellation) => {
             this.updateCurrentStageViewModel(
                 new VerificationCancelledViewModel(
-                    this.childOptions({ cancellation: cancellation! })
+                    this.childOptions({ cancellation: cancellation!, sas: this.sas })
                 )
             );
         }));
         this.track(this.sas.disposableOn("VerificationCompleted", (deviceId) => {
             this.updateCurrentStageViewModel(
-                new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId! }))
+                new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId!, sas: this.sas }))
             );
             this.requestSecrets();
         }));
@@ -154,5 +168,9 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     get currentStageViewModel() {
         return this._currentStageViewModel;
+    }
+
+    get type(): string { 
+        return "verification";
     }
 }

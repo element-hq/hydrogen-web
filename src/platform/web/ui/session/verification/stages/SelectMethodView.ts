@@ -27,11 +27,9 @@ export class SelectMethodView extends TemplateView<SelectMethodViewModel> {
                 }
                 else return t.div([
                     t.div({ className: "SelectMethodView__heading" }, [
-                        t.h2( { className: "SelectMethodView__title" }, vm.i18n`Verify device '${vm.deviceName}' by comparing emojis?`),
+                        t.h2( { className: "SelectMethodView__title" }, this.getHeading(t, vm)),
                     ]),
-                    t.p({ className: "SelectMethodView__description" },
-                        vm.i18n`You are about to verify your other device by comparing emojis.`
-                    ),
+                    t.p({ className: "SelectMethodView__description" }, this.getSubheading(vm)),
                     t.div({ className: "SelectMethodView__actions" }, [
                         t.button(
                             {
@@ -58,5 +56,25 @@ export class SelectMethodView extends TemplateView<SelectMethodViewModel> {
                 ]);
             }),
         ]);
+    }
+
+    getHeading(t: Builder<SelectMethodViewModel>, vm: SelectMethodViewModel) {
+        if (vm.isCrossSigningAnotherUser) {
+            return [vm.i18n`Verify user `, t.span({
+                 className: "SelectMethodView__name"
+                }, vm.otherUserId), vm.i18n` by comparing emojis?`];
+        } else {
+            return [vm.i18n`Verify device`, t.span({
+                 className: "SelectMethodView__name"
+                }, vm.deviceName), vm.i18n` by comparing emojis?`];
+        }
+    }
+
+    getSubheading(vm: SelectMethodViewModel): string {
+        if (vm.isCrossSigningAnotherUser) {
+            return vm.i18n`You are about to verify user (${vm.otherUserId}) by comparing emojis.`;
+        } else {
+            return vm.i18n`You are about to verify your other device (${vm.deviceName}) by comparing emojis.`;
+        }
     }
 }

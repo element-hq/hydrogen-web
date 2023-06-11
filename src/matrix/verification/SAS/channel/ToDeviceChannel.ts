@@ -19,41 +19,13 @@ import type {DeviceTracker} from "../../../e2ee/DeviceTracker.js";
 import type {ILogItem} from "../../../../logging/types";
 import type {Clock} from "../../../../platform/web/dom/Clock.js";
 import type {DeviceMessageHandler} from "../../../DeviceMessageHandler.js";
+import type {IChannel} from "./IChannel";
+import {messageFromErrorType} from "./IChannel";
 import {makeTxnId} from "../../../common.js";
 import {CancelReason, VerificationEventType} from "./types";
 import {Disposables} from "../../../../utils/Disposables";
 import {VerificationCancelledError} from "../VerificationCancelledError";
 import {Deferred} from "../../../../utils/Deferred";
-
-const messageFromErrorType = {
-    [CancelReason.UserCancelled]: "User declined",
-    [CancelReason.InvalidMessage]: "Invalid Message.",
-    [CancelReason.KeyMismatch]: "Key Mismatch.",
-    [CancelReason.OtherDeviceAccepted]: "Another device has accepted this request.",
-    [CancelReason.TimedOut]: "Timed Out",
-    [CancelReason.UnexpectedMessage]: "Unexpected Message.",
-    [CancelReason.UnknownMethod]: "Unknown method.",
-    [CancelReason.UnknownTransaction]: "Unknown Transaction.",
-    [CancelReason.UserMismatch]: "User Mismatch",
-    [CancelReason.MismatchedCommitment]: "Hash commitment does not match.",
-    [CancelReason.MismatchedSAS]: "Emoji/decimal does not match.",
-}
-
-export interface IChannel {
-    send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void>;
-    waitForEvent(eventType: VerificationEventType): Promise<any>;
-    getSentMessage(event: VerificationEventType): any;
-    getReceivedMessage(event: VerificationEventType): any;
-    setStartMessage(content: any): void;
-    cancelVerification(cancellationType: CancelReason): Promise<void>;
-    acceptMessage: any;
-    startMessage: any;
-    initiatedByUs: boolean;
-    isCancelled: boolean;
-    cancellation?: { code: CancelReason, cancelledByUs: boolean };
-    id: string;
-    otherUserDeviceId: string;
-} 
 
 type Options = {
     hsApi: HomeServerApi;

@@ -54,7 +54,7 @@ export {RoomMemberTile} from "./domain/session/room/timeline/tiles/RoomMemberTil
 export {EncryptedEventTile} from "./domain/session/room/timeline/tiles/EncryptedEventTile.js";
 export {EncryptionEnabledTile} from "./domain/session/room/timeline/tiles/EncryptionEnabledTile.js";
 export {MissingAttachmentTile} from "./domain/session/room/timeline/tiles/MissingAttachmentTile.js";
-export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile.js";
+export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile";
 
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
 export {viewClassForTile} from "./platform/web/ui/session/room/common";

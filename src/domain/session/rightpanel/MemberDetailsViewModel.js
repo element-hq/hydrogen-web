@@ -18,6 +18,7 @@ import {ViewModel} from "../../ViewModel";
 import {RoomType} from "../../../matrix/room/common";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {UserTrust} from "../../../matrix/verification/CrossSigning";
+import {RoomStatus} from "../../../matrix/room/common";
 
 export class MemberDetailsViewModel extends ViewModel {
     constructor(options) {
@@ -43,6 +44,8 @@ export class MemberDetailsViewModel extends ViewModel {
     get name() { return this._member.name; }
     
     get userId() { return this._member.userId; }
+
+    get canVerifyUser() { return this._member.userId !== this._session.userId; }
     
     get trustDescription() {
         switch (this._userTrust?.get()) {
@@ -105,6 +108,27 @@ export class MemberDetailsViewModel extends ViewModel {
                 await crossSigning.signUser(this.userId, log);
             });
         }
+    }
+
+    async verifyUser() {
+        await this.logger.run("MemberDetailsViewModel.verifyUser", async () => {
+            const room = this._session.findDirectMessageForUserId(this.userId);
+            let roomId = room?.id;
+            if (!roomId) {
+                const roomBeingCreated = await this._session.createRoom({
+                    type: RoomType.DirectMessage,
+                    invites: [this.userId]
+                });
+                roomId = roomBeingCreated.roomId;
+            }
+            const observable = await this._session.observeRoomStatus(roomId);
+            await observable.waitFor(s => s === RoomStatus.Joined).promise;
+            let path = this.navigation.path.until("session");
+            path = path.with(this.navigation.segment("room", roomId));
+            path = path.with(this.navigation.segment("right-panel", true));
+            path = path.with(this.navigation.segment("verification", this.userId));
+            this.navigation.applyPath(path);
+        });
     }
 
     get avatarLetter() {

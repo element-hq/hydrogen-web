@@ -3,6 +3,7 @@ import {UpdateAction} from "../UpdateAction";
 import {BaseEntry} from "../../../../../matrix/room/timeline/entries/BaseEntry";
 import {BaseEventEntry} from "../../../../../matrix/room/timeline/entries/BaseEventEntry";
 import {ViewModel} from "../../../../ViewModel";
+import type {SegmentType} from "../../../../navigation";
 import type {Options} from "../../../../ViewModel";
 
 /**
@@ -14,12 +15,12 @@ import type {Options} from "../../../../ViewModel";
  *    a pending event is removed on remote echo.
  * */
 
-export class DateTile extends ViewModel implements ITile<BaseEventEntry> {
+export class DateTile<T extends object = SegmentType> extends ViewModel<T, Options<T>> implements ITile<BaseEventEntry> {
     private _emitUpdate?: EmitUpdateFn;
     private _dateString?: string;
     private _machineReadableString?: string;
     
-    constructor(private _firstTileInDay: ITile<BaseEventEntry>, options: Options) {
+    constructor(private _firstTileInDay: ITile<BaseEventEntry>, options: Options<T>) {
         super(options);
     }
 
@@ -168,11 +169,13 @@ import { SimpleTile } from "./SimpleTile";
 export function tests() {
     return {
         "date tile sorts before reference tile": assert => {
+            //@ts-ignore
             const a = new SimpleTile(new EventEntry({
                 event: {},
                 eventIndex: 2,
                 fragmentId: 1
             }, undefined), {});
+            //@ts-ignore
             const b = new SimpleTile(new EventEntry({
                 event: {},
                 eventIndex: 3,

@@ -19,17 +19,17 @@ import type {BaseSASVerificationStage} from "./stages/BaseSASVerificationStage";
 import type {Account} from "../../e2ee/Account.js";
 import type {DeviceTracker} from "../../e2ee/DeviceTracker.js";
 import type * as OlmNamespace from "@matrix-org/olm";
-import type {IChannel} from "./channel/Channel";
+import type {IChannel} from "./channel/IChannel";
 import type {HomeServerApi} from "../../net/HomeServerApi";
 import type {Timeout} from "../../../platform/types/types";
 import type {Clock} from "../../../platform/web/dom/Clock.js";
+import type {IVerificationMethod} from "../CrossSigning";
 import {CancelReason, VerificationEventType} from "./channel/types";
 import {SendReadyStage} from "./stages/SendReadyStage";
 import {SelectVerificationMethodStage} from "./stages/SelectVerificationMethodStage";
 import {VerificationCancelledError} from "./VerificationCancelledError";
 import {EventEmitter} from "../../../utils/EventEmitter";
 import {SASProgressEvents} from "./types";
-import type {CrossSigning} from "../CrossSigning";
 
 type Olm = typeof OlmNamespace;
 
@@ -45,15 +45,16 @@ type Options = {
     deviceTracker: DeviceTracker;
     hsApi: HomeServerApi;
     clock: Clock;
-    crossSigning: CrossSigning
 }
 
-export class SASVerification extends EventEmitter<SASProgressEvents> {
+export class SASVerification extends EventEmitter<SASProgressEvents> implements IVerificationMethod {
     private startStage: BaseSASVerificationStage;
     private olmSas: Olm.SAS;
     public finished: boolean = false;
     public readonly channel: IChannel;
     private timeout: Timeout;
+    public otherUserId: string;
+    private ourUserId: string;
    
     constructor(options: Options) {
         super();
@@ -61,6 +62,8 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         const olmSas = new olm.SAS();
         this.olmSas = olmSas;
         this.channel = channel;
+        this.otherUserId = options.otherUserId;
+        this.ourUserId = options.ourUserId;
         this.setupCancelAfterTimeout(clock);
         const stageOptions = {...options, olmSas, eventEmitter: this};
         if (channel.getReceivedMessage(VerificationEventType.Start)) {
@@ -74,7 +77,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         }
     }
 
-    private async setupCancelAfterTimeout(clock: Clock) {
+    private async setupCancelAfterTimeout(clock: Clock): Promise<void> {
         try {
             const tenMinutes = 10 * 60 * 1000;
             this.timeout = clock.createTimeout(tenMinutes);
@@ -86,11 +89,13 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
         }
     }
 
-    async abort() {
+    async abort(): Promise<void> {
         await this.channel.cancelVerification(CancelReason.UserCancelled);
+        this.finished = true;
     }
 
-    async start() {
+    async verify(): Promise<boolean> {
+        let success = true;
         try {
             let stage = this.startStage;
             do {
@@ -102,6 +107,7 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
             if (!(e instanceof VerificationCancelledError)) {
                 throw e; 
             }
+            success = false;
         }
         finally {
             if (this.channel.isCancelled) {
@@ -111,6 +117,15 @@ export class SASVerification extends EventEmitter<SASProgressEvents> {
             this.timeout.abort();
             this.finished = true;
         }
+        return success;
+    }
+
+    get otherDeviceId(): string {
+        return this.channel.otherUserDeviceId;
+    }
+
+    get isCrossSigningAnotherUser(): boolean {
+        return !(this.otherUserId === this.ourUserId);
     }
 }
 
@@ -189,7 +204,6 @@ export function tests() {
             olm,
             startingMessage,
         );
-        const crossSigning = new MockCrossSigning() as unknown as CrossSigning;
         const clock = new MockClock();
         const logger = new NullLogger();
         return logger.run("log", (log) => {
@@ -207,7 +221,6 @@ export function tests() {
                 ourUserId,
                 ourUserDeviceId: ourDeviceId,
                 log,
-                crossSigning
             });
             // @ts-ignore
             channel.setOlmSas(sas.olmSas);
@@ -216,16 +229,6 @@ export function tests() {
             });
             return { sas, clock, logger };
         });
-    }
-
-    class MockCrossSigning {
-        signDevice(deviceId: string, log: ILogItem) {
-            return Promise.resolve({}); // device keys, means signing succeeded
-        }
-
-        signUser(userId: string, log: ILogItem) {
-            return Promise.resolve({}); // cross-signing keys, means signing succeeded
-        }
     }
 
     return {
@@ -247,7 +250,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SendRequestVerificationStage,
                 SelectVerificationMethodStage,
@@ -289,7 +292,7 @@ export function tests() {
                     await stage?.selectEmojiMethod(log);
                 });
             });
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SendRequestVerificationStage,
                 SelectVerificationMethodStage,
@@ -326,7 +329,7 @@ export function tests() {
                 receivedMessages,
                 startingMessage,
             );
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SelectVerificationMethodStage,
                 SendAcceptVerificationStage,
@@ -364,7 +367,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SendRequestVerificationStage,
                 SelectVerificationMethodStage,
@@ -408,7 +411,7 @@ export function tests() {
                     await stage?.selectEmojiMethod(log);
                 });
             });
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SendRequestVerificationStage,
                 SelectVerificationMethodStage,
@@ -448,7 +451,7 @@ export function tests() {
                 receivedMessages,
                 startingMessage,
             );
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SelectVerificationMethodStage,
                 SendAcceptVerificationStage,
@@ -494,7 +497,7 @@ export function tests() {
                     await stage?.selectEmojiMethod(log);
                 });
             });
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SelectVerificationMethodStage,
                 SendKeyStage,
@@ -537,7 +540,7 @@ export function tests() {
                     await stage?.selectEmojiMethod(log);
                 });
             });
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SendRequestVerificationStage,
                 SelectVerificationMethodStage,
@@ -575,7 +578,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            await sas.start();
+            await sas.verify();
             const expectedOrder = [
                 SendRequestVerificationStage,
                 SelectVerificationMethodStage,
@@ -613,7 +616,7 @@ export function tests() {
                 txnId, 
                 receivedMessages
             );
-            const promise = sas.start();
+            const promise = sas.verify();
             clock.elapse(10 * 60 * 1000);
             try {
                 await promise;
@@ -643,7 +646,7 @@ export function tests() {
                 receivedMessages
             );
             try {
-                await sas.start()
+                await sas.verify()
             }
             catch (e) {
                 assert.strictEqual(e instanceof VerificationCancelledError, true);

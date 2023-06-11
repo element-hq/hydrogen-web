@@ -225,7 +225,7 @@ export class SendQueue {
                 }
             }
         }
-        await this._enqueueEvent(eventType, content, attachments, relatedTxnId, null, log);
+        return await this._enqueueEvent(eventType, content, attachments, relatedTxnId, null, log);
     }
 
     async _enqueueEvent(eventType, content, attachments, relatedTxnId, relatedEventId, log) {
@@ -239,6 +239,7 @@ export class SendQueue {
         if (this._sendLoopLogItem) {
             log.refDetached(this._sendLoopLogItem);
         }
+        return pendingEvent;
     }
 
     async enqueueRedaction(eventIdOrTxnId, reason, log) {

@@ -1,7 +1,7 @@
 import type {ILogItem} from "../../../../lib";
 import {createCalculateMAC} from "../mac";
 import {VerificationCancelledError} from "../VerificationCancelledError";
-import {IChannel} from "./Channel";
+import {IChannel} from "./IChannel";
 import {CancelReason, VerificationEventType} from "./types";
 import {getKeyEd25519Key} from "../../CrossSigning";
 import {getDeviceEd25519Key} from "../../../e2ee/common";

@@ -75,7 +75,9 @@ export class CalculateSASStage extends BaseSASVerificationStage {
             const sasBytes = this.generateSASBytes();
             this.emoji = generateEmojiSas(Array.from(sasBytes));
             this.eventEmitter.emit("EmojiGenerated", this);
-            await emojiConfirmationPromise;
+            const cancellationReceived = this.channel.waitForEvent(VerificationEventType.Cancel);
+            // Don't get stuck on waiting for user input!
+            await Promise.race([emojiConfirmationPromise, cancellationReceived]);
             this.setNextStage(new SendMacStage(this.options));
         });
     }

@@ -18,7 +18,8 @@ import {verifyEd25519Signature, SignatureVerification} from "../e2ee/common";
 import {BaseObservableValue, RetainedObservableValue} from "../../observable/value";
 import {pkSign} from "./common";
 import {SASVerification} from "./SAS/SASVerification";
-import {ToDeviceChannel} from "./SAS/channel/Channel";
+import {ToDeviceChannel} from "./SAS/channel/ToDeviceChannel";
+import {RoomChannel} from "./SAS/channel/RoomChannel";
 import {VerificationEventType} from "./SAS/channel/types";
 import {ObservableMap} from "../../observable/map";
 import {SASRequest} from "./SAS/SASRequest";
@@ -31,6 +32,8 @@ import type {Account} from "../e2ee/Account";
 import type {ILogItem} from "../../logging/types";
 import type {DeviceMessageHandler} from "../DeviceMessageHandler.js";
 import type {SignedValue, DeviceKey} from "../e2ee/common";
+import type {Room} from "../room/Room.js";
+import type {IChannel} from "./SAS/channel/IChannel";
 import type * as OlmNamespace from "@matrix-org/olm";
 
 type Olm = typeof OlmNamespace;
@@ -76,6 +79,12 @@ enum MSKVerification {
     NoPubKey,
     DerivedPubKeyMismatch,
     Valid
+}
+
+export interface IVerificationMethod {
+    verify(): Promise<boolean>;
+    otherDeviceId: string;
+    otherUserId: string;
 }
 
 export class CrossSigning {
@@ -172,21 +181,39 @@ export class CrossSigning {
         return this._isMasterKeyTrusted;
     }
 
-    startVerification(requestOrUserId: string | SASRequest, log: ILogItem): SASVerification | undefined {
+    startVerification(requestOrUserId: SASRequest, logOrRoom: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string, logOrRoom: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: SASRequest, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string, logOrRoom: Room, _log: ILogItem): SASVerification | undefined;
+    startVerification(requestOrUserId: string | SASRequest, logOrRoom: Room | ILogItem, _log?: ILogItem): SASVerification | undefined {
+        const log: ILogItem = _log ?? logOrRoom;
         if (this.sasVerificationInProgress && !this.sasVerificationInProgress.finished) {
+            log.log({ sasVerificationAlreadyInProgress: true });
             return;
         }
         const otherUserId = requestOrUserId instanceof SASRequest ? requestOrUserId.sender : requestOrUserId;
         const startingMessage = requestOrUserId instanceof SASRequest ? requestOrUserId.startingMessage : undefined;
-        const channel = new ToDeviceChannel({
-            deviceTracker: this.deviceTracker,
-            hsApi: this.hsApi,
-            otherUserId,
-            clock: this.platform.clock,
-            deviceMessageHandler: this.deviceMessageHandler,
-            ourUserDeviceId: this.deviceId,
-            log
-        }, startingMessage);
+        let channel: IChannel;
+        if (otherUserId === this.ownUserId) {
+            channel = new ToDeviceChannel({
+                deviceTracker: this.deviceTracker,
+                hsApi: this.hsApi,
+                otherUserId,
+                clock: this.platform.clock,
+                deviceMessageHandler: this.deviceMessageHandler,
+                ourUserDeviceId: this.deviceId,
+                log
+            }, startingMessage);
+        }
+        else {
+            channel = new RoomChannel({
+                room: logOrRoom,
+                otherUserId,
+                ourUserId: this.ownUserId,
+                ourUserDeviceId: this.deviceId,
+                log,
+            }, startingMessage);
+        }
 
         this.sasVerificationInProgress = new SASVerification({
             olm: this.olm,
@@ -200,7 +227,6 @@ export class CrossSigning {
             deviceTracker: this.deviceTracker,
             hsApi: this.hsApi,
             clock: this.platform.clock,
-            crossSigning: this,
         });
         return this.sasVerificationInProgress;
     }
@@ -248,13 +274,19 @@ export class CrossSigning {
     }
 
     /** @return the signed device key for the given device id */
-    async signDevice(deviceId: string, log: ILogItem): Promise<DeviceKey | undefined> {
+    async signDevice(verification: IVerificationMethod, log: ILogItem): Promise<DeviceKey | undefined> {
         return log.wrap("CrossSigning.signDevice", async log => {
-            log.set("id", deviceId);
             if (!this._isMasterKeyTrusted) {
                 log.set("mskNotTrusted", true);
                 return;
             }
+            const shouldSign = await verification.verify();
+            log.set("shouldSign", shouldSign);
+            if (!shouldSign) {
+                return; 
+            }
+            const deviceId = verification.otherDeviceId;
+            log.set("id", deviceId);
             const keyToSign = await this.deviceTracker.deviceForId(this.ownUserId, deviceId, this.hsApi, log);
             if (!keyToSign) {
                 return undefined;
@@ -265,8 +297,9 @@ export class CrossSigning {
     }
 
     /** @return the signed MSK for the given user id */
-    async signUser(userId: string, log: ILogItem): Promise<CrossSigningKey | undefined> {
+    async signUser(verification: IVerificationMethod, log: ILogItem): Promise<CrossSigningKey | undefined> {
         return log.wrap("CrossSigning.signUser", async log => {
+            const userId = verification.otherUserId;
             log.set("id", userId);
             if (!this._isMasterKeyTrusted) {
                 log.set("mskNotTrusted", true);
@@ -275,6 +308,11 @@ export class CrossSigning {
             // can't sign own user
             if (userId === this.ownUserId) {
                 return;
+            }
+            const shouldSign = await verification.verify();
+            log.set("shouldSign", shouldSign);
+            if (!shouldSign) {
+                return; 
             }
             const keyToSign = await this.deviceTracker.getCrossSigningKeyForUser(userId, KeyUsage.Master, this.hsApi, log);
             if (!keyToSign) {

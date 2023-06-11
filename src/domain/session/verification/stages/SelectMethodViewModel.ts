@@ -48,7 +48,15 @@ export class SelectMethodViewModel extends ErrorReportViewModel<SegmentType, Opt
         return this.options.stage.otherDeviceName;
     }
 
+    get otherUserId() {
+        return this.getOption("sas").otherUserId;
+    }
+
     get kind(): string {
         return "select-method";
+    }
+
+    get isCrossSigningAnotherUser(): boolean {
+        return this.getOption("sas").isCrossSigningAnotherUser;
     }
 }

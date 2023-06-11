@@ -16,7 +16,7 @@ limitations under the License.
 
 import {BaseEntry} from "./BaseEntry";
 import {REDACTION_TYPE} from "../../common";
-import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent} from "../relations.js";
+import {createAnnotation, ANNOTATION_RELATION_TYPE, getRelationFromContent, REFERENCE_RELATION_TYPE} from "../relations.js";
 import {PendingAnnotation} from "../PendingAnnotation.js";
 import {createReplyContent} from "./reply.js"
 
@@ -33,6 +33,10 @@ export class BaseEventEntry extends BaseEntry {
 
     get isReply() {
         return !!this.relation?.["m.in_reply_to"];
+    }
+
+    get isReference() {
+        return this.relation?.rel_type === REFERENCE_RELATION_TYPE;
     }
 
     get isRedacting() {

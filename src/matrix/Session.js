@@ -135,6 +135,10 @@ export class Session {
         return this._callHandler;
     }
 
+    get features() {
+        return this._features;
+    }
+
     _setupCallHandler() {
         this._callHandler = new CallHandler({
             clock: this._platform.clock,
@@ -725,9 +729,9 @@ export class Session {
         return this._roomsBeingCreated;
     }
 
-    createRoom(options) {
+    async createRoom(options) {
         let roomBeingCreated;
-        this._platform.logger.runDetached("create room", async log => {
+        await this._platform.logger.run("create room", async log => {
             const id = `local-${Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)}`;
             roomBeingCreated = new RoomBeingCreated(
                 id, options, this._roomsBeingCreatedUpdateCallback,

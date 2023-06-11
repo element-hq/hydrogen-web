@@ -18,6 +18,7 @@ import {ViewModel} from "../../ViewModel";
 import {RoomDetailsViewModel} from "./RoomDetailsViewModel.js";
 import {MemberListViewModel} from "./MemberListViewModel.js";
 import {MemberDetailsViewModel} from "./MemberDetailsViewModel.js";
+import {DeviceVerificationViewModel} from "../verification/DeviceVerificationViewModel";
 
 export class RightPanelViewModel extends ViewModel {
     constructor(options) {
@@ -68,16 +69,37 @@ export class RightPanelViewModel extends ViewModel {
                 this.urlRouter.pushUrl(url);
             }
         );
+        this._hookUpdaterToSegment("verification", DeviceVerificationViewModel, () => {
+            const options = {
+                session: this._session,
+                room: this._room,
+            };
+            const id = this.navigation.path.get("verification").value; 
+            if (typeof id === "string") {
+                /**
+                 * Here id is:
+                 * 1. id of the request when we receive a sas verification request
+                 * 2. id of the user we are trying to verify when we initiate the verification process
+                 */
+                const request = this._session?.crossSigning.get()?.receivedSASVerifications.get(id);
+                const extraOptions = request ? { request } : { userId: id };
+                Object.assign(options, extraOptions);
+            }
+            return options;
+        });
     }
 
-    _hookUpdaterToSegment(segment, viewmodel, argCreator, failCallback) {
+    async _hookUpdaterToSegment(segment, ViewModel, argCreator, failCallback) {
         const observable = this.navigation.observe(segment);
-        const updater = this._setupUpdater(segment, viewmodel, argCreator, failCallback);
+        const updater = await this._setupUpdater(segment, ViewModel, argCreator, failCallback);
         this.track(observable.subscribe(updater));
     }
 
-    _setupUpdater(segment, viewmodel, argCreator, failCallback) {
+    async _setupUpdater(segment, ViewModel, argCreator, failCallback) {
         const updater = async (skipDispose = false) => {
+            if (this._activeViewModel instanceof ViewModel) {
+                return;
+            }
             if (!skipDispose) {
                 this._activeViewModel = this.disposeTracked(this._activeViewModel);
             }
@@ -88,11 +110,11 @@ export class RightPanelViewModel extends ViewModel {
                     failCallback();
                     return;
                 }
-                this._activeViewModel = this.track(new viewmodel(this.childOptions(args)));
+                this._activeViewModel = this.track(new ViewModel(this.childOptions(args)));
             }
             this.emitChange("activeViewModel");
         };
-        updater(true);
+        await updater(true);
         return updater;
     }
 

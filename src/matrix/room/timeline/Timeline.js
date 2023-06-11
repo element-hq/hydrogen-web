@@ -25,9 +25,11 @@ import {getRelation, ANNOTATION_RELATION_TYPE} from "./relations.js";
 import {REDACTION_TYPE} from "../common";
 import {NonPersistedEventEntry} from "./entries/NonPersistedEventEntry.js";
 import {EVENT_TYPE as MEMBER_EVENT_TYPE} from "../members/RoomMember.js";
+import {RetainedValue} from "../../../utils/RetainedValue";
 
-export class Timeline {
+export class Timeline extends RetainedValue {
     constructor({roomId, storage, closeCallback, fragmentIdComparer, pendingEvents, clock, powerLevelsObservable, hsApi}) {
+        super(() => { this.dispose(); });
         this._roomId = roomId;
         this._storage = storage;
         this._closeCallback = closeCallback;
@@ -320,15 +322,18 @@ export class Timeline {
             }
             const id = entry.contextEventId;
             // before looking into remoteEntries, check the entries
-            // that about to be added first
+            // that are about to be added first
             let contextEvent = entries.find(e => e.id === id);
             if (!contextEvent) {
                 contextEvent = this._findLoadedEventById(id);
             }
             if (contextEvent) {
                 entry.setContextEntry(contextEvent);
-                // we don't emit an update here, as the add or update
+                // we don't emit an update for `entry` here, as the add or update
                 // that the callee will emit hasn't been emitted yet.
+                // however we do emit an update for the `contextEvent` so that it
+                // can do something in response to `entry` being added (if needed).
+                this._emitUpdateForEntry(contextEvent, "context-added");
             } else {
                 // we don't await here, which is not ideal,
                 // but one of our callers, addEntries, is not async
