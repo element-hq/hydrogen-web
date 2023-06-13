@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import {ViewModel, Options} from "../../../ViewModel";
-import {SegmentType} from "../../../navigation/index";
+import type {SegmentType} from "../../../navigation/index";
 
 export class MissingKeysViewModel extends ViewModel<SegmentType, Options> {
     gotoSettings() {
