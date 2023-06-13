@@ -19,21 +19,21 @@ import type {SecretSharing} from "./SecretSharing";
 
 /**
  * This is a wrapper around SecretStorage and SecretSharing so that 
- * you don't need to always check both sources for something.
+ * you don't need to check both sources for a secret.
  */
 export class SecretFetcher {
     public secretStorage: SecretStorage;
     public secretSharing: SecretSharing;
 
     async getSecret(name: string): Promise<string | undefined> {
-        return await this.secretStorage?.readSecret(name) ??
-            await this.secretSharing?.getLocallyStoredSecret(name);
         /**
          * Note that we don't ask another device for secret here;
          * that should be done explicitly since it can take arbitrary
          * amounts of time to be fulfilled as the other devices may 
          * be offline etc...
          */
+        return await this.secretStorage?.readSecret(name) ??
+            await this.secretSharing?.getLocallyStoredSecret(name);
     } 
 
     setSecretStorage(storage: SecretStorage) {
@@ -42,6 +42,11 @@ export class SecretFetcher {
 
     setSecretSharing(sharing: SecretSharing) {
         this.secretSharing = sharing;
+        /**
+         * SecretSharing also needs to respond to secret requests
+         * from other devices, so it needs the secret fetcher as 
+         * well
+         */
         this.secretSharing.setSecretFetcher(this);
     }
 }
