@@ -77,16 +77,14 @@ export class SecretSharing {
         this.crossSigning = options.crossSigning;
         this.logger = options.logger;
         this.aesEncryption = new AESEncryption(this.storage, options.crypto, this.encoding);
-        (window as any).foo = this;
-        this.init();
     }
 
-    private async init() {
+    async load(): Promise<void> {
         this.deviceMessageHandler.on("message", async ({ encrypted }) => {
             const type: EVENT_TYPE = encrypted?.event.type;
             switch (type) {
                 case EVENT_TYPE.REQUEST: {
-                    this._respondToRequest(encrypted);
+                    await this._respondToRequest(encrypted);
                     break;
                 }
                 case EVENT_TYPE.SEND: {
@@ -102,9 +100,9 @@ export class SecretSharing {
         await this.aesEncryption.load();
     }
 
-    private async _respondToRequest(request) {
+    private async _respondToRequest(request): Promise<void> {
         await this.logger.run("SharedSecret.respondToRequest", async (log) => {
-            if (!this.shouldRespondToRequest(request, log)) {
+            if (!await this.shouldRespondToRequest(request, log)) {
                 return;
             }
             const requestContent = request.event.content;
@@ -127,9 +125,7 @@ export class SecretSharing {
             }
             const messages = await log.wrap("olm encrypt", log => this.olmEncryption.encrypt(
                 EVENT_TYPE.SEND, content, [device], this.hsApi, log));
-            console.log("messages", messages);
             const payload = formatToDeviceMessagesPayload(messages);
-            console.log("payload", payload);
             await this.hsApi.sendToDevice("m.room.encrypted", payload, makeTxnId(), {log}).response();
         });
     }
@@ -162,7 +158,7 @@ export class SecretSharing {
                 // 2. Validate message format
                 // 3. Check if this is a cancellation 
                 return false;
-            } 
+            }
 
             // 3. Check that the device is verified
             const deviceId = content.requesting_device_id;
@@ -176,8 +172,7 @@ export class SecretSharing {
                 return false;
             }
             return true;
-        })
-
+        });
     }
 
     /**
@@ -185,7 +180,7 @@ export class SecretSharing {
      * Returns undefined otherwise.
      * @param decryptionResult Encrypted to-device event that contains the secret
      */
-    async shouldAcceptSecret(decryptionResult: DecryptionResult): Promise<string | undefined> {
+    private async shouldAcceptSecret(decryptionResult: DecryptionResult): Promise<string | undefined> {
         // 1. Check if we can trust this response
         const crossSigning = this.crossSigning.get();
         if (!crossSigning) {
@@ -221,7 +216,7 @@ export class SecretSharing {
         }
     }
 
-    async removeStoredRequestId(requestId: string): Promise<void> {
+    private async removeStoredRequestId(requestId: string): Promise<void> {
         const txn = await this.storage.readWriteTxn([this.storage.storeNames.session]);
         const storedIds = await txn.session.get(STORAGE_KEY);
         if (storedIds) {
@@ -280,7 +275,7 @@ export class SecretSharing {
         return deferred.promise;
     }
     
-    private async sendRequestForSecret(name: string, request_id: string, log: ILogItem) {
+    private async sendRequestForSecret(name: string, request_id: string, log: ILogItem): Promise<void> {
         const content = {
             action: "request",
             name,
@@ -291,9 +286,7 @@ export class SecretSharing {
         devices = devices.filter(d => d.device_id !== this.deviceTracker.ownDeviceId);
         const messages = await log.wrap("olm encrypt", log => this.olmEncryption.encrypt(
             EVENT_TYPE.REQUEST, content, devices, this.hsApi, log));
-        console.log("messages", messages);
         const payload = formatToDeviceMessagesPayload(messages);
-        console.log("payload", payload);
         await this.hsApi.sendToDevice("m.room.encrypted", payload, makeTxnId(), {log}).response();
     } 
 
@@ -333,7 +326,7 @@ class AESEncryption {
 
     constructor(private storage: Storage, private crypto: Crypto, private encoding: Encoding) { };
 
-    async load() {
+    async load(): Promise<void> {
         const storageKey = `${SESSION_E2EE_KEY_PREFIX}localAESKey`;
         // 1. Check if we're already storing the AES key
         const txn = await this.storage.readTxn([StoreNames.session]);
@@ -343,8 +336,8 @@ class AESEncryption {
         if (!key) {
             /**
              * Element creates the key as "non-extractable", meaning that it cannot
-             * be exported through the crypto API. But since it is going
-             * to end up in local-storage anyway, I don't see a reason to do that.
+             * be exported through the crypto DOM API. But since it's going
+             * to end up in indexeddb anyway, it really doesn't matter.
              */
             key = await this.crypto.aes.generateKey("jwk");
             iv = await this.crypto.aes.generateIV();
