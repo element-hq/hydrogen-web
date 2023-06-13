@@ -29,7 +29,6 @@ export {SecretFetcher} from "./SecretFetcher";
 export {SecretSharing} from "./SecretSharing";
 export {SecretStorage} from "./SecretStorage";
 
-
 type Olm = typeof OlmNamespace;
 
 const SSSS_KEY = `${SESSION_E2EE_KEY_PREFIX}ssssKey`;
