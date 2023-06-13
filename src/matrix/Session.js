@@ -172,7 +172,7 @@ export class Session {
     }
 
     // called once this._e2eeAccount is assigned
-    _setupEncryption() {
+    async _setupEncryption() {
         // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account
         // and can create RoomEncryption objects and handle encrypted to_device messages and device list changes.
         const senderKeyLock = new LockMap();
@@ -218,6 +218,7 @@ export class Session {
             crossSigning: this._crossSigning,
             logger: this._platform.logger,
         });
+        await this._secretSharing.load();
         this._secretFetcher.setSecretSharing(this._secretSharing);
 
     }
@@ -419,7 +420,7 @@ export class Session {
             if (!this._e2eeAccount) {
                 this._e2eeAccount = await this._createNewAccount(this._sessionInfo.deviceId, this._storage);
                 log.set("keys", this._e2eeAccount.identityKeys);
-                this._setupEncryption();
+                await this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
