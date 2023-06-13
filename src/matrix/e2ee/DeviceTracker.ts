@@ -527,7 +527,7 @@ export class DeviceTracker {
     }
 
     /** Gets a single device */
-    async deviceForId(userId: string, deviceId: string, hsApi: HomeServerApi, log: ILogItem) {
+    async deviceForId(userId: string, deviceId: string, hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey | undefined> {
         /**
          * 1. If the device keys are outdated, we will fetch all the keys and update them.
          */
@@ -595,7 +595,7 @@ export class DeviceTracker {
         return deviceKey;
     }
 
-    async deviceForCurveKey(userId: string, key: string, hsApi: HomeServerApi, log: ILogItem) {
+    async deviceForCurveKey(userId: string, key: string, hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey | undefined> {
         const txn = await this._storage.readTxn([
             this._storage.storeNames.deviceKeys,
             this._storage.storeNames.userIdentities,
