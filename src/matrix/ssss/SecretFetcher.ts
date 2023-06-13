@@ -26,13 +26,14 @@ export class SecretFetcher {
     public secretSharing: SecretSharing;
 
     async getSecret(name: string): Promise<string | undefined> {
-        ;
         return await this.secretStorage?.readSecret(name) ??
             await this.secretSharing?.getLocallyStoredSecret(name);
-        // note that we don't ask another device for secret here
-        // that should be done explicitly since it can take arbitrary
-        // amounts of time to be fulfilled as the other devices may 
-        // be offline etc...
+        /**
+         * Note that we don't ask another device for secret here;
+         * that should be done explicitly since it can take arbitrary
+         * amounts of time to be fulfilled as the other devices may 
+         * be offline etc...
+         */
     } 
 
     setSecretStorage(storage: SecretStorage) {
