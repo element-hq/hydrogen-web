@@ -60,7 +60,6 @@ export class SecretSharing {
     private readonly ourUserId: string;
     private readonly olmEncryption: OlmEncryption;
     private readonly waitMap: Map<string, { deferred: Deferred<any>, name: string }> = new Map();
-    private readonly crypto: Crypto;
     private readonly encoding: Encoding;
     private readonly aesEncryption: AESEncryption;
     private readonly crossSigning: ObservableValue<CrossSigning | undefined>;
@@ -74,11 +73,10 @@ export class SecretSharing {
         this.deviceTracker = options.deviceTracker;
         this.ourUserId = options.ourUserId;
         this.olmEncryption = options.olmEncryption;
-        this.crypto = options.crypto;
         this.encoding = options.encoding;
         this.crossSigning = options.crossSigning;
         this.logger = options.logger;
-        this.aesEncryption = new AESEncryption(this.storage, this.crypto, this.encoding);
+        this.aesEncryption = new AESEncryption(this.storage, options.crypto, this.encoding);
         (window as any).foo = this;
         this.init();
     }
