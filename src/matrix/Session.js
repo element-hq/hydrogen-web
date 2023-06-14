@@ -221,7 +221,6 @@ export class Session {
         });
         await this._secretSharing.load();
         this._secretFetcher.setSecretSharing(this._secretSharing);
-
     }
 
     _createRoomEncryption(room, encryptionParams) {
@@ -613,7 +612,6 @@ export class Session {
                 }
             });
         }
-
         await this._keyBackup.get()?.start(log);
         await this._crossSigning.get()?.start(log);
         
