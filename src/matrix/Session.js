@@ -113,6 +113,7 @@ export class Session {
         this.needsKeyBackup = new ObservableValue(false);
         this._secretFetcher = new SecretFetcher();
         this._secretSharing = null;
+        this._secretStorage = null;
     }
 
     get fingerprintKey() {
@@ -274,11 +275,6 @@ export class Session {
                 this._keyBackup.get().dispose();
                 this._keyBackup.set(undefined);
             }
-            // const crossSigning = this._crossSigning.get();
-            // if (crossSigning) {
-            //     crossSigning.dispose();
-            //     this._crossSigning.set(undefined);
-            // }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
             if (await this._tryLoadSecretStorage(key, log)) {
                 // only after having read a secret, write the key
@@ -550,6 +546,25 @@ export class Session {
                 await this._tryLoadSecretStorage(ssssKey, log);
             }
         }
+        if (this._features.crossSigning) {
+            this._platform.logger.run("enable cross-signing", async log => {
+                const crossSigning = new CrossSigning({
+                    storage: this._storage,
+                    secretFetcher: this._secretFetcher,
+                    platform: this._platform,
+                    olm: this._olm,
+                    olmUtil: this._olmUtil,
+                    deviceTracker: this._deviceTracker,
+                    deviceMessageHandler: this._deviceMessageHandler,
+                    hsApi: this._hsApi,
+                    ownUserId: this.userId,
+                    e2eeAccount: this._e2eeAccount,
+                    deviceId: this.deviceId,
+                });
+                await crossSigning.load(log);
+                this._crossSigning.set(crossSigning);
+            });
+        }
     }
 
     dispose() {
@@ -599,26 +614,6 @@ export class Session {
             });
         }
 
-        if (this._features.crossSigning) {
-            this._platform.logger.run("enable cross-signing", async log => {
-                const crossSigning = new CrossSigning({
-                    storage: this._storage,
-                    // secretStorage: this._secretStorage,
-                    secretFetcher: this._secretFetcher,
-                    platform: this._platform,
-                    olm: this._olm,
-                    olmUtil: this._olmUtil,
-                    deviceTracker: this._deviceTracker,
-                    deviceMessageHandler: this._deviceMessageHandler,
-                    hsApi: this._hsApi,
-                    ownUserId: this.userId,
-                    e2eeAccount: this._e2eeAccount,
-                    deviceId: this.deviceId,
-                });
-                await crossSigning.load(log);
-                this._crossSigning.set(crossSigning);
-            });
-        }
         await this._keyBackup.get()?.start(log);
         await this._crossSigning.get()?.start(log);
         
