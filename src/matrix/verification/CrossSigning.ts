@@ -231,34 +231,60 @@ export class CrossSigning {
         return this.sasVerificationInProgress;
     }
 
-    private handleSASDeviceMessage({ unencrypted: event }) {
-        if (!event) { return; }
-        const txnId = event.content.transaction_id;
-        /**
-         * If we receive an event for the current/previously finished 
-         * SAS verification, we should ignore it because the device channel
-         * object (who also listens for to_device messages) will take care of it (if needed).
-         */
-        const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
-        if (shouldIgnoreEvent) { return; }
-        /**
-         * 1. If we receive the cancel message, we need to update the requests map.
-         * 2. If we receive an starting message (viz request/start), we need to create the SASRequest from it.
-         */
-        switch (event.type) {
-            case VerificationEventType.Cancel: 
-                this.receivedSASVerifications.remove(txnId);
-                return;
-            case VerificationEventType.Request:
-            case VerificationEventType.Start:
-                this.platform.logger.run("Create SASRequest", () => {
-                    this.receivedSASVerifications.set(txnId, new SASRequest(event));
-                });
-                return;
-            default:
-                // we don't care about this event!
-                return;
+    private async handleSASDeviceMessage({ unencrypted: event }) {
+        if (!event ||
+            (event.type !== VerificationEventType.Request && event.type !== VerificationEventType.Start)
+        ) {
+            return;
         }
+        await this.platform.logger.run("CrossSigning.handleSASDeviceMessage", async log => {
+            const txnId = event.content.transaction_id;
+            const fromDevice = event.content.from_device;
+            const fromUser = event.sender;
+            if (!fromDevice || fromUser !== this.ownUserId) {
+                /**
+                 * SAS verification may be started with a request or a start message but
+                 * both should contain a from_device.
+                 */
+                return;
+            }
+            if (!await this.areWeVerified(log)) {
+                /**
+                 * If we're not verified, then the other device MUST be verified.
+                 * We check this so that verification between two unverified devices
+                 * never happen!
+                 */
+                const device = await this.deviceTracker.deviceForId(this.ownUserId, fromDevice, this.hsApi, log);
+                if (!device || !await this.isOurUserDeviceTrusted(device!, log)) {
+                    return;
+                }
+            }
+            /**
+             * If we receive an event for the current/previously finished 
+             * SAS verification, we should ignore it because the device channel
+             * object (who also listens for to_device messages) will take care of it (if needed).
+             */
+            const shouldIgnoreEvent = this.sasVerificationInProgress?.channel.id === txnId;
+            if (shouldIgnoreEvent) { return; }
+            /**
+             * 1. If we receive the cancel message, we need to update the requests map.
+             * 2. If we receive an starting message (viz request/start), we need to create the SASRequest from it.
+             */
+            switch (event.type) {
+                case VerificationEventType.Cancel: 
+                    this.receivedSASVerifications.remove(txnId);
+                    return;
+                case VerificationEventType.Request:
+                case VerificationEventType.Start:
+                    this.platform.logger.run("Create SASRequest", () => {
+                        this.receivedSASVerifications.set(txnId, new SASRequest(event));
+                    });
+                    return;
+                default:
+                    // we don't care about this event!
+                    return;
+            }
+        });
     }
 
     /** returns our own device key signed by our self-signing key. Other signatures will be missing. */
@@ -362,9 +388,9 @@ export class CrossSigning {
         });
     }
 
-    areWeVerified(log: ILogItem): Promise<boolean> {
-        return log.wrap("CrossSigning.areWeVerified", async () => {
-            const device = await this.deviceTracker.deviceForId(this.ownUserId, this.deviceId, this.hsApi, log);
+    areWeVerified(log?: ILogItem): Promise<boolean> {
+        return this.platform.logger.wrapOrRun(log, "CrossSigning.areWeVerified", async (_log) => {
+            const device = await this.deviceTracker.deviceForId(this.ownUserId, this.deviceId, this.hsApi, _log);
             return this.isOurUserDeviceTrusted(device!, log);
        }); 
     }
