@@ -349,7 +349,7 @@ export class CrossSigning {
     }
 
     async isOurUserDeviceTrusted(device: DeviceKey, log?: ILogItem): Promise<boolean> {
-        return await this.platform.logger.wrapOrRun(log, "CrossSigning.getDeviceTrust", async (_log) => {
+        return await this.platform.logger.wrapOrRun(log, "CrossSigning.isOurUserDeviceTrusted", async (_log) => {
             const ourSSK = await this.deviceTracker.getCrossSigningKeyForUser(this.ownUserId, KeyUsage.SelfSigning, this.hsApi, _log);
             if (!ourSSK) {
                 return false;

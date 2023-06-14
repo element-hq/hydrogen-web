@@ -77,7 +77,6 @@ export class DeviceMessageHandler extends EventEmitter{
     }
 
     async afterSyncCompleted(decryptionResults, deviceTracker, hsApi, log) {
-        // this._emitEncryptedEvents(decryptionResults);
         await log.wrap("Verifying fingerprint of encrypted toDevice messages", async (log) => {
             for (const result of decryptionResults) {
                 const sender = result.event.sender;

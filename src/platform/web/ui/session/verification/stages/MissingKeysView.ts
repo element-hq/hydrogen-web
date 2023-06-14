@@ -30,7 +30,7 @@ export class MissingKeysView extends TemplateView<MissingKeysViewModel> {
                 ),
                 t.p(
                     { className: "MissingKeysView__description" },
-                   vm.i18n`Some keys needed for verification is missing. You can fix this by enabling key backup in settings.` 
+                   vm.i18n`Some keys needed for verification are missing. You can fix this by enabling key backup in settings.` 
                 ),
                 t.div({ className: "MissingKeysView__actions" }, [
                     t.button({
