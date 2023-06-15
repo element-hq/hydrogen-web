@@ -151,7 +151,7 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
         return !!this._crossSigning;
     }
 
-    async signOwnDevice(): Promise<void> {
+    private async _signOwnDevice(): Promise<void> {
         const crossSigning = this._crossSigning;
         if (crossSigning) {
             await this.logger.run("KeyBackupViewModel.signOwnDevice", async log => {
@@ -208,6 +208,7 @@ export class KeyBackupViewModel extends ViewModel<SegmentType, Options> {
                 if (setupDehydratedDevice) {
                     this._dehydratedDeviceId = await this._session.setupDehydratedDevice(key);
                 }
+                await this._signOwnDevice();
             } catch (err) {
                 console.error(err);
                 this._error = err;

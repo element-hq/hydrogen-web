@@ -65,14 +65,6 @@ export class KeyBackupSettingsView extends TemplateView<KeyBackupViewModel> {
                 return t.div([
                     t.button(
                         {
-                            onClick: disableTargetCallback(async (evt) => {
-                                await vm.signOwnDevice();
-                            }),
-                        },
-                        "Sign own device"
-                    ),
-                    t.button(
-                        {
                             onClick: disableTargetCallback(async () => {
                                 vm.navigateToVerification();
                             }),
