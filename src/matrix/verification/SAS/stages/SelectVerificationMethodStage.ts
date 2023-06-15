@@ -18,10 +18,11 @@ import {CancelReason, VerificationEventType} from "../channel/types";
 import {KEY_AGREEMENT_LIST, HASHES_LIST, MAC_LIST, SAS_LIST} from "./constants";
 import {SendAcceptVerificationStage} from "./SendAcceptVerificationStage";
 import {SendKeyStage} from "./SendKeyStage";
+import {Deferred} from "../../../../utils/Deferred";
 import type {ILogItem} from "../../../../logging/types";
 
 export class SelectVerificationMethodStage extends BaseSASVerificationStage {
-    private hasSentStartMessage = false;
+    private hasSentStartMessage?: Promise<void>;
     private allowSelection = true;
     public otherDeviceName: string;
 
@@ -36,6 +37,7 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
                 // We received the start message 
                 this.allowSelection = false;
                 if (this.hasSentStartMessage) {
+                    await this.hasSentStartMessage;
                     await this.resolveStartConflict(log);
                 }
                 else {
@@ -96,6 +98,8 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
 
     async selectEmojiMethod(log: ILogItem) {
         if (!this.allowSelection) { return; } 
+        const deferred = new Deferred<void>();
+        this.hasSentStartMessage = deferred.promise;
         const content = {
             method: "m.sas.v1",
             from_device: this.ourUserDeviceId,
@@ -110,6 +114,6 @@ export class SelectVerificationMethodStage extends BaseSASVerificationStage {
          * to the next stage (where we will send the key).
          */
         await this.channel.send(VerificationEventType.Start, content, log);
-        this.hasSentStartMessage = true;
+        deferred.resolve();
     }
 }
