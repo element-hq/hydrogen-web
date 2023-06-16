@@ -71,7 +71,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             if (!this.sas) {
                 throw new Error("CrossSigning.startVerification did not return a sas object!");
             }
-            if (!await this.performPreVerificationChecks(crossSigning, log)) {
+            if (!await this.performPreVerificationChecks(crossSigning, requestOrUserId, log)) {
                 return;
             }
             this.addEventListeners();
@@ -87,11 +87,13 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         });
     }
 
-    private async performPreVerificationChecks(crossSigning: CrossSigning, log: ILogItem): Promise<boolean> {
+    private async performPreVerificationChecks(crossSigning: CrossSigning, requestOrUserId: SASRequest | string, log: ILogItem): Promise<boolean> {
         return await log.wrap("DeviceVerificationViewModel.performPreVerificationChecks", async (_log) => {
             const areWeVerified = await crossSigning.areWeVerified(log);
             // If we're not verified, we'll need to ask the other device for secrets later
-            this._needsToRequestSecret = !areWeVerified;
+            const otherUserId = typeof requestOrUserId === "string" ? requestOrUserId : requestOrUserId.sender;
+            const isDeviceVerification = otherUserId === this.getOption("session").userId;
+            this._needsToRequestSecret =  isDeviceVerification && !areWeVerified;
             if (this._needsToRequestSecret) {
                 return true;
             }
