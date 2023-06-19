@@ -150,8 +150,12 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
         await this.platform.logger.run("DeviceVerificationViewModel.requestSecrets", async (log) => {
             if (this._needsToRequestSecret) {
                 const secretSharing = this.getOption("session").secretSharing;
-                const promises = neededSecrets.map((secret) => secretSharing.requestSecret(secret, log));
-                await Promise.all(promises);
+                const requestPromises = neededSecrets.map((secret) => secretSharing.requestSecret(secret, log));
+                const secretRequests = await Promise.all(requestPromises);
+                const receivedSecretPromises = secretRequests.map(r => r.waitForResponse());
+                await Promise.all(receivedSecretPromises);
+                const crossSigning = this.getOption("session").crossSigning.get();
+                crossSigning.start(log);
             }
         });
     }
