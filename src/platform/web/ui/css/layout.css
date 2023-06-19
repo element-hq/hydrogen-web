@@ -101,6 +101,14 @@ the layout viewport up without resizing it when the keyboard shows */
     .middle .close-middle { display: block !important; }
     /* hide grid button */
     .LeftPanel .grid { display: none !important; }
+
+    .VerificationReadyTileView {
+        flex-direction: column;
+    }
+
+    .VerificationTileView__actions {
+        justify-content: center;
+    }
 }
 
 .LeftPanel {
