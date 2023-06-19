@@ -24,10 +24,10 @@ import {VerificationCompleteView} from "./stages/VerificationCompleteView";
 import {MissingKeysView} from "./stages/MissingKeysView";
 
 export class DeviceVerificationView extends TemplateView<DeviceVerificationViewModel> {
-    render(t: Builder<DeviceVerificationViewModel>) {
+    render(t: Builder<DeviceVerificationViewModel>, vm: DeviceVerificationViewModel) {
         return t.div({
             className: {
-                "middle": true,
+                "middle": !vm.isHappeningInRoom,
                 "DeviceVerificationView": true,
             }
         }, [

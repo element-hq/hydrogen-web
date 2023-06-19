@@ -180,4 +180,8 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     get type(): string { 
         return "verification";
     }
+
+    get isHappeningInRoom(): boolean {
+        return !!this.navigation.path.get("room");
+    }
 }
