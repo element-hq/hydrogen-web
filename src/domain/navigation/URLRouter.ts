@@ -149,12 +149,15 @@ export class URLRouter<T extends {session: string | boolean}> implements IURLRou
     }
 
     createSSOCallbackURL(): string {
-        return window.location.origin;
+        return window.location.href;
     }
 
     normalizeUrl(): void {
-        // Remove any queryParameters from the URL
-        // Gets rid of the loginToken after SSO
-        this._history.replaceUrlSilently(`${window.location.origin}/${window.location.hash}`);
+        const url = new URL(window.location.href);
+
+        // Remove the loginToken query parameter from the URL after SSO.
+        url.searchParams.delete("loginToken");
+
+        this._history.replaceUrlSilently(url.toString());
     }
 }
