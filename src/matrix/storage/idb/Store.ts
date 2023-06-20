@@ -118,6 +118,16 @@ export class QueryTargetWrapper<T> {
         }
     }
 
+    clear(): IDBRequest<undefined> {
+        try {
+            LOG_REQUESTS && logRequest("clear", [], this._qt);
+            return this._qtStore.clear();
+        }
+        catch (err) {
+            throw new IDBRequestAttemptError("delete", this._qt, err, []);
+        }
+    }
+
     count(keyRange?: IDBKeyRange): IDBRequest<number> {
         try {
             return this._qt.count(keyRange);
@@ -193,6 +203,11 @@ export class Store<T> extends QueryTarget<T> {
         // ok to not monitor result of request, see comment in `put`.
         const request = this._idbStore.delete(keyOrKeyRange);
         this._prepareErrorLog(request, log, "delete", keyOrKeyRange, undefined);
+    }
+
+    clear(log?: ILogItem): void {
+        const request = this._idbStore.clear();
+        this._prepareErrorLog(request, log, "delete", undefined, undefined);
     }
 
     private _prepareErrorLog(request: IDBRequest, log: ILogItem | undefined, operationName: string, key: IDBKey | undefined, value: T | undefined) {

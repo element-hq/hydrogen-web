@@ -36,4 +36,8 @@ export class SharedSecretStore {
     remove(name: string): void {
         this._store.delete(name);
     }
+
+    deleteAllSecrets(): void {
+        this._store.clear();
+    }
 }

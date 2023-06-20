@@ -772,6 +772,7 @@ export class Session {
             e2eeAccountChanges: null,
             hasNewRoomKeys: false,
             deviceMessageDecryptionResults: null,
+            changedDevices: null,
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -789,6 +790,7 @@ export class Session {
         const deviceLists = syncResponse.device_lists;
         if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists.changed.length) {
             await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
+            changes.changedDevices = deviceLists.changed;
         }
 
         if (preparation) {
@@ -837,6 +839,9 @@ export class Session {
         }
         if (changes.deviceMessageDecryptionResults) {
             await this._deviceMessageHandler.afterSyncCompleted(changes.deviceMessageDecryptionResults, this._deviceTracker, this._hsApi, log);
+        }
+        if (changes.changedDevices?.includes(this.userId)) {
+            this._secretSharing?.checkSecretValidity();
         }
     }
 

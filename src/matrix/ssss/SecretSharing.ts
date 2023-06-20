@@ -225,6 +225,17 @@ export class SecretSharing {
         }
     }
 
+    async checkSecretValidity(log: ILogItem): Promise<void> {
+        const crossSigning = this.crossSigning.get();
+        const needsDeleting = !await crossSigning?.areWeVerified(log);
+        if (needsDeleting) {
+            // User probably reset their cross-signing keys
+            // Can't trust the secrets anymore!
+            const txn = await this.storage.readWriteTxn([this.storage.storeNames.sharedSecrets]);
+            txn.sharedSecrets.deleteAllSecrets();
+        }
+    }
+
     async getLocallyStoredSecret(name: string): Promise<any> {
         const txn = await this.storage.readTxn([
             this.storage.storeNames.sharedSecrets,
