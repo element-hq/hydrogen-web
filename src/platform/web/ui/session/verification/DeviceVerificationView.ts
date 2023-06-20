@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Builder, TemplateView} from "../../general/TemplateView";
+import {Builder, InlineTemplateView, TemplateView} from "../../general/TemplateView";
 import {DeviceVerificationViewModel} from "../../../../../domain/session/verification/DeviceVerificationViewModel";
 import {WaitingForOtherUserView} from "./stages/WaitingForOtherUserView";
 import {VerificationCancelledView} from "./stages/VerificationCancelledView";
@@ -22,6 +22,7 @@ import {SelectMethodView} from "./stages/SelectMethodView";
 import {VerifyEmojisView} from "./stages/VerifyEmojisView";
 import {VerificationCompleteView} from "./stages/VerificationCompleteView";
 import {MissingKeysView} from "./stages/MissingKeysView";
+import {spinner} from "../../common.js";
 
 export class DeviceVerificationView extends TemplateView<DeviceVerificationViewModel> {
     render(t: Builder<DeviceVerificationViewModel>, vm: DeviceVerificationViewModel) {
@@ -39,7 +40,7 @@ export class DeviceVerificationView extends TemplateView<DeviceVerificationViewM
                     case "verify-emojis": return new VerifyEmojisView(vm);
                     case "verification-completed": return new VerificationCompleteView(vm);
                     case "keys-missing": return new MissingKeysView(vm);
-                    default: return null;
+                    default: return new InlineTemplateView(vm, () => spinner(t));
                 }
             })
         ])
