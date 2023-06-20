@@ -103,7 +103,7 @@ export class RoomChannel extends Disposables implements IChannel {
     }
 
     async send(eventType: VerificationEventType, content: any, log: ILogItem): Promise<void> {
-        await log.wrap("RoomChannel.send", async () => {
+        await log.wrap("RoomChannel.send", async (_log) => {
             if (this.isCancelled) {
                 throw new VerificationCancelledError();
             }
@@ -112,6 +112,15 @@ export class RoomChannel extends Disposables implements IChannel {
                 await this.handleRequestEventSpecially(eventType, content, log);
                 return;
             }
+            if (!this.id) {
+                /**
+                 * This might happen if the user cancelled the verification from the UI,
+                 * but no verification messages were yet sent (maybe because the keys are
+                 * missing etc..).
+                 */
+                return;
+            }
+            await this.room.ensureMessageKeyIsShared(_log);
             Object.assign(content, createReference(this.id));
             await this.room.sendEvent(eventType, content, undefined, log);
             this.sentMessages.set(eventType, {content});

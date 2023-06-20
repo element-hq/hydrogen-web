@@ -419,6 +419,7 @@ export class Session {
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
+            await this._createCrossSigning();
         }
     }
 
@@ -545,6 +546,12 @@ export class Session {
                 await this._tryLoadSecretStorage(ssssKey, log);
             }
         }
+        if (this._e2eeAccount) {
+            await this._createCrossSigning();
+        }
+    }
+
+    async _createCrossSigning() {
         if (this._features.crossSigning) {
             this._platform.logger.run("enable cross-signing", async log => {
                 const crossSigning = new CrossSigning({

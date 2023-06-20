@@ -168,7 +168,7 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     dispose(): void {
         if (this.sas && !this.sas.finished) {
-            this.sas.abort().catch(() => {/** ignore */});
+            this.sas.abort().catch((e) => { console.error(e); });
         }
         super.dispose();
     }
