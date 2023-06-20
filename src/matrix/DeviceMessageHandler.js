@@ -77,7 +77,31 @@ export class DeviceMessageHandler extends EventEmitter{
     }
 
     async afterSyncCompleted(decryptionResults, deviceTracker, hsApi, log) {
-        this._emitEncryptedEvents(decryptionResults);
+        await log.wrap("Verifying fingerprint of encrypted toDevice messages", async (log) => {
+            for (const result of decryptionResults) {
+                const sender = result.event.sender;
+                const device = await deviceTracker.deviceForCurveKey(
+                    sender,
+                    result.senderCurve25519Key,
+                    hsApi,
+                    log
+                );
+                result.setDevice(device);
+                if (result.isVerified) {
+                    this.emit("message", { encrypted: result });
+                }
+                else {
+                    log.log({
+                        l: "could not verify olm fingerprint key matches, ignoring",
+                        ed25519Key: result.device.ed25519Key,
+                        claimedEd25519Key: result.claimedEd25519Key,
+                        deviceId: device.deviceId,
+                        userId: device.userId,
+                    });
+                }
+            }
+        });
+        // todo: Refactor the following to use to device messages 
         if (this._callHandler) {
             // if we don't have a device, we need to fetch the device keys the message claims
             // and check the keys, and we should only do network requests during
@@ -113,12 +137,6 @@ export class DeviceMessageHandler extends EventEmitter{
         }
     }
 
-    _emitEncryptedEvents(decryptionResults) {
-        // We don't emit for now as we're not verifying the identity of the sender
-        // for (const result of decryptionResults) {
-        //     this.emit("message", { encrypted: result });
-        // }
-    }
 }
 
 class SyncPreparation {

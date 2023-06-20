@@ -15,31 +15,31 @@ limitations under the License.
 */
 
 import {Builder, TemplateView} from "../../../general/TemplateView";
-import {VerificationCancelledViewModel} from "../../../../../../domain/session/verification/stages/VerificationCancelledViewModel";
+import type {MissingKeysViewModel} from "../../../../../../domain/session/verification/stages/MissingKeysViewModel";
 
-export class VerificationCancelledView extends TemplateView<VerificationCancelledViewModel> {
-    render(t: Builder<VerificationCancelledViewModel>, vm: VerificationCancelledViewModel) {
+export class MissingKeysView extends TemplateView<MissingKeysViewModel> {
+    render(t: Builder<MissingKeysViewModel>, vm: MissingKeysViewModel) {
         return t.div(
             {
-                className: "VerificationCancelledView",
+                className: "MissingKeysView",
             },
             [
                 t.h2(
-                    { className: "VerificationCancelledView__title" },
-                    vm.title,
+                    { className: "MissingKeysView__heading" },
+                    vm.i18n`Verification is currently not possible!`
                 ),
                 t.p(
-                    { className: "VerificationCancelledView__description" },
-                   vm.description,
+                    { className: "MissingKeysView__description" },
+                   vm.i18n`Some keys needed for verification are missing. You can fix this by enabling key backup in settings.` 
                 ),
-                t.div({ className: "VerificationCancelledView__actions" }, [
+                t.div({ className: "MissingKeysView__actions" }, [
                     t.button({
                         className: {
                             "button-action": true,
                             "primary": true,
                         },
-                        onclick: () => vm.dismiss(),
-                    }, "Got it")
+                        onclick: () => vm.gotoSettings(),
+                    }, "Open Settings")
                 ]),
             ]
         );

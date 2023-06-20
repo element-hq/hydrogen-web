@@ -36,7 +36,7 @@ type DecryptedEvent = {
 }
 
 export class DecryptionResult {
-    private device?: DeviceKey;
+    public device?: DeviceKey;
 
     constructor(
         public readonly event: DecryptedEvent,

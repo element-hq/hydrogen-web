@@ -52,8 +52,8 @@ export class VerificationTileView extends TemplateView<VerificationTile> {
 class VerificationReadyTileView extends TemplateView<VerificationTile> {
     render(t: Builder<VerificationTile>, vm: VerificationTile) {
         return t.div({ className: "VerificationReadyTileView" }, [
+            t.div({ className: "VerificationTileView__shield" }),
             t.div({ className: "VerificationTileView__description" }, [
-                t.div({ className: "VerificationTileView__shield" }),
                 t.div(vm.description)
             ]),
             t.div({ className: "VerificationTileView__actions" }, [

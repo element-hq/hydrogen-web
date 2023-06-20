@@ -14,19 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Builder, TemplateView} from "../../general/TemplateView";
+import {Builder, InlineTemplateView, TemplateView} from "../../general/TemplateView";
 import {DeviceVerificationViewModel} from "../../../../../domain/session/verification/DeviceVerificationViewModel";
 import {WaitingForOtherUserView} from "./stages/WaitingForOtherUserView";
 import {VerificationCancelledView} from "./stages/VerificationCancelledView";
 import {SelectMethodView} from "./stages/SelectMethodView";
 import {VerifyEmojisView} from "./stages/VerifyEmojisView";
 import {VerificationCompleteView} from "./stages/VerificationCompleteView";
+import {MissingKeysView} from "./stages/MissingKeysView";
+import {spinner} from "../../common.js";
 
 export class DeviceVerificationView extends TemplateView<DeviceVerificationViewModel> {
-    render(t: Builder<DeviceVerificationViewModel>) {
+    render(t: Builder<DeviceVerificationViewModel>, vm: DeviceVerificationViewModel) {
         return t.div({
             className: {
-                "middle": true,
+                "middle": !vm.isHappeningInRoom,
                 "DeviceVerificationView": true,
             }
         }, [
@@ -37,7 +39,8 @@ export class DeviceVerificationView extends TemplateView<DeviceVerificationViewM
                     case "select-method": return new SelectMethodView(vm);
                     case "verify-emojis": return new VerifyEmojisView(vm);
                     case "verification-completed": return new VerificationCompleteView(vm);
-                    default: return null;
+                    case "keys-missing": return new MissingKeysView(vm);
+                    default: return new InlineTemplateView(vm, () => spinner(t));
                 }
             })
         ])

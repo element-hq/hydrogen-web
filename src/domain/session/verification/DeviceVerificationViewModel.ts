@@ -22,9 +22,12 @@ import {VerificationCancelledViewModel} from "./stages/VerificationCancelledView
 import {SelectMethodViewModel} from "./stages/SelectMethodViewModel";
 import {VerifyEmojisViewModel} from "./stages/VerifyEmojisViewModel";
 import {VerificationCompleteViewModel} from "./stages/VerificationCompleteViewModel";
+import {MissingKeysViewModel} from "./stages/MissingKeysViewModel";
 import type {Session} from "../../../matrix/Session.js";
 import type {SASVerification} from "../../../matrix/verification/SAS/SASVerification";
 import type {SASRequest} from "../../../matrix/verification/SAS/SASRequest";
+import type {CrossSigning} from "../../../matrix/verification/CrossSigning";
+import type {ILogItem} from "../../../logging/types";
 import type {Room} from "../../../matrix/room/Room.js";
 
 type Options = BaseOptions & {
@@ -34,9 +37,16 @@ type Options = BaseOptions & {
     userId?: string;
 };
 
+const neededSecrets = [
+    "m.cross_signing.master",
+    "m.cross_signing.self_signing",
+    "m.cross_signing.user_signing",
+];
+
 export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentType, Options> {
     private sas: SASVerification;
     private _currentStageViewModel: any;
+    private _needsToRequestSecret: boolean;
 
     constructor(options: Readonly<Options>) {
         super(options);
@@ -54,11 +64,15 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     }
 
     private async startVerification(requestOrUserId: SASRequest | string, room?: Room) {
-        await this.logAndCatch("DeviceVerificationViewModel.start", (log) => {
-            const crossSigning = this.getOption("session").crossSigning.get();
+        await this.logAndCatch("DeviceVerificationViewModel.startVerification", async (log) => {
+            const crossSigningObservable = this.getOption("session").crossSigning;
+            const crossSigning = await crossSigningObservable.waitFor(c => !!c).promise;
             this.sas = crossSigning.startVerification(requestOrUserId, room, log);
             if (!this.sas) {
                 throw new Error("CrossSigning.startVerification did not return a sas object!");
+            }
+            if (!await this.performPreVerificationChecks(crossSigning, requestOrUserId, log)) {
+                return;
             }
             this.addEventListeners();
             if (typeof requestOrUserId === "string") {
@@ -70,6 +84,39 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             else {
                 return crossSigning.signDevice(this.sas, log);
             }
+        });
+    }
+
+    private async performPreVerificationChecks(crossSigning: CrossSigning, requestOrUserId: SASRequest | string, log: ILogItem): Promise<boolean> {
+        return await log.wrap("DeviceVerificationViewModel.performPreVerificationChecks", async (_log) => {
+            const areWeVerified = await crossSigning.areWeVerified(log);
+            // If we're not verified, we'll need to ask the other device for secrets later
+            const otherUserId = typeof requestOrUserId === "string" ? requestOrUserId : requestOrUserId.sender;
+            const isDeviceVerification = otherUserId === this.getOption("session").userId;
+            this._needsToRequestSecret =  isDeviceVerification && !areWeVerified;
+            if (this._needsToRequestSecret) {
+                return true;
+            }
+            /**
+             * It's possible that we are verified but don't have access
+             * to the private cross-signing keys. In this case we really
+             * can't verify the other device because we need these keys
+             * to sign their device. 
+             * 
+             * If this happens, we'll simply ask the user to enable key-backup
+             * (and secret storage) and try again later.
+             */
+            const session = this.getOption("session");
+            const promises = neededSecrets.map(s => session.secretFetcher.getSecret(s));
+            const secrets = await Promise.all(promises)
+            for (const secret of secrets) {
+                if (!secret) {
+                    // We really can't proceed!
+                    this.updateCurrentStageViewModel(new MissingKeysViewModel(this.childOptions({})));
+                    return false;
+                }
+            }
+            return true;
         });
     }
     
@@ -95,7 +142,22 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
             this.updateCurrentStageViewModel(
                 new VerificationCompleteViewModel(this.childOptions({ deviceId: deviceId!, sas: this.sas }))
             );
+            this.requestSecrets();
         }));
+    }
+
+    private async requestSecrets() {
+        await this.platform.logger.run("DeviceVerificationViewModel.requestSecrets", async (log) => {
+            if (this._needsToRequestSecret) {
+                const secretSharing = this.getOption("session").secretSharing;
+                const requestPromises = neededSecrets.map((secret) => secretSharing.requestSecret(secret, log));
+                const secretRequests = await Promise.all(requestPromises);
+                const receivedSecretPromises = secretRequests.map(r => r.waitForResponse());
+                await Promise.all(receivedSecretPromises);
+                const crossSigning = this.getOption("session").crossSigning.get();
+                crossSigning.start(log);
+            }
+        });
     }
 
     private updateCurrentStageViewModel(vm) {
@@ -105,8 +167,8 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
     }
 
     dispose(): void {
-        if (!this.sas.finished) {
-            this.sas.abort().catch(() => {/** ignore */});
+        if (this.sas && !this.sas.finished) {
+            this.sas.abort().catch((e) => { console.error(e); });
         }
         super.dispose();
     }
@@ -117,5 +179,9 @@ export class DeviceVerificationViewModel extends ErrorReportViewModel<SegmentTyp
 
     get type(): string { 
         return "verification";
+    }
+
+    get isHappeningInRoom(): boolean {
+        return !!this.navigation.path.get("room");
     }
 }

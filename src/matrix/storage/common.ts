@@ -34,7 +34,8 @@ export enum StoreNames {
     operations = "operations",
     accountData = "accountData",
     calls = "calls",
-    crossSigningKeys = "crossSigningKeys"
+    crossSigningKeys = "crossSigningKeys",
+    sharedSecrets = "sharedSecrets",
 }
 
 export const STORE_NAMES: Readonly<StoreNames[]> = Object.values(StoreNames);

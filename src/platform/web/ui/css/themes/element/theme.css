@@ -1423,6 +1423,7 @@ button.RoomDetailsView_row::after {
 .VerificationCompleteView__heading,
 .VerifyEmojisView__heading,
 .SelectMethodView__heading,
+.MissingKeysView__heading,
 .WaitingForOtherUserView__heading {
     display: flex;
     align-items: center;
@@ -1430,6 +1431,10 @@ button.RoomDetailsView_row::after {
     flex-wrap: wrap;
     justify-content: center;
     padding: 8px;
+}
+
+.MissingKeysView__heading {
+    text-align: center;
 }
 
 .VerificationCompleteView>*,
@@ -1453,6 +1458,7 @@ button.RoomDetailsView_row::after {
 .SelectMethodView__title,
 .WaitingForOtherUserView__title,
 .VerificationCancelledView__description,
+.MissingKeysView__description,
 .VerificationCompleteView__description,
 .VerifyEmojisView__description,
 .SelectMethodView__description,
@@ -1462,6 +1468,7 @@ button.RoomDetailsView_row::after {
 }
 
 .VerificationCancelledView__actions,
+.MissingKeysView__actions,
 .SelectMethodView__actions,
 .VerifyEmojisView__actions,
 .WaitingForOtherUserView__actions {
@@ -1532,6 +1539,7 @@ button.RoomDetailsView_row::after {
     font-size: 1.4rem;
     color: var(--text-color);
     gap: 4px;
+    text-align: center;
 }
 
 .VerificationInProgressTileView,
@@ -1539,7 +1547,7 @@ button.RoomDetailsView_row::after {
 .VerificationCancelledTileView,
 .VerificationReadyTileView {
     background: var(--background-color-primary--darker-5);
-    padding: 12px;
+    padding: 8px;
     box-sizing: border-box;
     border-radius: 8px;
 }
@@ -1547,18 +1555,18 @@ button.RoomDetailsView_row::after {
 .VerificationTileView {
     display: flex;
     justify-content: center;
-    padding: 16px;
+    padding: 5px 10%;
     box-sizing: border-box;
 }
 
 
 .VerificationInProgressTileView .VerificationTileView__shield,
 .VerificationReadyTileView .VerificationTileView__shield {
-    background: url("./icons/e2ee-normal.svg?primary=background-color-secondary--darker-40");
+    background: url("./icons/e2ee-normal.svg?primary=background-color-secondary--darker-40") no-repeat;
 }
 
 .VerificationCompletedTileView .VerificationTileView__shield {
-    background: url("./icons/e2ee-normal.svg?primary=accent-color");
+    background: url("./icons/e2ee-normal.svg?primary=accent-color") no-repeat;
 }
 
 .VerificationTileView__shield {

@@ -27,6 +27,20 @@ export class WaitingForOtherUserViewModel extends ViewModel<SegmentType, Options
         await this.options.sas.abort();
     }
 
+    get title() {
+        const message = this.getOption("sas").isCrossSigningAnotherUser
+            ? "Waiting for the other user to accept the verification request"
+            : "Waiting for any of your device to accept the verification request";
+        return this.i18n`${message}`;
+    }
+
+    get description() {
+        const message = this.getOption("sas").isCrossSigningAnotherUser
+            ? "Ask the other user to accept the request from their client!"
+            : "Accept the request from the device you wish to verify!";
+        return this.i18n`${message}`;
+     }
+
     get kind(): string {
         return "waiting-for-user";
     }

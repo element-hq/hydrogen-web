@@ -25,11 +25,11 @@ export class WaitingForOtherUserView extends TemplateView<WaitingForOtherUserVie
                 spinner(t),
                 t.h2(
                     { className: "WaitingForOtherUserView__title" },
-                    vm.i18n`Waiting for any of your device to accept the verification request`
+                    vm.title,
                 ),
             ]),
             t.p({ className: "WaitingForOtherUserView__description" },
-                vm.i18n`Accept the request from the device you wish to verify!`
+                vm.description,
             ),
             t.div({ className: "WaitingForOtherUserView__actions" },
                 t.button({

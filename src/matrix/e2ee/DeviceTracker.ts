@@ -527,7 +527,22 @@ export class DeviceTracker {
     }
 
     /** Gets a single device */
-    async deviceForId(userId: string, deviceId: string, hsApi: HomeServerApi, log: ILogItem) {
+    async deviceForId(userId: string, deviceId: string, hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey | undefined> {
+        /**
+         * 1. If the device keys are outdated, we will fetch all the keys and update them.
+         */
+        const userIdentityTxn = await this._storage.readTxn([this._storage.storeNames.userIdentities]);
+        const userIdentity = await userIdentityTxn.userIdentities.get(userId);
+        if (userIdentity?.keysTrackingStatus !== KeysTrackingStatus.UpToDate) {
+            const {deviceKeys} = await this._queryKeys([userId], hsApi, log);
+            const keyList = deviceKeys.get(userId);
+            const device = keyList!.find(device => device.device_id === deviceId);
+            return device;
+        }
+
+        /**
+         * 2. If keys are up to date, return from storage.
+         */
         const txn = await this._storage.readTxn([
             this._storage.storeNames.deviceKeys,
         ]);
@@ -554,6 +569,9 @@ export class DeviceTracker {
             const txn = await this._storage.readWriteTxn([
                 this._storage.storeNames.deviceKeys,
             ]);
+            // todo: the following comment states what the code does
+            // but it fails to explain why it does what it does...
+
             // check again we don't have the device already.
             // when updating all keys for a user we allow updating the
             // device when the key hasn't changed so the device display name
@@ -575,6 +593,22 @@ export class DeviceTracker {
             }
         }
         return deviceKey;
+    }
+
+    async deviceForCurveKey(userId: string, key: string, hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey | undefined> {
+        const txn = await this._storage.readTxn([
+            this._storage.storeNames.deviceKeys,
+            this._storage.storeNames.userIdentities,
+        ]);
+        const userIdentity = await txn.userIdentities.get(userId);
+        if (userIdentity?.keysTrackingStatus !== KeysTrackingStatus.UpToDate) {
+            const {deviceKeys} = await this._queryKeys([userId], hsApi, log);
+            const keyList = deviceKeys.get(userId);
+            const device = keyList!.find(device => getDeviceCurve25519Key(device) === key);
+            return device;
+        }
+        const device = await txn.deviceKeys.getByCurve25519Key(key);
+        return device;
     }
 
     /**
@@ -611,7 +645,7 @@ export class DeviceTracker {
 
     /** Gets the device identites for a set of user identities that
      * are known to be up to date, and a set of userIds that are known
-     * to be absent from our store our outdated. The outdated user ids
+     * to be absent from our store or are outdated. The outdated user ids
      * will have their keys fetched from the homeserver. */
     async _devicesForUserIdentities(upToDateIdentities: UserIdentity[], outdatedUserIds: string[], hsApi: HomeServerApi, log: ILogItem): Promise<DeviceKey[]> {
         log.set("uptodate", upToDateIdentities.length);
@@ -642,6 +676,10 @@ export class DeviceTracker {
 
     async getDeviceByCurve25519Key(curve25519Key, txn: Transaction): Promise<DeviceKey | undefined> {
         return await txn.deviceKeys.getByCurve25519Key(curve25519Key);
+    }
+
+    get ownDeviceId(): string {
+        return this._ownDeviceId;
     }
 }
 

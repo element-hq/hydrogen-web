@@ -43,9 +43,11 @@ import {
     readKey as ssssReadKey,
     writeKey as ssssWriteKey,
     removeKey as ssssRemoveKey,
-    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey
+    keyFromDehydratedDeviceKey as createSSSSKeyFromDehydratedDeviceKey,
+    SecretStorage,
+    SecretSharing,
+    SecretFetcher
 } from "./ssss/index";
-import {SecretStorage} from "./ssss/SecretStorage";
 import {ObservableValue, RetainedObservableValue} from "../observable/value";
 import {CallHandler} from "./calls/CallHandler";
 import {RoomStateHandlerSet} from "./room/state/RoomStateHandlerSet";
@@ -109,6 +111,9 @@ export class Session {
         this._createRoomEncryption = this._createRoomEncryption.bind(this);
         this._forgetArchivedRoom = this._forgetArchivedRoom.bind(this);
         this.needsKeyBackup = new ObservableValue(false);
+        this._secretFetcher = new SecretFetcher();
+        this._secretSharing = null;
+        this._secretStorage = null;
     }
 
     get fingerprintKey() {
@@ -168,7 +173,7 @@ export class Session {
     }
 
     // called once this._e2eeAccount is assigned
-    _setupEncryption() {
+    async _setupEncryption() {
         // TODO: this should all go in a wrapper in e2ee/ that is bootstrapped by passing in the account
         // and can create RoomEncryption objects and handle encrypted to_device messages and device list changes.
         const senderKeyLock = new LockMap();
@@ -202,6 +207,20 @@ export class Session {
         });
         this._megolmDecryption = new MegOlmDecryption(this._keyLoader, this._olmWorker);
         this._deviceMessageHandler.enableEncryption({olmDecryption, megolmDecryption: this._megolmDecryption});
+        this._secretSharing = new SecretSharing({
+            hsApi: this._hsApi,
+            storage: this._storage,
+            deviceMessageHandler: this._deviceMessageHandler,
+            deviceTracker: this._deviceTracker,
+            ourUserId: this.userId,
+            olmEncryption: this._olmEncryption,
+            crypto: this._platform.crypto,
+            encoding: this._platform.encoding,
+            crossSigning: this._crossSigning,
+            logger: this._platform.logger,
+        });
+        await this._secretSharing.load();
+        this._secretFetcher.setSecretSharing(this._secretSharing);
     }
 
     _createRoomEncryption(room, encryptionParams) {
@@ -254,11 +273,6 @@ export class Session {
             if (this._keyBackup.get()) {
                 this._keyBackup.get().dispose();
                 this._keyBackup.set(undefined);
-            }
-            const crossSigning = this._crossSigning.get();
-            if (crossSigning) {
-                crossSigning.dispose();
-                this._crossSigning.set(undefined);
             }
             const key = await ssssKeyFromCredential(type, credential, this._storage, this._platform, this._olm);
             if (await this._tryLoadSecretStorage(key, log)) {
@@ -335,7 +349,9 @@ export class Session {
             const isValid = await secretStorage.hasValidKeyForAnyAccountData();
             log.set("isValid", isValid);
             if (isValid) {
+                this._secretStorage = secretStorage;
                 await this._loadSecretStorageServices(secretStorage, log);
+                this._secretFetcher.setSecretStorage(secretStorage);
             }
             return isValid;
         });
@@ -363,29 +379,6 @@ export class Session {
                     log.set("no_backup", true);
                 }
             });
-            if (this._features.crossSigning) {
-                await log.wrap("enable cross-signing", async log => {
-                    const crossSigning = new CrossSigning({
-                        storage: this._storage,
-                        secretStorage,
-                        platform: this._platform,
-                        olm: this._olm,
-                        olmUtil: this._olmUtil,
-                        deviceTracker: this._deviceTracker,
-                        deviceMessageHandler: this._deviceMessageHandler,
-                        hsApi: this._hsApi,
-                        ownUserId: this.userId,
-                        e2eeAccount: this._e2eeAccount,
-                        deviceId: this.deviceId,
-                    });
-                    if (await crossSigning.load(log)) {
-                        this._crossSigning.set(crossSigning);
-                    }
-                    else {
-                        crossSigning.dispose();
-                    }
-                });
-            }
         } catch (err) {
             log.catch(err);
         }
@@ -404,6 +397,14 @@ export class Session {
         return this._crossSigning;
     }
 
+    get secretSharing() {
+        return this._secretSharing;
+    }
+
+    get secretFetcher() {
+        return this._secretFetcher;
+    }
+
     get hasIdentity() {
         return !!this._e2eeAccount;
     }
@@ -414,10 +415,11 @@ export class Session {
             if (!this._e2eeAccount) {
                 this._e2eeAccount = await this._createNewAccount(this._sessionInfo.deviceId, this._storage);
                 log.set("keys", this._e2eeAccount.identityKeys);
-                this._setupEncryption();
+                await this._setupEncryption();
             }
             await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
+            await this._createCrossSigning();
         }
     }
 
@@ -543,6 +545,31 @@ export class Session {
                 // this will close the txn above, so we do it last
                 await this._tryLoadSecretStorage(ssssKey, log);
             }
+        }
+        if (this._e2eeAccount) {
+            await this._createCrossSigning();
+        }
+    }
+
+    async _createCrossSigning() {
+        if (this._features.crossSigning) {
+            this._platform.logger.run("enable cross-signing", async log => {
+                const crossSigning = new CrossSigning({
+                    storage: this._storage,
+                    secretFetcher: this._secretFetcher,
+                    platform: this._platform,
+                    olm: this._olm,
+                    olmUtil: this._olmUtil,
+                    deviceTracker: this._deviceTracker,
+                    deviceMessageHandler: this._deviceMessageHandler,
+                    hsApi: this._hsApi,
+                    ownUserId: this.userId,
+                    e2eeAccount: this._e2eeAccount,
+                    deviceId: this.deviceId,
+                });
+                await crossSigning.load(log);
+                this._crossSigning.set(crossSigning);
+            });
         }
     }
 
@@ -745,6 +772,7 @@ export class Session {
             e2eeAccountChanges: null,
             hasNewRoomKeys: false,
             deviceMessageDecryptionResults: null,
+            changedDevices: null,
         };
         const syncToken = syncResponse.next_batch;
         if (syncToken !== this.syncToken) {
@@ -762,6 +790,7 @@ export class Session {
         const deviceLists = syncResponse.device_lists;
         if (this._deviceTracker && Array.isArray(deviceLists?.changed) && deviceLists.changed.length) {
             await log.wrap("deviceLists", log => this._deviceTracker.writeDeviceChanges(deviceLists.changed, txn, log));
+            changes.changedDevices = deviceLists.changed;
         }
 
         if (preparation) {
@@ -810,6 +839,9 @@ export class Session {
         }
         if (changes.deviceMessageDecryptionResults) {
             await this._deviceMessageHandler.afterSyncCompleted(changes.deviceMessageDecryptionResults, this._deviceTracker, this._hsApi, log);
+        }
+        if (changes.changedDevices?.includes(this.userId)) {
+            this._secretSharing?.checkSecretValidity();
         }
     }
 
