@@ -192,7 +192,6 @@ export class SecretSharing {
         }
         if (!await crossSigning.isOurUserDeviceTrusted(device)) {
             // We don't want to accept secrets from an untrusted device
-            console.log("received secret, but ignoring because not verified");
             return;
         }
         const content = decryptionResult.event.content!;

@@ -160,7 +160,6 @@ export class RoomChannel extends Disposables implements IChannel {
             entry.isLoadedFromStorage) {
             return; 
         }
-        console.log("entry", entry);
         await this.log.wrap("RoomChannel.handleRoomMessage", async (log) => {
             if (!this.id) {
                 throw new Error("Couldn't find event-id of request message!");
@@ -171,7 +170,6 @@ export class RoomChannel extends Disposables implements IChannel {
                  * m.key.verification.cancel message to the other device indicating as such.
                  * This does not apply for inbound m.key.verification.start or m.key.verification.cancel messages.
                  */
-                console.log("Received entry with unknown transaction id: ", entry);
                 await this.cancelVerification(CancelReason.UnknownTransaction);
                 return;
             }

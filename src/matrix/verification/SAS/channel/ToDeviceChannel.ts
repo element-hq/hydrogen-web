@@ -168,12 +168,9 @@ export class ToDeviceChannel extends Disposables implements IChannel {
                  * m.key.verification.cancel message to the other device indicating as such.
                  * This does not apply for inbound m.key.verification.start or m.key.verification.cancel messages.
                  */
-                console.log("Received event with unknown transaction id: ", event);
                 await this.cancelVerification(CancelReason.UnknownTransaction);
                 return;
             }
-            console.log("event", event);
-            log.log({ l: "event", event });
             this.resolveAnyWaits(event);
             this.receivedMessages.set(event.type, event);
             if (event.type === VerificationEventType.Ready) {

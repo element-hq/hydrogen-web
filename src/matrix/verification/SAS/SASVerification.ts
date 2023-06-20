@@ -441,7 +441,6 @@ export function tests() {
                 .theyWinConflict()
                 .fixtures();
             const startingMessage = receivedMessages.get(VerificationEventType.Start);
-            console.log(receivedMessages);
             const { sas } = await createSASRequest(
                 ourUserId,
                 ourDeviceId,
@@ -464,7 +463,6 @@ export function tests() {
             //@ts-ignore
             let stage = sas.startStage;
             for (const stageClass of expectedOrder) {
-                console.log("Checking", stageClass.constructor.name, stage.constructor.name);
                 assert.strictEqual(stage instanceof stageClass, true);
                 stage = stage.nextStage;
             }
@@ -482,7 +480,6 @@ export function tests() {
                 .youWinConflict()
                 .fixtures();
             const startingMessage = receivedMessages.get(VerificationEventType.Start);
-            console.log(receivedMessages);
             const { sas, logger } = await createSASRequest(
                 ourUserId,
                 ourDeviceId,
@@ -509,7 +506,6 @@ export function tests() {
             //@ts-ignore
             let stage = sas.startStage;
             for (const stageClass of expectedOrder) {
-                console.log("Checking", stageClass.constructor.name, stage.constructor.name);
                 assert.strictEqual(stage instanceof stageClass, true);
                 stage = stage.nextStage;
             }
@@ -607,7 +603,6 @@ export function tests() {
                 .youSentRequest()
                 .theySentStart()
                 .fixtures();
-            console.log("receivedMessages", receivedMessages);
             const { sas, clock } = await createSASRequest(
                 ourUserId,
                 ourDeviceId,
