@@ -1433,6 +1433,10 @@ button.RoomDetailsView_row::after {
     padding: 8px;
 }
 
+.MissingKeysView__heading {
+    text-align: center;
+}
+
 .VerificationCompleteView>*,
 .SelectMethodView>*,
 .VerifyEmojisView>*,
