@@ -38,6 +38,13 @@ export {SessionViewModel} from "./domain/session/SessionViewModel.js";
 export {SessionView} from "./platform/web/ui/session/SessionView.js";
 export {RoomViewModel} from "./domain/session/room/RoomViewModel.js";
 export {RoomView} from "./platform/web/ui/session/room/RoomView.js";
+export {StaticView} from "./platform/web/ui/general/StaticView.js";
+export {RightPanelView} from "./platform/web/ui/session/rightpanel/RightPanelView.js";
+export {LightboxView} from "./platform/web/ui/session/room/LightboxView.js";
+export {ListView} from "./platform/web/ui/general/ListView";
+export {RoomBeingCreatedView} from "./platform/web/ui/session/room/RoomBeingCreatedView.js";
+export {UnknownRoomView} from "./platform/web/ui/session/room/UnknownRoomView.js";
+export {SessionStatusView} from "./platform/web/ui/session/SessionStatusView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
 export type {TimelineEntry, TileClassForEntryFn, Options, TileConstructor} from "./domain/session/room/timeline/tiles/index";
@@ -85,6 +92,8 @@ export {RoomType} from "./matrix/room/common";
 export {EventEmitter} from "./utils/EventEmitter";
 export {Disposables} from "./utils/Disposables";
 export {LocalMedia} from "./matrix/calls/LocalMedia";
+export {spinner} from "./platform/web/ui/common";
+
 // these should eventually be moved to another library
 export {
     ObservableArray,
