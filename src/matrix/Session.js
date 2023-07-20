@@ -261,7 +261,7 @@ export class Session {
      * Enable secret storage by providing the secret storage credential.
      * This will also see if there is a megolm key backup and try to enable that if so.
      *
-     * @param  {string} type       either "passphrase" or "recoverykey"
+     * @param  {KeyType} type       either KeyType.RecoveryKey (0) or KeyType.Passphrase (1)
      * @param  {string} credential either the passphrase or the recovery key, depending on the type
      * @return {Promise} resolves or rejects after having tried to enable secret storage
      */

@@ -21,8 +21,10 @@ export {ConsoleReporter} from "./logging/ConsoleReporter";
 export {Platform} from "./platform/web/Platform.js";
 export {BlobHandle} from "./platform/web/dom/BlobHandle";
 export {Client, LoadStatus} from "./matrix/Client.js";
+export {PasswordLoginMethod} from "./matrix/login/PasswordLoginMethod";
 export {RoomStatus} from "./matrix/room/common";
 export {FeatureSet, FeatureFlag} from "./features";
+export {KeyType} from "./matrix/ssss";
 // export everything needed to observe state events on all rooms using session.observeRoomState
 export type {RoomStateHandler} from "./matrix/room/state/types";
 export type {MemberChange} from "./matrix/room/members/RoomMember";
@@ -78,6 +80,7 @@ export {Navigation} from "./domain/navigation/Navigation.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
+export type {Builder} from "./platform/web/ui/general/TemplateView"
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
