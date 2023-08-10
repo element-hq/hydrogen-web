@@ -31,6 +31,7 @@ export type {MemberChange} from "./matrix/room/members/RoomMember";
 export type {Transaction} from "./matrix/storage/idb/Transaction";
 export type {Room} from "./matrix/room/Room";
 export type {StateEvent} from "./matrix/storage/types";
+export {MemberList} from "./matrix/room/members/MemberList.js";
 export {PowerLevels} from "./matrix/room/PowerLevels.js";
 // export main view & view models
 export {createNavigation, createRouter} from "./domain/navigation/index";
@@ -58,6 +59,10 @@ export {EncryptionEnabledTile} from "./domain/session/room/timeline/tiles/Encryp
 export {MissingAttachmentTile} from "./domain/session/room/timeline/tiles/MissingAttachmentTile.js";
 export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile";
 
+// export right-panel view models/ views
+export { MemberListViewModel } from "./domain/session/rightpanel/MemberListViewModel.js";
+export { MemberListView } from "./platform/web/ui/session/rightpanel/MemberListView.js";
+
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
 export {viewClassForTile} from "./platform/web/ui/session/room/common";
 export type {TileViewConstructor, ViewClassForEntryFn} from "./platform/web/ui/session/room/TimelineView";
@@ -80,6 +85,7 @@ export {Navigation} from "./domain/navigation/Navigation.js";
 export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
+export {LazyListView} from "./platform/web/ui/general/LazyListView";
 export type {Builder} from "./platform/web/ui/general/TemplateView"
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
@@ -102,3 +108,18 @@ export {
     ObservableValue,
     RetainedObservableValue
 } from "./observable/value";
+export {
+    FilteredMap,
+    JoinedMap,
+    ApplyMap,
+    LogMap,
+    MappedMap,
+} from "./observable/map";
+
+export {
+    avatarInitials,
+    getIdentifierColorNumber,
+    getAvatarHttpUrl,
+} from "./domain/avatar";
+
+export { renderStaticAvatar } from "./platform/web/ui/avatar.js";

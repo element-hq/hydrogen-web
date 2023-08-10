@@ -47,13 +47,13 @@ export class FilteredMap<K, V> extends BaseObservableMap<K, V> {
      */
     _reapplyFilter(silent = false): void {
         if (this._filter) {
-            const oldIncluded = this._included;
             this._included = this._included || new Map();
             for (const [key, value] of this._source) {
                 const isIncluded = this._filter(value, key);
+                const oldIncluded = this._included.get(key);
                 this._included.set(key, isIncluded);
                 if (!silent) {
-                    const wasIncluded = oldIncluded ? oldIncluded.get(key) : true;
+                    const wasIncluded = oldIncluded ? oldIncluded : true;
                     this._emitForUpdate(wasIncluded, isIncluded, key, value);
                 }
             }
