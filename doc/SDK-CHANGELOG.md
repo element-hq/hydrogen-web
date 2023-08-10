@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.1.5] - 2023-08-10
+
+### Added
+
+- Export classes MemberList, MemberListView, MemberListViewModel and avatar functions.
+
+### Fixed
+
+- Fixed an issue where `FilteredMap` was not emitting when setting a new filter.
+
+
 ## [v0.1.4] - 2023-07-20
 
 ### Added
