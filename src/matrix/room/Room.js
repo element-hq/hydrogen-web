@@ -470,6 +470,13 @@ export class Room extends BaseRoom {
         });
     }
 
+    async inviteUser(userId, reason) {
+        if (!userId) {
+            throw new Error("userId is null/undefined");
+        }
+        await this._hsApi.invite(this.id, userId, reason).response();
+    }
+
     /* called by BaseRoom to pass pendingEvents when opening the timeline */
     _getPendingEvents() {
         return this._sendQueue.pendingEvents;

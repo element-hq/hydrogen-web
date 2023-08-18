@@ -267,6 +267,15 @@ export class HomeServerApi {
         return this._get("/pushers", undefined, undefined, options);
     }
 
+    invite(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
+        return this._post(
+            `/rooms/${encodeURIComponent(roomId)}/invite`,
+            {},
+            { user_id: userId, reason },
+            options
+        );
+    }
+
     join(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
         return this._post(`/rooms/${encodeURIComponent(roomId)}/join`, {}, {}, options);
     }
