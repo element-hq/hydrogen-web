@@ -20,7 +20,7 @@ import * as fse from "fs-extra";
 
 import {dockerRun, dockerStop } from "../docker";
 
-// A plugins that adds commands that start & stop dex instances
+// A plugin that adds command to start & stop dex instances
 
 interface DexConfig {
     configDir: string;
