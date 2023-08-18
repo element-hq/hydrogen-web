@@ -33,7 +33,7 @@
   "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
   "devDependencies": {
     "@matrixdotorg/structured-logviewer": "^0.0.3",
-    "@playwright/test": "^1.27.1",
+    "@playwright/test": "^1.37.1",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
     "acorn": "^8.6.0",
@@ -45,6 +45,7 @@
     "escodegen": "^2.0.0",
     "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
+    "fs-extra": "^11.1.1",
     "impunity": "^1.0.9",
     "mdn-polyfills": "^5.20.0",
     "merge-options": "^3.0.4",
