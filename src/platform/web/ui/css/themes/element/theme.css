@@ -1123,10 +1123,30 @@ button.RoomDetailsView_row::after {
 
 /* Memberlist Panel */
 
-.MemberListView {
+.MemberListView__list {
     padding-left: 16px;
     padding-right: 16px;
     margin: 0;
+}
+
+.MemberListView {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.MemberListView__invite-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.MemberListView__invite-btn {
+    width: 80%;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .MemberTileView {
