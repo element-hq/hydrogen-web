@@ -18,6 +18,7 @@ import {ViewModel} from "../../ViewModel";
 import {RoomDetailsViewModel} from "./RoomDetailsViewModel.js";
 import {MemberListViewModel} from "./MemberListViewModel.js";
 import {MemberDetailsViewModel} from "./MemberDetailsViewModel.js";
+import {InvitePanelViewModel} from "./InvitePanelViewModel";
 import {DeviceVerificationViewModel} from "../verification/DeviceVerificationViewModel";
 
 export class RightPanelViewModel extends ViewModel {
@@ -61,6 +62,7 @@ export class RightPanelViewModel extends ViewModel {
 
     _setupNavigation() {
         this._hookUpdaterToSegment("details", RoomDetailsViewModel, () => { return {room: this._room}; });
+        this._hookUpdaterToSegment("invite", InvitePanelViewModel, () => { return {room: this._room}; });
         this._hookUpdaterToSegment("members", MemberListViewModel, () => this._getMemberListArguments());
         this._hookUpdaterToSegment("member", MemberDetailsViewModel, () => this._getMemberDetailsArguments(),
             () => {
