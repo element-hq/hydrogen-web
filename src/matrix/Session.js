@@ -417,8 +417,10 @@ export class Session {
                 log.set("keys", this._e2eeAccount.identityKeys);
                 await this._setupEncryption();
             }
-            await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
-            await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
+            if (!this._sessionInfo.isReadOnly) {
+                await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
+                await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
+            }
             await this._createCrossSigning();
         }
     }
@@ -828,7 +830,7 @@ export class Session {
         // to-device messages, to help us avoid throwing away one-time-keys that we
         // are about to receive messages for
         // (https://github.com/vector-im/riot-web/issues/2782).
-        if (this._e2eeAccount && !isCatchupSync) {
+        if (this._e2eeAccount && !isCatchupSync && !this._sessionInfo.isReadOnly) {
             const needsToUploadOTKs = await this._e2eeAccount.generateOTKsIfNeeded(this._storage, log);
             if (needsToUploadOTKs) {
                 await log.wrap("uploadKeys", log => this._e2eeAccount.uploadKeys(this._storage, false, log));
