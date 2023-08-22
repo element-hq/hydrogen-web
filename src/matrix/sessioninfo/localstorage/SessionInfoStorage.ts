@@ -22,6 +22,15 @@ interface ISessionInfo {
     homeServer: string; // deprecate this over time
     accessToken: string;
     lastUsed: number;
+    /**
+     * If true, then this session will not be used for sending
+     * encrypted messages.
+     * OTK uploads will be disabled when this is true.
+     * 
+     * Encrypted messages can still be decrypted and key backups
+     * can also be restored.
+     */
+    isReadOnly: boolean;
 }
 
 // todo: this should probably be in platform/types?

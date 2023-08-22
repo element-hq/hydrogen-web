@@ -151,10 +151,17 @@ export class Client {
     /** Method to start client after registration or with given access token.
      * To start the client after registering, use `startWithAuthData(registration.authData)`.
      * `homeserver` won't be resolved or normalized using this method,
-     * use `lookupHomeserver` first if needed (not needed after registration) */
-    async startWithAuthData({accessToken, deviceId, userId, homeserver}) {
+     * use `lookupHomeserver` first if needed (not needed after registration) 
+     * 
+     * Setting isReadOnly to false disables OTK uploads.
+     * Only do this if you're sure that you will never send encrypted messages.
+     * */
+    async startWithAuthData({accessToken, deviceId, userId, homeserver, isReadOnly = false}) {
         await this._platform.logger.run("startWithAuthData", async (log) => {
-            await this._createSessionAfterAuth({accessToken, deviceId, userId, homeserver}, true, log);
+            if (isReadOnly) {
+                log.set("isReadonly (Disabled OTK Upload)", true);
+            }
+            await this._createSessionAfterAuth({accessToken, deviceId, userId, homeserver}, true, isReadOnly, log);
         });
     }
 
@@ -197,11 +204,11 @@ export class Client {
                 }
                 return;
             }
-            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, log);
+            await this._createSessionAfterAuth(sessionInfo, inspectAccountSetup, false, log);
         });
     }
 
-    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, log) {
+    async _createSessionAfterAuth({deviceId, userId, accessToken, homeserver}, inspectAccountSetup, isReadOnly, log) {
         const id = this.createNewSessionId();
         const lastUsed = this._platform.clock.now();
         const sessionInfo = {
@@ -212,6 +219,7 @@ export class Client {
             homeserver,
             accessToken,
             lastUsed,
+            isReadOnly,
         };
         let dehydratedDevice;
         if (inspectAccountSetup) {
@@ -260,6 +268,7 @@ export class Client {
             deviceId: sessionInfo.deviceId,
             userId: sessionInfo.userId,
             homeserver: sessionInfo.homeServer,
+            isReadOnly: sessionInfo.isReadOnly,
         };
         const olm = await this._olmPromise;
         let olmWorker = null;
