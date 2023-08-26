@@ -41,7 +41,7 @@ export class RoomViewModel extends ErrorReportViewModel {
         this._composerVM = null;
         if (room.isArchived) {
             this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
-        } else {
+        } else if (!room.isWorldReadable) {
             this._recreateComposerOnPowerLevelChange();
         }
         this._clearUnreadTimout = null;
@@ -219,7 +219,7 @@ export class RoomViewModel extends ErrorReportViewModel {
             }
         }
     }
-    
+
     _sendMessage(message, replyingTo) {
         return this.logAndCatch("RoomViewModel.sendMessage", async log => {
             let success = false;

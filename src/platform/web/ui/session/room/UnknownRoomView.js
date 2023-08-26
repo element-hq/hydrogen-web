@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import {TemplateView} from "../../general/TemplateView";
+import {spinner} from "../../common.js";
 
 export class UnknownRoomView extends TemplateView {
     render(t, vm) {
@@ -29,6 +30,11 @@ export class UnknownRoomView extends TemplateView {
                 onClick: () => vm.join(),
                 disabled: vm => vm.busy,
             }, vm.i18n`Join room`),
+            t.br(),
+            t.if(vm => vm.checkingPreviewCapability, t => t.div({className: "checkingPreviewCapability"}, [
+                spinner(t),
+                t.p(vm.i18n`Checking preview capability...`)
+            ])),
             t.if(vm => vm.error, t => t.p({className: "error"}, vm.error))
         ]));
     }

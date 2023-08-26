@@ -129,6 +129,10 @@ export class HomeServerApi {
         return this._get("/sync", {since, timeout, filter}, undefined, options);
     }
 
+    resolveRoomAlias(roomAlias: string): IHomeServerRequest {
+        return this._unauthedRequest( "GET", this._url( `/directory/room/${encodeURIComponent(roomAlias)}`, CS_V3_PREFIX ) );
+    }
+
     context(roomId: string, eventId: string, limit: number, filter: string): IHomeServerRequest {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`, {filter, limit});
     }
@@ -162,6 +166,10 @@ export class HomeServerApi {
     
     sendState(roomId: string, eventType: string, stateKey: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, content, options);
+    }
+
+    currentState(roomId: string): IHomeServerRequest {
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/state`, {}, undefined);
     }
 
     getLoginFlows(): IHomeServerRequest {

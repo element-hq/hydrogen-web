@@ -19,11 +19,17 @@ import {ViewModel} from "../../ViewModel";
 export class UnknownRoomViewModel extends ViewModel {
     constructor(options) {
         super(options);
-        const {roomIdOrAlias, session} = options;
+        const {roomIdOrAlias, session, isWorldReadablePromise} = options;
         this._session = session;
         this.roomIdOrAlias = roomIdOrAlias;
         this._error = null;
         this._busy = false;
+
+        this.checkingPreviewCapability = true;
+        isWorldReadablePromise.then(() => {
+            this.checkingPreviewCapability = false;
+            this.emitChange('checkingPreviewCapability');
+        })
     }
 
     get error() {

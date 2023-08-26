@@ -77,8 +77,22 @@ export class RoomViewModelObservable extends ObservableValue {
         } else if (status & RoomStatus.Archived) {
             return await this._sessionViewModel._createArchivedRoomViewModel(this.id);
         } else {
-            return this._sessionViewModel._createUnknownRoomViewModel(this.id);
+            return this._sessionViewModel._createUnknownRoomViewModel(this.id, this._isWorldReadablePromise());
         }
+    }
+
+    async _isWorldReadablePromise() {
+        const {session} = this._sessionViewModel._client;
+        const isWorldReadable = await session.isWorldReadableRoom(this.id);
+        if (isWorldReadable) {
+            const vm = await this._sessionViewModel._createWorldReadableRoomViewModel(this.id);
+            if (vm) {
+                this.get()?.dispose();
+                this.set(vm);
+                return true;
+            }
+        }
+        return false;
     }
 
     dispose() {
