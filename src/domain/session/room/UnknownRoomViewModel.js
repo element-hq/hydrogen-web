@@ -24,6 +24,11 @@ export class UnknownRoomViewModel extends ViewModel {
         this.roomIdOrAlias = roomIdOrAlias;
         this._error = null;
         this._busy = false;
+        this._closeUrl = this.urlRouter.urlUntilSegment("session");
+    }
+
+    get closeUrl() {
+        return this._closeUrl;
     }
 
     get error() {
