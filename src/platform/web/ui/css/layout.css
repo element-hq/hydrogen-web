@@ -217,6 +217,8 @@ the layout viewport up without resizing it when the keyboard shows */
 
 .LazyListParent {
     flex: 1;
+    flex-basis: 0;
+    margin-top: 15px;
 }
 
 .LoadingView {

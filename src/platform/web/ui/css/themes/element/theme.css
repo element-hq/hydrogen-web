@@ -1013,6 +1013,54 @@ button.link {
 
 /* Right Panel */
 
+.InvitePanelView {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.InvitePanelView__form {
+    margin-top: 8px;
+}
+
+.InvitePanelView__input {
+    font-family: "Inter";
+    font-size: 1.3rem;
+    font-weight: 500;
+    line-height: 1.573rem;
+    outline: none;
+    border: none;
+    background-color: var(--icon-background);
+    color: var(--text-color);
+    height: 32px;
+    box-sizing: border-box;
+    margin: 5px;
+    border-radius: 16px;
+    padding: 15px;
+    width: 90%;
+}
+
+.InvitePanelView__form,
+.InvitePanelView__btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.InvitePanelView__btn {
+    width: 100px;
+    height: 30px;
+    margin-top: 8px;
+}
+
+.InvitePanelView__heading {
+    width: 90%;
+    text-align: center;
+    margin: 0;
+}
+
 .RightPanelView {
     background: var(--background-color-secondary);
 }
@@ -1123,10 +1171,30 @@ button.RoomDetailsView_row::after {
 
 /* Memberlist Panel */
 
-.MemberListView {
+.MemberListView__list {
     padding-left: 16px;
     padding-right: 16px;
     margin: 0;
+}
+
+.MemberListView {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.MemberListView__invite-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.MemberListView__invite-btn {
+    width: 80%;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .MemberTileView {

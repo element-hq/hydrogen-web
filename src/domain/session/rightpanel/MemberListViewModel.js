@@ -54,4 +54,11 @@ export class MemberListViewModel extends ViewModel {
         return members.mapValues(mapper, updater);
     }
 
+    openInvitePanel() {
+        let path = this.navigation.path.until("room");
+        path = path.with(this.navigation.segment("right-panel", true));
+        path = path.with(this.navigation.segment("invite", true));
+        this.navigation.applyPath(path);
+    }
+
 }
