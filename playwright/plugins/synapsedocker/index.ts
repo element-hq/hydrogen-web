@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/// <reference types="cypress" />
-
 import * as path from "path";
 import * as os from "os";
 import * as crypto from "crypto";
@@ -25,7 +23,7 @@ import {dockerCreateNetwork, dockerExec, dockerLogs, dockerRun, dockerStop} from
 import {request} from "@playwright/test";
 
 
-// A cypress plugins to add command to start & stop synapses in
+// A plugin to add command to start & stop synapses in
 // docker with preset templates.
 
 interface SynapseConfig {

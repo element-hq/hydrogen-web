@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure docker is available
-if ! docker info > /dev/null 2>&1; then
+if ! docker --version > /dev/null 2>&1; then
     echo "You need to intall docker before you can run the tests!"
     exit 1
 fi

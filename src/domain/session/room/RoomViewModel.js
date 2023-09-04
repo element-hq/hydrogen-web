@@ -273,6 +273,14 @@ export class RoomViewModel extends ErrorReportViewModel {
                     this.reportError(new Error("join syntax: /join <room-id>"));
                 }
                 break;
+            case "invite":
+                if (args.length === 1) {
+                    const userId = args[0];
+                    await this._room.inviteUser(userId);
+                } else {
+                    this.reportError(new Error("invite syntax: /invite <user-id>"));
+                }
+                break;
             case "shrug":
                 message = "¯\\_(ツ)_/¯ " + args.join(" ");
                 msgtype = "m.text";

@@ -14,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/// <reference types="cypress" />
-
 import * as path from "path";
 import * as os from "os";
 import * as fse from "fs-extra";
 
 import {dockerRun, dockerStop } from "../docker";
 
-// A cypress plugins to add command to start & stop dex instances
+// A plugin that adds command to start & stop dex instances
 
 interface DexConfig {
     configDir: string;

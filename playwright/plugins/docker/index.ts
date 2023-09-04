@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/// <reference types="cypress" />
-
 import * as os from "os";
 import * as childProcess from "child_process";
 import * as fse from "fs-extra";
@@ -36,7 +34,8 @@ export function dockerRun(args: {
     }
 
     return new Promise<string>((resolve, reject) => {
-        childProcess.execFile('docker', [
+        childProcess.execFile('sudo', [
+            "docker",
             "run",
             "--name", args.containerName,
             "-d",
@@ -57,7 +56,8 @@ export function dockerExec(args: {
     params: string[];
 }): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        childProcess.execFile("docker", [
+        childProcess.execFile("sudo", [
+            "docker",
             "exec", args.containerId,
             ...args.params,
         ], { encoding: 'utf8' }, (err, stdout, stderr) => {
@@ -79,10 +79,12 @@ export function dockerCreateNetwork(args: {
     networkName: string;
 }): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        childProcess.execFile("docker", [
+        childProcess.execFile("sudo", [
+            "docker",
             "network", 
             "create",
-            args.networkName
+            args.networkName,
+            "--subnet", "172.18.0.0/16"
         ], { encoding: 'utf8' }, (err, stdout, stderr) => {
             if(err) {
                 if (stderr.includes(`network with name ${args.networkName} already exists`)) {
@@ -106,7 +108,8 @@ export async function dockerLogs(args: {
     const stderrFile = args.stderrFile ? await fse.open(args.stderrFile, "w") : "ignore";
 
     await new Promise<void>((resolve) => {
-        childProcess.spawn("docker", [
+        childProcess.spawn("sudo", [
+            "docker",
             "logs",
             args.containerId,
         ], {
@@ -122,7 +125,8 @@ export function dockerStop(args: {
     containerId: string;
 }): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        childProcess.execFile('docker', [
+        childProcess.execFile('sudo', [
+            "docker",
             "stop",
             args.containerId,
         ], err => {
@@ -138,7 +142,8 @@ export function dockerRm(args: {
     containerId: string;
 }): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-        childProcess.execFile('docker', [
+        childProcess.execFile('sudo', [
+            "docker",
             "rm",
             args.containerId,
         ], err => {
