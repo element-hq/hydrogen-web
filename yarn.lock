@@ -92,6 +92,72 @@
   optionalDependencies:
     fsevents "2.3.2"
 
+"@tauri-apps/cli-darwin-arm64@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-darwin-arm64/-/cli-darwin-arm64-1.5.1.tgz#d2e046c9bf54e77d47debf6ccf226c6d5b44e529"
+  integrity sha512-o2FSGj72gqJjlVtuScXQZUgiRs90PS9gG7YAz0Hgr4nV1MfIn9U6JVj6R+mnAEZBCK8qdy5jdemhmNKDDoiYQg==
+
+"@tauri-apps/cli-darwin-x64@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-darwin-x64/-/cli-darwin-x64-1.5.1.tgz#9c513499a65af2ed07945921a7e5656973b3cf4c"
+  integrity sha512-G1/v6AJPP5oIcjsOxZshag28wdmDx1Fis2yz545aUk7oKU86A3ZJpz0b8BaXkr93w04xGcmGAaspZeXMmTvrbw==
+
+"@tauri-apps/cli-linux-arm-gnueabihf@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm-gnueabihf/-/cli-linux-arm-gnueabihf-1.5.1.tgz#1b9088a3fd1e7f98e571ae4ac64cce36bc32ec8e"
+  integrity sha512-hPDOUMviffyX5BySk6RuD7IZZeMuNUJzKWHxVWa0NHJPfxQOIPWwYWbk6TascrVk9GZYAImcB0yKfrll8I0VTg==
+
+"@tauri-apps/cli-linux-arm64-gnu@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm64-gnu/-/cli-linux-arm64-gnu-1.5.1.tgz#93ae5f4231c61f6645630e338b761a38056b73ca"
+  integrity sha512-EJjTXqZchFLVrFgfxwstrQj7NwVDirffLhw5hRWS3L3Iys3IvqzIMVIA+GrY7KsaPwq7qaSqE1CDtP1wejE/9g==
+
+"@tauri-apps/cli-linux-arm64-musl@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm64-musl/-/cli-linux-arm64-musl-1.5.1.tgz#fb1d6848ed24f9416fbec62d8a2603aa4bd94595"
+  integrity sha512-XgJIk0AcxRL4pWVjfj0wiC9WnIZoUIVLPcQs86dNxoqzwAvADdNYp+McXf3/MDxX8uGEzpgdvlqr4T+50c8f6w==
+
+"@tauri-apps/cli-linux-x64-gnu@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-1.5.1.tgz#ff9e05828b707017caef2934c8a292cac979eeca"
+  integrity sha512-VoVrIn7b+F2n0LJoDkLGXQJsPV/U1h3QnjRNE+Tcju6xVPBx64H0vfb7lC3S4QfVpiQ4Uc+1UD3Slvn4jGpL/A==
+
+"@tauri-apps/cli-linux-x64-musl@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-1.5.1.tgz#6cec6f33c35f927703bf0b17585e4604872d9105"
+  integrity sha512-tQi2K0LYW80BLud7ZFOy3WxCM2VjDRxuhxOYhtcLG39cIeGqsSz07LwiCFNBn4vy2J47TnZ+8XDRAOtxSFe25w==
+
+"@tauri-apps/cli-win32-arm64-msvc@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-win32-arm64-msvc/-/cli-win32-arm64-msvc-1.5.1.tgz#0315fd57efa6a54f9cb0144946dc626edc378acf"
+  integrity sha512-BdVwzVXY2JWBtWEO/G0//jIWXeWR52+KG0+kyoHO6QTxkncLrN5q2RldvXOe7CvhKe/qmgbkNosj5jWi7t49kQ==
+
+"@tauri-apps/cli-win32-ia32-msvc@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-win32-ia32-msvc/-/cli-win32-ia32-msvc-1.5.1.tgz#c3508bc8d4eb6d95becca02809d6bcbdd05d3d25"
+  integrity sha512-Q0ei4ZUHlGu/b4DP4Cm6WnI5zxpLxnf/vSwR2BYO3XO65TdLee1gTyuwYuSZJYu5jxqSoSusmLyL4F43jHhf9Q==
+
+"@tauri-apps/cli-win32-x64-msvc@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-win32-x64-msvc/-/cli-win32-x64-msvc-1.5.1.tgz#04f4af26589708752d711bfd1ef4dca21e2b3f7c"
+  integrity sha512-chpsJ5PIwMOdn1IIJ6bj2G7jv9jQryVvhujU0k3kt/5kE7OuLRDYbI5BAIzMOaLoOTgoo8oxcFXQ+enELSxlMQ==
+
+"@tauri-apps/cli@^1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/cli/-/cli-1.5.1.tgz#2aba9b320f1b79f160e7c011110ae5d2b25a8de2"
+  integrity sha512-Ssj30axil5vPBV3W5ScHXk4umTKu6BhfmMdljfKDOG9K55gAqzBAE2VBC5e/ouclSxZfN+6YNL9VhDXFu/UyeA==
+  optionalDependencies:
+    "@tauri-apps/cli-darwin-arm64" "1.5.1"
+    "@tauri-apps/cli-darwin-x64" "1.5.1"
+    "@tauri-apps/cli-linux-arm-gnueabihf" "1.5.1"
+    "@tauri-apps/cli-linux-arm64-gnu" "1.5.1"
+    "@tauri-apps/cli-linux-arm64-musl" "1.5.1"
+    "@tauri-apps/cli-linux-x64-gnu" "1.5.1"
+    "@tauri-apps/cli-linux-x64-musl" "1.5.1"
+    "@tauri-apps/cli-win32-arm64-msvc" "1.5.1"
+    "@tauri-apps/cli-win32-ia32-msvc" "1.5.1"
+    "@tauri-apps/cli-win32-x64-msvc" "1.5.1"
+
 "@trysound/sax@0.2.0":
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/@trysound/sax/-/sax-0.2.0.tgz#cccaab758af56761eb7bf37af6f03f326dd798ad"
