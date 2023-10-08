@@ -56,7 +56,7 @@ class DecryptDehydratedDeviceViewModel extends ViewModel {
         super(accountSetupViewModel.options);
         this._accountSetupViewModel = accountSetupViewModel;
         this._isBusy = false;
-        this._status = Status.SetupKey;
+        this._status = Status.SetupWithRecoveryKey;
         this._error = undefined;
         this._decryptedCallback = decryptedCallback;
     }
@@ -92,15 +92,15 @@ class DecryptDehydratedDeviceViewModel extends ViewModel {
     }
 
     showPhraseSetup() {
-        if (this._status === Status.SetupKey) {
-            this._status = Status.SetupPhrase;
+        if (this._status === Status.SetupWithRecoveryKey) {
+            this._status = Status.SetupWithPassphrase;
             this.emitChange("status");
         }
     }
 
     showKeySetup() {
-        if (this._status === Status.SetupPhrase) {
-            this._status = Status.SetupKey;
+        if (this._status === Status.SetupWithPassphrase) {
+            this._status = Status.SetupWithRecoveryKey;
             this.emitChange("status");
         }
     }
