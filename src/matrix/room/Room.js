@@ -430,7 +430,13 @@ export class Room extends BaseRoom {
         }
     }
 
-    async clearUnread(log = null) {
+    /**
+     * Clear the unreaad count in the room, and optionally send a read receipt
+     * @param {*} log Logger
+     * @param {boolean} sendReceipt Should a receipt be sent.
+     * @returns 
+     */
+    async clearUnread(log = null, sendReceipt = true) {
         if (this.isUnread || this.notificationCount) {
             return await this._platform.logger.wrapOrRun(log, "clearUnread", async log => {
                 log.set("id", this.id);
@@ -449,7 +455,7 @@ export class Room extends BaseRoom {
                 this._emitUpdate();
                 
                 try {
-                    const lastEventId = await this._getLastEventId();
+                    const lastEventId = sendReceipt && await this._getLastEventId();
                     if (lastEventId) {
                         await this._hsApi.receipt(this._roomId, "m.read", lastEventId);
                     }

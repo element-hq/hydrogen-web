@@ -33,6 +33,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     constructor(options) {
         super(options);
         const {room, tileClassForEntry} = options;
+        this._sendReadReceipt = options.sendReadReceipt ?? true;
         this._room = room;
         this._timelineVM = null;
         this._tileClassForEntry = tileClassForEntry ?? defaultTileClassForEntry;
@@ -127,7 +128,7 @@ export class RoomViewModel extends ErrorReportViewModel {
         this._clearUnreadTimout = this.clock.createTimeout(2000);
         try {
             await this._clearUnreadTimout.elapsed();
-            await this._room.clearUnread(log);
+            await this._room.clearUnread(log, this._sendReadReceipt);
             this._clearUnreadTimout = null;
         } catch (err) {
             if (err.name === "AbortError") {
