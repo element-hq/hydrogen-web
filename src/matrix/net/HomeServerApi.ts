@@ -46,7 +46,7 @@ type BaseRequestOptions = {
 
 export class HomeServerApi {
     private readonly _homeserver: string;
-    private readonly _accessToken: string;
+    private _accessToken: string;
     private readonly _requestFn: RequestFunction;
     private readonly _reconnector: Reconnector;
 
@@ -123,6 +123,14 @@ export class HomeServerApi {
 
     private _get(csPath: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
+    }
+
+    /**
+     * Update the access token used by the API.
+     * @param token 
+     */
+    public updateAccessToken(token: string) {
+        this._accessToken = token;
     }
 
     sync(since: string, filter: string, timeout: number, options?: BaseRequestOptions): IHomeServerRequest {
