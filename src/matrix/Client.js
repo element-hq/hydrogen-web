@@ -337,6 +337,16 @@ export class Client {
         }
     }
 
+    /**
+     * Update the access token in use by the client.
+     * Will also update the token in session storage.
+     * @param {string} token A Matrix Access Token 
+     */
+    async updateAccessToken(token) {
+        this._session.updateAccessToken(token);
+        await this._platform.sessionInfoStorage.updateAccessToken(this._sessionId, token);
+    }
+
     async _waitForFirstSync() {
         this._sync.start();
         this._status.set(LoadStatus.FirstSync);
