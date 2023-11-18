@@ -45,3 +45,16 @@ jobs:
       run: yarn run lint-ci
     - name: Typescript
       run: yarn run tsc
+    - name: Build project
+      run: yarn build
+    - name: Bundle builded data
+      run: zip release.zip -r ./target/*
+    - name: Create Release
+      id: create_release
+      uses: marvinpinto/action-automatic-releases@latest
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: false
+        title: "Hydrogen-web fork for SFOS"
+        files: release.zip
