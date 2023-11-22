@@ -343,7 +343,7 @@ export class Client {
      * @param {string} token A Matrix Access Token 
      */
     async updateAccessToken(token) {
-        if (!_this.session) {
+        if (!this._session) {
             throw Error("No session loaded, cannot update access token");
         }
         this._session.updateAccessToken(token);
