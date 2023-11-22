@@ -37,6 +37,7 @@ interface ISessionInfo {
 interface ISessionInfoStorage {
     getAll(): Promise<ISessionInfo[]>;
     updateLastUsed(id: string, timestamp: number): Promise<void>;
+    updateAccessToken(id: string, token: string): Promise<void>;
     get(id: string): Promise<ISessionInfo | undefined>;
     add(sessionInfo: ISessionInfo): Promise<void>;
     delete(sessionId: string): Promise<void>;
@@ -60,14 +61,22 @@ export class SessionInfoStorage implements ISessionInfoStorage {
         return Promise.resolve([]);
     }
 
+    async updateAccessToken(id: string, accessToken: string): Promise<void> {
+        const sessions = await this.getAll();
+        const session = sessions.find(session => session.id === id);
+        if (!session) {
+            throw Error('No session found');
+        }
+        session.accessToken = accessToken;
+        localStorage.setItem(this._name, JSON.stringify(sessions));
+    }
+
     async updateLastUsed(id: string, timestamp: number): Promise<void> {
         const sessions = await this.getAll();
-        if (sessions) {
-            const session = sessions.find(session => session.id === id);
-            if (session) {
-                session.lastUsed = timestamp;
-                localStorage.setItem(this._name, JSON.stringify(sessions));
-            }
+        const session = sessions.find(session => session.id === id);
+        if (session) {
+            session.lastUsed = timestamp;
+            localStorage.setItem(this._name, JSON.stringify(sessions));
         }
     }
 

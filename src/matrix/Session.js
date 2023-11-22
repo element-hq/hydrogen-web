@@ -1094,6 +1094,15 @@ export class Session {
             return body.room_id;
         });
     }
+
+    /**
+     * Updates the access token used by the API. Does NOT
+     * change the token in storage.
+     * @param {string} token 
+     */
+    updateAccessToken(token) {
+        this._hsApi.updateAccessToken(token);
+    }
 }
 
 import {FeatureSet} from "../features";
