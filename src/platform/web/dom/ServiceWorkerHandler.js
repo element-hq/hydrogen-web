@@ -33,8 +33,8 @@ export class ServiceWorkerHandler {
         this._navigation = navigation;
     }
 
-    registerAndStart(path) {
-        this._registrationPromise = (async () => {
+    async registerAndStart(path) {
+        return this._registrationPromise = (async () => {
             navigator.serviceWorker.addEventListener("message", this);
             navigator.serviceWorker.addEventListener("controllerchange", this);
             this._registration = await navigator.serviceWorker.register(path);
