@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {ViewModel} from "../../ViewModel";
-import type {Options as BaseOptions} from "../../ViewModel";
-import {FeatureFlag, FeatureSet} from "../../../features";
-import type {SegmentType} from "../../navigation/index";
+import { ViewModel } from "../../ViewModel";
+import type { Options as BaseOptions } from "../../ViewModel";
+import { FeatureFlag, FeatureSet } from "../../../features";
+import type { SegmentType } from "../../navigation/index";
 
 export class FeaturesViewModel extends ViewModel {
     public readonly featureViewModels: ReadonlyArray<FeatureViewModel>;
