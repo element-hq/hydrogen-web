@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type {SettingsStorage} from "./platform/web/dom/SettingsStorage";
+import type { SettingsStorage } from "./platform/web/dom/SettingsStorage";
 
 export enum FeatureFlag {
-    Calls = 1 << 0,
-    CrossSigning = 1 << 1
+    Calls = 1,
+    CrossSigning = 1
 }
 
 export class FeatureSet {
-    constructor(public readonly flags: number = 0) {}
+    constructor(public readonly flags: number = 0) { }
 
     withFeature(flag: FeatureFlag): FeatureSet {
         return new FeatureSet(this.flags | flag);
@@ -31,13 +31,14 @@ export class FeatureSet {
     withoutFeature(flag: FeatureFlag): FeatureSet {
         return new FeatureSet(this.flags ^ flag);
     }
-    
+
     isFeatureEnabled(flag: FeatureFlag): boolean {
         return (this.flags & flag) !== 0;
     }
 
     get calls(): boolean {
-        return this.isFeatureEnabled(FeatureFlag.Calls);
+        // return this.isFeatureEnabled(FeatureFlag.Calls);
+        return true;
     }
 
     get crossSigning(): boolean {

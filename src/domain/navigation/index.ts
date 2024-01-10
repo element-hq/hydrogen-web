@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Navigation, Segment} from "./Navigation";
-import {URLRouter} from "./URLRouter";
-import type {Path, OptionalValue} from "./Navigation";
+import { Navigation, Segment } from "./Navigation";
+import { URLRouter } from "./URLRouter";
+import type { Path, OptionalValue } from "./Navigation";
 
 export type SegmentType = {
     "login": true;
@@ -38,22 +38,23 @@ export type SegmentType = {
     "device-verification": string | boolean;
     "verification": string | boolean;
     "join-room": true;
+    "auto-login": string;
 };
 
 export function createNavigation(): Navigation<SegmentType> {
     return new Navigation(allowsChild);
 }
 
-export function createRouter({history, navigation}: {history: History, navigation: Navigation<SegmentType>}): URLRouter<SegmentType> {
+export function createRouter({ history, navigation }: { history: History, navigation: Navigation<SegmentType> }): URLRouter<SegmentType> {
     return new URLRouter(history, navigation, parseUrlPath, stringifyPath);
 }
 
 function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<SegmentType>): boolean {
-    const {type} = child;
+    const { type } = child;
     switch (parent?.type) {
         case undefined:
             // allowed root segments
-            return type === "login" || type === "session" || type === "sso" || type === "logout";
+            return type === "login" || type === "session" || type === "sso" || type === "logout" || type === "auto-login";
         case "session":
             return type === "room" || type === "rooms" || type === "settings" || type === "create-room" || type === "join-room" || type === "device-verification";
         case "rooms":
@@ -62,7 +63,7 @@ function allowsChild(parent: Segment<SegmentType> | undefined, child: Segment<Se
         case "room":
             return type === "lightbox" || type === "right-panel";
         case "right-panel":
-            return type === "details"|| type === "members" || type === "member" || type === "verification" || type === "invite";
+            return type === "details" || type === "members" || type === "member" || type === "verification" || type === "invite";
         case "logout":
             return type === "forced";
         default:
@@ -96,7 +97,7 @@ export function removeRoomFromPath(path: Path<SegmentType>, roomId: string): Pat
 }
 
 function roomsSegmentWithRoom(rooms: Segment<SegmentType, "rooms">, roomId: string, path: Path<SegmentType>): Segment<SegmentType, "rooms"> {
-    if(!rooms.value.includes(roomId)) {
+    if (!rooms.value.includes(roomId)) {
         const emptyGridTile = path.get("empty-grid-tile");
         const oldRoom = path.get("room");
         let index = 0;
@@ -135,10 +136,14 @@ export function parseUrlPath(urlPath: string, currentNavPath: Path<SegmentType>,
     const parts = urlPath.substring(1).split("/");
     const iterator = parts[Symbol.iterator]();
     const segments: Segment<SegmentType>[] = [];
-    let next; 
+    let next;
     while (!(next = iterator.next()).done) {
         const type = next.value;
-        if (type === "rooms") {
+
+        if (type.includes("auto-login")) {
+            const params = type.split("?");
+            segments.push(new Segment("auto-login", params[1]));
+        } else if (type === "rooms") {
             const roomsValue = iterator.next().value;
             if (roomsValue === undefined) { break; }
             const roomIds = roomsValue.split(",").map(id => decodeURIComponent(id));
@@ -512,6 +517,6 @@ export function tests() {
             assert.equal(newPath?.segments[1].type, "room");
             assert.equal(newPath?.segments[1].value, "b");
         },
-        
+
     }
 }

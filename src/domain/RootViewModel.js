@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Client} from "../matrix/Client.js";
-import {SessionViewModel} from "./session/SessionViewModel.js";
-import {SessionLoadViewModel} from "./SessionLoadViewModel.js";
-import {LoginViewModel} from "./login/LoginViewModel";
-import {LogoutViewModel} from "./LogoutViewModel";
-import {ForcedLogoutViewModel} from "./ForcedLogoutViewModel";
-import {SessionPickerViewModel} from "./SessionPickerViewModel.js";
-import {ViewModel} from "./ViewModel";
+import { Client } from "../matrix/Client.js";
+import { SessionViewModel } from "./session/SessionViewModel.js";
+import { SessionLoadViewModel } from "./SessionLoadViewModel.js";
+import { LoginViewModel } from "./login/LoginViewModel";
+import { LogoutViewModel } from "./LogoutViewModel";
+import { ForcedLogoutViewModel } from "./ForcedLogoutViewModel";
+import { SessionPickerViewModel } from "./SessionPickerViewModel.js";
+import { ViewModel } from "./ViewModel";
 
 export class RootViewModel extends ViewModel {
     constructor(options) {
@@ -50,9 +50,33 @@ export class RootViewModel extends ViewModel {
         const isForcedLogout = this.navigation.path.get("forced")?.value;
         const sessionId = this.navigation.path.get("session")?.value;
         const loginToken = this.navigation.path.get("sso")?.value;
-        if (isLogin) {
+
+        const autoLoginValue = this.navigation.path.get("auto-login")?.value;
+
+        if (autoLoginValue) {
+            const paths = autoLoginValue.split("&");
+            const username = paths[0].replace("username=", "");
+            const password = paths[1].replace("password=", "");
+
+            const currentSessions = await this.platform.sessionInfoStorage.getAll();
+
+            if (currentSessions.length > 0) {
+                console.log('--------Has session, Ignore auto-login')
+
+                // this should never happen, but we want to be sure not to leak it
+                if (this._pendingClient) {
+                    this._pendingClient.dispose();
+                    this._pendingClient = null;
+                }
+                this._showSessionLoader(currentSessions[0].id);
+            } else {
+                console.log('--------Start auto-login', username, password)
+                this._showLogin({ autoLogin: { username, password } });
+
+            }
+        } else if (isLogin) {
             if (this.activeSection !== "login") {
-                this._showLogin();
+                this._showLogin({});
             }
         } else if (logoutSessionId && isForcedLogout) {
             if (this.activeSection !== "forced-logout") {
@@ -85,7 +109,7 @@ export class RootViewModel extends ViewModel {
         } else if (loginToken) {
             this.urlRouter.normalizeUrl();
             if (this.activeSection !== "login") {
-                this._showLogin(loginToken);
+                this._showLogin({ loginToken });
             }
         }
         else {
@@ -117,7 +141,7 @@ export class RootViewModel extends ViewModel {
         }
     }
 
-    _showLogin(loginToken) {
+    _showLogin({ loginToken, autoLogin }) {
         this._setSection(() => {
             this._loginViewModel = new LoginViewModel(this.childOptions({
                 defaultHomeserver: this.platform.config["defaultHomeServer"],
@@ -133,26 +157,27 @@ export class RootViewModel extends ViewModel {
                     this._pendingClient = client;
                     this.navigation.push("session", client.sessionId);
                 },
-                loginToken
+                loginToken,
+                autoLogin
             }));
         });
     }
 
     _showLogout(sessionId) {
         this._setSection(() => {
-            this._logoutViewModel = new LogoutViewModel(this.childOptions({sessionId}));
+            this._logoutViewModel = new LogoutViewModel(this.childOptions({ sessionId }));
         });
     }
 
     _showForcedLogout(sessionId) {
         this._setSection(() => {
-            this._forcedLogoutViewModel = new ForcedLogoutViewModel(this.childOptions({sessionId}));
+            this._forcedLogoutViewModel = new ForcedLogoutViewModel(this.childOptions({ sessionId }));
         });
     }
 
     _showSession(client) {
         this._setSection(() => {
-            this._sessionViewModel = new SessionViewModel(this.childOptions({client}));
+            this._sessionViewModel = new SessionViewModel(this.childOptions({ client }));
             this._sessionViewModel.start();
         });
     }

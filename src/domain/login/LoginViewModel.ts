@@ -14,26 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {Client} from "../../matrix/Client.js";
-import {Options as BaseOptions, ViewModel} from "../ViewModel";
-import {PasswordLoginViewModel} from "./PasswordLoginViewModel";
-import {StartSSOLoginViewModel} from "./StartSSOLoginViewModel";
-import {CompleteSSOLoginViewModel} from "./CompleteSSOLoginViewModel";
-import {LoadStatus} from "../../matrix/Client.js";
-import {SessionLoadViewModel} from "../SessionLoadViewModel.js";
-import {SegmentType} from "../navigation/index";
+import { Client } from "../../matrix/Client.js";
+import { Options as BaseOptions, ViewModel } from "../ViewModel";
+import { PasswordLoginViewModel } from "./PasswordLoginViewModel";
+import { StartSSOLoginViewModel } from "./StartSSOLoginViewModel";
+import { CompleteSSOLoginViewModel } from "./CompleteSSOLoginViewModel";
+import { LoadStatus } from "../../matrix/Client.js";
+import { SessionLoadViewModel } from "../SessionLoadViewModel.js";
+import { SegmentType } from "../navigation/index";
 
-import type {PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod} from "../../matrix/login";
+import type { PasswordLoginMethod, SSOLoginHelper, TokenLoginMethod, ILoginMethod } from "../../matrix/login";
 
 type Options = {
     defaultHomeserver: string;
     ready: ReadyFn;
     loginToken?: string;
+    autoLogin: {
+        username: string;
+        password: string;
+    }
 } & BaseOptions;
 
 export class LoginViewModel extends ViewModel<SegmentType, Options> {
     private _ready: ReadyFn;
     private _loginToken?: string;
+    private _autoLogin?: { username: string, password: string }
     private _client: Client;
     private _loginOptions?: LoginOptions;
     private _passwordLoginViewModel?: PasswordLoginViewModel;
@@ -52,9 +57,10 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
 
     constructor(options: Readonly<Options>) {
         super(options);
-        const {ready, defaultHomeserver, loginToken} = options;
+        const { ready, defaultHomeserver, loginToken, autoLogin } = options;
         this._ready = ready;
         this._loginToken = loginToken;
+        this._autoLogin = autoLogin;
         this._client = new Client(this.platform, this.features);
         this._homeserver = defaultHomeserver;
         this._initViewModels();
@@ -116,8 +122,24 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
                     })));
             this.emitChange("completeSSOLoginViewModel");
         }
+        else if (this._autoLogin) {
+            this.startAutoLogin(this._autoLogin);
+        }
         else {
             void this.queryHomeserver();
+        }
+    }
+
+    private async startAutoLogin(data) {
+        await this.queryHomeserver();
+        const { username, password } = data || {};
+        const loginMethod = this._loginOptions?.password?.(username, password);
+
+        if (loginMethod) {
+            void this.attemptLogin(loginMethod);
+        }
+        else {
+            this._showError("This homeserver does not support password based login");
         }
     }
 
@@ -126,13 +148,13 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
             this.childOptions({
                 loginOptions: this._loginOptions,
                 attemptLogin: (loginMethod: PasswordLoginMethod) => this.attemptLogin(loginMethod)
-        })));
+            })));
         this.emitChange("passwordLoginViewModel");
     }
 
     private _showSSOLogin(): void {
         this._startSSOLoginViewModel = this.track(
-            new StartSSOLoginViewModel(this.childOptions({loginOptions: this._loginOptions}))
+            new StartSSOLoginViewModel(this.childOptions({ loginOptions: this._loginOptions }))
         );
         this.emitChange("startSSOLoginViewModel");
     }
@@ -150,8 +172,9 @@ export class LoginViewModel extends ViewModel<SegmentType, Options> {
     }
 
     async attemptLogin(loginMethod: ILoginMethod): Promise<null> {
+        console.log('attemptLogin', loginMethod)
         this._setBusy(true);
-        void this._client.startWithLogin(loginMethod, {inspectAccountSetup: true});
+        void this._client.startWithLogin(loginMethod, { inspectAccountSetup: true });
         const loadStatus = this._client.loadStatus;
         const handle = loadStatus.waitFor((status: LoadStatus) => status !== LoadStatus.Login);
         await handle.promise;
