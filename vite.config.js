@@ -1,17 +1,17 @@
 const injectWebManifest = require("./scripts/build-plugins/manifest");
-const {injectServiceWorker, createPlaceholderValues} = require("./scripts/build-plugins/service-worker");
+const { injectServiceWorker, createPlaceholderValues } = require("./scripts/build-plugins/service-worker");
 const themeBuilder = require("./scripts/build-plugins/rollup-plugin-build-themes");
-const {defineConfig} = require('vite');
-const mergeOptions = require('merge-options').bind({concatArrays: true});
-const {commonOptions, compiledVariables} = require("./vite.common-config.js");
+const { defineConfig } = require('vite');
+const mergeOptions = require('merge-options').bind({ concatArrays: true });
+const { commonOptions, compiledVariables } = require("./vite.common-config.js");
 
-export default defineConfig(({mode}) => {
+export default defineConfig(({ mode }) => {
     const definePlaceholders = createPlaceholderValues(mode);
     return mergeOptions(commonOptions, {
         root: "src/platform/web",
-        base: "./",
+        base: './',
         build: {
-            outDir: "../../../target",
+            outDir: "../../../dist",
             minify: true,
             sourcemap: true,
             rollupOptions: {
