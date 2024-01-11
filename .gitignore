@@ -6,6 +6,7 @@ fetchlogs
 sessionexports
 bundle.js
 target
+dist
 lib
 *.tar.gz
 .eslintcache

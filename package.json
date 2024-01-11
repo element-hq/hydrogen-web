@@ -17,6 +17,8 @@
     "test:sdk": "yarn build:sdk && cd ./scripts/sdk/test/ && yarn --no-lockfile && node test-sdk-in-esm-vite-build-env.js && node test-sdk-in-commonjs-env.js",
     "start": "vite --port 3000",
     "build": "vite build && ./scripts/cleanup.sh",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d target",
     "build:sdk": "./scripts/sdk/build.sh",
     "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch",
     "test:app": "./scripts/test-app.sh"
@@ -46,6 +48,7 @@
     "eslint": "^7.32.0",
     "fake-indexeddb": "^3.1.2",
     "fs-extra": "^11.1.1",
+    "gh-pages": "^6.1.1",
     "impunity": "^1.0.9",
     "mdn-polyfills": "^5.20.0",
     "merge-options": "^3.0.4",
