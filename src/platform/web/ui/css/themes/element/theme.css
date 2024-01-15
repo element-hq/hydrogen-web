@@ -57,14 +57,37 @@ limitations under the License.
     color: var(--fixed-white);
 }
 
-.hydrogen .avatar.usercolor1 { background-color: var(--usercolor1); }
-.hydrogen .avatar.usercolor2 { background-color: var(--usercolor2); }
-.hydrogen .avatar.usercolor3 { background-color: var(--usercolor3); }
-.hydrogen .avatar.usercolor4 { background-color: var(--usercolor4); }
-.hydrogen .avatar.usercolor5 { background-color: var(--usercolor5); }
-.hydrogen .avatar.usercolor6 { background-color: var(--usercolor6); }
-.hydrogen .avatar.usercolor7 { background-color: var(--usercolor7); }
-.hydrogen .avatar.usercolor8 { background-color: var(--usercolor8); }
+.hydrogen .avatar.usercolor1 {
+    background-color: var(--usercolor1);
+}
+
+.hydrogen .avatar.usercolor2 {
+    background-color: var(--usercolor2);
+}
+
+.hydrogen .avatar.usercolor3 {
+    background-color: var(--usercolor3);
+}
+
+.hydrogen .avatar.usercolor4 {
+    background-color: var(--usercolor4);
+}
+
+.hydrogen .avatar.usercolor5 {
+    background-color: var(--usercolor5);
+}
+
+.hydrogen .avatar.usercolor6 {
+    background-color: var(--usercolor6);
+}
+
+.hydrogen .avatar.usercolor7 {
+    background-color: var(--usercolor7);
+}
+
+.hydrogen .avatar.usercolor8 {
+    background-color: var(--usercolor8);
+}
 
 .logo {
     height: 48px;
@@ -78,10 +101,12 @@ limitations under the License.
 .button-row {
     display: flex;
 }
-.button-row > * {
+
+.button-row>* {
     margin-right: 10px;
 }
-.button-row > *:last-child {
+
+.button-row>*:last-child {
     margin-right: 0px;
 }
 
@@ -104,7 +129,8 @@ limitations under the License.
     margin: 12px 0;
 }
 
-.form-row.text > input, .form-row.text > textarea {
+.form-row.text>input,
+.form-row.text>textarea {
     padding: 12px;
     border: 1px solid var(--light-border);
     border-radius: 8px;
@@ -121,7 +147,8 @@ limitations under the License.
     gap: 4px;
 }
 
-.form-row.text > label, .form-row.text > input {
+.form-row.text>label,
+.form-row.text>input {
     display: block;
 }
 
@@ -210,7 +237,8 @@ a.button-action {
     border-radius: 16px;
     height: 32px;
     align-items: center;
-    padding-left: 30px; /* 8 + 14 (icon) + 8*/
+    padding-left: 30px;
+    /* 8 + 14 (icon) + 8*/
     box-sizing: border-box;
 }
 
@@ -240,13 +268,16 @@ a.button-action {
 }
 
 .FilterField button {
-    width: 30px; /* 32 - 1 (top) - 1 (bottom) */
-    height: 30px; /* 32 - 1 (top) - 1 (bottom) */
+    width: 30px;
+    /* 32 - 1 (top) - 1 (bottom) */
+    height: 30px;
+    /* 32 - 1 (top) - 1 (bottom) */
     background-position: center;
     background-color: var(--icon-background);
     background-repeat: no-repeat;
     background-image: url('icons/clear.svg?primary=icon-color');
-    border: 7px solid transparent; /* 8 - 1 */
+    border: 7px solid transparent;
+    /* 8 - 1 */
     border-radius: 100%;
     box-sizing: border-box;
 }
@@ -308,11 +339,11 @@ a.button-action {
     padding: 12px 8px 0 8px;
 }
 
-.LeftPanel > :not(:first-child) {
+.LeftPanel> :not(:first-child) {
     margin-top: 12px;
 }
 
-.LeftPanel .utilities > :not(:first-child) {
+.LeftPanel .utilities> :not(:first-child) {
     margin-left: 8px;
 }
 
@@ -332,14 +363,14 @@ a.button-action {
     margin-right: -8px;
 }
 
-.RoomList > li {
+.RoomList>li {
     margin: 0;
     padding: 4px 8px 4px 0;
     /* vertical align */
     align-items: center;
 }
 
-.RoomList > li > a {
+.RoomList>li>a {
     text-decoration: none;
     /* vertical align */
     align-items: center;
@@ -356,7 +387,7 @@ a.button-action {
     border-radius: 5px;
 }
 
-.RoomList li > a > * {
+.RoomList li>a>* {
     margin-right: 8px;
 }
 
@@ -429,7 +460,7 @@ a {
 }
 
 .SessionPickerView li {
-  font-size: 1.2em;
+    font-size: 1.2em;
 }
 
 .SessionPickerView .session-info {
@@ -448,10 +479,11 @@ a {
     display: flex;
 }
 
-.SessionPickerView .session-actions > * {
+.SessionPickerView .session-actions>* {
     margin-right: 10px;
 }
-.SessionPickerView .session-actions > *:last-child {
+
+.SessionPickerView .session-actions>*:last-child {
     margin-right: 0px;
 }
 
@@ -465,16 +497,16 @@ a {
     color: var(--error-color);
 }
 
-.RoomGridView > div.container {
+.RoomGridView>div.container {
     border-right: 1px solid var(--background-color-secondary);
     border-bottom: 1px solid var(--background-color-secondary);
 }
 
-.RoomGridView > .focused > .room-placeholder .unfocused {
+.RoomGridView>.focused>.room-placeholder .unfocused {
     display: none;
 }
 
-.RoomGridView > :not(.focused) > .room-placeholder .focused {
+.RoomGridView> :not(.focused)>.room-placeholder .focused {
     display: none;
 }
 
@@ -483,14 +515,15 @@ a {
 }
 
 
-.RoomGridView > div.focus-ring {
+.RoomGridView>div.focus-ring {
     border: 2px solid var(--accent-color--darker-5);
     border-radius: 12px;
 }
 
 .middle-header {
     box-sizing: border-box;
-    flex: 0 0 56px; /* 12 + 32 + 12 to align with filter field + margin */
+    flex: 0 0 56px;
+    /* 12 + 32 + 12 to align with filter field + margin */
     background: var(--background-color-primary);
     padding: 0 16px;
     border-bottom: 1px solid var(--background-color-secondary);
@@ -501,14 +534,15 @@ a {
     font-weight: 600;
 }
 
-.middle-header > :not(:last-child) {
+.middle-header> :not(:last-child) {
     /* use margin-right because the first item,
     .close-middle might be hidden and then we don't
     want a margin-left on the second item*/
     margin-right: 8px;
 }
 
-.close-middle, .close-session {
+.close-middle,
+.close-session {
     background-image: url('icons/chevron-left.svg?primary=icon-color');
     background-position-x: 10px;
 }
@@ -521,64 +555,69 @@ a {
     background-image: url("./icons/vertical-ellipsis.svg?primary=icon-color");
 }
 
-.RoomView_error {
-    color: var(--error-color);
-    background : #efefef;
-    height : 0px;
-    font-weight : bold;
-    transition : 0.25s all ease-out;
-    padding-right : 20px;
-    padding-left : 20px;
+.RoomHeader .start-call {
+    background-image: url("./icons/video-call.svg?primary=icon-color");
+    background-color: transparent;
 }
 
-.RoomView_error div{
-    overflow : hidden;
+.RoomView_error {
+    color: var(--error-color);
+    background: #efefef;
+    height: 0px;
+    font-weight: bold;
+    transition: 0.25s all ease-out;
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+.RoomView_error div {
+    overflow: hidden;
     height: 100%;
     width: 100%;
-    position : relative;
-    display : flex;
-    align-items : center;
+    position: relative;
+    display: flex;
+    align-items: center;
 }
 
 .RoomView_error:not(:empty) {
-    height : auto;
-    padding-top : 20px;
-    padding-bottom : 20px;
+    height: auto;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 .RoomView_error p {
-    position : relative;
-    display : block;
-    width : 100%;
-    height : auto;
-    margin : 0;
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0;
 }
 
 .RoomView_error button {
-    width : 40px;
-    padding-top : 20px;
-    padding-bottom : 20px;
-    background : none;
-    border : none;
-    position : relative;
-    border-radius : 5px;
+    width: 40px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    background: none;
+    border: none;
+    position: relative;
+    border-radius: 5px;
     transition: 0.1s all ease-out;
     cursor: pointer;
 }
 
 .RoomView_error button:hover {
-    background : #cfcfcf;
+    background: #cfcfcf;
 }
 
 .RoomView_error button:before {
-    content:"\274c";
-    position : absolute;
-    top : 15px;
+    content: "\274c";
+    position: absolute;
+    top: 15px;
     left: 9px;
-    width : 20px;
-    height : 10px;
-    font-size : 10px;
-    align-self : middle;
+    width: 20px;
+    height: 10px;
+    font-size: 10px;
+    align-self: middle;
 }
 
 .MessageComposer_replyPreview .Timeline_message {
@@ -595,18 +634,19 @@ a {
     border-radius: 5px;
 }
 
-.MessageComposer_input, .MessageComposer_replyPreview {
+.MessageComposer_input,
+.MessageComposer_replyPreview {
     padding: 8px;
 }
 
-.MessageComposer_replyPreview > .replying {
+.MessageComposer_replyPreview>.replying {
     display: inline-flex;
     flex-direction: row;
     align-items: center;
     font-weight: bold;
 }
 
-.MessageComposer_replyPreview > button.cancel {
+.MessageComposer_replyPreview>button.cancel {
     width: 32px;
     height: 32px;
     display: block;
@@ -626,11 +666,11 @@ a {
     border-top: 1px solid var(--background-color-secondary);
 }
 
-.MessageComposer_input > :not(:first-child) {
+.MessageComposer_input> :not(:first-child) {
     margin-left: 12px;
 }
 
-.MessageComposer_input > textarea {
+.MessageComposer_input>textarea {
     border: none;
     border-radius: 24px;
     background: var(--background-color-secondary);
@@ -642,12 +682,13 @@ a {
     padding: 14px;
     box-sizing: border-box;
     overflow: hidden;
-    max-height: 113px; /* 5 lines */
+    max-height: 113px;
+    /* 5 lines */
     overflow-y: auto;
     overflow-y: overlay;
 }
 
-.MessageComposer_input > button.send {
+.MessageComposer_input>button.send {
     width: 32px;
     height: 32px;
     display: block;
@@ -664,7 +705,7 @@ a {
     margin-bottom: 8px;
 }
 
-.MessageComposer_input > button.sendFile {
+.MessageComposer_input>button.sendFile {
     width: 32px;
     height: 32px;
     display: block;
@@ -695,14 +736,15 @@ a {
 }
 
 .Settings p {
-  max-width: 700px;
+    max-width: 700px;
 }
 
 .Settings .row .label {
     font-weight: 600;
 }
 
-.Settings .row .label, .Settings .row .content {
+.Settings .row .label,
+.Settings .row .content {
     margin-top: 4px;
     margin-bottom: 4px;
 }
@@ -717,14 +759,14 @@ a {
 }
 
 .Settings .row .content button {
-  display: inline-block;
-  margin: 0 8px;
+    display: inline-block;
+    margin: 0 8px;
 }
 
 .Settings .row .content input[type=range] {
-  width: 100%;
-  max-width: 300px;
-  min-width: 160px;
+    width: 100%;
+    max-width: 300px;
+    min-width: 160px;
 }
 
 .Settings .row {
@@ -752,26 +794,26 @@ a {
 }
 
 .FeatureView {
-  display: flex;
-  gap: 8px;
+    display: flex;
+    gap: 8px;
 }
 
 .FeaturesView ul {
-  list-style: none;
-  padding: 8px 16px;
+    list-style: none;
+    padding: 8px 16px;
 }
 
 .FeaturesView input[type="checkbox"] {
-  align-self: start;
+    align-self: start;
 }
 
 .FeatureView h4 {
-  margin: 0;
+    margin: 0;
 }
 
 
 .FeatureView p {
-  margin: 8px 0;
+    margin: 8px 0;
 }
 
 .error {
@@ -790,7 +832,8 @@ button.link {
     color: inherit;
 }
 
-.Settings a, .Settings .link {
+.Settings a,
+.Settings .link {
     color: var(--accent-color);
     font-weight: 600;
 }
@@ -800,9 +843,9 @@ button.link {
     background-color: rgba(0, 0, 0, 0.75);
     display: grid;
     grid-template:
-        "content close"   auto
+        "content close" auto
         "content details" 1fr /
-        1fr      auto;
+        1fr auto;
     color: var(--background-color-primary);
     padding: 4px;
 }
@@ -810,7 +853,7 @@ button.link {
 @media (max-aspect-ratio: 1/1) {
     .lightbox {
         grid-template:
-            "close"   auto
+            "close" auto
             "content" 1fr
             "details" auto /
             1fr;
@@ -839,7 +882,7 @@ button.link {
     display: flex;
 }
 
-.lightbox .loading > :not(:first-child) {
+.lightbox .loading> :not(:first-child) {
     margin-left: 8px;
 }
 
@@ -866,14 +909,14 @@ button.link {
 .menu {
     border-radius: 8px;
     /* needs transparency support */
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
     padding: 4px;
     background-color: var(--background-color-primary);
     list-style: none;
     margin: 0;
 }
 
-.menu li{
+.menu li {
     margin-bottom: 10px;
 }
 
@@ -1077,17 +1120,19 @@ button.link {
     padding-top: 0;
 }
 
-.RoomDetailsView_id, .MemberDetailsView_id {
+.RoomDetailsView_id,
+.MemberDetailsView_id {
     color: var(--right-panel-text-color);
     font-size: 12px;
 }
 
-.RoomDetailsView_rows{
+.RoomDetailsView_rows {
     margin-top: 36px;
     width: 100%;
 }
 
-.RoomDetailsView_name h2, .MemberDetailsView_name h2 {
+.RoomDetailsView_name h2,
+.MemberDetailsView_name h2 {
     margin-bottom: 4px;
     font-size: 1.8rem;
 }
@@ -1111,7 +1156,7 @@ button.RoomDetailsView_row::after {
     margin-left: 12px;
 }
 
-.RoomDetailsView_row:not(button)::after{
+.RoomDetailsView_row:not(button)::after {
     content: " ";
     width: 19px;
 }
@@ -1150,7 +1195,8 @@ button.RoomDetailsView_row::after {
     margin-left: -16px;
 }
 
-.EncryptionIconView_encrypted, .EncryptionIconView_unencrypted {
+.EncryptionIconView_encrypted,
+.EncryptionIconView_unencrypted {
     height: 24px;
     width: 24px;
 }
@@ -1238,7 +1284,8 @@ button.RoomDetailsView_row::after {
     text-transform: uppercase;
 }
 
-.MemberDetailsView_value, .MemberDetailsView_options {
+.MemberDetailsView_value,
+.MemberDetailsView_options {
     margin-left: 8px;
     margin-top: 5px;
     font-size: 12px;
@@ -1249,7 +1296,8 @@ button.RoomDetailsView_row::after {
     flex-direction: column;
 }
 
-.MemberDetailsView_options a, .MemberDetailsView_options button {
+.MemberDetailsView_options a,
+.MemberDetailsView_options button {
     color: var(--accent-color);
     text-decoration: none;
     margin: 0 0 3px 0;
@@ -1265,15 +1313,15 @@ button.RoomDetailsView_row::after {
 }
 
 .LogoutScreen {
-  height: 100vh;
+    height: 100vh;
 }
 
 .LogoutScreen .content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .LogoutScreen .status {
@@ -1281,7 +1329,9 @@ button.RoomDetailsView_row::after {
     gap: 12px;
 }
 
-.CreateRoomView_body, .JoinRoomView_body, .RoomBeingCreated_error {
+.CreateRoomView_body,
+.JoinRoomView_body,
+.RoomBeingCreated_error {
     max-width: 400px;
 }
 
@@ -1488,7 +1538,7 @@ button.RoomDetailsView_row::after {
     width: 100%;
 }
 
-.SelectMethodView > div,
+.SelectMethodView>div,
 .SelectMethodView__heading,
 .SelectMethodView__title {
     width: inherit;

@@ -15,15 +15,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TemplateView} from "../../general/TemplateView";    
-import {Popup} from "../../general/Popup.js";
-import {Menu} from "../../general/Menu.js";
-import {TimelineView} from "./TimelineView";
-import {TimelineLoadingView} from "./TimelineLoadingView.js";
-import {MessageComposer} from "./MessageComposer.js";
-import {DisabledComposerView} from "./DisabledComposerView.js";
-import {AvatarView} from "../../AvatarView.js";
-import {CallView} from "./CallView";
+import { TemplateView } from "../../general/TemplateView";
+import { Popup } from "../../general/Popup.js";
+import { Menu } from "../../general/Menu.js";
+import { TimelineView } from "./TimelineView";
+import { TimelineLoadingView } from "./TimelineLoadingView.js";
+import { MessageComposer } from "./MessageComposer.js";
+import { DisabledComposerView } from "./DisabledComposerView.js";
+import { AvatarView } from "../../AvatarView.js";
+import { CallView } from "./CallView";
 import { ErrorView } from "../../general/ErrorView";
 
 export class RoomView extends TemplateView {
@@ -34,21 +34,34 @@ export class RoomView extends TemplateView {
     }
 
     render(t, vm) {
-        return t.main({className: "RoomView middle"}, [
-            t.div({className: "RoomHeader middle-header"}, [
-                t.a({className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room`}),
+        return t.main({ className: "RoomView middle" }, [
+            t.div({ className: "RoomHeader middle-header" }, [
+                t.map(vm => vm.isInIframe, isInIframe => {
+                    return isInIframe ?
+                        null :
+                        t.a({ className: "button-utility close-middle", href: vm.closeUrl, title: vm.i18n`Close room` });
+                }),
                 t.view(new AvatarView(vm, 32)),
-                t.div({className: "room-description"}, [
+                t.div({ className: "room-description" }, [
                     t.h2(vm => vm.name),
                 ]),
-                t.button({
-                    className: "button-utility room-options",
-                    "aria-label":vm.i18n`Room options`,
-                    onClick: evt => this._toggleOptionsMenu(evt)
-                })
+                t.map(vm => vm.isInIframe, isInIframe => {
+                    return isInIframe ?
+                        t.button({
+                            className: "button-utility start-call",
+                            "aria-label": vm.i18n`Start call`,
+                            onClick: () => vm.startCall()
+                        })
+                        :
+                        t.button({
+                            className: "button-utility room-options",
+                            "aria-label": vm.i18n`Room options`,
+                            onClick: (evt) => this._toggleOptionsMenu(evt),
+                        });
+                }),
             ]),
-            t.div({className: "RoomView_body"}, [
-                t.if(vm => vm.errorViewModel, t => t.div({className: "RoomView_error"}, t.view(new ErrorView(vm.errorViewModel)))),
+            t.div({ className: "RoomView_body" }, [
+                t.if(vm => vm.errorViewModel, t => t.div({ className: "RoomView_error" }, t.view(new ErrorView(vm.errorViewModel)))),
                 t.mapView(vm => vm.callViewModel, callViewModel => callViewModel ? new CallView(callViewModel) : null),
                 t.mapView(vm => vm.timelineViewModel, timelineViewModel => {
                     return timelineViewModel ?
@@ -66,8 +79,9 @@ export class RoomView extends TemplateView {
             ])
         ]);
     }
-    
+
     _toggleOptionsMenu(evt) {
+        console.log('RoomView._toggleOptionsMenu')
         if (this._optionsPopup && this._optionsPopup.isOpen) {
             this._optionsPopup.close();
         } else {

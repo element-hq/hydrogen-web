@@ -67,7 +67,7 @@ export async function copyPlaintext(text: string): Promise<boolean> {
             const successful = document.execCommand("copy");
             selection.removeAllRanges();
             document.body.removeChild(textArea);
-            if(!successful) {
+            if (!successful) {
                 console.error('copyPlaintext: Unable to copy text to clipboard in fallback mode because the `copy` command is unsupported or disabled');
             }
             return successful;
@@ -76,4 +76,13 @@ export async function copyPlaintext(text: string): Promise<boolean> {
         console.error("copyPlaintext: Ran into an error", err);
     }
     return false;
+}
+
+export function isInIframe() {
+    return true;
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
 }

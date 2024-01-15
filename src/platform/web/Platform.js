@@ -14,43 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {createFetchRequest} from "./dom/request/fetch.js";
-import {xhrRequest} from "./dom/request/xhr.js";
-import {StorageFactory} from "../../matrix/storage/idb/StorageFactory";
-import {SessionInfoStorage} from "../../matrix/sessioninfo/localstorage/SessionInfoStorage";
-import {SettingsStorage} from "./dom/SettingsStorage.js";
-import {Encoding} from "./utils/Encoding.js";
-import {OlmWorker} from "../../matrix/e2ee/OlmWorker.js";
-import {IDBLogPersister} from "../../logging/IDBLogPersister";
-import {ConsoleReporter} from "../../logging/ConsoleReporter";
-import {Logger} from "../../logging/Logger";
-import {RootView} from "./ui/RootView.js";
-import {Clock} from "./dom/Clock.js";
-import {ServiceWorkerHandler} from "./dom/ServiceWorkerHandler.js";
-import {NotificationService} from "./dom/NotificationService.js";
-import {History} from "./dom/History.js";
-import {OnlineStatus} from "./dom/OnlineStatus.js";
-import {Crypto} from "./dom/Crypto.js";
-import {estimateStorageUsage} from "./dom/StorageEstimate.js";
-import {WorkerPool} from "./dom/WorkerPool.js";
-import {BlobHandle} from "./dom/BlobHandle.js";
-import {hasReadPixelPermission, ImageHandle, VideoHandle} from "./dom/ImageHandle.js";
-import {downloadInIframe} from "./dom/download.js";
-import {Disposables} from "../../utils/Disposables";
-import {parseHTML} from "./parsehtml.js";
-import {handleAvatarError} from "./ui/avatar";
-import {MediaDevicesWrapper} from "./dom/MediaDevices";
-import {DOMWebRTC} from "./dom/WebRTC";
-import {ThemeLoader} from "./theming/ThemeLoader";
-import {TimeFormatter} from "./dom/TimeFormatter";
-import {copyPlaintext} from "./dom/utils";
+import { createFetchRequest } from "./dom/request/fetch.js";
+import { xhrRequest } from "./dom/request/xhr.js";
+import { StorageFactory } from "../../matrix/storage/idb/StorageFactory";
+import { SessionInfoStorage } from "../../matrix/sessioninfo/localstorage/SessionInfoStorage";
+import { SettingsStorage } from "./dom/SettingsStorage.js";
+import { Encoding } from "./utils/Encoding.js";
+import { OlmWorker } from "../../matrix/e2ee/OlmWorker.js";
+import { IDBLogPersister } from "../../logging/IDBLogPersister";
+import { ConsoleReporter } from "../../logging/ConsoleReporter";
+import { Logger } from "../../logging/Logger";
+import { RootView } from "./ui/RootView.js";
+import { Clock } from "./dom/Clock.js";
+import { ServiceWorkerHandler } from "./dom/ServiceWorkerHandler.js";
+import { NotificationService } from "./dom/NotificationService.js";
+import { History } from "./dom/History.js";
+import { OnlineStatus } from "./dom/OnlineStatus.js";
+import { Crypto } from "./dom/Crypto.js";
+import { estimateStorageUsage } from "./dom/StorageEstimate.js";
+import { WorkerPool } from "./dom/WorkerPool.js";
+import { BlobHandle } from "./dom/BlobHandle.js";
+import { hasReadPixelPermission, ImageHandle, VideoHandle } from "./dom/ImageHandle.js";
+import { downloadInIframe } from "./dom/download.js";
+import { Disposables } from "../../utils/Disposables";
+import { parseHTML } from "./parsehtml.js";
+import { handleAvatarError } from "./ui/avatar";
+import { MediaDevicesWrapper } from "./dom/MediaDevices";
+import { DOMWebRTC } from "./dom/WebRTC";
+import { ThemeLoader } from "./theming/ThemeLoader";
+import { TimeFormatter } from "./dom/TimeFormatter";
+import { copyPlaintext, isInIframe } from "./dom/utils";
 
 function addScript(src) {
     return new Promise(function (resolve, reject) {
         var s = document.createElement("script");
-        s.setAttribute("src", src );
-        s.onload=resolve;
-        s.onerror=reject;
+        s.setAttribute("src", src);
+        s.onload = resolve;
+        s.onerror = reject;
         document.body.appendChild(s);
     });
 }
@@ -64,7 +64,7 @@ async function loadOlm(olmPaths) {
     if (olmPaths) {
         if (window.WebAssembly) {
             await addScript(olmPaths.wasmBundle);
-            await window.Olm.init({locateFile: () => olmPaths.wasm});
+            await window.Olm.init({ locateFile: () => olmPaths.wasm });
         } else {
             await addScript(olmPaths.legacyBundle);
             await window.Olm.init();
@@ -152,7 +152,7 @@ export class Platform {
         }
         this.notificationService = undefined;
         // Only try to use crypto when olm is provided
-        if(this._assetPaths.olm) {
+        if (this._assetPaths.olm) {
             this.crypto = new Crypto(cryptoExtras);
         }
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
@@ -173,7 +173,8 @@ export class Platform {
         this._workerPromise = undefined;
         this.mediaDevices = new MediaDevicesWrapper(navigator.mediaDevices);
         this.webRTC = new DOMWebRTC();
-        this._themeLoader = import.meta.env.DEV? null: new ThemeLoader(this);
+        this._themeLoader = import.meta.env.DEV ? null : new ThemeLoader(this);
+        this.isInIframe = isInIframe();
     }
 
     async init() {
@@ -183,7 +184,7 @@ export class Platform {
                     if (!this._configURL) {
                         throw new Error("Neither config nor configURL was provided!");
                     }
-                    const {status, body}= await this.request(this._configURL, {method: "GET", format: "json", cache: true}).response();
+                    const { status, body } = await this.request(this._configURL, { method: "GET", format: "json", cache: true }).response();
                     if (status === 404) {
                         throw new Error(`Could not find ${this._configURL}. Did you copy over config.sample.json?`);
                     } else if (status >= 400) {
@@ -210,7 +211,7 @@ export class Platform {
     }
 
     _createLogger(isDevelopment) {
-        const logger = new Logger({platform: this});
+        const logger = new Logger({ platform: this });
         // Make sure that loginToken does not end up in the logs
         const transformer = (item) => {
             if (item.e?.stack) {
@@ -218,7 +219,7 @@ export class Platform {
             }
             return item;
         };
-        const logPersister = new IDBLogPersister({name: "hydrogen_logs", platform: this, serializedTransformer: transformer});
+        const logPersister = new IDBLogPersister({ name: "hydrogen_logs", platform: this, serializedTransformer: transformer });
         logger.addReporter(logPersister);
         if (isDevelopment) {
             logger.addReporter(new ConsoleReporter());
@@ -306,7 +307,7 @@ export class Platform {
                 this._container.removeChild(input);
                 if (file) {
                     // ok to not filter mimetypes as these are local files
-                    resolve({name: file.name, blob: BlobHandle.fromBlobUnsafe(file)});
+                    resolve({ name: file.name, blob: BlobHandle.fromBlobUnsafe(file) });
                 } else {
                     resolve();
                 }
@@ -391,7 +392,7 @@ export class Platform {
     }
 }
 
-import {LogItem} from "../../logging/LogItem";
+import { LogItem } from "../../logging/LogItem";
 export function tests() {
     return {
         "loginToken should not be in logs": (assert) => {
@@ -405,7 +406,7 @@ export function tests() {
                     return item;
                 }
             };
-            const logger = { _now() {return 5;} };
+            const logger = { _now() { return 5; } };
             const logItem = new LogItem("test", 1, logger);
             logItem.error = new Error();
             logItem.error.stack = "main http://localhost:3000/src/main.js:55\n<anonymous> http://localhost:3000/?loginToken=secret:26"

@@ -41,7 +41,7 @@ export class RootViewModel extends ViewModel {
         this.track(this.navigation.observe("session").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("sso").subscribe(() => this._applyNavigation()));
         this.track(this.navigation.observe("logout").subscribe(() => this._applyNavigation()));
-        this._applyNavigation(true);
+        this._applyNavigation(!this.platform.isInIframe);
     }
 
     async _applyNavigation(shouldRestoreLastUrl) {
@@ -54,22 +54,20 @@ export class RootViewModel extends ViewModel {
         const autoLoginValue = this.navigation.path.get("auto-login")?.value;
 
         if (autoLoginValue) {
-            const paths = autoLoginValue.split("&");
-            const username = paths[0].replace("username=", "");
-            const password = paths[1].replace("password=", "");
-
             const currentSessions = await this.platform.sessionInfoStorage.getAll();
 
             if (currentSessions.length > 0) {
-                console.log('--------Has session, Ignore auto-login')
+                console.log('--------Has session, Ignore auto-login');
+                const newUrl = `${location.origin}${location.pathname}#/session/${currentSessions[0].id}`;
+                console.log('location.origin', newUrl)
 
-                // this should never happen, but we want to be sure not to leak it
-                if (this._pendingClient) {
-                    this._pendingClient.dispose();
-                    this._pendingClient = null;
-                }
-                this._showSessionLoader(currentSessions[0].id);
+                window.location.href = newUrl;
+                location.reload();
+                // window.location.replace(newUrl);
             } else {
+                const paths = autoLoginValue.split("&");
+                const username = paths[0].replace("username=", "");
+                const password = paths[1].replace("password=", "");
                 console.log('--------Start auto-login', username, password)
                 this._showLogin({ autoLogin: { username, password } });
 
@@ -232,6 +230,7 @@ export class RootViewModel extends ViewModel {
         this._forcedLogoutViewModel && this.track(this._forcedLogoutViewModel);
         this._sessionViewModel && this.track(this._sessionViewModel);
         this.emitChange("activeSection");
+        window.parent.hydrogen_loaded = true;
     }
 
     get error() { return this._error; }

@@ -15,24 +15,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js"
-import {CallViewModel} from "./CallViewModel"
-import {PickMapObservableValue} from "../../../observable/value";
-import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
-import {ErrorReportViewModel} from "../../ErrorReportViewModel";
-import {ViewModel} from "../../ViewModel";
-import {imageToInfo} from "../common.js";
-import {LocalMedia} from "../../../matrix/calls/LocalMedia";
+import { TimelineViewModel } from "./timeline/TimelineViewModel.js";
+import { ComposerViewModel } from "./ComposerViewModel.js"
+import { CallViewModel } from "./CallViewModel"
+import { PickMapObservableValue } from "../../../observable/value";
+import { avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl } from "../../avatar";
+import { ErrorReportViewModel } from "../../ErrorReportViewModel";
+import { ViewModel } from "../../ViewModel";
+import { imageToInfo } from "../common.js";
+import { LocalMedia } from "../../../matrix/calls/LocalMedia";
 // TODO: remove fallback so default isn't included in bundle for SDK users that have their custom tileClassForEntry
 // this is a breaking SDK change though to make this option mandatory
-import {tileClassForEntry as defaultTileClassForEntry} from "./timeline/tiles/index";
-import {joinRoom} from "../../../matrix/room/joinRoom";
+import { tileClassForEntry as defaultTileClassForEntry } from "./timeline/tiles/index";
+import { joinRoom } from "../../../matrix/room/joinRoom";
 
 export class RoomViewModel extends ErrorReportViewModel {
     constructor(options) {
         super(options);
-        const {room, tileClassForEntry} = options;
+        const { room, tileClassForEntry } = options;
         this._sendReadReceipt = options.sendReadReceipt ?? true;
         this._room = room;
         this._timelineVM = null;
@@ -41,13 +41,14 @@ export class RoomViewModel extends ErrorReportViewModel {
         this._onRoomChange = this._onRoomChange.bind(this);
         this._composerVM = null;
         if (room.isArchived) {
-            this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
+            this._composerVM = this.track(new ArchivedViewModel(this.childOptions({ archivedRoom: room })));
         } else {
             this._recreateComposerOnPowerLevelChange();
         }
         this._clearUnreadTimout = null;
         this._closeUrl = this.urlRouter.urlUntilSegment("session");
         this._setupCallViewModel();
+        this.isInIframe = this.platform.isInIframe;
     }
 
     _setupCallViewModel() {
@@ -66,14 +67,14 @@ export class RoomViewModel extends ErrorReportViewModel {
             }
             this._callViewModel = this.disposeTracked(this._callViewModel);
             if (call) {
-                this._callViewModel = this.track(new CallViewModel(this.childOptions({call, room: this._room})));
+                this._callViewModel = this.track(new CallViewModel(this.childOptions({ call, room: this._room })));
             }
             this.emitChange("callViewModel");
         }));
         const call = this._callObservable.get();
         // TODO: cleanup this duplication to create CallViewModel
         if (call) {
-            this._callViewModel = this.track(new CallViewModel(this.childOptions({call, room: this._room})));
+            this._callViewModel = this.track(new CallViewModel(this.childOptions({ call, room: this._room })));
         }
     }
 
@@ -220,7 +221,7 @@ export class RoomViewModel extends ErrorReportViewModel {
             }
         }
     }
-    
+
     _sendMessage(message, replyingTo) {
         return this.logAndCatch("RoomViewModel.sendMessage", async log => {
             let success = false;
@@ -238,7 +239,7 @@ export class RoomViewModel extends ErrorReportViewModel {
                     log.set("replyingTo", replyingTo.eventId);
                     content = await replyingTo.createReplyContent(msgtype, message);
                 } else {
-                    content = {msgtype, body: message};
+                    content = { msgtype, body: message };
                 }
                 await this._room.sendEvent("m.room.message", content, undefined, log);
                 success = true;
@@ -256,7 +257,7 @@ export class RoomViewModel extends ErrorReportViewModel {
         } catch (err) {
             this.reportError(err);
         }
-    } 
+    }
 
     async _processCommand(message) {
         let msgtype;
@@ -302,7 +303,7 @@ export class RoomViewModel extends ErrorReportViewModel {
                 this.reportError(new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`));
                 message = undefined;
         }
-        return {msgtype, message: message};
+        return { msgtype, message: message };
     }
 
     _pickAndSendFile() {
@@ -362,7 +363,7 @@ export class RoomViewModel extends ErrorReportViewModel {
             const maxDimension = limit || Math.min(video.maxDimension, 800);
             const thumbnail = await video.scale(maxDimension);
             content.info.thumbnail_info = imageToInfo(thumbnail);
-            attachments["info.thumbnail_url"] = 
+            attachments["info.thumbnail_url"] =
                 this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments, log);
         });
@@ -400,7 +401,7 @@ export class RoomViewModel extends ErrorReportViewModel {
             if (image.maxDimension > 600) {
                 const thumbnail = await image.scale(400);
                 content.info.thumbnail_info = imageToInfo(thumbnail);
-                attachments["info.thumbnail_url"] = 
+                attachments["info.thumbnail_url"] =
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
             await this._room.sendEvent("m.room.message", content, attachments, log);
