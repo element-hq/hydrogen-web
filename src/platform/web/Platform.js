@@ -148,7 +148,6 @@ export class Platform {
         this._serviceWorkerHandler = null;
         if (assetPaths.serviceWorker && "serviceWorker" in navigator) {
             this._serviceWorkerHandler = new ServiceWorkerHandler();
-            this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
         this.notificationService = undefined;
         // Only try to use crypto when olm is provided
@@ -178,6 +177,12 @@ export class Platform {
 
     async init() {
         try {
+            if (this._serviceWorkerHandler instanceof ServiceWorkerHandler) {
+                // Start the service worker before doing anything else,
+                // to make sure all requests are intercepted by the service worker.
+                await this._serviceWorkerHandler.registerAndStart(this._assetPaths.serviceWorker)
+            }
+
             await this.logger.run("Platform init", async (log) => {
                 if (!this._config) {
                     if (!this._configURL) {
