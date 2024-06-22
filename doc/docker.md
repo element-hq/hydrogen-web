@@ -44,8 +44,8 @@ docker build -t hydrogen .
 Or, pull the docker image from GitHub Container Registry:
 
 ```
-docker pull ghcr.io/vector-im/hydrogen-web
-docker tag ghcr.io/vector-im/hydrogen-web hydrogen
+docker pull ghcr.io/element-hq/hydrogen-web
+docker tag ghcr.io/element-hq/hydrogen-web hydrogen
 ```
 
 ### Start container image
