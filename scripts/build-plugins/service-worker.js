@@ -205,10 +205,14 @@ function definePlaceholderValue(mode, name, devValue) {
  * @see https://stackoverflow.com/a/35778030
  */
 function getLatestGitCommitHash() {
-    return require("child_process")
-        .execSync("git rev-parse --short HEAD")
-        .toString()
-        .trim();
+    try {
+        return require("child_process")
+            .execSync("git rev-parse --short HEAD")
+            .toString()
+            .trim();
+    } catch {
+        return "could_not_fetch_sha";
+    }
 }
 
 function createPlaceholderValues(mode) {
