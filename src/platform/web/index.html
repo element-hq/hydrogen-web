@@ -19,9 +19,7 @@
             import {Platform} from "./Platform";
             import configURL from "./assets/config.json?url";
             import assetPaths from "./sdk/paths/vite";
-            if (import.meta.env.PROD) {
-                assetPaths.serviceWorker = "sw.js";
-            }
+            assetPaths.serviceWorker = "sw.js";
             const platform = new Platform({
                 container: document.body,
                 assetPaths,

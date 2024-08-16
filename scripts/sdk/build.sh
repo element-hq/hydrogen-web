@@ -8,8 +8,8 @@ shopt -s extglob
 # Only remove the directory contents instead of the whole directory to maintain
 # the `npm link`/`yarn link` symlink
 rm -rf target/*
-yarn run vite build -c vite.sdk-assets-config.js
-yarn run vite build -c vite.sdk-lib-config.js
+yarn run vite build -c vite.sdk-assets-config.js --mode sdk
+yarn run vite build -c vite.sdk-lib-config.js --mode sdk
 yarn tsc -p tsconfig-declaration.json
 ./scripts/sdk/create-manifest.js ./target/package.json
 mkdir target/paths
