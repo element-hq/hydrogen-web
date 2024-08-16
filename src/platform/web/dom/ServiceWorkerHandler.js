@@ -103,8 +103,22 @@ export class ServiceWorkerHandler {
         if (document.hidden) {
             return;
         }
-        const version = await this._sendAndWaitForReply("version", null, this._registration.waiting);
-        if (confirm(`Version ${version.version} (${version.buildHash}) is available. Reload to apply?`)) {
+        const version = await this._sendAndWaitForReply(
+            "version",
+            null,
+            this._registration.waiting
+        );
+        const isSdk = DEFINE_IS_SDK;
+        const isDev = this.version === "develop";
+        // Don't ask for confirmation when being used as an sdk/ when being run in dev server
+        if (
+            isSdk ||
+            isDev ||
+            confirm(
+                `Version ${version.version} (${version.buildHash}) is available. Reload to apply?`
+            )
+        ) {
+            console.log("Service Worker has been updated!");
             // prevent any fetch requests from going to the service worker
             // from any client, so that it is not kept active
             // when calling skipWaiting on the new one
