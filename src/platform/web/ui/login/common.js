@@ -15,12 +15,29 @@ limitations under the License.
 */
 
 export function hydrogenGithubLink(t) {
-    if (DEFINE_VERSION && DEFINE_GLOBAL_HASH) {
-        return t.a({target: "_blank",
-            href: `https://github.com/vector-im/hydrogen-web/releases/tag/v${DEFINE_VERSION}`},
-            `Hydrogen v${DEFINE_VERSION} (${DEFINE_GLOBAL_HASH}) on Github`);
+    if (DEFINE_VERSION === "develop") {
+        return t.a(
+            {
+                target: "_blank",
+                href: `https://github.com/vector-im/hydrogen-web`,
+            },
+            `Hydrogen develop, ${DEFINE_GLOBAL_HASH}`
+        );
+    } else if (DEFINE_VERSION && DEFINE_GLOBAL_HASH) {
+        return t.a(
+            {
+                target: "_blank",
+                href: `https://github.com/vector-im/hydrogen-web/releases/tag/v${DEFINE_VERSION}`,
+            },
+            `Hydrogen v${DEFINE_VERSION} (${DEFINE_GLOBAL_HASH}) on Github`
+        );
     } else {
-        return t.a({target: "_blank", href: "https://github.com/vector-im/hydrogen-web"},
-            "Hydrogen on Github");
+        return t.a(
+            {
+                target: "_blank",
+                href: "https://github.com/vector-im/hydrogen-web",
+            },
+            "Hydrogen on Github"
+        );
     }
 }
