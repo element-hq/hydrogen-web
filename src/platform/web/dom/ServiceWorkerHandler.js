@@ -19,13 +19,14 @@ limitations under the License.
 // - UpdateService (see checkForUpdate method, and should also emit events rather than showing confirm dialog here)
 // - ConcurrentAccessBlocker (see preventConcurrentSessionAccess method)
 export class ServiceWorkerHandler {
-    constructor() {
+    constructor(sessionInfoStorage) {
         this._waitingForReply = new Map();
         this._messageIdCounter = 0;
         this._navigation = null;
         this._registration = null;
         this._registrationPromise = null;
         this._currentController = null;
+        this._sessionInfoStorage = sessionInfoStorage;
         this.haltRequests = false;
     }
 
@@ -50,8 +51,8 @@ export class ServiceWorkerHandler {
         })();
     }
 
-    _onMessage(event) {
-        const {data} = event;
+    async _onMessage(event) {
+        const { data } = event;
         const replyTo = data.replyTo;
         if (replyTo) {
             const resolve = this._waitingForReply.get(replyTo);
@@ -61,37 +62,63 @@ export class ServiceWorkerHandler {
             }
         }
         if (data.type === "hasSessionOpen") {
-            const hasOpen = this._navigation.observe("session").get() === data.payload.sessionId;
-            event.source.postMessage({replyTo: data.id, payload: hasOpen});
+            const hasOpen =
+                this._navigation.observe("session").get() ===
+                data.payload.sessionId;
+            event.source.postMessage({ replyTo: data.id, payload: hasOpen });
         } else if (data.type === "hasRoomOpen") {
-            const hasSessionOpen = this._navigation.observe("session").get() === data.payload.sessionId;
-            const hasRoomOpen = this._navigation.observe("room").get() === data.payload.roomId;
-            event.source.postMessage({replyTo: data.id, payload: hasSessionOpen && hasRoomOpen});
+            const hasSessionOpen =
+                this._navigation.observe("session").get() ===
+                data.payload.sessionId;
+            const hasRoomOpen =
+                this._navigation.observe("room").get() === data.payload.roomId;
+            event.source.postMessage({
+                replyTo: data.id,
+                payload: hasSessionOpen && hasRoomOpen,
+            });
         } else if (data.type === "closeSession") {
-            const {sessionId} = data.payload;
+            const { sessionId } = data.payload;
             this._closeSessionIfNeeded(sessionId).finally(() => {
-                event.source.postMessage({replyTo: data.id});
+                event.source.postMessage({ replyTo: data.id });
             });
         } else if (data.type === "haltRequests") {
             // this flag is read in fetch.js
             this.haltRequests = true;
-            event.source.postMessage({replyTo: data.id});
+            event.source.postMessage({ replyTo: data.id });
         } else if (data.type === "openRoom") {
             this._navigation.push("room", data.payload.roomId);
+        } else if (data.type === "getAccessToken") {
+            const token = await this._getLatestAccessToken();
+            event.source.postMessage({ replyTo: data.id, payload: token });
         }
+    }
+
+    /**
+     * Fetch access-token from the storage
+     * @returns access token as string
+     */
+    async _getLatestAccessToken() {
+        const currentSessionId = this._navigation?.path.get("session")?.value;
+        if (!currentSessionId) return null;
+        const { accessToken } = await this._sessionInfoStorage.get(
+            currentSessionId
+        );
+        return accessToken;
     }
 
     _closeSessionIfNeeded(sessionId) {
         const currentSession = this._navigation?.path.get("session");
         if (sessionId && currentSession?.value === sessionId) {
-            return new Promise(resolve => {
-                const unsubscribe = this._navigation.pathObservable.subscribe(path => {
-                    const session = path.get("session");
-                    if (!session || session.value !== sessionId) {
-                        unsubscribe();
-                        resolve();
+            return new Promise((resolve) => {
+                const unsubscribe = this._navigation.pathObservable.subscribe(
+                    (path) => {
+                        const session = path.get("session");
+                        if (!session || session.value !== sessionId) {
+                            unsubscribe();
+                            resolve();
+                        }
                     }
-                });
+                );
                 this._navigation.push("session");
             });
         } else {
@@ -135,7 +162,10 @@ export class ServiceWorkerHandler {
                 this._onMessage(event);
                 break;
             case "updatefound":
-                this._registration.installing.addEventListener("statechange", this);
+                this._registration.installing.addEventListener(
+                    "statechange",
+                    this
+                );
                 break;
             case "statechange": {
                 if (event.target.state === "installed") {
@@ -149,10 +179,11 @@ export class ServiceWorkerHandler {
                     // Clients.claim() in the SW can trigger a controllerchange event
                     // if we had no SW before. This is fine,
                     // and now our requests will be served from the SW.
-                    this._currentController = navigator.serviceWorker.controller;
+                    this._currentController =
+                        navigator.serviceWorker.controller;
                 } else {
                     // active service worker changed,
-                    // refresh, so we can get all assets 
+                    // refresh, so we can get all assets
                     // (and not only some if we would not refresh)
                     // up to date from it
                     document.location.reload();
@@ -168,7 +199,7 @@ export class ServiceWorkerHandler {
         if (!worker) {
             worker = this._registration.active;
         }
-        worker.postMessage({type, payload});
+        worker.postMessage({ type, payload });
     }
 
     async _sendAndWaitForReply(type, payload, worker = undefined) {
@@ -180,10 +211,10 @@ export class ServiceWorkerHandler {
         }
         this._messageIdCounter += 1;
         const id = this._messageIdCounter;
-        const promise = new Promise(resolve => {
+        const promise = new Promise((resolve) => {
             this._waitingForReply.set(id, resolve);
         });
-        worker.postMessage({type, id, payload});
+        worker.postMessage({ type, id, payload });
         return await promise;
     }
 
@@ -203,7 +234,7 @@ export class ServiceWorkerHandler {
     }
 
     async preventConcurrentSessionAccess(sessionId) {
-        return this._sendAndWaitForReply("closeSession", {sessionId});
+        return this._sendAndWaitForReply("closeSession", { sessionId });
     }
 
     async getRegistration() {

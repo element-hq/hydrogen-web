@@ -83,12 +83,15 @@ self.addEventListener("fetch", (event) => {
     This has to do with xhr not being supported in service workers.
     */
     if (event.request.method === "GET") {
-        event.respondWith(handleRequest(event.request));
+        event.respondWith(handleRequest(event));
     }
 });
 
 function isCacheableThumbnail(url) {
-    if (url.pathname.startsWith("/_matrix/media/r0/thumbnail/")) {
+    if (
+        url.pathname.startsWith("/_matrix/media/r0/thumbnail/") ||
+        url.pathname.startsWith("/_matrix/client/v1/media/thumbnail/")
+    ) {
         const width = parseInt(url.searchParams.get("width"), 10);
         const height = parseInt(url.searchParams.get("height"), 10);
         if (width <= 50 && height <= 50) {
@@ -101,22 +104,42 @@ function isCacheableThumbnail(url) {
 const baseURL = new URL(self.registration.scope);
 let pendingFetchAbortController = new AbortController();
 
-async function handleRequest(request) {
+async function handleRequest({ request, clientId }) {
     try {
+        // Special caching strategy for config.json and theme json files
         if (
             request.url.includes("config.json") ||
             /theme-.+\.json/.test(request.url)
         ) {
             return handleStaleWhileRevalidateRequest(request);
         }
-        const url = new URL(request.url);
+
         // rewrite / to /index.html so it hits the cache
+        const url = new URL(request.url);
         if (
             url.origin === baseURL.origin &&
             url.pathname === baseURL.pathname
         ) {
             request = new Request(new URL("index.html", baseURL.href));
         }
+
+        // Add access token for authenticated media endpoints
+        if (request.url.includes("_matrix/client/v1/media")) {
+            const headers = new Headers(request.headers);
+            const client = await self.clients.get(clientId);
+            const accessToken = await sendAndWaitForReply(
+                client,
+                "getAccessToken",
+                {}
+            );
+            headers.set("authorization", `Bearer ${accessToken}`);
+            request = new Request(request, {
+                mode: "cors",
+                credentials: "omit",
+                headers,
+            });
+        }
+
         let response = await readCache(request);
         if (!response) {
             // use cors so the resource in the cache isn't opaque and uses up to 7mb
