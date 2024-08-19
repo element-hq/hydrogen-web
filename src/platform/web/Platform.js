@@ -146,8 +146,13 @@ export class Platform {
         this.onlineStatus = new OnlineStatus();
         this.timeFormatter = new TimeFormatter();
         this._serviceWorkerHandler = null;
+        this.sessionInfoStorage = new SessionInfoStorage(
+            "hydrogen_sessions_v1"
+        );
         if (assetPaths.serviceWorker && "serviceWorker" in navigator) {
-            this._serviceWorkerHandler = new ServiceWorkerHandler();
+            this._serviceWorkerHandler = new ServiceWorkerHandler(
+                this.sessionInfoStorage
+            );
             this._serviceWorkerHandler.registerAndStart(assetPaths.serviceWorker);
         }
         this.notificationService = undefined;
@@ -156,7 +161,6 @@ export class Platform {
             this.crypto = new Crypto(cryptoExtras);
         }
         this.storageFactory = new StorageFactory(this._serviceWorkerHandler);
-        this.sessionInfoStorage = new SessionInfoStorage("hydrogen_sessions_v1");
         this.estimateStorageUsage = estimateStorageUsage;
         if (typeof fetch === "function") {
             this.request = createFetchRequest(this.clock.createTimeout, this._serviceWorkerHandler);

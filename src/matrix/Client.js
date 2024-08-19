@@ -252,7 +252,7 @@ export class Client {
         this._reconnector = new Reconnector({
             onlineStatus: this._platform.onlineStatus,
             retryDelay: new ExponentialRetryDelay(clock.createTimeout),
-            createMeasure: clock.createMeasure
+            createMeasure: clock.createMeasure,
         });
         const hsApi = new HomeServerApi({
             homeserver: sessionInfo.homeServer,
@@ -261,7 +261,10 @@ export class Client {
             reconnector: this._reconnector,
         });
         this._sessionId = sessionInfo.id;
-        this._storage = await this._platform.storageFactory.create(sessionInfo.id, log);
+        this._storage = await this._platform.storageFactory.create(
+            sessionInfo.id,
+            log
+        );
         // no need to pass access token to session
         const filteredSessionInfo = {
             id: sessionInfo.id,
@@ -275,11 +278,16 @@ export class Client {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
-        this._requestScheduler = new RequestScheduler({hsApi, clock});
+        this._requestScheduler = new RequestScheduler({ hsApi, clock });
         this._requestScheduler.start();
+
+        const lastVersionsResponse = await hsApi
+            .versions({ timeout: 10000, log })
+            .response();
         const mediaRepository = new MediaRepository({
             homeserver: sessionInfo.homeServer,
             platform: this._platform,
+            serverVersions: lastVersionsResponse.versions,
         });
         this._session = new Session({
             storage: this._storage,
@@ -289,32 +297,54 @@ export class Client {
             olmWorker,
             mediaRepository,
             platform: this._platform,
-            features: this._features
+            features: this._features,
         });
         await this._session.load(log);
         if (dehydratedDevice) {
-            await log.wrap("dehydrateIdentity", log => this._session.dehydrateIdentity(dehydratedDevice, log));
-            await this._session.setupDehydratedDevice(dehydratedDevice.key, log);
+            await log.wrap("dehydrateIdentity", (log) =>
+                this._session.dehydrateIdentity(dehydratedDevice, log)
+            );
+            await this._session.setupDehydratedDevice(
+                dehydratedDevice.key,
+                log
+            );
         } else if (!this._session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
-            await log.wrap("createIdentity", log => this._session.createIdentity(log));
+            await log.wrap("createIdentity", (log) =>
+                this._session.createIdentity(log)
+            );
         }
 
-        this._sync = new Sync({hsApi: this._requestScheduler.hsApi, storage: this._storage, session: this._session, logger: this._platform.logger});
-        // notify sync and session when back online
-        this._reconnectSubscription = this._reconnector.connectionStatus.subscribe(state => {
-            if (state === ConnectionStatus.Online) {
-                this._platform.logger.runDetached("reconnect", async log => {
-                    // needs to happen before sync and session or it would abort all requests
-                    this._requestScheduler.start();
-                    this._sync.start();
-                    this._sessionStartedByReconnector = true;
-                    const d = dehydratedDevice;
-                    dehydratedDevice = undefined;
-                    await log.wrap("session start", log => this._session.start(this._reconnector.lastVersionsResponse, d, log));
-                });
-            }
+        this._sync = new Sync({
+            hsApi: this._requestScheduler.hsApi,
+            storage: this._storage,
+            session: this._session,
+            logger: this._platform.logger,
         });
+        // notify sync and session when back online
+        this._reconnectSubscription =
+            this._reconnector.connectionStatus.subscribe((state) => {
+                if (state === ConnectionStatus.Online) {
+                    this._platform.logger.runDetached(
+                        "reconnect",
+                        async (log) => {
+                            // needs to happen before sync and session or it would abort all requests
+                            this._requestScheduler.start();
+                            this._sync.start();
+                            this._sessionStartedByReconnector = true;
+                            const d = dehydratedDevice;
+                            dehydratedDevice = undefined;
+                            await log.wrap("session start", (log) =>
+                                this._session.start(
+                                    this._reconnector.lastVersionsResponse,
+                                    d,
+                                    log
+                                )
+                            );
+                        }
+                    );
+                }
+            });
         await log.wrap("wait first sync", () => this._waitForFirstSync());
         if (this._isDisposed) {
             return;
@@ -326,14 +356,15 @@ export class Client {
         // started to session, so check first
         // to prevent an extra /versions request
         if (!this._sessionStartedByReconnector) {
-            const lastVersionsResponse = await hsApi.versions({timeout: 10000, log}).response();
             if (this._isDisposed) {
                 return;
             }
             const d = dehydratedDevice;
             dehydratedDevice = undefined;
             // log as ref as we don't want to await it
-            await log.wrap("session start", log => this._session.start(lastVersionsResponse, d, log));
+            await log.wrap("session start", (log) =>
+                this._session.start(lastVersionsResponse, d, log)
+            );
         }
     }
 
