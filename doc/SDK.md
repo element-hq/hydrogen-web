@@ -25,10 +25,10 @@ In addition to the assets mentioned above, you will also need to supply a servic
 This is how you can do that:  
 1. create a `public` directory in your project root.
 2. In your `vite.config.js` file, configure [publicDir](https://vitejs.dev/config/shared-options.html#publicdir) option to point to the directory you just created.
-3. Symlink `node_modules/hydrogen-view-sdk/lib-assets/sw.js` to `public/sw.js`:
+3. Symlink `node_modules/hydrogen-view-sdk/lib-build/sw.js` to `public/sw.js`:
     ```bash
     cd public
-    ln -s ../node_modules/hydrogen-view-sdk/lib-assets/sw.js sw.js
+    ln -s ../node_modules/hydrogen-view-sdk/lib-build/sw.js sw.js
     ``` 
 Now `sw.js` will be in the root of your dev server/ build root.
 
