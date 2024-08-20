@@ -1,12 +1,12 @@
 # Hydrogen View SDK
 
 
-The Hydrogen view SDK allows developers to integrate parts of the Hydrogen application into the UI of their own application. Hydrogen is written with the MVVM pattern, so to construct a view, you'd first construct a view model, which you then pass into the view. For most view models, you will first need a running client.
+This SDK allows developers to integrate parts of the Hydrogen application into the UI of their own application. Hydrogen is written with the MVVM pattern, so to construct a view, you'd first construct a view model, which you then pass into the view. For most view models, you will first need a running client.
 
 ## Changelog
 [See CHANGELOG.md](./CHANGELOG.md)  
 
-## Example
+## Tutorial
 
 The Hydrogen SDK requires some assets to be shipped along with your app for things like downloading attachments, and end-to-end encryption. A convenient way to make this happen is provided by the SDK (importing `hydrogen-view-sdk/paths/vite`) but depends on your build system. Currently, only [vite](https://vitejs.dev/) is supported, so that's what we'll be using in the example below.
 
@@ -20,6 +20,19 @@ yarn
 yarn add hydrogen-view-sdk
 yarn add https://gitlab.matrix.org/api/v4/projects/27/packages/npm/@matrix-org/olm/-/@matrix-org/olm-3.2.14.tgz
 ```
+#### Including the service worker
+In addition to the assets mentioned above, you will also need to supply a serviceworker. This is needed for supporting authenticated media ([MSC3916](https://github.com/matrix-org/matrix-spec-proposals/pull/3916), [blog post](https://matrix.org/blog/2024/06/26/sunsetting-unauthenticated-media/)).  
+This is how you can do that:  
+1. create a `public` directory in your project root.
+2. In your `vite.config.js` file, configure [publicDir](https://vitejs.dev/config/shared-options.html#publicdir) option to point to the directory you just created.
+3. Symlink `node_modules/hydrogen-view-sdk/lib-assets/sw.js` to `public/sw.js`:
+    ```bash
+    cd public
+    ln -s ../node_modules/hydrogen-view-sdk/lib-assets/sw.js sw.js
+    ``` 
+Now `sw.js` will be in the root of your dev server/ build root.
+
+#### Rendering the app
 
 You should see a `index.html` in the project root directory, containing an element with `id="app"`. Add the attribute `class="hydrogen"` to this element, as the CSS we'll include from the SDK assumes for now that the app is rendered in an element with this classname.
 
@@ -51,7 +64,8 @@ const assetPaths = {
         wasm: olmWasmPath,
         legacyBundle: olmLegacyJsPath,
         wasmBundle: olmJsPath
-    }
+    },
+    serviceWorker: "sw.js",
 };
 import "hydrogen-view-sdk/assets/theme-element-light.css";
 // OR import "hydrogen-view-sdk/assets/theme-element-dark.css";
@@ -62,6 +76,7 @@ async function main() {
     const platform = new Platform({container: app, assetPaths, config, options: { development: import.meta.env.DEV }});
     const navigation = createNavigation();
     platform.setNavigation(navigation);
+    await platform.init();
     const urlRouter = createRouter({
         navigation: navigation,
         history: platform.history
