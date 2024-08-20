@@ -259,8 +259,7 @@ export class HomeServerApi {
         return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, undefined, options);
     }
 
-    uploadRoomKeysToBackup(version: string, payload: Record<string, any>, options: BaseRequestOptions = {}): IHomeServerRequest {
-        options.prefix = CS_V3_PREFIX;
+    uploadRoomKeysToBackup(version: string, payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         return this._put(`/room_keys/keys`, {version}, payload, options);
     }
 
