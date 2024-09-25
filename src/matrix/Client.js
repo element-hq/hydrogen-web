@@ -117,7 +117,7 @@ export class Client {
             } else if (flow.type === "m.login.token") {
                 result.token = (loginToken) => new TokenLoginMethod({homeserver, loginToken});
             } else if (flow.type === "org.matrix.login.jwt") {
-                result.token = (loginToken) => new JWTLoginMethod({homeserver, loginToken});
+                result.jwt = (loginToken) => new JWTLoginMethod({homeserver, loginToken});
             }
         }
         return result;
