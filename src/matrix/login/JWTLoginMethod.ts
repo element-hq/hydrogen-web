@@ -19,7 +19,7 @@ import {ILogItem} from "../../logging/types";
 import {ILoginMethod} from "./LoginMethod";
 import {HomeServerApi} from "../net/HomeServerApi.js";
 
-export class TokenLoginMethod implements ILoginMethod {
+export class JWTLoginMethod implements ILoginMethod {
     private readonly _loginToken: string;
     public readonly homeserver: string;
 
@@ -29,6 +29,6 @@ export class TokenLoginMethod implements ILoginMethod {
     }
 
     async login(hsApi: HomeServerApi, deviceName: string, log: ILogItem): Promise<Record<string, any>> {
-        return await hsApi.tokenLogin(this._loginToken, makeTxnId(), deviceName, {log}).response();
+        return await hsApi.jwtLogin(this._loginToken, makeTxnId(), deviceName, {log}).response();
     }
 }

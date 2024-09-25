@@ -63,7 +63,14 @@ export class HomeServerApi {
         return this._homeserver + prefix + csPath;
     }
 
-    private _baseRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions, accessToken?: string): IHomeServerRequest {
+    private _baseRequest(
+        method: RequestMethod,
+        url: string,
+        queryParams?: Record<string, any>,
+        body?: Record<string, any>,
+        options?: BaseRequestOptions,
+        accessToken?: string,
+    ): IHomeServerRequest {
         const queryString = encodeQueryParams(queryParams);
         url = `${url}?${queryString}`;
         let encodedBody: EncodedBody["body"];
@@ -84,14 +91,14 @@ export class HomeServerApi {
             body: encodedBody,
             timeout: options?.timeout,
             uploadProgress: options?.uploadProgress,
-            format: "json",  // response format
+            format: "json", // response format
             cache: method !== "GET",
         });
 
         const hsRequest = new HomeServerRequest(method, url, requestResult, options);
-        
+
         if (this._reconnector) {
-            hsRequest.response().catch(err => {
+            hsRequest.response().catch((err) => {
                 // Some endpoints such as /sync legitimately time-out
                 // (which is also reported as a ConnectionError) and will re-attempt,
                 // but spinning up the reconnector in this case is ok,
@@ -105,29 +112,74 @@ export class HomeServerApi {
         return hsRequest;
     }
 
-    private _unauthedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+    private _unauthedRequest(
+        method: RequestMethod,
+        url: string,
+        queryParams?: Record<string, any>,
+        body?: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
         return this._baseRequest(method, url, queryParams, body, options);
     }
 
-    private _authedRequest(method: RequestMethod, url: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+    private _authedRequest(
+        method: RequestMethod,
+        url: string,
+        queryParams?: Record<string, any>,
+        body?: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
         return this._baseRequest(method, url, queryParams, body, options, this._accessToken);
     }
 
-    private _post(csPath: string, queryParams: Record<string, any>, body: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._authedRequest("POST", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
+    private _post(
+        csPath: string,
+        queryParams: Record<string, any>,
+        body: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._authedRequest(
+            "POST",
+            this._url(csPath, options?.prefix || CS_R0_PREFIX),
+            queryParams,
+            body,
+            options,
+        );
     }
 
-    private _put(csPath: string, queryParams: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._authedRequest("PUT", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
+    private _put(
+        csPath: string,
+        queryParams: Record<string, any>,
+        body?: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._authedRequest(
+            "PUT",
+            this._url(csPath, options?.prefix || CS_R0_PREFIX),
+            queryParams,
+            body,
+            options,
+        );
     }
 
-    private _get(csPath: string, queryParams?: Record<string, any>, body?: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._authedRequest("GET", this._url(csPath, options?.prefix || CS_R0_PREFIX), queryParams, body, options);
+    private _get(
+        csPath: string,
+        queryParams?: Record<string, any>,
+        body?: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._authedRequest(
+            "GET",
+            this._url(csPath, options?.prefix || CS_R0_PREFIX),
+            queryParams,
+            body,
+            options,
+        );
     }
 
     /**
      * Update the access token used by the API.
-     * @param token 
+     * @param token
      */
     public updateAccessToken(token: string) {
         this._accessToken = token;
@@ -138,7 +190,10 @@ export class HomeServerApi {
     }
 
     context(roomId: string, eventId: string, limit: number, filter: string): IHomeServerRequest {
-        return this._get(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`, {filter, limit});
+        return this._get(`/rooms/${encodeURIComponent(roomId)}/context/${encodeURIComponent(eventId)}`, {
+            filter,
+            limit,
+        });
     }
 
     // params is from, dir and optionally to, limit, filter.
@@ -151,32 +206,87 @@ export class HomeServerApi {
         return this._get(`/rooms/${encodeURIComponent(roomId)}/members`, params, undefined, options);
     }
 
-    send(roomId: string, eventType: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._put(`/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`, {}, content, options);
+    send(
+        roomId: string,
+        eventType: string,
+        txnId: string,
+        content: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._put(
+            `/rooms/${encodeURIComponent(roomId)}/send/${encodeURIComponent(eventType)}/${encodeURIComponent(txnId)}`,
+            {},
+            content,
+            options,
+        );
     }
 
-    redact(roomId: string, eventId: string, txnId: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._put(`/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txnId)}`, {}, content, options);
+    redact(
+        roomId: string,
+        eventId: string,
+        txnId: string,
+        content: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._put(
+            `/rooms/${encodeURIComponent(roomId)}/redact/${encodeURIComponent(eventId)}/${encodeURIComponent(txnId)}`,
+            {},
+            content,
+            options,
+        );
     }
 
     receipt(roomId: string, receiptType: string, eventId: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._post(`/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
-            {}, {}, options);
+        return this._post(
+            `/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(
+                eventId,
+            )}`,
+            {},
+            {},
+            options,
+        );
     }
 
     state(roomId: string, eventType: string, stateKey: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._get(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, undefined, options);
+        return this._get(
+            `/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(
+                stateKey,
+            )}`,
+            {},
+            undefined,
+            options,
+        );
     }
-    
-    sendState(roomId: string, eventType: string, stateKey: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._put(`/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`, {}, content, options);
+
+    sendState(
+        roomId: string,
+        eventType: string,
+        stateKey: string,
+        content: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._put(
+            `/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(
+                stateKey,
+            )}`,
+            {},
+            content,
+            options,
+        );
     }
 
     getLoginFlows(): IHomeServerRequest {
         return this._unauthedRequest("GET", this._url("/login"));
     }
 
-    register(username: string | null, password: string, initialDeviceDisplayName: string, auth?: Record<string, any>, inhibitLogin: boolean = false , options: BaseRequestOptions = {}): IHomeServerRequest {
+    register(
+        username: string | null,
+        password: string,
+        initialDeviceDisplayName: string,
+        auth?: Record<string, any>,
+        inhibitLogin: boolean = false,
+        options: BaseRequestOptions = {},
+    ): IHomeServerRequest {
         options.allowedStatusCodes = [401];
         const body: any = {
             auth,
@@ -188,31 +298,71 @@ export class HomeServerApi {
             // username is optional for registration
             body.username = username;
         }
-        return this._unauthedRequest( "POST", this._url("/register", CS_V3_PREFIX), undefined, body, options);
+        return this._unauthedRequest("POST", this._url("/register", CS_V3_PREFIX), undefined, body, options);
     }
 
-    passwordLogin(username: string, password: string, initialDeviceDisplayName: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._unauthedRequest("POST", this._url("/login"), undefined, {
-          "type": "m.login.password",
-          "identifier": {
-            "type": "m.id.user",
-            "user": username
-          },
-          "password": password,
-          "initial_device_display_name": initialDeviceDisplayName
-        }, options);
+    passwordLogin(
+        username: string,
+        password: string,
+        initialDeviceDisplayName: string,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._unauthedRequest(
+            "POST",
+            this._url("/login"),
+            undefined,
+            {
+                type: "m.login.password",
+                identifier: {
+                    type: "m.id.user",
+                    user: username,
+                },
+                password: password,
+                initial_device_display_name: initialDeviceDisplayName,
+            },
+            options,
+        );
     }
 
-    tokenLogin(loginToken: string, txnId: string, initialDeviceDisplayName: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._unauthedRequest("POST", this._url("/login"), undefined, {
-          "type": "m.login.token",
-          "identifier": {
-            "type": "m.id.user",
-          },
-          "token": loginToken,
-          "txn_id": txnId,
-          "initial_device_display_name": initialDeviceDisplayName
-        }, options);
+    tokenLogin(
+        loginToken: string,
+        txnId: string,
+        initialDeviceDisplayName: string,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._unauthedRequest(
+            "POST",
+            this._url("/login"),
+            undefined,
+            {
+                type: "m.login.token",
+                identifier: {
+                    type: "m.id.user",
+                },
+                token: loginToken,
+                txn_id: txnId,
+                initial_device_display_name: initialDeviceDisplayName,
+            },
+            options,
+        );
+    }
+
+    jwtLogin(
+        loginToken: string,
+        _txnId: string,
+        _initialDeviceDisplayName: string,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._unauthedRequest(
+            "POST",
+            this._url("/login"),
+            undefined,
+            {
+                type: "org.matrix.login.jwt",
+                token: loginToken,
+            },
+            options,
+        );
     }
 
     createFilter(userId: string, filter: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
@@ -220,10 +370,20 @@ export class HomeServerApi {
     }
 
     versions(options?: BaseRequestOptions): IHomeServerRequest {
-        return this._unauthedRequest("GET", `${this._homeserver}/_matrix/client/versions`, undefined, undefined, options);
+        return this._unauthedRequest(
+            "GET",
+            `${this._homeserver}/_matrix/client/versions`,
+            undefined,
+            undefined,
+            options,
+        );
     }
 
-    uploadKeys(dehydratedDeviceId: string, payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
+    uploadKeys(
+        dehydratedDeviceId: string,
+        payload: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
         let path = "/keys/upload";
         if (dehydratedDeviceId) {
             path = path + `/${encodeURIComponent(dehydratedDeviceId)}`;
@@ -243,10 +403,20 @@ export class HomeServerApi {
         return this._post("/keys/claim", {}, payload, options);
     }
 
-    sendToDevice(type: string, payload: Record<string, any>, txnId: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._put(`/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`, {}, payload, options);
+    sendToDevice(
+        type: string,
+        payload: Record<string, any>,
+        txnId: string,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._put(
+            `/sendToDevice/${encodeURIComponent(type)}/${encodeURIComponent(txnId)}`,
+            {},
+            payload,
+            options,
+        );
     }
-    
+
     roomKeysVersion(version?: string, options?: BaseRequestOptions): IHomeServerRequest {
         let versionPart = "";
         if (version) {
@@ -255,11 +425,25 @@ export class HomeServerApi {
         return this._get(`/room_keys/version${versionPart}`, undefined, undefined, options);
     }
 
-    roomKeyForRoomAndSession(version: string, roomId: string, sessionId: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._get(`/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`, {version}, undefined, options);
+    roomKeyForRoomAndSession(
+        version: string,
+        roomId: string,
+        sessionId: string,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._get(
+            `/room_keys/keys/${encodeURIComponent(roomId)}/${encodeURIComponent(sessionId)}`,
+            {version},
+            undefined,
+            options,
+        );
     }
 
-    uploadRoomKeysToBackup(version: string, payload: Record<string, any>, options: BaseRequestOptions = {}): IHomeServerRequest {
+    uploadRoomKeysToBackup(
+        version: string,
+        payload: Record<string, any>,
+        options: BaseRequestOptions = {},
+    ): IHomeServerRequest {
         options.prefix = CS_V3_PREFIX;
         return this._put(`/room_keys/keys`, {version}, payload, options);
     }
@@ -277,12 +461,7 @@ export class HomeServerApi {
     }
 
     invite(roomId: string, userId: string, reason?: string, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._post(
-            `/rooms/${encodeURIComponent(roomId)}/invite`,
-            {},
-            { user_id: userId, reason },
-            options
-        );
+        return this._post(`/rooms/${encodeURIComponent(roomId)}/invite`, {}, {user_id: userId, reason}, options);
     }
 
     join(roomId: string, options?: BaseRequestOptions): IHomeServerRequest {
@@ -328,8 +507,18 @@ export class HomeServerApi {
         return this._post(`/createRoom`, {}, payload, options);
     }
 
-    setAccountData(ownUserId: string, type: string, content: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
-        return this._put(`/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`, {}, content, options);
+    setAccountData(
+        ownUserId: string,
+        type: string,
+        content: Record<string, any>,
+        options?: BaseRequestOptions,
+    ): IHomeServerRequest {
+        return this._put(
+            `/user/${encodeURIComponent(ownUserId)}/account_data/${encodeURIComponent(type)}`,
+            {},
+            content,
+            options,
+        );
     }
 
     getTurnServer(options?: BaseRequestOptions): IHomeServerRequest {
@@ -341,7 +530,7 @@ import {Request as MockRequest} from "../../mocks/Request.js";
 
 export function tests() {
     return {
-        "superficial happy path for GET": async assert => {
+        "superficial happy path for GET": async (assert) => {
             // @ts-ignore
             const hsApi = new HomeServerApi({
                 request: () => new MockRequest().respond(200, 42),
@@ -350,6 +539,6 @@ export function tests() {
             // @ts-ignore
             const result = await hsApi._get("foo").response();
             assert.strictEqual(result, 42);
-        }
-    }
+        },
+    };
 }

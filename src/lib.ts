@@ -22,6 +22,7 @@ export {Platform} from "./platform/web/Platform.js";
 export {BlobHandle} from "./platform/web/dom/BlobHandle";
 export {Client, LoadStatus} from "./matrix/Client.js";
 export {PasswordLoginMethod} from "./matrix/login/PasswordLoginMethod";
+export {TokenLoginMethod} from "./matrix/login/TokenLoginMethod";
 export {RoomStatus} from "./matrix/room/common";
 export {FeatureSet, FeatureFlag} from "./features";
 export {KeyType} from "./matrix/ssss";
@@ -50,7 +51,12 @@ export {UnknownRoomView} from "./platform/web/ui/session/room/UnknownRoomView.js
 export {SessionStatusView} from "./platform/web/ui/session/SessionStatusView.js";
 export {TimelineViewModel} from "./domain/session/room/timeline/TimelineViewModel.js";
 export {tileClassForEntry} from "./domain/session/room/timeline/tiles/index";
-export type {TimelineEntry, TileClassForEntryFn, Options, TileConstructor} from "./domain/session/room/timeline/tiles/index";
+export type {
+    TimelineEntry,
+    TileClassForEntryFn,
+    Options,
+    TileConstructor,
+} from "./domain/session/room/timeline/tiles/index";
 // export timeline tile view models
 export {GapTile} from "./domain/session/room/timeline/tiles/GapTile.js";
 export {TextTile} from "./domain/session/room/timeline/tiles/TextTile.js";
@@ -67,8 +73,8 @@ export {MissingAttachmentTile} from "./domain/session/room/timeline/tiles/Missin
 export {SimpleTile} from "./domain/session/room/timeline/tiles/SimpleTile";
 
 // export right-panel view models/ views
-export { MemberListViewModel } from "./domain/session/rightpanel/MemberListViewModel.js";
-export { MemberListView } from "./platform/web/ui/session/rightpanel/MemberListView.js";
+export {MemberListViewModel} from "./domain/session/rightpanel/MemberListViewModel.js";
+export {MemberListView} from "./platform/web/ui/session/rightpanel/MemberListView.js";
 
 export {TimelineView} from "./platform/web/ui/session/room/TimelineView";
 export {viewClassForTile} from "./platform/web/ui/session/room/common";
@@ -93,7 +99,7 @@ export {ComposerViewModel} from "./domain/session/room/ComposerViewModel.js";
 export {MessageComposer} from "./platform/web/ui/session/room/MessageComposer.js";
 export {TemplateView} from "./platform/web/ui/general/TemplateView";
 export {LazyListView} from "./platform/web/ui/general/LazyListView";
-export type {Builder} from "./platform/web/ui/general/TemplateView"
+export type {Builder} from "./platform/web/ui/general/TemplateView";
 export {ViewModel} from "./domain/ViewModel";
 export {LoadingView} from "./platform/web/ui/general/LoadingView.js";
 export {AvatarView} from "./platform/web/ui/AvatarView.js";
@@ -104,31 +110,10 @@ export {LocalMedia} from "./matrix/calls/LocalMedia";
 export {spinner} from "./platform/web/ui/common";
 
 // these should eventually be moved to another library
-export {
-    ObservableArray,
-    SortedArray,
-    MappedList,
-    AsyncMappedList,
-    ConcatList,
-    ObservableMap
-} from "./observable/index";
-export {
-    BaseObservableValue,
-    ObservableValue,
-    RetainedObservableValue
-} from "./observable/value";
-export {
-    FilteredMap,
-    JoinedMap,
-    ApplyMap,
-    LogMap,
-    MappedMap,
-} from "./observable/map";
+export {ObservableArray, SortedArray, MappedList, AsyncMappedList, ConcatList, ObservableMap} from "./observable/index";
+export {BaseObservableValue, ObservableValue, RetainedObservableValue} from "./observable/value";
+export {FilteredMap, JoinedMap, ApplyMap, LogMap, MappedMap} from "./observable/map";
 
-export {
-    avatarInitials,
-    getIdentifierColorNumber,
-    getAvatarHttpUrl,
-} from "./domain/avatar";
+export {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "./domain/avatar";
 
-export { renderStaticAvatar } from "./platform/web/ui/avatar.js";
+export {renderStaticAvatar} from "./platform/web/ui/avatar.js";

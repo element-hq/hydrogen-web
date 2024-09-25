@@ -32,6 +32,7 @@ import {SSOLoginHelper} from "./login/SSOLoginHelper";
 import {getDehydratedDevice} from "./e2ee/Dehydration.js";
 import {Registration} from "./registration/Registration";
 import {FeatureSet} from "../features";
+import {JWTLoginMethod} from "./login";
 
 export const LoadStatus = createEnum(
     "NotLoading",
@@ -41,17 +42,13 @@ export const LoadStatus = createEnum(
     "AccountSetup", // asked to restore from dehydrated device if present, call sc.accountSetup.finish() to progress to the next stage
     "Loading",
     "SessionSetup", // upload e2ee keys, ...
-    "Migrating",    // not used atm, but would fit here
+    "Migrating", // not used atm, but would fit here
     "FirstSync",
     "Error",
     "Ready",
 );
 
-export const LoginFailure = createEnum(
-    "Connection",
-    "Credentials",
-    "Unknown",
-);
+export const LoginFailure = createEnum("Connection", "Credentials", "Unknown");
 
 export class Client {
     constructor(platform, features = new FeatureSet(0)) {
@@ -73,7 +70,7 @@ export class Client {
     }
 
     createNewSessionId() {
-        return (Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER)).toString();
+        return Math.floor(this._platform.random() * Number.MAX_SAFE_INTEGER).toString();
     }
 
     get sessionId() {
@@ -85,7 +82,7 @@ export class Client {
             return;
         }
         this._status.set(LoadStatus.Loading);
-        await this._platform.logger.run("load session", async log => {
+        await this._platform.logger.run("load session", async (log) => {
             log.set("id", sessionId);
             try {
                 const sessionInfo = await this._platform.sessionInfoStorage.get(sessionId);
@@ -111,22 +108,23 @@ export class Client {
         */
         const flows = options.flows;
         const result = {homeserver};
+        console.log(flows);
         for (const flow of flows) {
             if (flow.type === "m.login.password") {
                 result.password = (username, password) => new PasswordLoginMethod({homeserver, username, password});
-            }
-            else if (flow.type === "m.login.sso" && flows.find(flow => flow.type === "m.login.token")) {
+            } else if (flow.type === "m.login.sso" && flows.find((flow) => flow.type === "m.login.token")) {
                 result.sso = new SSOLoginHelper(homeserver);
-            }
-            else if (flow.type === "m.login.token") {
-                result.token = loginToken => new TokenLoginMethod({homeserver, loginToken});
+            } else if (flow.type === "m.login.token") {
+                result.token = (loginToken) => new TokenLoginMethod({homeserver, loginToken});
+            } else if (flow.type === "org.matrix.login.jwt") {
+                result.token = (loginToken) => new JWTLoginMethod({homeserver, loginToken});
             }
         }
         return result;
     }
 
     queryLogin(homeserver) {
-        return new AbortableOperation(async setAbortable => {
+        return new AbortableOperation(async (setAbortable) => {
             homeserver = await lookupHomeserver(homeserver, (url, options) => {
                 return setAbortable(this._platform.request(url, options));
             });
@@ -139,20 +137,24 @@ export class Client {
     async startRegistration(homeserver, username, password, initialDeviceDisplayName, flowSelector) {
         const request = this._platform.request;
         const hsApi = new HomeServerApi({homeserver, request});
-        const registration = new Registration(homeserver, hsApi, {
-            username,
-            password,
-            initialDeviceDisplayName,
-        },
-        flowSelector);
+        const registration = new Registration(
+            homeserver,
+            hsApi,
+            {
+                username,
+                password,
+                initialDeviceDisplayName,
+            },
+            flowSelector,
+        );
         return registration;
     }
 
     /** Method to start client after registration or with given access token.
      * To start the client after registering, use `startWithAuthData(registration.authData)`.
      * `homeserver` won't be resolved or normalized using this method,
-     * use `lookupHomeserver` first if needed (not needed after registration) 
-     * 
+     * use `lookupHomeserver` first if needed (not needed after registration)
+     *
      * Setting isReadOnly to false disables OTK uploads.
      * Only do this if you're sure that you will never send encrypted messages.
      * */
@@ -167,13 +169,15 @@ export class Client {
 
     async startWithLogin(loginMethod, {inspectAccountSetup} = {}) {
         const currentStatus = this._status.get();
-        if (currentStatus !== LoadStatus.LoginFailed &&
+        if (
+            currentStatus !== LoadStatus.LoginFailed &&
             currentStatus !== LoadStatus.NotLoading &&
-            currentStatus !== LoadStatus.Error) {
+            currentStatus !== LoadStatus.Error
+        ) {
             return;
         }
         this._resetStatus();
-        await this._platform.logger.run("login", async log => {
+        await this._platform.logger.run("login", async (log) => {
             this._status.set(LoadStatus.Login);
             let sessionInfo;
             try {
@@ -261,10 +265,7 @@ export class Client {
             reconnector: this._reconnector,
         });
         this._sessionId = sessionInfo.id;
-        this._storage = await this._platform.storageFactory.create(
-            sessionInfo.id,
-            log
-        );
+        this._storage = await this._platform.storageFactory.create(sessionInfo.id, log);
         // no need to pass access token to session
         const filteredSessionInfo = {
             id: sessionInfo.id,
@@ -278,12 +279,10 @@ export class Client {
         if (this._workerPromise) {
             olmWorker = await this._workerPromise;
         }
-        this._requestScheduler = new RequestScheduler({ hsApi, clock });
+        this._requestScheduler = new RequestScheduler({hsApi, clock});
         this._requestScheduler.start();
 
-        const lastVersionsResponse = await hsApi
-            .versions({ timeout: 10000, log })
-            .response();
+        const lastVersionsResponse = await hsApi.versions({timeout: 10000, log}).response();
         const mediaRepository = new MediaRepository({
             homeserver: sessionInfo.homeServer,
             platform: this._platform,
@@ -301,18 +300,11 @@ export class Client {
         });
         await this._session.load(log);
         if (dehydratedDevice) {
-            await log.wrap("dehydrateIdentity", (log) =>
-                this._session.dehydrateIdentity(dehydratedDevice, log)
-            );
-            await this._session.setupDehydratedDevice(
-                dehydratedDevice.key,
-                log
-            );
+            await log.wrap("dehydrateIdentity", (log) => this._session.dehydrateIdentity(dehydratedDevice, log));
+            await this._session.setupDehydratedDevice(dehydratedDevice.key, log);
         } else if (!this._session.hasIdentity) {
             this._status.set(LoadStatus.SessionSetup);
-            await log.wrap("createIdentity", (log) =>
-                this._session.createIdentity(log)
-            );
+            await log.wrap("createIdentity", (log) => this._session.createIdentity(log));
         }
 
         this._sync = new Sync({
@@ -322,29 +314,21 @@ export class Client {
             logger: this._platform.logger,
         });
         // notify sync and session when back online
-        this._reconnectSubscription =
-            this._reconnector.connectionStatus.subscribe((state) => {
-                if (state === ConnectionStatus.Online) {
-                    this._platform.logger.runDetached(
-                        "reconnect",
-                        async (log) => {
-                            // needs to happen before sync and session or it would abort all requests
-                            this._requestScheduler.start();
-                            this._sync.start();
-                            this._sessionStartedByReconnector = true;
-                            const d = dehydratedDevice;
-                            dehydratedDevice = undefined;
-                            await log.wrap("session start", (log) =>
-                                this._session.start(
-                                    this._reconnector.lastVersionsResponse,
-                                    d,
-                                    log
-                                )
-                            );
-                        }
+        this._reconnectSubscription = this._reconnector.connectionStatus.subscribe((state) => {
+            if (state === ConnectionStatus.Online) {
+                this._platform.logger.runDetached("reconnect", async (log) => {
+                    // needs to happen before sync and session or it would abort all requests
+                    this._requestScheduler.start();
+                    this._sync.start();
+                    this._sessionStartedByReconnector = true;
+                    const d = dehydratedDevice;
+                    dehydratedDevice = undefined;
+                    await log.wrap("session start", (log) =>
+                        this._session.start(this._reconnector.lastVersionsResponse, d, log),
                     );
-                }
-            });
+                });
+            }
+        });
         await log.wrap("wait first sync", () => this._waitForFirstSync());
         if (this._isDisposed) {
             return;
@@ -362,16 +346,14 @@ export class Client {
             const d = dehydratedDevice;
             dehydratedDevice = undefined;
             // log as ref as we don't want to await it
-            await log.wrap("session start", (log) =>
-                this._session.start(lastVersionsResponse, d, log)
-            );
+            await log.wrap("session start", (log) => this._session.start(lastVersionsResponse, d, log));
         }
     }
 
     /**
      * Update the access token in use by the client.
      * Will also update the token in session storage.
-     * @param {string} token A Matrix Access Token 
+     * @param {string} token A Matrix Access Token
      */
     async updateAccessToken(token) {
         if (!this._session) {
@@ -385,7 +367,7 @@ export class Client {
         this._sync.start();
         this._status.set(LoadStatus.FirstSync);
         // only transition into Ready once the first sync has succeeded
-        this._waitForFirstSyncHandle = this._sync.status.waitFor(s => {
+        this._waitForFirstSyncHandle = this._sync.status.waitFor((s) => {
             if (s === SyncStatus.Stopped) {
                 // keep waiting if there is a ConnectionError
                 // as the reconnector above will call
@@ -411,7 +393,7 @@ export class Client {
     }
 
     _inspectAccountAfterLogin(sessionInfo, log) {
-        return log.wrap("inspectAccount", async log => {
+        return log.wrap("inspectAccount", async (log) => {
             this._status.set(LoadStatus.QueryAccount);
             const hsApi = new HomeServerApi({
                 homeserver: sessionInfo.homeServer,
@@ -431,7 +413,7 @@ export class Client {
             }
             if (encryptedDehydratedDevice) {
                 let resolveStageFinish;
-                const promiseStageFinish = new Promise(r => resolveStageFinish = r);
+                const promiseStageFinish = new Promise((r) => (resolveStageFinish = r));
                 this._accountSetup = new AccountSetup(encryptedDehydratedDevice, resolveStageFinish);
                 this._status.set(LoadStatus.AccountSetup);
                 await promiseStageFinish;
@@ -477,7 +459,7 @@ export class Client {
     }
 
     startLogout(sessionId) {
-        return this._platform.logger.run("logout", async log => {
+        return this._platform.logger.run("logout", async (log) => {
             this._sessionId = sessionId;
             log.set("id", this._sessionId);
             const sessionInfo = await this._platform.sessionInfoStorage.get(this._sessionId);
@@ -488,7 +470,7 @@ export class Client {
                 const hsApi = new HomeServerApi({
                     homeserver: sessionInfo.homeServer,
                     accessToken: sessionInfo.accessToken,
-                    request: this._platform.request
+                    request: this._platform.request,
                 });
                 await hsApi.logout({log}).response();
             } catch (err) {}
@@ -497,7 +479,7 @@ export class Client {
     }
 
     startForcedLogout(sessionId) {
-        return this._platform.logger.run("forced-logout", async log => {
+        return this._platform.logger.run("forced-logout", async (log) => {
             this._sessionId = sessionId;
             log.set("id", this._sessionId);
             await this.deleteSession(log);
