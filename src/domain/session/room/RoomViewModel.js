@@ -404,6 +404,47 @@ export class RoomViewModel extends ErrorReportViewModel {
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
             await this._room.sendEvent("m.room.message", content, attachments, log);
+
+    async _sendPicture(pic) {
+        this.logAndCatch('RoomViewModel.sendPicture', async (log) => {
+            if (!this.platform.hasReadPixelPermission()) {
+                alert(
+                    'Please allow canvas image data access, so we can scale your images down.'
+                );
+                return;
+            }
+            let image = await this.platform.getImageHandleFromImage(pic);
+            const limit = await this.platform.settingsStorage.getInt(
+                'sentImageSizeLimit'
+            );
+            if (limit && image.maxDimension > limit) {
+                const scaledImage = await image.scale(limit);
+                image.dispose();
+                image = scaledImage;
+            }
+            const filename = image.name || image.src;
+            const content = {
+                body: filename,
+                msgtype: 'm.image',
+                info: imageToInfo(image),
+            };
+            const attachments = {
+                url: this._room.createAttachment(image.blob, filename),
+            };
+            if (image.maxDimension > 600) {
+                const thumbnail = await image.scale(400);
+                content.info.thumbnail_info = imageToInfo(thumbnail);
+                attachments['info.thumbnail_url'] = this._room.createAttachment(
+                    thumbnail.blob,
+                    filename
+                );
+            }
+            await this._room.sendEvent(
+                'm.room.message',
+                content,
+                attachments,
+                log
+            );
         });
     }
 

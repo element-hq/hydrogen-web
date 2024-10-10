@@ -335,6 +335,10 @@ export class Platform {
         return ImageHandle.fromBlob(blob);
     }
 
+    async getImageHandleFromImage(img) {
+        return ImageHandle.fromElement(img);
+    }
+
     async loadVideo(blob) {
         return VideoHandle.fromBlob(blob);
     }

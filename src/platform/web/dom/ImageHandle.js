@@ -20,7 +20,13 @@ import {domEventAsPromise} from "./utils";
 export class ImageHandle {
     static async fromBlob(blob) {
         const img = await loadImgFromBlob(blob);
-        const {width, height} = img;
+        const { width, height } = img;
+        return new ImageHandle(blob, width, height, img);
+    }
+
+    static async fromElement(img) {
+        const blob = await loadBlobFromImage(img);
+        const { width, height } = img;
         return new ImageHandle(blob, width, height, img);
     }
 
@@ -111,6 +117,18 @@ async function loadImgFromBlob(blob) {
     img.src = blob.url;
     await loadPromise;
     return img;
+}
+
+async function loadBlobFromImage(img) {
+    const canvas = document.createElement('canvas');
+    const loadPromise = new Promise((resolve) => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(resolve);
+    });
+    return await loadPromise;
 }
 
 async function loadVideoFromBlob(blob) {
