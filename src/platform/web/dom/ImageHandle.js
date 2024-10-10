@@ -121,14 +121,15 @@ async function loadImgFromBlob(blob) {
 
 async function loadBlobFromImage(img) {
     const canvas = document.createElement('canvas');
-    const loadPromise = new Promise((resolve) => {
+    return await new Promise((resolve) => {
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        canvas.toBlob(resolve);
+        canvas.toBlob((resp) => {
+            resolve(BlobHandle.fromBlobUnsafe(resp));
+        }, 'image/jpeg', 0.7);
     });
-    return await loadPromise;
 }
 
 async function loadVideoFromBlob(blob) {

@@ -424,7 +424,7 @@ export class RoomViewModel extends ErrorReportViewModel {
                 image.dispose();
                 image = scaledImage;
             }
-            const filename = image.name || image.src;
+            const filename = image.name || image.src || 'Unknown';
             const content = {
                 body: filename,
                 msgtype: 'm.image',
