@@ -404,6 +404,8 @@ export class RoomViewModel extends ErrorReportViewModel {
                     this._room.createAttachment(thumbnail.blob, file.name);
             }
             await this._room.sendEvent("m.room.message", content, attachments, log);
+        });
+    }
 
     async _sendPicture(pic) {
         this.logAndCatch('RoomViewModel.sendPicture', async (log) => {
