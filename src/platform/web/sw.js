@@ -124,25 +124,39 @@ async function handleRequest({ request, clientId }) {
         }
 
         // Add access token for authenticated media endpoints
-        if (request.url.includes("_matrix/client/v1/media")) {
-            const headers = new Headers(request.headers);
+        const pathNameStartsWithMediaPrefix =
+            url.pathname.indexOf("/_matrix/client/v1/media") === 0;
+        if (pathNameStartsWithMediaPrefix) {
             const client = await self.clients.get(clientId);
-            const accessToken = await sendAndWaitForReply(
+            const { accessToken, homeserver } = await sendAndWaitForReply(
                 client,
-                "getAccessToken",
+                "getAuthInfo",
                 {}
             );
             if (!accessToken) {
                 throw new Error(
-                    "Token returned from getAccessToken message in sw.js is null"
+                    "Token returned from getAuthInfo message in sw.js is null!"
                 );
             }
-            headers.set("authorization", `Bearer ${accessToken}`);
-            request = new Request(request, {
-                mode: "cors",
-                credentials: "omit",
-                headers,
-            });
+            if (!homeserver) {
+                throw new Error(
+                    "homeserver returned from getAuthInfo message in sw.js is null!"
+                );
+            }
+            // Is this request actually going to the homeserver?
+            const isRequestForHomeserver =
+                new URL(homeserver).origin === url.origin;
+            if (isRequestForHomeserver) {
+                // Only add the access-token if we know that this request
+                // is going to the homeserver.
+                const headers = new Headers(request.headers);
+                headers.set("authorization", `Bearer ${accessToken}`);
+                request = new Request(request, {
+                    mode: "cors",
+                    credentials: "omit",
+                    headers,
+                });
+            }
         }
 
         let response = await readCache(request);
