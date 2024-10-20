@@ -289,6 +289,10 @@ export class Client {
             platform: this._platform,
             serverVersions: lastVersionsResponse.versions,
         });
+
+        // Let the serviceWorkerHandler know of this access-token
+        this._platform.updateService.setAccessToken(sessionInfo.accessToken);
+
         this._session = new Session({
             storage: this._storage,
             sessionInfo: filteredSessionInfo,
@@ -378,6 +382,7 @@ export class Client {
             throw Error("No session loaded, cannot update access token");
         }
         this._session.updateAccessToken(token);
+        await this._platform.updateService.setAccessToken(token);
         await this._platform.sessionInfoStorage.updateAccessToken(this._sessionId, token);
     }
 

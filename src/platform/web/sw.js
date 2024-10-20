@@ -132,6 +132,11 @@ async function handleRequest({ request, clientId }) {
                 "getAccessToken",
                 {}
             );
+            if (!accessToken) {
+                throw new Error(
+                    "Token returned from getAccessToken message in sw.js is null"
+                );
+            }
             headers.set("authorization", `Bearer ${accessToken}`);
             request = new Request(request, {
                 mode: "cors",
