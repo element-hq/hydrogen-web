@@ -28,10 +28,19 @@ export class ServiceWorkerHandler {
         this._currentController = null;
         this._sessionInfoStorage = sessionInfoStorage;
         this.haltRequests = false;
+        this._accessToken = null;
     }
 
     setNavigation(navigation) {
         this._navigation = navigation;
+    }
+
+    /**
+     * Set the access-token to be used within the service worker.
+     * @param token An access-token
+     */
+    setAccessToken(token) {
+        this._accessToken = token;
     }
 
     registerAndStart(path) {
@@ -88,22 +97,11 @@ export class ServiceWorkerHandler {
         } else if (data.type === "openRoom") {
             this._navigation.push("room", data.payload.roomId);
         } else if (data.type === "getAccessToken") {
-            const token = await this._getLatestAccessToken();
-            event.source.postMessage({ replyTo: data.id, payload: token });
+            event.source.postMessage({
+                replyTo: data.id,
+                payload: this._accessToken,
+            });
         }
-    }
-
-    /**
-     * Fetch access-token from the storage
-     * @returns access token as string
-     */
-    async _getLatestAccessToken() {
-        const currentSessionId = this._navigation?.path.get("session")?.value;
-        if (!currentSessionId) return null;
-        const { accessToken } = await this._sessionInfoStorage.get(
-            currentSessionId
-        );
-        return accessToken;
     }
 
     _closeSessionIfNeeded(sessionId) {
