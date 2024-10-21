@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.3.1] - 2024-10-21
+
+### Fixed    
+
+-  Authenticated media failed to load due to an issue with how the access-token was retrieved.
+
+### Security 
+
+= See https://github.com/element-hq/element-web/security/advisories/GHSA-3jm3-x98c-r34x; we only share the access-token after verifying that the request is going to the homeserver.
+
 ## [v0.3.0] - 2024-08-20
 
 ### Added
