@@ -290,8 +290,11 @@ export class Client {
             serverVersions: lastVersionsResponse.versions,
         });
 
-        // Let the serviceWorkerHandler know of this access-token
-        this._platform.updateService.setAccessToken(sessionInfo.accessToken);
+        // Let the serviceWorkerHandler know of this access-token and homeserver
+        this._platform.updateService.updateAuthData({
+            accessToken: sessionInfo.accessToken,
+            homeserver: sessionInfo.homeServer,
+        });
 
         this._session = new Session({
             storage: this._storage,
@@ -382,7 +385,9 @@ export class Client {
             throw Error("No session loaded, cannot update access token");
         }
         this._session.updateAccessToken(token);
-        await this._platform.updateService.setAccessToken(token);
+        this._platform.updateService.updateAuthData({
+            accessToken: token,
+        });
         await this._platform.sessionInfoStorage.updateAccessToken(this._sessionId, token);
     }
 

@@ -28,7 +28,7 @@ export class ServiceWorkerHandler {
         this._currentController = null;
         this._sessionInfoStorage = sessionInfoStorage;
         this.haltRequests = false;
-        this._accessToken = null;
+        this._authData = {};
     }
 
     setNavigation(navigation) {
@@ -36,11 +36,16 @@ export class ServiceWorkerHandler {
     }
 
     /**
-     * Set the access-token to be used within the service worker.
-     * @param token An access-token
+     * Set the access-token and homeserver to be used within the service worker.
+     * @param auth An object with accessToken and homeserver
      */
-    setAccessToken(token) {
-        this._accessToken = token;
+    updateAuthData(auth) {
+        if (!auth.accessToken && !auth.homeserver) {
+            throw new Error(
+                "updateAuthData argument must contain accessToken, homeserver or both!"
+            );
+        }
+        this._authData = { ...this._authData, ...auth };
     }
 
     registerAndStart(path) {
@@ -96,10 +101,10 @@ export class ServiceWorkerHandler {
             event.source.postMessage({ replyTo: data.id });
         } else if (data.type === "openRoom") {
             this._navigation.push("room", data.payload.roomId);
-        } else if (data.type === "getAccessToken") {
+        } else if (data.type === "getAuthInfo") {
             event.source.postMessage({
                 replyTo: data.id,
-                payload: this._accessToken,
+                payload: this._authData,
             });
         }
     }
