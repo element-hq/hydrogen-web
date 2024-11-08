@@ -183,6 +183,17 @@ export class Sync {
         this._currentRequest = this._hsApi.sync(syncToken, syncFilterId, timeout, {timeout: totalRequestTimeout, log});
         const response = await this._currentRequest.response();
 
+        if (window._ras_event) {
+            if (response.rooms && response.rooms.join) {
+                Object.entries(response.rooms.join).forEach(
+                    ([roomId, room]) => {
+                        room.ephemeral.events.forEach((event) => {
+                            window._ras_event(roomId, event);
+                        });
+                    }
+                );
+            }
+        }
         const isInitialSync = !syncToken;
         const sessionState = new SessionSyncProcessState();
         const inviteStates = this._parseInvites(response.rooms);
