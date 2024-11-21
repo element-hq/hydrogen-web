@@ -37,8 +37,7 @@ export class NotificationService {
                 events_only: true,
                 default_payload: defaultPayload
             };
-            return pusherFactory.httpPusher(
-                this._pushConfig.gatewayUrl,
+            return pusherFactory.webpushPusher(
                 this._pushConfig.appId,
                 pushkey,
                 data
