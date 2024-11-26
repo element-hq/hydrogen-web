@@ -1,0 +1,25 @@
+.room-typing-container {
+    position: relative;
+    z-index: 1;
+}
+
+.TypingIndicator {
+    min-height: 20px;
+    padding: 8px 16px;
+    font-size: 0.9em;
+    color: var(--secondary-content);
+    background-color: var(--primary-surface);
+    border-top: 1px solid var(--border);
+    margin-bottom: -1px; /* Prevent double border with composer */
+}
+
+.TypingIndicator .typing {
+    opacity: 0.9;
+    font-style: italic;
+    animation: fadeInOut 2s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.9; }
+}

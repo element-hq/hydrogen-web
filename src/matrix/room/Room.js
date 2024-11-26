@@ -25,8 +25,10 @@ import {AttachmentUpload} from "./AttachmentUpload.js";
 import {DecryptionSource} from "../e2ee/common";
 import {iterateResponseStateEvents} from "./common";
 import {PowerLevels, EVENT_TYPE as POWERLEVELS_EVENT_TYPE } from "./PowerLevels.js";
+import {RoomTypingStore} from "./RoomTypingStore.js";
 
 const EVENT_ENCRYPTED_TYPE = "m.room.encrypted";
+const EVENT_TYPING_TYPE = "m.typing";
 
 export class Room extends BaseRoom {
     constructor(options) {
@@ -34,6 +36,7 @@ export class Room extends BaseRoom {
         this._roomStateHandler = options.roomStateHandler;
         // TODO: pass pendingEvents to start like pendingOperations?
         const {pendingEvents} = options;
+        this._typingStore = new RoomTypingStore({logger: this._platform.logger});
         const relationWriter = new RelationWriter({
             roomId: this.id,
             fragmentIdComparer: this._fragmentIdComparer,
@@ -504,6 +507,14 @@ export class Room extends BaseRoom {
                 handler.handleStateEvent(event);
             }
         });
+        // Handle typing events
+        if (roomResponse.ephemeral?.events) {
+            for (const event of roomResponse.ephemeral.events) {
+                if (event.type === EVENT_TYPING_TYPE) {
+                    this._typingStore.handleTypingEvent(event.content);
+                }
+            }
+        }
     }
 
     /** @package */

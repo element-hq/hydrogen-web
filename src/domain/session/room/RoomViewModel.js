@@ -16,8 +16,8 @@ limitations under the License.
 */
 
 import {TimelineViewModel} from "./timeline/TimelineViewModel.js";
-import {ComposerViewModel} from "./ComposerViewModel.js"
-import {CallViewModel} from "./CallViewModel"
+import {ComposerViewModel} from "./ComposerViewModel.js";
+import {CallViewModel} from "./CallViewModel";
 import {PickMapObservableValue} from "../../../observable/value";
 import {avatarInitials, getIdentifierColorNumber, getAvatarHttpUrl} from "../../avatar";
 import {ErrorReportViewModel} from "../../ErrorReportViewModel";
@@ -40,6 +40,27 @@ export class RoomViewModel extends ErrorReportViewModel {
         this._tileOptions = undefined;
         this._onRoomChange = this._onRoomChange.bind(this);
         this._composerVM = null;
+        this._typingUsers = this._room.typingUsers;
+        // Subscribe to typing users changes using defaultObserverWith
+        this.track(
+            this._typingUsers.subscribe({
+                onAdd: (idx, value) => {
+                    this.emitChange("typingUsers");
+                },
+                onRemove: (idx, value) => {
+                    this.emitChange("typingUsers");
+                },
+                onUpdate: (idx, value) => {
+                    this.emitChange("typingUsers");
+                },
+                onMove: (fromIdx, toIdx, value) => {
+                    this.emitChange("typingUsers");
+                },
+                onReset: () => {
+                    this.emitChange("typingUsers");
+                },
+            }),
+        );
         if (room.isArchived) {
             this._composerVM = this.track(new ArchivedViewModel(this.childOptions({archivedRoom: room})));
         } else {
@@ -56,20 +77,24 @@ export class RoomViewModel extends ErrorReportViewModel {
         }
         // pick call for this room with lowest key
         const calls = this.getOption("session").callHandler.calls;
-        this._callObservable = new PickMapObservableValue(calls.filterValues(c => {
-            return c.roomId === this._room.id && c.hasJoined;
-        }));
+        this._callObservable = new PickMapObservableValue(
+            calls.filterValues((c) => {
+                return c.roomId === this._room.id && c.hasJoined;
+            }),
+        );
         this._callViewModel = undefined;
-        this.track(this._callObservable.subscribe(call => {
-            if (call && this._callViewModel && call.id === this._callViewModel.id) {
-                return;
-            }
-            this._callViewModel = this.disposeTracked(this._callViewModel);
-            if (call) {
-                this._callViewModel = this.track(new CallViewModel(this.childOptions({call, room: this._room})));
-            }
-            this.emitChange("callViewModel");
-        }));
+        this.track(
+            this._callObservable.subscribe((call) => {
+                if (call && this._callViewModel && call.id === this._callViewModel.id) {
+                    return;
+                }
+                this._callViewModel = this.disposeTracked(this._callViewModel);
+                if (call) {
+                    this._callViewModel = this.track(new CallViewModel(this.childOptions({call, room: this._room})));
+                }
+                this.emitChange("callViewModel");
+            }),
+        );
         const call = this._callObservable.get();
         // TODO: cleanup this duplication to create CallViewModel
         if (call) {
@@ -78,7 +103,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     async load() {
-        await this.logAndCatch("RoomViewModel.load", async log => {
+        await this.logAndCatch("RoomViewModel.load", async (log) => {
             this._room.on("change", this._onRoomChange);
             const timeline = await this._room.openTimeline(log);
             this.track(() => timeline.release());
@@ -88,10 +113,14 @@ export class RoomViewModel extends ErrorReportViewModel {
                 timeline,
                 tileClassForEntry: this._tileClassForEntry,
             });
-            this._timelineVM = this.track(new TimelineViewModel(this.childOptions({
-                tileOptions: this._tileOptions,
-                timeline,
-            })));
+            this._timelineVM = this.track(
+                new TimelineViewModel(
+                    this.childOptions({
+                        tileOptions: this._tileOptions,
+                        timeline,
+                    }),
+                ),
+            );
             this.emitChange("timelineViewModel");
             await this._clearUnreadAfterDelay(log);
         });
@@ -101,23 +130,24 @@ export class RoomViewModel extends ErrorReportViewModel {
         const powerLevelObservable = await this._room.observePowerLevels();
         const canSendMessage = () => powerLevelObservable.get().canSendType("m.room.message");
         let oldCanSendMessage = canSendMessage();
-        const recreateComposer = newCanSendMessage => {
+        const recreateComposer = (newCanSendMessage) => {
             this._composerVM = this.disposeTracked(this._composerVM);
             if (newCanSendMessage) {
                 this._composerVM = this.track(new ComposerViewModel(this));
-            }
-            else {
+            } else {
                 this._composerVM = this.track(new LowerPowerLevelViewModel(this.childOptions()));
             }
-            this.emitChange("powerLevelObservable")
+            this.emitChange("powerLevelObservable");
         };
-        this.track(powerLevelObservable.subscribe(() => {
-            const newCanSendMessage = canSendMessage();
-            if (oldCanSendMessage !== newCanSendMessage) {
-                recreateComposer(newCanSendMessage);
-                oldCanSendMessage = newCanSendMessage;
-            }
-        }));
+        this.track(
+            powerLevelObservable.subscribe(() => {
+                const newCanSendMessage = canSendMessage();
+                if (oldCanSendMessage !== newCanSendMessage) {
+                    recreateComposer(newCanSendMessage);
+                    oldCanSendMessage = newCanSendMessage;
+                }
+            }),
+        );
         recreateComposer(oldCanSendMessage);
     }
 
@@ -140,7 +170,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     focus() {
-        this.logAndCatch("RoomViewModel.focus", async log => {
+        this.logAndCatch("RoomViewModel.focus", async (log) => {
             this._clearUnreadAfterDelay(log);
         });
     }
@@ -165,19 +195,63 @@ export class RoomViewModel extends ErrorReportViewModel {
         this.emitChange();
     }
 
-    get kind() { return "room"; }
-    get closeUrl() { return this._closeUrl; }
-    get name() { return this._room.name || this.i18n`Empty Room`; }
-    get id() { return this._room.id; }
-    get timelineViewModel() { return this._timelineVM; }
-    get isEncrypted() { return this._room.isEncrypted; }
+    get kind() {
+        return "room";
+    }
+    get closeUrl() {
+        return this._closeUrl;
+    }
+    get name() {
+        return this._room.name || this.i18n`Empty Room`;
+    }
+    get id() {
+        return this._room.id;
+    }
+    get timelineViewModel() {
+        return this._timelineVM;
+    }
+    get isEncrypted() {
+        return this._room.isEncrypted;
+    }
+    get typingUsers() {
+        return this._typingUsers;
+    }
+
+    async _getDisplayName(userId) {
+        if (!this._memberList) {
+            this._memberList = await this._room.loadMemberList();
+        }
+        const member = this._memberList?.members.get(userId);
+        return member?.name;
+    }
+
+    async getTypingString() {
+        const userIds = this._typingUsers.array;
+        if (!userIds?.length) {
+            return "";
+        }
+
+        if (userIds.length === 1) {
+            const name = await this._getDisplayName(userIds[0]);
+            return `${name} is typing...`;
+        }
+        if (userIds.length === 2) {
+            const [name1, name2] = await Promise.all([
+                this._getDisplayName(userIds[0]),
+                this._getDisplayName(userIds[1]),
+            ]);
+            return `${name1} and ${name2} are typing...`;
+        }
+        const name = await this._getDisplayName(userIds[0]);
+        return `${name} and ${userIds.length - 1} others are typing...`;
+    }
 
     get avatarLetter() {
         return avatarInitials(this.name);
     }
 
     get avatarColorNumber() {
-        return getIdentifierColorNumber(this._room.avatarColorId)
+        return getIdentifierColorNumber(this._room.avatarColorId);
     }
 
     avatarUrl(size) {
@@ -220,32 +294,36 @@ export class RoomViewModel extends ErrorReportViewModel {
             }
         }
     }
-    
+
     _sendMessage(message, replyingTo) {
-        return this.logAndCatch("RoomViewModel.sendMessage", async log => {
-            let success = false;
-            if (!this._room.isArchived && message) {
-                let msgtype = "m.text";
-                if (message.startsWith("//")) {
-                    message = message.substring(1).trim();
-                } else if (message.startsWith("/")) {
-                    const result = await this._processCommand(message);
-                    msgtype = result.msgtype;
-                    message = result.message;
+        return this.logAndCatch(
+            "RoomViewModel.sendMessage",
+            async (log) => {
+                let success = false;
+                if (!this._room.isArchived && message) {
+                    let msgtype = "m.text";
+                    if (message.startsWith("//")) {
+                        message = message.substring(1).trim();
+                    } else if (message.startsWith("/")) {
+                        const result = await this._processCommand(message);
+                        msgtype = result.msgtype;
+                        message = result.message;
+                    }
+                    let content;
+                    if (replyingTo) {
+                        log.set("replyingTo", replyingTo.eventId);
+                        content = await replyingTo.createReplyContent(msgtype, message);
+                    } else {
+                        content = {msgtype, body: message};
+                    }
+                    await this._room.sendEvent("m.room.message", content, undefined, log);
+                    success = true;
                 }
-                let content;
-                if (replyingTo) {
-                    log.set("replyingTo", replyingTo.eventId);
-                    content = await replyingTo.createReplyContent(msgtype, message);
-                } else {
-                    content = {msgtype, body: message};
-                }
-                await this._room.sendEvent("m.room.message", content, undefined, log);
-                success = true;
-            }
-            log.set("success", success);
-            return success;
-        }, false);
+                log.set("success", success);
+                return success;
+            },
+            false,
+        );
     }
 
     async _processCommandJoin(roomName) {
@@ -256,7 +334,7 @@ export class RoomViewModel extends ErrorReportViewModel {
         } catch (err) {
             this.reportError(err);
         }
-    } 
+    }
 
     async _processCommand(message) {
         let msgtype;
@@ -299,14 +377,18 @@ export class RoomViewModel extends ErrorReportViewModel {
                 msgtype = "m.text";
                 break;
             default:
-                this.reportError(new Error(`no command name "${commandName}". To send the message instead of executing, please type "/${message}"`));
+                this.reportError(
+                    new Error(
+                        `no command name "${commandName}". To send the message instead of executing, please type "/${message}"`,
+                    ),
+                );
                 message = undefined;
         }
         return {msgtype, message: message};
     }
 
     _pickAndSendFile() {
-        return this.logAndCatch("RoomViewModel.sendFile", async log => {
+        return this.logAndCatch("RoomViewModel.sendFile", async (log) => {
             const file = await this.platform.openFile();
             if (!file) {
                 log.set("cancelled", true);
@@ -319,15 +401,20 @@ export class RoomViewModel extends ErrorReportViewModel {
     async _sendFile(file, log) {
         const content = {
             body: file.name,
-            msgtype: "m.file"
+            msgtype: "m.file",
         };
-        await this._room.sendEvent("m.room.message", content, {
-            "url": this._room.createAttachment(file.blob, file.name)
-        }, log);
+        await this._room.sendEvent(
+            "m.room.message",
+            content,
+            {
+                url: this._room.createAttachment(file.blob, file.name),
+            },
+            log,
+        );
     }
 
     _pickAndSendVideo() {
-        return this.logAndCatch("RoomViewModel.sendVideo", async log => {
+        return this.logAndCatch("RoomViewModel.sendVideo", async (log) => {
             if (!this.platform.hasReadPixelPermission()) {
                 throw new Error("Please allow canvas image data access, so we can scale your images down.");
             }
@@ -352,24 +439,23 @@ export class RoomViewModel extends ErrorReportViewModel {
             const content = {
                 body: file.name,
                 msgtype: "m.video",
-                info: videoToInfo(video)
+                info: videoToInfo(video),
             };
             const attachments = {
-                "url": this._room.createAttachment(video.blob, file.name),
+                url: this._room.createAttachment(video.blob, file.name),
             };
 
             const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
             const maxDimension = limit || Math.min(video.maxDimension, 800);
             const thumbnail = await video.scale(maxDimension);
             content.info.thumbnail_info = imageToInfo(thumbnail);
-            attachments["info.thumbnail_url"] = 
-                this._room.createAttachment(thumbnail.blob, file.name);
+            attachments["info.thumbnail_url"] = this._room.createAttachment(thumbnail.blob, file.name);
             await this._room.sendEvent("m.room.message", content, attachments, log);
         });
     }
 
     async _pickAndSendPicture() {
-        this.logAndCatch("RoomViewModel.sendPicture", async log => {
+        this.logAndCatch("RoomViewModel.sendPicture", async (log) => {
             if (!this.platform.hasReadPixelPermission()) {
                 alert("Please allow canvas image data access, so we can scale your images down.");
                 return;
@@ -392,16 +478,46 @@ export class RoomViewModel extends ErrorReportViewModel {
             const content = {
                 body: file.name,
                 msgtype: "m.image",
-                info: imageToInfo(image)
+                info: imageToInfo(image),
             };
             const attachments = {
-                "url": this._room.createAttachment(image.blob, file.name),
+                url: this._room.createAttachment(image.blob, file.name),
             };
             if (image.maxDimension > 600) {
                 const thumbnail = await image.scale(400);
                 content.info.thumbnail_info = imageToInfo(thumbnail);
-                attachments["info.thumbnail_url"] = 
-                    this._room.createAttachment(thumbnail.blob, file.name);
+                attachments["info.thumbnail_url"] = this._room.createAttachment(thumbnail.blob, file.name);
+            }
+            await this._room.sendEvent("m.room.message", content, attachments, log);
+        });
+    }
+
+    async _sendPicture(pic) {
+        this.logAndCatch("RoomViewModel.sendPicture", async (log) => {
+            if (!this.platform.hasReadPixelPermission()) {
+                alert("Please allow canvas image data access, so we can scale your images down.");
+                return;
+            }
+            let image = await this.platform.getImageHandleFromImage(pic);
+            const limit = await this.platform.settingsStorage.getInt("sentImageSizeLimit");
+            if (limit && image.maxDimension > limit) {
+                const scaledImage = await image.scale(limit);
+                image.dispose();
+                image = scaledImage;
+            }
+            const filename = image.name || image.src || "Unknown";
+            const content = {
+                body: filename,
+                msgtype: "m.image",
+                info: imageToInfo(image),
+            };
+            const attachments = {
+                url: this._room.createAttachment(image.blob, filename),
+            };
+            if (image.maxDimension > 600) {
+                const thumbnail = await image.scale(400);
+                content.info.thumbnail_info = imageToInfo(thumbnail);
+                attachments["info.thumbnail_url"] = this._room.createAttachment(thumbnail.blob, filename);
             }
             await this._room.sendEvent("m.room.message", content, attachments, log);
         });
@@ -476,7 +592,7 @@ export class RoomViewModel extends ErrorReportViewModel {
     }
 
     startCall() {
-        return this.logAndCatch("RoomViewModel.startCall", async log => {
+        return this.logAndCatch("RoomViewModel.startCall", async (log) => {
             if (!this.features.calls) {
                 log.set("feature_disbled", true);
                 return;
@@ -498,7 +614,7 @@ export class RoomViewModel extends ErrorReportViewModel {
                     "m.video",
                     "A call " + Math.round(this.platform.random() * 100),
                     undefined,
-                    log
+                    log,
                 );
             } catch (err) {
                 throw new Error(`Could not create call: ${err.message}`);
@@ -527,13 +643,15 @@ class ArchivedViewModel extends ViewModel {
     get description() {
         if (this._archivedRoom.isKicked) {
             if (this._archivedRoom.kickReason) {
-                return this.i18n`You were kicked from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
+                return this
+                    .i18n`You were kicked from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
             } else {
                 return this.i18n`You were kicked from the room by ${this._archivedRoom.kickedBy.name}.`;
             }
         } else if (this._archivedRoom.isBanned) {
             if (this._archivedRoom.kickReason) {
-                return this.i18n`You were banned from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
+                return this
+                    .i18n`You were banned from the room by ${this._archivedRoom.kickedBy.name} because: ${this._archivedRoom.kickReason}`;
             } else {
                 return this.i18n`You were banned from the room by ${this._archivedRoom.kickedBy.name}.`;
             }

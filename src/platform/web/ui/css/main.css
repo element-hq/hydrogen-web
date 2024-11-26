@@ -21,6 +21,7 @@ limitations under the License.
 @import url('left-panel.css');
 @import url('right-panel.css');
 @import url('room.css');
+@import url('../session/room/TypingIndicatorView.css');
 @import url('timeline.css');
 @import url('avatar.css');
 @import url('spinner.css');

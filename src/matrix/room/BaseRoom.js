@@ -404,6 +404,10 @@ export class BaseRoom extends EventEmitter {
         return this._roomId;
     }
 
+    get typingUsers() {
+        return this._typingStore.typingUserIds;
+    }
+
     get avatarUrl() {
         if (this._summary.data.avatarUrl) {
             return this._summary.data.avatarUrl;
