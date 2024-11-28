@@ -223,6 +223,10 @@ export class HomeServerApi {
         return this._unauthedRequest("GET", `${this._homeserver}/_matrix/client/versions`, undefined, undefined, options);
     }
 
+    capabilities(options?: BaseRequestOptions): IHomeServerRequest {
+        return this._get("/capabilities", undefined, undefined, options);
+    }
+
     uploadKeys(dehydratedDeviceId: string, payload: Record<string, any>, options?: BaseRequestOptions): IHomeServerRequest {
         let path = "/keys/upload";
         if (dehydratedDeviceId) {
