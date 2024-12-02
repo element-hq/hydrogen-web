@@ -28,6 +28,7 @@ import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 import {CallTile} from "./CallTile.js";
 import {VerificationTile} from "./VerificationTile.js";
+import {UnknownEventTile} from "./UnknownEventTile.js";
 
 import type {ITile, TileShape} from "./ITile";
 import type {Room} from "../../../../../matrix/room/Room";
@@ -82,8 +83,7 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         }
                         return VerificationTile as unknown as TileConstructor;
                     default:
-                        // unknown msgtype not rendered
-                        return undefined;
+                        return UnknownEventTile;
                 }
             }
             case "m.room.name":
@@ -106,8 +106,7 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                 return undefined;
             }
             default:
-                // unknown type not rendered
-                return undefined;
+                return UnknownEventTile;
         }
     }
 }
