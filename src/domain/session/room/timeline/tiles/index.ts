@@ -105,6 +105,29 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                 }
                 return undefined;
             }
+
+            // These events are handled separately and don't need an extra timeline entry.
+            case "m.reaction":
+            case "m.room.redaction":
+                return undefined;
+
+            // Displaying these events is not supported but they can safely be
+            // hidden instead of spamming rooms with warning messages.
+            case "m.room.create":
+            case "m.room.power_levels":
+            case "m.room.join_rules":
+            case "m.room.history_visibility":
+            case "m.room.guest_access":
+            case "m.room.topic":
+            case "m.room.avatar":
+            case "m.bridge":
+            case "uk.half-shot.bridge":
+                return undefined;
+
+            // Unknown events are rendered as a placeholder so users notice that
+            // there is something that they are missing. Ideally, all events
+            // are either added to the "safe-to-ignore" list above, or rendered
+            // with proper tile implementations.
             default:
                 return UnknownEventTile;
         }
