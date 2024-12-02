@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +33,10 @@ class FilterField extends TemplateView {
             type: "text",
             placeholder: options?.label,
             "aria-label": options?.label,
-            autocomplete: options?.autocomplete,
+            autocomplete: "new-password",
+            spellcheck: "false",
+            autocorrect: "off",
+            readonly: true,
             enterkeyhint: 'search',
             name: options?.name,
             onInput: event => options.set(event.target.value),
@@ -41,7 +45,10 @@ class FilterField extends TemplateView {
                     clear();
                 }
             },
-            onFocus: () => filterInput.select()
+            onFocus: () => {
+                filterInput.removeAttribute("readonly");
+                filterInput.select();
+            },
         });
         const clearButton = t.button({
             onClick: clear,

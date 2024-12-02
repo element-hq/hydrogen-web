@@ -1,5 +1,6 @@
 /*
 Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -118,7 +119,16 @@ function renderEnableFromPhrase(t: Builder<KeyBackupViewModel>, vm: KeyBackupVie
 function renderEnableFieldRow(t, vm, label, callback): ViewNode {
     let setupDehydrationCheck;
     const eventHandler = () => callback(input.value, setupDehydrationCheck?.checked || false);
-    const input = t.input({type: "password", disabled: vm => vm.isBusy, placeholder: label});
+    const input = t.input({
+        type: "password",
+        disabled: vm => vm.isBusy,
+        placeholder: label,
+        autocomplete: "new-password",
+        spellcheck: "false",
+        autocorrect: "off",
+        readonly: true,
+        onFocus: () => input.removeAttribute("readonly"),
+    });
     const children = [
         t.p([
             input,
