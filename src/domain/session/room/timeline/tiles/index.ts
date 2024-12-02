@@ -71,6 +71,7 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                     case "m.video":
                         return VideoTile;
                     case "m.file":
+                    case "m.audio":
                         return FileTile;
                     case "m.location":
                         return LocationTile;
