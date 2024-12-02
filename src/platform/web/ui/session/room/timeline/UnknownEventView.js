@@ -19,6 +19,17 @@ import {BaseMessageView} from "./BaseMessageView.js";
 import {Menu} from "../../../general/Menu.js";
 
 export class UnknownEventView extends BaseMessageView {
+    render(t, vm) {
+        if (vm.displayName && vm.avatarUrl) {
+            super.render(t, vm);
+        } else {
+            return t.li({
+                className: "AnnouncementView",
+                'data-event-id': vm.eventId
+            }, t.div(vm => vm.details));
+        }
+    }
+
     renderMessageBody(t) {
         return t.p({className: "Timeline_messageBody statusMessage"}, vm => vm.details);
     }
