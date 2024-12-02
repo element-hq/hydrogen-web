@@ -138,7 +138,7 @@ class QuickReactionsMenuOption {
         this._vm = vm;
     }
     toDOM(t) {
-        const emojiButtons = ["👍", "👎", "😄", "🎉", "😕", "❤️", "🚀", "👀"].map(emoji => {
+        const emojiButtons = ["👍", "👎", "😂", "🎉", "😄", "😕", "❤️", "🚀", "👀"].map(emoji => {
             return t.button({onClick: () => this._vm.react(emoji)}, emoji);
         });
         const customButton = t.button({onClick: () => {
