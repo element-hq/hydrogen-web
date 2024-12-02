@@ -87,6 +87,9 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         return undefined;
                 }
             }
+            case "m.sticker":
+                // This is an event type and not a message type.
+                return ImageTile;
             case "m.room.name":
                 return RoomNameTile;
             case "m.room.member":
