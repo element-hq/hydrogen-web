@@ -1,5 +1,6 @@
 /*
 Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,7 +51,7 @@ function _createReplyContent(targetId, msgtype, body, formattedBody) {
     };
 }
 
-export function createReplyContent(entry, msgtype, body) {
+export function createReplyContent(entry, msgtype, body, permaLink) {
     // TODO check for absense of sender / body / msgtype / etc?
     const nonTextual = fallbackForNonTextualMessage(entry.content.msgtype);
     const prefix = fallbackPrefix(entry.content.msgtype);

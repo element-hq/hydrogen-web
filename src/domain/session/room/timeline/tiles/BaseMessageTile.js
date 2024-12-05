@@ -1,5 +1,6 @@
 /*
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -147,7 +148,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     createReplyContent(msgtype, body) {
-        return this._entry.createReplyContent(msgtype, body);
+        return this._entry.createReplyContent(msgtype, body, this.permaLink);
     }
 
     redact(reason, log) {
