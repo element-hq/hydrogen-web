@@ -18,6 +18,7 @@ export enum TileShape {
     DateHeader = "date-header",
     Call = "call",
     Verification = "verification",
+    UnknownMessage = "unknown-message",
     UnknownEvent = "unknown-event",
 }
 

@@ -28,6 +28,7 @@ import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 import {CallTile} from "./CallTile.js";
 import {VerificationTile} from "./VerificationTile.js";
+import {UnknownMessageTile} from "./UnknownMessageTile.js";
 import {UnknownEventTile} from "./UnknownEventTile.js";
 
 import type {ITile, TileShape} from "./ITile";
@@ -83,7 +84,10 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         }
                         return VerificationTile as unknown as TileConstructor;
                     default:
-                        return UnknownEventTile;
+                        // Unknown messages are rendered using the fallback plain text
+                        // representation, including a notice that the message is not
+                        // supported.
+                        return UnknownMessageTile;
                 }
             }
             case "m.room.name":
