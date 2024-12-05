@@ -27,9 +27,9 @@ export class UnknownEventTile extends SimpleTile {
         const content = this._entry.content;
 
         if (content.msgtype) {
-            return this.i18n`This message is not supported by your app (event “${eventType}”, message type “${content.msgtype}”). Please report this issue.`
+            return this.i18n`You received a message that this app cannot display (event “${eventType}”, message type “${content.msgtype}”). Please report this issue.`
         } else {
-            return this.i18n`This message is not supported by your app (event “${eventType}”). Please report this issue.`
+            return this.i18n`You received a message that this app cannot display (event “${eventType}”). Please report this issue.`
         }
     }
 }
