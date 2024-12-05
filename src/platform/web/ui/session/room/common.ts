@@ -27,7 +27,6 @@ import {GapView} from "./timeline/GapView.js";
 import {CallTileView} from "./timeline/CallTileView";
 import {DateHeaderView} from "./timeline/DateHeaderView";
 import {VerificationTileView} from "./timeline/VerificationTileView";
-import {UnknownEventView} from "./timeline/UnknownEventView";
 import type {TileViewConstructor} from "./TimelineView";
 
 export function viewClassForTile(vm: ITile): TileViewConstructor {
@@ -35,6 +34,7 @@ export function viewClassForTile(vm: ITile): TileViewConstructor {
         case TileShape.Gap:
             return GapView;
         case TileShape.Announcement:
+        case TileShape.UnknownEvent:
             return AnnouncementView;
         case TileShape.Message:
         case TileShape.MessageStatus:
@@ -58,8 +58,6 @@ export function viewClassForTile(vm: ITile): TileViewConstructor {
             return DateHeaderView;
         case TileShape.Verification:
             return VerificationTileView;
-        case TileShape.UnknownEvent:
-            return UnknownEventView;
         default:
             throw new Error(`Tiles of shape "${vm.shape}" are not supported, check the tileClassForEntry function in the view model`);
     }

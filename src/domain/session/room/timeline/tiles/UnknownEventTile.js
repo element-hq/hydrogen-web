@@ -22,14 +22,7 @@ export class UnknownEventTile extends SimpleTile {
         return "unknown-event";
     }
 
-    get details() {
-        const eventType = this._entry.eventType;
-        const content = this._entry.content;
-
-        if (content.msgtype) {
-            return this.i18n`You received a message that this app cannot display (event “${eventType}”, message type “${content.msgtype}”). Please report this issue.`
-        } else {
-            return this.i18n`You received a message that this app cannot display (event “${eventType}”). Please report this issue.`
-        }
+    get announcement() {
+        return this.i18n`You received a message that this app cannot display (event “${this._entry.eventType}”). Please report this issue.`
     }
 }
