@@ -72,7 +72,7 @@ function _parseFormattedBody(formattedBody) {
     return formattedBody.replace(/<mx-reply>[\s\S]*<\/mx-reply>/gi, '');
 }
 
-function _createReplyContent(targetId, msgtype, body, formattedBody) {
+function _createReplyContent(targetId, targetSenderId, msgtype, body, formattedBody) {
     return {
         msgtype,
         body,
@@ -82,8 +82,12 @@ function _createReplyContent(targetId, msgtype, body, formattedBody) {
             "m.in_reply_to": {
                 "event_id": targetId
             }
+        },
+        "m.mentions": {
+            "user_ids": [
+                targetSenderId,
+            ]
         }
-        // TODO include user mentions
     };
 }
 
@@ -94,7 +98,16 @@ export function createReplyContent(entry, msgtype, body, permaLink) {
     const prefix = fallbackPrefix(entry.content.msgtype);
     const sender = entry.sender;
     const repliedToId = entry.id;
+
     // TODO collect user mentions (sender and any previous mentions)
+    // Considerations:
+    // - Who should be included in the mentions? In a reply chain, should all
+    //   previous mentions be carried over indefinitely? How to decide when to
+    //   stop carrying mentions?
+    // - Don't add a mentions section when replying to own messages without
+    //   any other mentions. As per https://spec.matrix.org/v1.12/client-server-api/#user-and-room-mentions
+    //       "Users should not add their own Matrix ID to the m.mentions property
+    //        as outgoing messages cannot self-notify."
 
     // Generate new plain body with plain reply fallback
     const plainBody = nonTextual || entry.content.body || "";
@@ -118,5 +131,5 @@ export function createReplyContent(entry, msgtype, body, permaLink) {
         `</mx-reply>`;
     const newFormattedBody = formattedFallback + htmlEscape(body).replaceAll('\n', '<br/>');
 
-    return _createReplyContent(entry.id, msgtype, newBody, newFormattedBody);
+    return _createReplyContent(repliedToId, sender, msgtype, newBody, newFormattedBody);
 }
