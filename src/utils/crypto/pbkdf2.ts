@@ -1,9 +1,9 @@
-/**
- * Copyright (c) 2018 Jun Kurihara
+/* Copyright 2025 New Vector Ltd.
  * Copyright 2020 The Matrix.org Foundation C.I.C.
- * 
- * MIT LICENSE, See https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-pbkdf/LICENSE
- * Based on https://github.com/junkurihara/jscu/blob/develop/packages/js-crypto-pbkdf/src/pbkdf.ts
+ * Copyright 2018 Jun Kurihara
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * Please see LICENSE files in the repository root for full details.
  */
 
 import type {Crypto} from "../../platform/web/dom/Crypto.js";
