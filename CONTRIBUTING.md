@@ -1,9 +1,8 @@
 # Contributing code to hydrogen-web
 
-Everyone is welcome to contribute code to hydrogen-web, provided that they are willing to 
-license their contributions to Element under a Contributor License Agreement (CLA). 
-This ensures that their contribution will be made available under an OSI-approved open-source license, 
-currently Affero General Public License v3 (AGPLv3).
+Everyone is welcome to contribute code to hydrogen-web, provided that they are willing to
+license their contributions to Element under a Contributor License Agreement (CLA).
+This ensures that their contribution will be made available under an approved licence as described in our [Readme](/README.md#copyright--license)
 
 ## How to contribute
 
