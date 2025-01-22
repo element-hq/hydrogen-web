@@ -1,70 +1,70 @@
 {
-    "name": "hydrogen-web",
-    "version": "0.5.1",
-    "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
-    "directories": {
-        "doc": "doc"
-    },
-    "enginesStrict": {
-        "node": ">=15"
-    },
-    "scripts": {
-        "lint": "eslint --cache src/",
-        "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
-        "lint-ci": "eslint src/",
-        "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
-        "test:postcss": "impunity --entry-point  scripts/postcss/tests/css-compile-variables.test.js scripts/postcss/tests/css-url-to-variables.test.js",
-        "test:sdk": "yarn build:sdk && cd ./scripts/sdk/test/ && yarn --no-lockfile && node test-sdk-in-esm-vite-build-env.js && node test-sdk-in-commonjs-env.js",
-        "start": "vite --port 3000",
-        "build": "vite build && ./scripts/cleanup.sh",
-        "build:sdk": "./scripts/sdk/build.sh",
-        "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch",
-        "test:app": "./scripts/test-app.sh"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git@github.com:vector-im/hydrogen-web.git"
-    },
-    "author": "matrix.org",
-    "license": "SEE LICENSE IN README.md",
-    "bugs": {
-        "url": "https://github.com/vector-im/hydrogen-web/issues"
-    },
-    "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
-    "devDependencies": {
-        "@matrixdotorg/structured-logviewer": "^0.0.3",
-        "@playwright/test": "^1.27.1",
-        "@typescript-eslint/eslint-plugin": "^4.29.2",
-        "@typescript-eslint/parser": "^4.29.2",
-        "acorn": "^8.6.0",
-        "acorn-walk": "^8.2.0",
-        "aes-js": "^3.1.2",
-        "bs58": "^4.0.1",
-        "core-js": "^3.6.5",
-        "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
-        "escodegen": "^2.0.0",
-        "eslint": "^7.32.0",
-        "fake-indexeddb": "^3.1.2",
-        "fs-extra": "^11.1.1",
-        "impunity": "^1.0.9",
-        "mdn-polyfills": "^5.20.0",
-        "merge-options": "^3.0.4",
-        "node-html-parser": "^4.0.0",
-        "postcss-css-variables": "^0.18.0",
-        "postcss-flexbugs-fixes": "^5.0.2",
-        "postcss-value-parser": "^4.2.0",
-        "regenerator-runtime": "^0.13.7",
-        "svgo": "^2.8.0",
-        "text-encoding": "^0.7.0",
-        "typescript": "^4.7.0",
-        "vite": "^2.9.8",
-        "xxhashjs": "^0.2.2"
-    },
-    "dependencies": {
-        "@matrix-org/olm": "^3.2.15",
-        "another-json": "^0.2.0",
-        "base64-arraybuffer": "^0.2.0",
-        "dompurify": "^2.3.0",
-        "off-color": "^2.0.0"
-    }
+  "name": "hydrogen-web",
+  "version": "0.5.1",
+  "description": "A javascript matrix client prototype, trying to minize RAM usage by offloading as much as possible to IndexedDB",
+  "directories": {
+    "doc": "doc"
+  },
+  "enginesStrict": {
+    "node": ">=15"
+  },
+  "scripts": {
+    "lint": "eslint --cache src/",
+    "lint-ts": "eslint src/ -c .ts-eslintrc.js --ext .ts",
+    "lint-ci": "eslint src/",
+    "test": "impunity --entry-point src/platform/web/main.js src/platform/web/Platform.js --force-esm-dirs lib/ src/ --root-dir src/",
+    "test:postcss": "impunity --entry-point  scripts/postcss/tests/css-compile-variables.test.js scripts/postcss/tests/css-url-to-variables.test.js",
+    "test:sdk": "yarn build:sdk && cd ./scripts/sdk/test/ && yarn --no-lockfile && node test-sdk-in-esm-vite-build-env.js && node test-sdk-in-commonjs-env.js",
+    "start": "vite --port 3000",
+    "build": "vite build && ./scripts/cleanup.sh",
+    "build:sdk": "./scripts/sdk/build.sh",
+    "watch:sdk": "./scripts/sdk/build.sh && yarn run vite build -c vite.sdk-lib-config.js --watch",
+    "test:app": "./scripts/test-app.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:vector-im/hydrogen-web.git"
+  },
+  "author": "matrix.org",
+  "license": "SEE LICENSE IN README.md",
+  "bugs": {
+    "url": "https://github.com/vector-im/hydrogen-web/issues"
+  },
+  "homepage": "https://github.com/vector-im/hydrogen-web/#readme",
+  "devDependencies": {
+    "@matrixdotorg/structured-logviewer": "^0.0.3",
+    "@playwright/test": "^1.27.1",
+    "@typescript-eslint/eslint-plugin": "^4.29.2",
+    "@typescript-eslint/parser": "^4.29.2",
+    "acorn": "^8.6.0",
+    "acorn-walk": "^8.2.0",
+    "aes-js": "^3.1.2",
+    "bs58": "^4.0.1",
+    "core-js": "^3.6.5",
+    "es6-promise": "https://github.com/bwindels/es6-promise.git#bwindels/expose-flush",
+    "escodegen": "^2.0.0",
+    "eslint": "^7.32.0",
+    "fake-indexeddb": "^3.1.2",
+    "fs-extra": "^11.1.1",
+    "impunity": "^1.0.9",
+    "mdn-polyfills": "^5.20.0",
+    "merge-options": "^3.0.4",
+    "node-html-parser": "^4.0.0",
+    "postcss-css-variables": "^0.18.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-value-parser": "^4.2.0",
+    "regenerator-runtime": "^0.13.7",
+    "svgo": "^2.8.0",
+    "text-encoding": "^0.7.0",
+    "typescript": "^4.7.0",
+    "vite": "^2.9.8",
+    "xxhashjs": "^0.2.2"
+  },
+  "dependencies": {
+    "@matrix-org/olm": "^3.2.15",
+    "another-json": "^0.2.0",
+    "base64-arraybuffer": "^0.2.0",
+    "dompurify": "^2.3.0",
+    "off-color": "^2.0.0"
+  }
 }
