@@ -1,16 +1,10 @@
-Contributing code to hydrogen-web
-==================================
+# Contributing code to hydrogen-web
 
-Everyone is welcome to contribute code to hydrogen-web, provided that they are
-willing to license their contributions under the same license as the project
-itself. We follow a simple 'inbound=outbound' model for contributions: the act
-of submitting an 'inbound' contribution means that the contributor agrees to
-license the code under the same terms as the project's overall 'outbound'
-license - in this case, Apache Software License v2 (see
-[LICENSE](LICENSE)).
+Everyone is welcome to contribute code to hydrogen-web, provided that they are willing to
+license their contributions to Element under a Contributor License Agreement (CLA).
+This ensures that their contribution will be made available under an approved licence as described in our [Readme](/README.md#copyright--license)
 
-How to contribute
------------------
+## How to contribute
 
 The preferred and easiest way to contribute changes to the project is to fork
 it on github, and then create a pull request to ask us to pull your changes
