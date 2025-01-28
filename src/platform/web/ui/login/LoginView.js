@@ -24,33 +24,35 @@ export class LoginView extends TemplateView {
                 disabled
             }),
             t.div({className: "logo"}),
-            t.h1([vm.i18n`Sign In`]),
-            t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
-            t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form-row text" },
-                [
-                    t.label({for: "homeserver"}, vm.i18n`Homeserver`),
-                    t.input({
-                        id: "homeserver",
-                        type: "text",
-                        placeholder: vm.i18n`Your matrix homeserver`,
-                        value: vm.homeserver,
-                        disabled,
-                        onInput: event => vm.setHomeserver(event.target.value),
-                        onChange: () => vm.queryHomeserver(),
-                    }),
-                    t.p({className: {
-                        LoginView_forwardInfo: true,
-                        hidden: vm => !vm.resolvedHomeserver
-                    }}, vm => vm.i18n`You will connect to ${vm.resolvedHomeserver}.`),
-                    t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
-                ]
-            )),
-            t.if(vm => vm.isFetchingLoginOptions, t => t.div({className: "LoginView_query-spinner"}, [spinner(t), t.p("Fetching available login options...")])),
-            t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
-            t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
-            t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
-            t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
-            // use t.mapView rather than t.if to create a new view when the view model changes too
+            t.div({className: "SessionLoginView"}, [
+                t.h1([vm.i18n`Sign In`]),
+                t.mapView(vm => vm.completeSSOLoginViewModel, vm => vm ? new CompleteSSOView(vm) : null),
+                t.if(vm => vm.showHomeserver, (t, vm) => t.div({ className: "LoginView_sso form-row text" },
+                    [
+                        t.label({for: "homeserver"}, vm.i18n`Homeserver`),
+                        t.input({
+                            id: "homeserver",
+                            type: "text",
+                            placeholder: vm.i18n`Your matrix homeserver`,
+                            value: vm.homeserver,
+                            disabled,
+                            onInput: event => vm.setHomeserver(event.target.value),
+                            onChange: () => vm.queryHomeserver(),
+                        }),
+                        t.p({className: {
+                            LoginView_forwardInfo: true,
+                            hidden: vm => !vm.resolvedHomeserver
+                        }}, vm => vm.i18n`You will connect to ${vm.resolvedHomeserver}.`),
+                        t.if(vm => vm.errorMessage, (t, vm) => t.p({className: "error"}, vm.i18n(vm.errorMessage))),
+                    ]
+                )),
+                t.if(vm => vm.isFetchingLoginOptions, t => t.div({className: "LoginView_query-spinner"}, [spinner(t), t.p("Fetching available login options...")])),
+                t.mapView(vm => vm.passwordLoginViewModel, vm => vm ? new PasswordLoginView(vm): null),
+                t.if(vm => vm.passwordLoginViewModel && vm.startSSOLoginViewModel, t => t.p({className: "LoginView_separator"}, vm.i18n`or`)),
+                t.mapView(vm => vm.startSSOLoginViewModel, vm => vm ? new StartSSOLoginView(vm) : null),
+                t.mapView(vm => vm.loadViewModel, loadViewModel => loadViewModel ? new SessionLoadStatusView(loadViewModel) : null),
+                // use t.mapView rather than t.if to create a new view when the view model changes too
+            ]), 
             t.p(hydrogenGithubLink(t))
         ]);
     }
