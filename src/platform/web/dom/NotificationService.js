@@ -12,12 +12,24 @@ export class NotificationService {
         this._pushConfig = pushConfig;
     }
 
-    async enablePush(pusherFactory, defaultPayload) {
+    async enablePush(pusherFactory, defaultPayload, hsApi) {
         const registration = await this._serviceWorkerHandler?.getRegistration();
         if (registration?.pushManager) {
+            const response = await hsApi.capabilities().response();
+            var webPushCapability = response?.capabilities?.["m.webpush"]
+            if (!webPushCapability)
+                webPushCapability = response?.capabilities?.["org.matrix.msc4174.webpush"]
+
+            var supportDirectWebPush = false;
+            var applicationServerKey = this._pushConfig.applicationServerKey
+            if (webPushCapability && webPushCapability?.enabled == true) {
+                supportDirectWebPush = true;
+                applicationServerKey = webPushCapability?.vapid
+            }
+
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: this._pushConfig.applicationServerKey,
+                applicationServerKey: applicationServerKey,
             });
             const subscriptionData = subscription.toJSON();
             const pushkey = subscriptionData.keys.p256dh;
@@ -29,12 +41,20 @@ export class NotificationService {
                 events_only: true,
                 default_payload: defaultPayload
             };
-            return pusherFactory.httpPusher(
-                this._pushConfig.gatewayUrl,
-                this._pushConfig.appId,
-                pushkey,
-                data
-            );
+            if (supportDirectWebPush) {
+                return pusherFactory.webpushPusher(
+                    this._pushConfig.appId,
+                    pushkey,
+                    data
+                );
+            } else {
+                return pusherFactory.httpPusher(
+                    this._pushConfig.gatewayUrl,
+                    this._pushConfig.appId,
+                    pushkey,
+                    data
+                );
+            }
         }
     }
 
