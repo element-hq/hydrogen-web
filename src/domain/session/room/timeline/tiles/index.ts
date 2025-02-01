@@ -63,6 +63,7 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                     case "m.video":
                         return VideoTile;
                     case "m.file":
+                    case "m.audio":
                         return FileTile;
                     case "m.location":
                         return LocationTile;
@@ -78,6 +79,9 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         return undefined;
                 }
             }
+            case "m.sticker":
+                // This is an event type and not a message type.
+                return ImageTile;
             case "m.room.name":
                 return RoomNameTile;
             case "m.room.member":
