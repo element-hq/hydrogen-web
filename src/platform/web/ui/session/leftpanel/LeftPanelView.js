@@ -1,6 +1,7 @@
 /*
 Copyright 2025 New Vector Ltd.
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
@@ -24,7 +25,10 @@ class FilterField extends TemplateView {
             type: "text",
             placeholder: options?.label,
             "aria-label": options?.label,
-            autocomplete: options?.autocomplete,
+            autocomplete: "new-password",
+            spellcheck: "false",
+            autocorrect: "off",
+            readonly: true,
             enterkeyhint: 'search',
             name: options?.name,
             onInput: event => options.set(event.target.value),
@@ -33,7 +37,10 @@ class FilterField extends TemplateView {
                     clear();
                 }
             },
-            onFocus: () => filterInput.select()
+            onFocus: () => {
+                filterInput.removeAttribute("readonly");
+                filterInput.select();
+            },
         });
         const clearButton = t.button({
             onClick: clear,

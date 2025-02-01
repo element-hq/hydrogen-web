@@ -1,6 +1,7 @@
 /*
 Copyright 2025 New Vector Ltd.
 Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
@@ -110,7 +111,16 @@ function renderEnableFromPhrase(t: Builder<KeyBackupViewModel>, vm: KeyBackupVie
 function renderEnableFieldRow(t, vm, label, callback): ViewNode {
     let setupDehydrationCheck;
     const eventHandler = () => callback(input.value, setupDehydrationCheck?.checked || false);
-    const input = t.input({type: "password", disabled: vm => vm.isBusy, placeholder: label});
+    const input = t.input({
+        type: "password",
+        disabled: vm => vm.isBusy,
+        placeholder: label,
+        autocomplete: "new-password",
+        spellcheck: "false",
+        autocorrect: "off",
+        readonly: true,
+        onFocus: () => input.removeAttribute("readonly"),
+    });
     const children = [
         t.p([
             input,
