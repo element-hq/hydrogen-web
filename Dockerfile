@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM --platform=${BUILDPLATFORM} docker.io/node:alpine as builder
 RUN apk add --no-cache git python3 build-base
 
