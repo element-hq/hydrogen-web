@@ -25,6 +25,8 @@ body.hydrogen {
     overscroll-behavior: none;
     /* disable rubberband scrolling on document in IE11 */
     overflow: hidden;
+    height: 100%;
+    width: 100%;
 }
 
 .hydrogen {
