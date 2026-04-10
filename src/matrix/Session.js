@@ -938,7 +938,7 @@ export class Session {
     async _enablePush() {
         return this._platform.logger.run("enablePush", async log => {
             const defaultPayload = Pusher.createDefaultPayload(this._sessionInfo.id);
-            const pusher = await this._platform.notificationService.enablePush(Pusher, defaultPayload);
+            const pusher = await this._platform.notificationService.enablePush(Pusher, defaultPayload, this._hsApi);
             if (!pusher) {
                 log.set("no_pusher", true);
                 return false;

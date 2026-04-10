@@ -48,6 +48,19 @@ export class Pusher {
         });
     }
 
+    static webpushPusher(appId: string, pushkey: string, data: IPusherData): Pusher {
+        return new Pusher({
+            kind: "webpush",
+            append: true,   // as pushkeys are shared between multiple users on one origin
+            data,
+            pushkey,
+            app_id: appId,
+            app_display_name: "Hydrogen",
+            device_display_name: "Hydrogen",
+            lang: "en"
+        });
+    }
+
     static createDefaultPayload(sessionId: string): {session_id: string} {
         return {session_id: sessionId};
     }
