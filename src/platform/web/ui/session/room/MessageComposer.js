@@ -87,6 +87,9 @@ export class MessageComposer extends TemplateView {
         // to prevent the user from sending the message
         // every time they hit enter while it's still enqueuing.
         const {value} = this._input;
+        if (!value || !value.trim()) {
+            return;
+        }
         const restoreValue = () => {
             this._input.value = value;
             this._adjustHeight();
