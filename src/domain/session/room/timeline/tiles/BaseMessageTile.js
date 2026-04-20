@@ -1,6 +1,7 @@
 /*
 Copyright 2025 New Vector Ltd.
 Copyright 2020 Bruno Windels <bruno@windels.cloud>
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
@@ -139,7 +140,7 @@ export class BaseMessageTile extends SimpleTile {
     }
 
     createReplyContent(msgtype, body) {
-        return this._entry.createReplyContent(msgtype, body);
+        return this._entry.createReplyContent(msgtype, body, this.permaLink);
     }
 
     redact(reason, log) {

@@ -1,6 +1,7 @@
 /*
 Copyright 2025 New Vector Ltd.
 Copyright 2021 The Matrix.org Foundation C.I.C.
+Copyright 2024 Mirian Margiani <mixosaurus+ichthyo@pm.me>
 
 SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
@@ -177,8 +178,8 @@ export class BaseEventEntry extends BaseEntry {
         return createAnnotation(this.id, key);
     }
 
-    createReplyContent(msgtype, body) {
-        return createReplyContent(this, msgtype, body);
+    createReplyContent(msgtype, body, permaLink) {
+        return createReplyContent(this, msgtype, body, permaLink);
     }
 
     /** takes both remote event id and local txn id into account, see overriding in PendingEventEntry */
