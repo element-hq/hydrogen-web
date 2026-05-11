@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM --platform=${BUILDPLATFORM} docker.io/node:alpine as builder
 RUN apk add --no-cache git python3 build-base
 
@@ -15,7 +16,7 @@ RUN yarn build
 RUN mv -f target/config.json /config.json.bundled \
   && ln -sf /tmp/config.json target/config.json
 
-FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:alpine
+FROM --platform=${TARGETPLATFORM} docker.io/nginxinc/nginx-unprivileged:alpine-slim
 
 # Copy the dynamic config script
 COPY ./docker/dynamic-config.sh /docker-entrypoint.d/99-dynamic-config.sh
