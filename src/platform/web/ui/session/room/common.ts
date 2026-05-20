@@ -26,9 +26,11 @@ export function viewClassForTile(vm: ITile): TileViewConstructor {
         case TileShape.Gap:
             return GapView;
         case TileShape.Announcement:
+        case TileShape.UnknownEvent:
             return AnnouncementView;
         case TileShape.Message:
         case TileShape.MessageStatus:
+        case TileShape.UnknownMessage:
             return TextMessageView;
         case TileShape.Image:
             return ImageView;

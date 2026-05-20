@@ -20,6 +20,8 @@ import {EncryptionEnabledTile} from "./EncryptionEnabledTile.js";
 import {MissingAttachmentTile} from "./MissingAttachmentTile.js";
 import {CallTile} from "./CallTile.js";
 import {VerificationTile} from "./VerificationTile.js";
+import {UnknownMessageTile} from "./UnknownMessageTile.js";
+import {UnknownEventTile} from "./UnknownEventTile.js";
 
 import type {ITile, TileShape} from "./ITile";
 import type {Room} from "../../../../../matrix/room/Room";
@@ -74,8 +76,10 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                         }
                         return VerificationTile as unknown as TileConstructor;
                     default:
-                        // unknown msgtype not rendered
-                        return undefined;
+                        // Unknown messages are rendered using the fallback plain text
+                        // representation, including a notice that the message is not
+                        // supported.
+                        return UnknownMessageTile;
                 }
             }
             case "m.room.name":
@@ -97,9 +101,31 @@ export function tileClassForEntry(entry: TimelineEntry, options: Options): TileC
                 }
                 return undefined;
             }
-            default:
-                // unknown type not rendered
+
+            // These events are handled separately and don't need an extra timeline entry.
+            case "m.reaction":
+            case "m.room.redaction":
                 return undefined;
+
+            // Displaying these events is not supported but they can safely be
+            // hidden instead of spamming rooms with warning messages.
+            case "m.room.create":
+            case "m.room.power_levels":
+            case "m.room.join_rules":
+            case "m.room.history_visibility":
+            case "m.room.guest_access":
+            case "m.room.topic":
+            case "m.room.avatar":
+            case "m.bridge":
+            case "uk.half-shot.bridge":
+                return undefined;
+
+            // Unknown events are rendered as a placeholder so users notice that
+            // there is something that they are missing. Ideally, all events
+            // are either added to the "safe-to-ignore" list above, or rendered
+            // with proper tile implementations.
+            default:
+                return UnknownEventTile;
         }
     }
 }
