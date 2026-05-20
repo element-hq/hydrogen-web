@@ -896,6 +896,7 @@ button.link {
 .menu .quick-reactions button {
     padding: 2px 4px;
     text-align: center;
+    color: var(--text-color);
 }
 
 .InviteView_body {
